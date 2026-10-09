@@ -37,7 +37,7 @@ export class StepsMenu {
 
   select(sectionIndex: number, itemIndex: number): void {
     const item = this.sections[sectionIndex]?.items[itemIndex];
-    if (!item || item.state === 'success') {
+    if (!item) {
       return;
     }
     for (const section of this.sections) {

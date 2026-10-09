@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { SideNav } from '../../menu-bar/side-nav';
 import { TopHeader } from '../../top-header/top-header';
 
@@ -29,6 +29,12 @@ export class DraftPage {
     { title: 'ข้อมูลผู้มอบหมายแทน', detail: 'รายละเอียดข้อมูล', tone: 'issue', page: 'หน้า 125' },
   ];
   protected selected = 4;
+
+  constructor(private readonly router: Router) {}
+
+  protected openChat(): void {
+    void this.router.navigate(['/requests', 'chat']);
+  }
 
   protected pick(index: number): void {
     this.selected = index;

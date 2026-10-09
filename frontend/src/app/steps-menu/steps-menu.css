@@ -46,3 +46,12 @@
   border-color: var(--color-border);
   background: var(--color-disabled-bg);
 }
+
+:host(.is-wide) {
+  display: block;
+  width: 100%;
+}
+
+:host(.is-wide) .steps-menu {
+  width: 100%;
+}

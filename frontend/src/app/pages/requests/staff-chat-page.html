@@ -1,0 +1,57 @@
+<div class="staff">
+  <app-top-header class="fluid" />
+  <div class="staff__body">
+    <app-side-nav open="คำขอ" active="รายการยื่นคำขอ" />
+    <main>
+      <header class="head">
+        <p class="crumb">
+          <a routerLink="/requests">รายการยื่นคำขอ</a>
+          <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+          <a routerLink="/requests/AD1120">รายละเอียด</a>
+          <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+          <a routerLink="/requests/draft/A4">เอกสารการยื่นข้อความ A4</a>
+          <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+          <span>แชทถาม AI</span>
+        </p>
+        <h1>AI ช่วยแนะนำ</h1>
+      </header>
+      <section class="room" aria-label="แชทถาม AI">
+        <div class="room__bar">
+          <img src="assets/icons/chat-avatar.svg" width="44" height="44" alt="" />
+          <span>
+            <strong>แชทถาม AI</strong>
+            ตอบจากเอกสารในเคสนี้เท่านั้น
+          </span>
+        </div>
+        <div class="room__body">
+          <p class="when">วันนี้ .  09:38</p>
+          <div class="mine">
+            <img src="assets/icons/staff-bubble-a.svg" width="488" height="104" alt="" />
+          </div>
+          <div class="reply">
+            <img src="assets/icons/chat-avatar.svg" width="44" height="44" alt="" />
+            <div>
+              <button type="button" aria-label="คัดลอก">
+                <img src="assets/icons/staff-copy.svg" width="11.6641" height="14.3333" alt="" />
+              </button>
+            </div>
+          </div>
+          <div class="lower">
+            <div class="chips">
+              @for (prompt of prompts; track prompt) {
+                <button type="button" (click)="usePrompt(prompt)">{{ prompt }}</button>
+              }
+            </div>
+            <img src="assets/icons/staff-bubble-b.svg" width="492.721" height="73.2656" alt="" />
+          </div>
+          <form (submit)="$event.preventDefault()">
+            <input type="text" name="question" placeholder="คำถามของคุณ" [value]="question" (input)="question = $any($event.target).value" />
+            <button type="submit" aria-label="ส่งคำถาม">
+              <img src="assets/icons/chat-send.svg" width="22" height="22" alt="" />
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

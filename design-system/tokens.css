@@ -36,6 +36,7 @@
   --color-warning: #b7791f; /* Warning text / icon */
   --color-warning-bg: #fdf3e1; /* Warning background */
   --color-info-bg: #e6f1f9; /* Info background */
+  --color-template-link: #1a8be8; /* ปร.1 template download link */
   --color-chat-from: #1a73e8; /* Chat button gradient start, download text */
   --color-chat-to: #004aab; /* Chat button gradient end */
   --color-chat-border: #0093ff; /* Chat button border */
@@ -52,6 +53,7 @@
   --color-chat-sky: #06b9fa; /* Ask AI header gradient end */
   --color-chip-bg: #e6f8ff; /* Ask AI suggestion chip background */
   --color-chat-placeholder: #747474; /* Ask AI input placeholder */
+  --color-chat-reply: #eaeaea; /* Staff chat reply bubble */
   --color-fab-from: #00c8ff; /* Ask AI button gradient start */
   --color-fab-to: #009dff; /* Ask AI button gradient end */
 

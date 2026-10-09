@@ -9,6 +9,10 @@ const roleNames: Record<AccountRole, string> = {
   corporate: 'นิติบุคคล',
   individual: 'บุคคลธรรมดา',
   association: 'สมาคมการค้า',
+  staff: 'เจ้าหน้าที่รับเรื่อง',
+  director: 'ผู้อำนวยการ',
+  head: 'หัวหน้ากลุ่ม',
+  officer: 'เจ้าหน้าที่ คต.',
 };
 
 @Component({

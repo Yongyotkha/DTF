@@ -10,7 +10,7 @@ export class MenuItem {
   @Input() level: 'main' | 'sub' = 'main';
   @Input() state: 'default' | 'active' = 'default';
   @Input() expanded = false;
-  @Input() icon: 'request' | 'investigate' | 'petition' | 'guide' | '' = '';
+  @Input() icon: 'request' | 'investigate' | 'petition' | 'guide' | 'home' | '' = '';
   @Input() chevron = false;
   @Input() compact = false;
 

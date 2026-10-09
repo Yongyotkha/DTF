@@ -4,7 +4,10 @@
     <span>ย่อเมนู</span>
   }
 </button>
-@for (menu of menus; track menu.title) {
+@if (kind === 'staff') {
+  <app-menu-item label="หน้าหลัก" icon="home" [compact]="collapsed()" [state]="active === 'หน้าหลัก' ? 'active' : 'default'" (click)="pick('หน้าหลัก')" />
+}
+@for (menu of menuList(); track menu.title) {
   <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="isOpen(menu.title)" [active]="active" [compact]="collapsed()" (chosen)="pick($event)" (toggled)="toggleGroup(menu.title)" (opened)="expand()" />
 }
 <app-menu-item label="คู่มือการใช้งาน" icon="guide" [compact]="collapsed()" />

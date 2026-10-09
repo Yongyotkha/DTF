@@ -1,0 +1,1153 @@
+<div class="por1">
+  <app-top-header class="fluid" />
+  <div class="por1__body">
+    <app-side-nav open="คำขอ" active="ยื่นคำขอ" />
+    <main>
+      <header class="head">
+        <div>
+          <h1>ยื่นคำขอแบบ ปร. 1 (มาตราการ AD)</h1>
+          <p>แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</p>
+        </div>
+        <div class="head__actions">
+          <app-button type="outline" label="บันทึกร่าง" />
+          <app-button type="primary" label="ยื่นคำขอ" (click)="submitOpen = true" />
+        </div>
+      </header>
+      <section class="sheet">
+        <h2>รายละเอียดเอกสาร</h2>
+        <div class="sheet__split">
+          <nav class="toc" aria-label="ส่วนของแบบ ปร. 1">
+            @for (item of sections; track item.id) {
+              <button type="button" [class.toc__on]="section === item.id" [class.toc__child]="item.child" [attr.aria-current]="section === item.id ? 'true' : null" (click)="section = item.id">
+                @if (item.id !== '7' && item.id !== '8') {
+                  <img [src]="passed(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                }
+                {{ item.label }}
+              </button>
+            }
+          </nav>
+          <div class="form">
+            @if (section === '1') {
+              <h3>ส่วนที่ 1 ข้อมูลผู้ยื่น</h3>
+              <div class="grid">
+                <fieldset>
+                  <legend>มาตรการที่ขอให้ดำเนินการพิจารณา</legend>
+                  <div class="choices">
+                    <label>
+                      <input type="radio" name="measure" value="dumping" [checked]="measure === 'dumping'" (change)="measure = 'dumping'" />
+                      <img [src]="measure === 'dumping' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                      ตอบโต้การทุ่มตลาด
+                    </label>
+                    <label>
+                      <input type="radio" name="measure" value="subsidy" [checked]="measure === 'subsidy'" (change)="measure = 'subsidy'" />
+                      <img [src]="measure === 'subsidy' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                      ตอบโต้การอุดหนุน
+                    </label>
+                  </div>
+                </fieldset>
+                <label class="field">
+                  ชื่อ/บริษัท/สมาคม
+                  <input type="text" placeholder="ระบุ" [value]="company" (input)="company = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  สัญชาติ
+                  <span class="select">
+                    <select [value]="nationality" (change)="nationality = $any($event.target).value">
+                      @for (item of nationalities; track item) {
+                        <option [value]="item">{{ item }}</option>
+                      }
+                    </select>
+                    <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
+                  </span>
+                </label>
+                <label class="field">
+                  ที่อยู่
+                  <input type="text" placeholder="ระบุ" [value]="address" (input)="address = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  โทรศัพท์
+                  <input type="text" placeholder="ระบุ" [value]="phone" (input)="phone = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  โทรสาร
+                  <input type="text" placeholder="ระบุ" [value]="fax" (input)="fax = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  ไปรษณีย์อิเล็กทรอนิกส์
+                  <input type="email" placeholder="ระบุ" [value]="email" (input)="email = $any($event.target).value" />
+                </label>
+                <label class="field field--wide">
+                  โดย
+                  <input type="text" placeholder="ระบุ" [value]="agent" (input)="agent = $any($event.target).value" />
+                  <small>(ผู้มีอำนาจกระทำแทน/ผู้รับมอบอำนาจ)</small>
+                </label>
+                <label class="field">
+                  โทรศัพท์
+                  <input type="text" placeholder="ระบุ" [value]="agentPhone" (input)="agentPhone = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  โทรสาร
+                  <input type="text" placeholder="ระบุ" [value]="agentFax" (input)="agentFax = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  ไปรษณีย์อิเล็กทรอนิกส์
+                  <input type="email" placeholder="ระบุ" [value]="agentEmail" (input)="agentEmail = $any($event.target).value" />
+                </label>
+              </div>
+              <fieldset class="filing">
+                <legend>รูปแบบการยื่นคำขอ</legend>
+                <label>
+                  <input type="radio" name="filing" value="self" [checked]="filing === 'self'" (change)="filing = 'self'" />
+                  <img [src]="filing === 'self' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  ยื่นคำขอในนามของตนเอง
+                </label>
+                <label>
+                  <input type="radio" name="filing" value="all" [checked]="filing === 'all'" (change)="filing = 'all'" />
+                  <img [src]="filing === 'all' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  ยื่นคำขอแทนผู้ผลิตทั้งหมด
+                </label>
+                <label>
+                  <input type="radio" name="filing" value="part" [checked]="filing === 'part'" (change)="filing = 'part'" />
+                  <img [src]="filing === 'part' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  ยื่นคำขอแทนผู้ผลิตบางส่วน
+                </label>
+              </fieldset>
+              <div class="table-head">
+                <p>
+                  @if (onBehalf) {
+                    รายชื่อผู้ผลิตที่มิใช่บริษัทเดียวกัน
+                  } @else {
+                    รายการสินค้าที่ผลิตและ/หรือจำหน่าย
+                  }
+                  <button type="button">(ดาวน์โหลดเทมเพลต)</button>
+                </p>
+                <div>
+                  <label class="file-btn">
+                    นำเข้า Excel
+                    <input type="file" accept=".xls,.xlsx" (change)="pick('excel', $event)" />
+                  </label>
+                  <app-button class="icon-before" type="outline" label="เพิ่มข้อมูล" (click)="addRow()">
+                    <img src="assets/icons/por1-plus.svg" width="24" height="24" alt="" />
+                  </app-button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                @if (onBehalf) {
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>รายชื่อผู้ผลิต</th>
+                        <th>ที่อยู่</th>
+                        <th>หมายเลขโทรศัพท์</th>
+                        <th>หมายเลขโทรสาร</th>
+                        <th>เว็บไซต์</th>
+                        <th>ไปรษณีย์อิเล็กทรอนิกส์</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of makers; track $index) {
+                        <tr>
+                          <td><input type="text" [value]="row.name" (input)="row.name = $any($event.target).value" aria-label="รายชื่อผู้ผลิต" /></td>
+                          <td><input type="text" [value]="row.address" (input)="row.address = $any($event.target).value" aria-label="ที่อยู่" /></td>
+                          <td><input type="text" [value]="row.phone" (input)="row.phone = $any($event.target).value" aria-label="หมายเลขโทรศัพท์" /></td>
+                          <td><input type="text" [value]="row.fax" (input)="row.fax = $any($event.target).value" aria-label="หมายเลขโทรสาร" /></td>
+                          <td><input type="text" [value]="row.web" (input)="row.web = $any($event.target).value" aria-label="เว็บไซต์" /></td>
+                          <td><input type="text" [value]="row.email" (input)="row.email = $any($event.target).value" aria-label="ไปรษณีย์อิเล็กทรอนิกส์" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="col-no">ลำดับ</th>
+                        <th>ชื่อผู้ผลิต</th>
+                        <th>ชื่อสินค้า</th>
+                        <th>ปริมาณที่ผลิต</th>
+                        <th>ปริมาณที่จำหน่าย</th>
+                        <th class="col-unit">หน่วย</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of goods; track $index) {
+                        <tr>
+                          <td class="col-no">{{ $index + 1 }}</td>
+                          <td><input type="text" [value]="row.producer" (input)="row.producer = $any($event.target).value" aria-label="ชื่อผู้ผลิต" /></td>
+                          <td><input type="text" [value]="row.goods" (input)="row.goods = $any($event.target).value" aria-label="ชื่อสินค้า" /></td>
+                          <td><input type="text" [value]="row.made" (input)="row.made = $any($event.target).value" aria-label="ปริมาณที่ผลิต" /></td>
+                          <td><input type="text" [value]="row.sold" (input)="row.sold = $any($event.target).value" aria-label="ปริมาณที่จำหน่าย" /></td>
+                          <td class="col-unit"><input type="text" [value]="row.unit" (input)="row.unit = $any($event.target).value" aria-label="หน่วย" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+              <h4>เอกสารประกอบ</h4>
+              <div class="uploads">
+                <label class="upload">
+                  <span class="req">หนังสือรับรองบริษัท *</span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('cert', $event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                  @if (files['cert']) {
+                    <small>{{ files['cert'] }}</small>
+                  }
+                </label>
+                <label class="upload">
+                  <span class="req">งบการเงินที่ผู้สอบบัญชีรับอนุญาตรับรอง *</span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('finance', $event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                  @if (files['finance']) {
+                    <small>{{ files['finance'] }}</small>
+                  }
+                </label>
+                @if (onBehalf) {
+                  <label class="upload">
+                    <span class="req">หนังสือมอบอำนาจ</span>
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('power', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                    @if (files['power']) {
+                      <small>{{ files['power'] }}</small>
+                    }
+                  </label>
+                  <label class="upload">
+                    <span class="req">รายการและปริมาณสินค้าที่ผลิตและ/หรือจำหน่ายของผู้ผลิตทุกราย</span>
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('volume', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                    @if (files['volume']) {
+                      <small>{{ files['volume'] }}</small>
+                    }
+                  </label>
+                }
+              </div>
+            } @else if (section === '2') {
+              <div class="part-head">
+                <h3 class="part-head__title">ส่วนที่ 2 รายละเอียดสินค้า</h3>
+                <div>
+                  <app-button type="outline" label="ตัวอย่าง" (click)="exampleOpen = true" />
+                  <app-button type="primary" label="ดาวน์โหลดเทมเพลต" />
+                </div>
+              </div>
+              <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropDocs($event)">
+                <img src="assets/icons/por1-drop.svg" width="13.8" height="14.8" alt="" />
+                <span>Drag & drop or <span>browse</span></span>
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" multiple (change)="addDocs($any($event.target).files)" />
+              </label>
+              <small class="hint">เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+              <h4 class="files-title">ไฟล์เอกสาร</h4>
+              <div class="table-wrap">
+                <table class="files">
+                  <thead>
+                    <tr>
+                      <th>ชื่อไฟล์เอกสาร</th>
+                      <th>วันที่บันทึก</th>
+                      <th>ดาวน์โหลด</th>
+                      <th>ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (file of docs; track file.name + $index) {
+                      <tr>
+                        <td>
+                          <span class="file-name">
+                            <img src="assets/icons/por1-pdf.svg" width="16" height="16" alt="" />
+                            {{ file.name }}
+                          </span>
+                        </td>
+                        <td>{{ file.saved }}</td>
+                        <td><button type="button" class="download">ดาวน์โหลด</button></td>
+                        <td>
+                          <button type="button" class="trash" aria-label="ลบ" (click)="removeDoc($index)">
+                            <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else if (section === '3') {
+              <h3 class="section-title">ส่วนที่ 3 ข้อมูลเกี่ยวกับผู้ผลิตและ/หรือผู้ส่งออกและผู้นำเข้า (ล่าสุด)</h3>
+              @for (block of parties; track block.key) {
+                <div class="table-head" [class.table-head--stack]="!$first">
+                  <p>
+                    {{ block.title }}
+                    <button type="button">(ดาวน์โหลดเทมเพลต)</button>
+                  </p>
+                  <div>
+                    <label class="file-btn">
+                      นำเข้า Excel
+                      <input type="file" accept=".xls,.xlsx" (change)="pick(block.key, $event)" />
+                    </label>
+                    <app-button class="icon-before" type="outline" label="เพิ่มข้อมูล" (click)="addParty(block)">
+                      <img src="assets/icons/por1-plus.svg" width="24" height="24" alt="" />
+                    </app-button>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="party">
+                    <thead>
+                      <tr>
+                        <th>
+                          @if (block.wrapped) {
+                            รายชื่อสมาคม/<br />กลุ่มอุตสาหกรรมผู้ใช้
+                          } @else {
+                            {{ block.nameLabel }}
+                          }
+                        </th>
+                        <th>ที่อยู่</th>
+                        <th>หมายเลขโทรศัพท์</th>
+                        <th>หมายเลขโทรสาร</th>
+                        <th>เว็บไซต์</th>
+                        <th>ไปรษณีย์<br />อิเล็กทรอนิกส์</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of block.rows; track $index) {
+                        <tr>
+                          <td><input type="text" [value]="row.name" (input)="row.name = $any($event.target).value" [attr.aria-label]="block.nameLabel" /></td>
+                          <td><input type="text" [value]="row.address" (input)="row.address = $any($event.target).value" aria-label="ที่อยู่" /></td>
+                          <td><input type="text" [value]="row.phone" (input)="row.phone = $any($event.target).value" aria-label="หมายเลขโทรศัพท์" /></td>
+                          <td><input type="text" [value]="row.fax" (input)="row.fax = $any($event.target).value" aria-label="หมายเลขโทรสาร" /></td>
+                          <td><input type="text" [value]="row.web" (input)="row.web = $any($event.target).value" aria-label="เว็บไซต์" /></td>
+                          <td><input type="text" [value]="row.email" (input)="row.email = $any($event.target).value" aria-label="ไปรษณีย์อิเล็กทรอนิกส์" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            } @else if (section === '4') {
+              <h3 class="section-title">ส่วนที่ 4 มูลค่าปกติ</h3>
+              <div class="grid lead-grid">
+                <label class="field">
+                  ประเทศผู้ส่งออก
+                  <span class="select">
+                    <select [value]="exportCountry" (change)="exportCountry = $any($event.target).value">
+                      @for (item of nationalities; track item) {
+                        <option [value]="item">{{ item }}</option>
+                      }
+                    </select>
+                    <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
+                  </span>
+                </label>
+                <fieldset>
+                  <legend>ประเทศผู้ส่งออกมีระบบเศรษฐกิจที่ใช้กลไกตลาดหรือไม่ ?</legend>
+                  <div class="choices choices--pair">
+                    <label>
+                      <input type="radio" name="market" value="yes" [checked]="market === 'yes'" (change)="market = 'yes'" />
+                      <img [src]="market === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                      ใช่
+                    </label>
+                    <label>
+                      <input type="radio" name="market" value="no" [checked]="market === 'no'" (change)="market = 'no'" />
+                      <img [src]="market === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                      ไม่ใช่
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+              @if (market === 'no') {
+                <h4 class="subhead">4.5 ประเทศที่ไม่ใช้ระบบกลไกตลาด</h4>
+                <div class="grid">
+                  <label class="field">
+                    ประเทศที่ใช้สำหรับเทียบเคียง
+                    <span class="select">
+                      <select [value]="compareCountry" (change)="compareCountry = $any($event.target).value">
+                        @for (item of nationalities; track item) {
+                          <option [value]="item">{{ item }}</option>
+                        }
+                      </select>
+                      <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
+                    </span>
+                  </label>
+                  <label class="note">
+                    เหตุผลในการเลือกประเทศ
+                    <textarea maxlength="200" placeholder="text" [value]="compareReason" (input)="compareReason = $any($event.target).value"></textarea>
+                    <small>{{ compareReason.length }} / 200</small>
+                  </label>
+                </div>
+                <fieldset class="methods">
+                  <legend>วิธีการหามูลค่าปกติ</legend>
+                  <div class="stack">
+                  <label>
+                    <input type="radio" name="method" value="451" [checked]="method === '451'" (change)="method = '451'" />
+                    <img [src]="method === '451' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    4.5.1 ราคาสินค้าชนิดเดียวกันในประเทศที่สาม (ใช้ข้อมูลชุดเดียวกับข้อ 4.1)
+                  </label>
+                  <label>
+                    <input type="radio" name="method" value="452" [checked]="method === '452'" (change)="method = '452'" />
+                    <img [src]="method === '452' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    4.5.2 ต้นทุนการผลิตในประเทศที่สาม (ใช้ข้อมูลชุดเดียวกับข้อ 4.3.1)
+                  </label>
+                  <label>
+                    <input type="radio" name="method" value="453" [checked]="method === '453'" (change)="method = '453'" />
+                    <img [src]="method === '453' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    4.5.3 ต้นทุนและปัจจัยการผลิตในประเทศไทย (ใช้ข้อมูลชุดเดียวกับข้อ 4.3.2)
+                  </label>
+                  </div>
+                </fieldset>
+              }
+              @if (showDomestic) {
+                <h4 class="subhead">4.1 ราคาจำหน่ายในประเทศผู้ส่งออก</h4>
+                <div class="grid">
+                  <fieldset>
+                    <legend>ระดับการค้า</legend>
+                    <div class="choices choices--trade">
+                      <label>
+                        <input type="radio" name="trade" value="wholesale" [checked]="trade === 'wholesale'" (change)="trade = 'wholesale'" />
+                        <img [src]="trade === 'wholesale' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                        ราคาขายส่ง
+                      </label>
+                      <label>
+                        <input type="radio" name="trade" value="retail" [checked]="trade === 'retail'" (change)="trade = 'retail'" />
+                        <img [src]="trade === 'retail' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                        ราคาขายปลีก
+                      </label>
+                      <label>
+                        <input type="radio" name="trade" value="other" [checked]="trade === 'other'" (change)="trade = 'other'" />
+                        <img [src]="trade === 'other' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                        อื่นๆ
+                      </label>
+                    </div>
+                  </fieldset>
+                  <label class="field">
+                    สกุลเงิน
+                    <span class="select">
+                      <select class="muted" [value]="currency" (change)="currency = $any($event.target).value">
+                        <option value="">เลือก</option>
+                      </select>
+                      <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
+                    </span>
+                  </label>
+                </div>
+                <label class="note">
+                  รายละเอียด/วิธีการคำนวณราคาหน้าโรงงาน
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="factoryNote" (input)="factoryNote = $any($event.target).value"></textarea>
+                  <small>{{ factoryNote.length }} / 200</small>
+                </label>
+                <div class="uploads">
+                  <label class="upload">
+                    ใบเสนอขาย
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('quote', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                    @if (files['quote']) { <small>{{ files['quote'] }}</small> }
+                  </label>
+                  <label class="upload">
+                    ใบแจ้งหนี้
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('invoice', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                    @if (files['invoice']) { <small>{{ files['invoice'] }}</small> }
+                  </label>
+                  <label class="upload">
+                    ใบเสร็จรับเงิน
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('receipt', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                    @if (files['receipt']) { <small>{{ files['receipt'] }}</small> }
+                  </label>
+                  <label class="upload">
+                    เอกสารอื่นๆที่เกี่ยวข้อง
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('otherDoc', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                    @if (files['otherDoc']) { <small>{{ files['otherDoc'] }}</small> }
+                  </label>
+                </div>
+              }
+              @if (showThird) {
+                <h4 class="subhead">4.2 ราคาส่งออกไปประเทศที่สาม</h4>
+                <label class="note">
+                  เหตุผล
+                  <textarea maxlength="200" placeholder="text" [value]="thirdReason" (input)="thirdReason = $any($event.target).value"></textarea>
+                  <small>{{ thirdReason.length }} / 200</small>
+                </label>
+                <div class="uploads">
+                  <label class="upload">
+                    หลักฐานประกอบเหตุผล
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('reasonProof', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                    @if (files['reasonProof']) { <small>{{ files['reasonProof'] }}</small> }
+                  </label>
+                  <label class="upload">
+                    หลักฐานที่มาของราคา
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('priceProof', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                    @if (files['priceProof']) { <small>{{ files['priceProof'] }}</small> }
+                  </label>
+                </div>
+              }
+              @if (showOrigin) {
+                <h4 class="subhead">4.3.1 มูลค่าปกติจากต้นทุนในประเทศแหล่งกำเนิด</h4>
+                <div class="grid">
+                  <label class="field">
+                    ช่วงเวลาของข้อมูล
+                    <span class="date">
+                      <img src="assets/icons/calendar.svg" width="24" height="24" alt="" />
+                      <input type="text" placeholder="22/09/2569-25/09/2569" [value]="originPeriod" (input)="originPeriod = $any($event.target).value" />
+                    </span>
+                  </label>
+                </div>
+                <div class="table-head">
+                  <p>ข้อมูลต้นทุน <button type="button">(ดาวน์โหลดเทมเพลต)</button></p>
+                  <div>
+                    <label class="file-btn">
+                      นำเข้า Excel
+                      <input type="file" accept=".xls,.xlsx" (change)="pick('originExcel', $event)" />
+                    </label>
+                    <app-button class="icon-before" type="outline" label="เพิ่มข้อมูล" (click)="addCost('origin')">
+                      <img src="assets/icons/por1-plus.svg" width="24" height="24" alt="" />
+                    </app-button>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="party">
+                    <thead>
+                      <tr>
+                        <th>รายการ</th>
+                        <th>จำนวนเงิน (หน่วย)</th>
+                        <th>ร้อยละ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of originCosts; track $index) {
+                        <tr>
+                          <td><input type="text" [value]="row.item" (input)="row.item = $any($event.target).value" aria-label="รายการ" /></td>
+                          <td><input type="text" [value]="row.amount" (input)="row.amount = $any($event.target).value" aria-label="จำนวนเงิน" /></td>
+                          <td><input type="text" [value]="row.percent" (input)="row.percent = $any($event.target).value" aria-label="ร้อยละ" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <label class="note">
+                  รายละเอียด
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="originDetail" (input)="originDetail = $any($event.target).value"></textarea>
+                  <small>{{ originDetail.length }} / 200</small>
+                </label>
+                <div class="uploads">
+                  <label class="upload">
+                    เอกสารหลักฐานประกอบ
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('originProof', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                    @if (files['originProof']) { <small>{{ files['originProof'] }}</small> }
+                  </label>
+                </div>
+              }
+              @if (showThaiCost) {
+                <h4 class="subhead">4.3.2 ต้นทุนและปัจจัยการผลิตในประเทศไทย</h4>
+                <div class="grid">
+                  <label class="field">
+                    ช่วงเวลาของข้อมูล
+                    <span class="date">
+                      <img src="assets/icons/calendar.svg" width="24" height="24" alt="" />
+                      <input type="text" placeholder="22/09/2569-25/09/2569" [value]="thaiPeriod" (input)="thaiPeriod = $any($event.target).value" />
+                    </span>
+                  </label>
+                </div>
+                <div class="table-head">
+                  <p>ข้อมูลต้นทุน <button type="button">(ดาวน์โหลดเทมเพลต)</button></p>
+                  <div>
+                    <label class="file-btn">
+                      นำเข้า Excel
+                      <input type="file" accept=".xls,.xlsx" (change)="pick('thaiExcel', $event)" />
+                    </label>
+                    <app-button class="icon-before" type="outline" label="เพิ่มข้อมูล" (click)="addCost('thai')">
+                      <img src="assets/icons/por1-plus.svg" width="24" height="24" alt="" />
+                    </app-button>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="party">
+                    <thead>
+                      <tr>
+                        <th>รายการ</th>
+                        <th>จำนวนเงิน (หน่วย)</th>
+                        <th>ร้อยละ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of thaiCosts; track $index) {
+                        <tr>
+                          <td><input type="text" [value]="row.item" (input)="row.item = $any($event.target).value" aria-label="รายการ" /></td>
+                          <td><input type="text" [value]="row.amount" (input)="row.amount = $any($event.target).value" aria-label="จำนวนเงิน" /></td>
+                          <td><input type="text" [value]="row.percent" (input)="row.percent = $any($event.target).value" aria-label="ร้อยละ" /></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                <label class="note">
+                  รายละเอียด
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="thaiDetail" (input)="thaiDetail = $any($event.target).value"></textarea>
+                  <small>{{ thaiDetail.length }} / 200</small>
+                </label>
+                <div class="uploads">
+                  <label class="upload">
+                    เอกสารหลักฐานประกอบ
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('thaiProof', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                    @if (files['thaiProof']) { <small>{{ files['thaiProof'] }}</small> }
+                  </label>
+                </div>
+              }
+              @if (market === 'yes') {
+                <h4 class="subhead">4.4 ตลาดมีลักษณะเฉพาะ</h4>
+                <fieldset class="methods">
+                  <legend>ตลาดในประเทศผู้ส่งออกมีลักษณะเฉพาะหรือไม่?</legend>
+                  <div class="choices choices--pair">
+                    <label>
+                      <input type="radio" name="special" value="yes" [checked]="special === 'yes'" (change)="special = 'yes'" />
+                      <img [src]="special === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                      มี
+                    </label>
+                    <label>
+                      <input type="radio" name="special" value="no" [checked]="special === 'no'" (change)="special = 'no'" />
+                      <img [src]="special === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                      ไม่มี
+                    </label>
+                  </div>
+                </fieldset>
+                <label class="note">
+                  รายละเอียด
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="specialDetail" (input)="specialDetail = $any($event.target).value"></textarea>
+                  <small>{{ specialDetail.length }} / 200</small>
+                </label>
+                <div class="uploads">
+                  <label class="upload">
+                    เอกสารหลักฐานประกอบ
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('specialProof', $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                    @if (files['specialProof']) { <small>{{ files['specialProof'] }}</small> }
+                  </label>
+                </div>
+              }
+            } @else if (section === '5') {
+              <h3 class="section-title">ส่วนที่ 5 ราคาส่งออก</h3>
+              <label class="note note--lead">
+                รายละเอียด
+                <textarea maxlength="200" placeholder="ระบุ" [value]="exportDetail" (input)="exportDetail = $any($event.target).value"></textarea>
+                <small>{{ exportDetail.length }} / 200</small>
+              </label>
+              <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropDocs($event, 'export')">
+                <img src="assets/icons/por1-drop.svg" width="13.8" height="14.8" alt="" />
+                <span>Drag & drop or <span>browse</span></span>
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" multiple (change)="addDocs($any($event.target).files, 'export')" />
+              </label>
+              <small class="hint">เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+              <h4 class="files-title">ไฟล์เอกสาร</h4>
+              <div class="table-wrap">
+                <table class="files">
+                  <thead>
+                    <tr>
+                      <th>ชื่อไฟล์เอกสาร</th>
+                      <th>วันที่บันทึก</th>
+                      <th>ดาวน์โหลด</th>
+                      <th>ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (file of exportDocs; track file.name + $index) {
+                      <tr>
+                        <td>
+                          <span class="file-name">
+                            <img src="assets/icons/por1-pdf.svg" width="16" height="16" alt="" />
+                            {{ file.name }}
+                          </span>
+                        </td>
+                        <td>{{ file.saved }}</td>
+                        <td><button type="button" class="download">ดาวน์โหลด</button></td>
+                        <td>
+                          <button type="button" class="trash" aria-label="ลบ" (click)="removeDoc($index, 'export')">
+                            <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else if (section === '6') {
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>ส่วนที่ 6 ส่วนเหลื่อมการทุ่มตลาด</h3>
+                  <p>กรุณาระบุข้อมูลราคาแยกตามประเทศ โดยใช้หน่วยและเงื่อนไขราคาที่สามารถเปรียบเทียบกันได้</p>
+                </div>
+                <app-button type="primary" label="ดาวน์โหลดเทมเพลต" />
+              </div>
+              <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropDocs($event, 'margin')">
+                <img src="assets/icons/por1-drop.svg" width="13.8" height="14.8" alt="" />
+                <span>Drag & drop or <span>browse</span></span>
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" multiple (change)="addDocs($any($event.target).files, 'margin')" />
+              </label>
+              <small class="hint">เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+              <h4 class="files-title">ไฟล์เอกสาร</h4>
+              <div class="table-wrap">
+                <table class="files">
+                  <thead>
+                    <tr>
+                      <th>ชื่อไฟล์เอกสาร</th>
+                      <th>วันที่บันทึก</th>
+                      <th>ดาวน์โหลด</th>
+                      <th>ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (file of marginDocs; track file.name + $index) {
+                      <tr>
+                        <td>
+                          <span class="file-name">
+                            <img src="assets/icons/por1-pdf.svg" width="16" height="16" alt="" />
+                            {{ file.name }}
+                          </span>
+                        </td>
+                        <td>{{ file.saved }}</td>
+                        <td><button type="button" class="download">ดาวน์โหลด</button></td>
+                        <td>
+                          <button type="button" class="trash" aria-label="ลบ" (click)="removeDoc($index, 'margin')">
+                            <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else if (section === '7.1') {
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>7.1 เอกสารเกี่ยวกับโครงการอุดหนุน</h3>
+                </div>
+                <app-button type="primary" label="ดาวน์โหลดเทมเพลต" />
+              </div>
+              <p class="remark">หมายเหตุ : ให้แนบเอกสารหลักฐานเกี่ยวกับโครงการอุดหนุนของรัฐบาลประเทศผู้ส่งออก เช่น เช่น พระราชบัญญัติ ประกาศ ระเบียบ คำสั่ง ที่ระบุว่ารัฐบาลประเทศผู้ส่งออกให้การอุดหนุนสินค้าที่ถูกพิจารณาและให้ระบุด้วยว่าแต่ละโครงการอยู่ภายใต้ความรับผิดชอบของหน่วยงานใด รวมทั้งสถานที่ตั้ง ประโยชน์ ที่ได้รับ และระยะเวลาของโครงการ</p>
+              <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropDocs($event, 'subsidy')">
+                <img src="assets/icons/por1-drop.svg" width="13.8" height="14.8" alt="" />
+                <span>Drag & drop or <span>browse</span></span>
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" multiple (change)="addDocs($any($event.target).files, 'subsidy')" />
+              </label>
+              <small class="hint">เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+              <h4 class="files-title">ไฟล์เอกสาร</h4>
+              <div class="table-wrap">
+                <table class="files">
+                  <thead>
+                    <tr>
+                      <th>ชื่อไฟล์เอกสาร</th>
+                      <th>วันที่บันทึก</th>
+                      <th>ดาวน์โหลด</th>
+                      <th>ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (file of subsidyDocs; track file.name + $index) {
+                      <tr>
+                        <td>
+                          <span class="file-name">
+                            <img src="assets/icons/por1-pdf.svg" width="16" height="16" alt="" />
+                            {{ file.name }}
+                          </span>
+                        </td>
+                        <td>{{ file.saved }}</td>
+                        <td><button type="button" class="download">ดาวน์โหลด</button></td>
+                        <td>
+                          <button type="button" class="trash" aria-label="ลบ" (click)="removeDoc($index, 'subsidy')">
+                            <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else if (section === '7.2') {
+              <h3 class="section-title section-title--lg">7.2 อธิบายการอุดหนุน</h3>
+              <label class="note note--lead">
+                รายละเอียด
+                <textarea maxlength="200" placeholder="ระบุ" [value]="explainDetail" (input)="explainDetail = $any($event.target).value"></textarea>
+                <small>{{ explainDetail.length }} / 200</small>
+              </label>
+              <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropDocs($event, 'explain')">
+                <img src="assets/icons/por1-drop.svg" width="13.8" height="14.8" alt="" />
+                <span>Drag & drop or <span>browse</span></span>
+                <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" multiple (change)="addDocs($any($event.target).files, 'explain')" />
+              </label>
+              <small class="hint">เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+              <h4 class="files-title">ไฟล์เอกสาร</h4>
+              <div class="table-wrap">
+                <table class="files">
+                  <thead>
+                    <tr>
+                      <th>ชื่อไฟล์เอกสาร</th>
+                      <th>วันที่บันทึก</th>
+                      <th>ดาวน์โหลด</th>
+                      <th>ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (file of explainDocs; track file.name + $index) {
+                      <tr>
+                        <td>
+                          <span class="file-name">
+                            <img src="assets/icons/por1-pdf.svg" width="16" height="16" alt="" />
+                            {{ file.name }}
+                          </span>
+                        </td>
+                        <td>{{ file.saved }}</td>
+                        <td><button type="button" class="download">ดาวน์โหลด</button></td>
+                        <td>
+                          <button type="button" class="trash" aria-label="ลบ" (click)="removeDoc($index, 'explain')">
+                            <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else if (section === '8.1') {
+              <h3 class="section-title section-title--lg">8.1 ข้อมูลการนำเข้าสินค้าที่ถูกพิจารณา</h3>
+              <label class="note note--lead">
+                รายละเอียด
+                <textarea maxlength="200" placeholder="ระบุ" [value]="note('importDetail')" (input)="setNote('importDetail', $any($event.target).value)"></textarea>
+                <small>{{ note('importDetail').length }} / 200</small>
+              </label>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'import' }" />
+            } @else if (section === '8.2') {
+              <h3 class="section-title section-title--lg">8.2 ผลกระทบด้านราคา</h3>
+              <div class="bundle">
+                <label class="upload">
+                  <span>ข้อมูลปัจจุบันและข้อมูลย้อนหลัง 3 ปี ทั้งนี้ ให้เปรียบเทียบราคา ณ ระดับการซื้อขายเดียวกันพร้อมแนบเอกสารหลักฐานประกอบ</span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('priceCompare', $event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                  @if (files['priceCompare']) { <small>{{ files['priceCompare'] }}</small> }
+                </label>
+                <label class="upload">
+                  <span>ข้อมูลต้นทุนสินค้าชนิดเดียวกันต่อหน่วยเป็นรายปีโดยใช้ข้อมูลปัจจุบัน และข้อมูลย้อนหลัง 3 ปีของผู้ยื่นคำขอ</span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick('unitCost', $event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                  @if (files['unitCost']) { <small>{{ files['unitCost'] }}</small> }
+                </label>
+                <label class="note">
+                  รายละเอียด
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="note('priceEffect')" (input)="setNote('priceEffect', $any($event.target).value)"></textarea>
+                  <small>{{ note('priceEffect').length }} / 200</small>
+                </label>
+                <p class="remark">หมายเหตุ : อธิบายและแสดงให้เห็นว่าสินค้าที่ถูกพิจารณามีผลกระทบต่อ ราคาขายสินค้าในประเทศในลักษณะของการตัดราคา กดราคา หรือจะหยุดยั้งการที่ราคาจะขยับตัวสูงขึ้นของสินค้าภายในประเทศอย่างไร</p>
+                <label class="note">
+                  รายละเอียด
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="note('costEffect')" (input)="setNote('costEffect', $any($event.target).value)"></textarea>
+                  <small>{{ note('costEffect').length }} / 200</small>
+                </label>
+                <p class="remark">หมายเหตุ : อธิบายและแสดงให้เห็นว่าสินค้าที่ถูกพิจารณามีผลกระทบต่อต้นทุนสินค้าชนิดเดียวกันรวมทั้งประมาณอัตรากำไรที่ควรจะได้รับอย่างไร</p>
+              </div>
+            } @else if (section === '8.3') {
+              <h3 class="section-title section-title--lg">8.3 สภาวะของผู้ยื่นคำขอ</h3>
+              <div class="bundle">
+                <label class="upload">
+                  <span>ข้อมูลเกี่ยวกับสินค้าชนิดเดียวกันเป็นรายปี โดยใช้ข้อมูลปัจจุบันและย้อนหลัง 3 ปี</span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('yearly', $event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                  @if (files['yearly']) { <small>{{ files['yearly'] }}</small> }
+                </label>
+                <p class="remark">หมายเหตุ : ในกรณีที่มีผู้ยื่นคำขอหลายรายให้จัดทำข้อมูลแยกรายผู้ผลิตด้วย</p>
+                <p class="lead">อธิบายและแสดงให้เห็นว่าสินค้าที่ถูกพิจารณามีผลกระทบและแนวโน้มที่จะมีผลกระทบต่อผู้ยื่นคำขอฯ ในด้านต่าง ๆ อย่างไร</p>
+                @for (item of conditions; track item.key) {
+                  <label class="upload">
+                    <ol class="factor" [attr.start]="$index + 1">
+                      <li>{{ item.label }}</li>
+                    </ol>
+                    <span class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" (change)="pick(item.key, $event)" />
+                    </span>
+                    <small>เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+                    @if (files[item.key]) { <small>{{ files[item.key] }}</small> }
+                  </label>
+                  <label class="note">
+                    รายละเอียด
+                    <textarea maxlength="200" placeholder="ระบุ" [value]="note(item.key)" (input)="setNote(item.key, $any($event.target).value)"></textarea>
+                    <small>{{ note(item.key).length }} / 200</small>
+                  </label>
+                }
+              </div>
+            } @else if (section === '8.4') {
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>8.4 ข้อมูลเกี่ยวกับปัจจัยอื่นๆ</h3>
+                  <p>ระบุข้อมูลเกี่ยวกับปัจจัยอื่น ๆ นอกจากการนำเข้าสินค้าที่ถูกพิจารณาที่ก่อให้เกิดความเสียหายแก่ผู้ยื่นคำขอฯ ในช่วงระยะเวลาเดียวกัน</p>
+                </div>
+              </div>
+              <label class="note">
+                รายละเอียด
+                <textarea maxlength="200" placeholder="ระบุ" [value]="note('factorDetail')" (input)="setNote('factorDetail', $any($event.target).value)"></textarea>
+                <small>{{ note('factorDetail').length }} / 200</small>
+              </label>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'factor' }" />
+            } @else if (section === '8.5') {
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>8.5 สรุปสินค้าที่ถูกพิจารณา</h3>
+                  <p>สรุปให้เห็นว่าสินค้าที่ถูกพิจารณาก่อให้เกิดความเสียหายแก่ผู้ยื่นคำขออย่างไร</p>
+                </div>
+              </div>
+              <label class="note">
+                รายละเอียด
+                <textarea maxlength="200" placeholder="ระบุ" [value]="note('summaryDetail')" (input)="setNote('summaryDetail', $any($event.target).value)"></textarea>
+                <small>{{ note('summaryDetail').length }} / 200</small>
+              </label>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'summary' }" />
+            } @else if (section === '8.6') {
+              <h3 class="section-title section-title--lg">8.6 ข้อมูลผู้ซื้อ</h3>
+              <div class="bundle">
+                <p class="lead">ระบุรายชื่อ ที่อยู่ หมายเลขโทรศัพท์ โทรสาร เว็บไซต์ และไปรษณีย์อิเล็กทรอนิกส์ ของผู้ซื้อที่ผู้ยื่นคำขอฯจะขายสินค้าให้ หรือผู้ยื่นคำขอฯจะขายสินค้าให้แต่ไม่สามารถ ขายในราคาดังกล่าวได้ เนื่องจากมีการแย่งตลาดโดยให้แนบหลักฐาน</p>
+                <label class="upload">
+                  <span>หลักฐานเอกสาร (เช่น สำเนาใบเรียกเก็บเงิน รายงานของพนักงานขาย หรือจดหมายจากลูกค้า เป็นต้น) <button type="button" class="tmpl">(ดาวน์โหลดเทมเพลต)</button></span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('buyerProof', $event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                  @if (files['buyerProof']) { <small>{{ files['buyerProof'] }}</small> }
+                </label>
+                <label class="upload">
+                  <span>หลักฐานเอกสาร (เช่น สำเนาใบเรียกเก็บเงิน รายงานของพนักงานขาย จดหมายจากลูกค้า เป็นต้น) <button type="button" class="tmpl">(ดาวน์โหลดเทมเพลต)</button></span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg" (change)="pick('buyerLetter', $event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg</small>
+                  @if (files['buyerLetter']) { <small>{{ files['buyerLetter'] }}</small> }
+                </label>
+                <label class="note">
+                  รายละเอียด
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="note('buyerDetail')" (input)="setNote('buyerDetail', $any($event.target).value)"></textarea>
+                  <small>{{ note('buyerDetail').length }} / 200</small>
+                </label>
+              </div>
+            } @else if (section === '8.7') {
+              <h3 class="section-title section-title--lg">8.7 ข้อมูลแนวโน้มที่จะเกิดขึ้น</h3>
+              <p class="lead">ในกรณีที่ผู้ยื่นคำขอฯ ประสงค์ให้พิจารณาไต่สวนความเสียหายอย่างสำคัญที่อาจเกิดแก่ อุตสาหกรรมภายในให้ระบุข้อมูลปัจจุบัน ข้อมูลย้อนหลัง 3 ปี และข้อมูลแนวโน้มที่จะเกิดขึ้น พร้อมทั้งหลักฐานสนับสนุนเพิ่มเติม</p>
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>ไฟล์เอกสารข้อมูลปริมาณการนำเข้า สินค้าที่ถูกพิจารณา</h3>
+                </div>
+                <app-button type="primary" label="ดาวน์โหลดเทมเพลต" />
+              </div>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'trend', heading: false }" />
+              <div class="bundle">
+                <label class="note">
+                  อธิบายและแสดงให้เห็นขีดความสามารถของผู้ส่งออกได้เพิ่มขึ้นอย่างเห็นได้ชัดและ ระบายสินค้าได้อย่างอิสระอันแสดงให้เห็นความเป็นไปได้ว่าอาจมีการนำเข้าสินค้าดังกล่าวเพิ่มขึ้นอย่างมาก ทั้งนี้ ให้คำนึงถึงการมีอยู่ของตลาดส่งออกอื่นที่อาจรองรับสินค้าส่งออกที่เพิ่มขึ้น
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="note('trendCapacity')" (input)="setNote('trendCapacity', $any($event.target).value)"></textarea>
+                  <small>{{ note('trendCapacity').length }} / 200</small>
+                </label>
+                <label class="note">
+                  อธิบายและแสดงให้เห็นความชัดเจนของผลของราคาสินค้าที่ถูกพิจารณาที่เป็นการ กดหรือลดราคาของสินค้าชนิดเดียวกันในตลาดภายในและแนวโน้มที่เพิ่มขึ้นของการนำเข้าสินค้านั้น
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="note('trendPrice')" (input)="setNote('trendPrice', $any($event.target).value)"></textarea>
+                  <small>{{ note('trendPrice').length }} / 200</small>
+                </label>
+                <label class="note">
+                  ในกรณีการอุดหนุน อธิบายลักษณะการอุดหนุนและผลกระทบทางการค้าที่อาจจะ เกิดขึ้นจากการอุดหนุนนั้น อย่างไร
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="note('trendSubsidy')" (input)="setNote('trendSubsidy', $any($event.target).value)"></textarea>
+                  <small>{{ note('trendSubsidy').length }} / 200</small>
+                </label>
+                <label class="note">
+                  อธิบายปัจจัยอื่น ๆ
+                  <textarea maxlength="200" placeholder="ระบุ" [value]="note('trendOther')" (input)="setNote('trendOther', $any($event.target).value)"></textarea>
+                  <small>{{ note('trendOther').length }} / 200</small>
+                </label>
+              </div>
+            } @else if (section === '8.8') {
+              <h3 class="section-title section-title--lg">8.8 ประสงค์ให้พิจารณาไต่สวน</h3>
+              <p class="lead">ในกรณีที่ผู้ยื่นคำขอฯประสงค์ให้พิจารณาไต่สวนว่ามีอุปสรรคล่าช้าอย่างสำคัญต่อการก่อตั้งหรือการพัฒนาอุตสาหกรรมภายใน ให้อธิบายพร้อมทั้งแสดงหลักฐานสนับสนุนเพิ่มเติม</p>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'intent', titleFirst: true }" />
+              <label class="note note--lead">
+                อธิบาย
+                <textarea maxlength="200" placeholder="ระบุ" [value]="note('intentDetail')" (input)="setNote('intentDetail', $any($event.target).value)"></textarea>
+                <small>{{ note('intentDetail').length }} / 200</small>
+              </label>
+            } @else if (section === '9') {
+              <span class="badge">คำรับรองและลงนาม</span>
+              <p class="pledge">ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียวและขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ</p>
+              <label class="ack">
+                <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
+                <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                ข้าพเจ้ารับทราบและยืนยันตามคำรับรองข้างต้น
+              </label>
+              <div class="sign">
+                <label>
+                  ลงชื่อ (ผู้ยื่นคำขอ/ผู้รับมอบอำนาจ)<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="signer" (input)="signer = $any($event.target).value" />
+                </label>
+                <label>
+                  ตำแหน่ง<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
+                </label>
+                <label>
+                  วันที่<span class="req">*</span>
+                  <span class="date">
+                    <img src="assets/icons/calendar.svg" width="24" height="24" alt="" />
+                    <input type="text" placeholder="22/09/2569" [value]="signedOn" (input)="signedOn = $any($event.target).value" aria-label="วันที่" />
+                  </span>
+                </label>
+              </div>
+            } @else {
+              <h3>{{ sections.find(item => item.id === section)?.label }}</h3>
+            }
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+@if (exampleOpen) {
+  <div class="sample" (click)="exampleOpen = false">
+    <section role="dialog" aria-modal="true" aria-label="ตัวอย่างข้อมูลไฟล์ Excel" (click)="$event.stopPropagation()">
+      <h2>ตัวอย่างข้อมูลไฟล์ Excel</h2>
+      <p>ตรวจสอบข้อมูลความถูกต้องก่อนนำเข้าข้อมูล</p>
+      <div class="sample__sheet">
+        <img src="assets/icons/por1-excel-sample.png" alt="แบบ ปร. 1 ส่วนที่ 2 รายละเอียดสินค้า" />
+      </div>
+      <div>
+        <app-button type="outline" label="ยกเลิก" (click)="exampleOpen = false" />
+        <app-button type="primary" label="นำเข้าข้อมูล" (click)="exampleOpen = false" />
+      </div>
+    </section>
+  </div>
+}
+<ng-template #sheet let-key="key" let-heading="heading" let-titleFirst="titleFirst">
+  @if (titleFirst) {
+    <h4 class="files-title">ไฟล์เอกสาร</h4>
+  }
+  <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropDocs($event, key)">
+    <img src="assets/icons/por1-drop.svg" width="13.8" height="14.8" alt="" />
+    <span>Drag & drop or <span>browse</span></span>
+    <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" multiple (change)="addDocs($any($event.target).files, key)" />
+  </label>
+  <small class="hint">เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx</small>
+  @if (heading !== false && !titleFirst) {
+    <h4 class="files-title">ไฟล์เอกสาร</h4>
+  }
+  <div class="table-wrap">
+    <table class="files">
+      <thead>
+        <tr>
+          <th>ชื่อไฟล์เอกสาร</th>
+          <th>วันที่บันทึก</th>
+          <th>ดาวน์โหลด</th>
+          <th>ลบ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (file of sheetFiles(key); track file.name + $index) {
+          <tr>
+            <td>
+              <span class="file-name">
+                <img src="assets/icons/por1-pdf.svg" width="16" height="16" alt="" />
+                {{ file.name }}
+              </span>
+            </td>
+            <td>{{ file.saved }}</td>
+            <td><button type="button" class="download">ดาวน์โหลด</button></td>
+            <td>
+              <button type="button" class="trash" aria-label="ลบ" (click)="removeDoc($index, key)">
+                <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</ng-template>
+@if (submitOpen) {
+  <div class="sample sample--submit" (click)="submitOpen = false">
+    <section role="dialog" aria-modal="true" aria-label="ตรวจสอบเอกสาร แบบ ปร. 1" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2>ตรวจสอบเอกสาร แบบ ปร. 1</h2>
+        <button type="button" class="submit__close" (click)="submitOpen = false">✕ ปิด</button>
+      </div>
+      <p class="submit__hint">ข้อมูลที่กรอกทุกขั้นตอนถูกนำมาใส่ในแบบ ปร. 1 ตัวสีน้ำเงินคือข้อมูลที่กรอก หากต้องแก้ไขให้กลับไปที่หัวข้อนั้น</p>
+      <div class="submit__paper">
+        <h3>แบบ ปร. 1</h3>
+        <p class="submit__name">แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</p>
+        <p class="submit__rule">กรอกข้อความหรือทำเครื่องหมาย ✓ ลงในช่อง ☐ ตามที่เป็นจริง</p>
+        <div class="submit__measures">
+          <strong>ระบุมาตรการที่ขอให้ดำเนินการพิจารณาทบทวนความจำเป็นในการใช้บังคับอากร</strong>
+          <p><img src="assets/icons/por1-check-on.svg" width="24" height="24" alt="" />ตอบโต้การทุ่มตลาด</p>
+          <p><img src="assets/icons/por1-check-off.svg" width="24" height="24" alt="" />ตอบโต้การอุดหนุน</p>
+        </div>
+        <img class="submit__list" src="assets/icons/por1-submit-preview.png" alt="ส่วนที่ 1 ถึงเอกสารแนวก ค." />
+      </div>
+      <div class="submit__actions">
+        <app-button type="outline" label="กลับไปแก้ไข" (click)="submitOpen = false" />
+        <app-button type="primary" label="ยื่นคำขอ" (click)="submitOpen = false" />
+      </div>
+    </section>
+  </div>
+}

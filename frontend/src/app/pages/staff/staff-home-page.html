@@ -1,0 +1,49 @@
+<div class="staff">
+  <app-top-header class="fluid" />
+  <div class="staff__body">
+    <app-side-nav kind="staff" open="ระบบ Task Management" active="หน้าหลัก" (chosen)="openMenu($event)" />
+    <main>
+      <h1>หน้าหลัก</h1>
+      <div class="stats">
+        @for (item of buckets; track item.id) {
+          <button type="button" class="stat" [class.stat--on]="selected === item.id" (click)="selected = item.id">
+            <strong [class.stat__zero]="item.count === 0">{{ item.count }}</strong>
+            <span [style.color]="item.tone">
+              <img [src]="item.icon" width="20" height="22" alt="" />
+              {{ item.label }}
+            </span>
+          </button>
+        }
+      </div>
+      <section class="list" [class.list--director]="styled">
+        <header>
+          <h2>{{ current.label }}</h2>
+          <p>{{ current.count }} รายการ</p>
+        </header>
+        @for (row of rows; track $index) {
+          <button type="button" class="row" (click)="openCase(row.code)">
+            <span>
+              <b>[{{ row.code }}]</b> Case ID : {{ row.code }}
+              <small>Product : {{ row.product }}</small>
+              <small>ผู้ส่ง : {{ row.sender }}</small>
+            </span>
+            <span>
+              <span class="meta">
+                <img [src]="styled ? 'assets/icons/task-user.svg' : 'assets/icons/user-round.svg'" [width]="styled ? 18 : 24" [height]="styled ? 20 : 24" alt="" />
+                {{ row.group }}
+                <app-status-tag [variant]="styled ? 'outline' : 'soft'" [tone]="row.tone" [label]="row.status" />
+              </span>
+              <small class="meta">
+                <img [src]="styled ? 'assets/icons/task-date.svg' : 'assets/icons/calendar.svg'" [width]="styled ? 20 : 24" [height]="styled ? 20 : 24" alt="" />
+                {{ row.at }}
+              </small>
+              @if (row.due) {
+                <small class="row__due">{{ row.due }}</small>
+              }
+            </span>
+          </button>
+        }
+      </section>
+    </main>
+  </div>
+</div>

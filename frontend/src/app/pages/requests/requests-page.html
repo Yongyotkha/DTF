@@ -49,7 +49,7 @@
                   <tr class="detail">
                     <td colspan="7">
                       <ol class="track">
-                        @for (step of steps; track step.name; let last = $last) {
+                        @for (step of row.steps; track step.name; let last = $last) {
                           <li class="track__step" [class.track__step--done]="step.state === 'done'">
                             <span class="track__dot" [class.track__dot--done]="step.state === 'done'" [class.track__dot--now]="step.state === 'current'">
                               @if (step.state === 'done') {
@@ -137,7 +137,7 @@
         </div>
         <div class="cards">
           @for (form of forms; track form.code) {
-            <button type="button" class="card" (click)="closeChooser()">
+            <button type="button" class="card" (click)="openForm(form.code)">
               <span class="card__icon" aria-hidden="true">
                 <img src="assets/icons/akar-icons-file.svg" width="18" height="22" alt="" />
               </span>

@@ -75,3 +75,7 @@
   margin: 5px 0 5px 20.5px;
   background: var(--color-border);
 }
+
+.stepper-1__line.is-done {
+  background: var(--color-success);
+}

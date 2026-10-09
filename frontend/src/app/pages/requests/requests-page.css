@@ -156,8 +156,8 @@ th {
   content: '';
   position: absolute;
   top: 14px;
-  left: 50%;
-  width: 100%;
+  left: calc(50% + 31px);
+  width: calc(100% - 62px);
   height: 4px;
   border-radius: 4px;
   background: var(--color-border);

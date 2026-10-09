@@ -3,11 +3,21 @@ import { Injectable } from '@angular/core';
 const storageKey = 'dft-accounts';
 const sessionKey = 'dft-session';
 
-export type AccountRole = 'corporate' | 'individual' | 'association';
+export type AccountRole = 'corporate' | 'individual' | 'association' | 'staff' | 'director' | 'head' | 'officer';
 
 type Account = { password: string; role: AccountRole };
 
-const roles: AccountRole[] = ['corporate', 'individual', 'association'];
+const roles: AccountRole[] = ['corporate', 'individual', 'association', 'staff', 'director', 'head', 'officer'];
+
+export const roleHome: Record<AccountRole, string> = {
+  corporate: '/home',
+  individual: '/home',
+  association: '/home',
+  staff: '/staff',
+  director: '/director',
+  head: '/head',
+  officer: '/officer',
+};
 
 @Injectable({ providedIn: 'root' })
 export class Accounts {
@@ -15,6 +25,10 @@ export class Accounts {
     ['0125544004802', { password: 'Dft@2569', role: 'corporate' }],
     ['1103700123456', { password: 'Person@2569', role: 'individual' }],
     ['0994000167890', { password: 'Assoc@2569', role: 'association' }],
+    ['1000000000101', { password: 'Staff@2569', role: 'staff' }],
+    ['1000000000102', { password: 'Director@2569', role: 'director' }],
+    ['1000000000103', { password: 'Head@2569', role: 'head' }],
+    ['1000000000104', { password: 'Officer@2569', role: 'officer' }],
   ]);
   private signedIn: AccountRole | '' = '';
 

@@ -1,0 +1,834 @@
+<div class="staff">
+  <app-top-header class="fluid" />
+  <div class="staff__body">
+    <app-side-nav kind="staff" open="ระบบ Task Management" (chosen)="openMenu($event)" />
+    <main>
+      <p class="crumb">ระบบ Task Management <span>›</span> {{ roleName }}</p>
+      <div class="tools">
+        <app-button type="primary" label="บันทึกการมอบหมายงาน" />
+        <app-button type="primary" label="เอกสารระบบ TASK" />
+      </div>
+      <div class="work">
+        <app-stepper-1 [current]="stepIndex" [steps]="steps" />
+        <div class="work__main">
+        @if (!officer || stage === 0) {
+        <section class="sheet">
+          <button type="button" class="sheet__bar" [class.is-shut]="!open" (click)="open = !open">
+            ผปก. แนบเอกสาร
+            <img src="assets/icons/task-chevron.svg" width="24" height="24" alt="" [class.is-up]="open" />
+          </button>
+          @if (open) {
+            <div class="sheet__body">
+              <dl class="facts">
+                <div><dt>Ref No :</dt><dd>AD2601</dd></div>
+                <div><dt>ชื่อบริษัท :</dt><dd>บริษัท สยามสติลการค้า จำกัด</dd></div>
+                <div><dt>ชื่อสินค้า :</dt><dd>เหล็กแผ่นรีดร้อน (Hot-Rolled Steel)</dd></div>
+                <div><dt>ประเทศ :</dt><dd>สาธารณรัฐประชาชนจีน</dd></div>
+              </dl>
+              <div class="chip-row">
+                <span class="chip">ข้อมูลหนังสือนำส่งของบริษัท</span>
+                <app-button type="primary" label="ใบนำส่ง" />
+              </div>
+              <div class="grid">
+                <p><span>วันที่หนังสือ<span class="req">*</span></span>24/09/2569</p>
+                <p><span>เลขที่หนังสือ<span class="req">*</span></span>อธ 0102/1234</p>
+                <p><span>เรียน<span class="req">*</span></span>อธิบดีกรมการค้าต่างประเทศ</p>
+                <p><span>เรื่อง<span class="req">*</span></span>ยื่นคำขอ</p>
+              </div>
+              <p class="block"><span>อ้างถึง<span class="req">*</span></span>ประกาศกรมการค้าต่างประเทศ ฉบับที่ 12/2567 ลงวันที่ 1สิงหาคม 2567</p>
+              <p class="block"><span>สิ่งที่แนบมาด้วย<span class="req">*</span></span>1. หนังสือรับรองนิติบุคคล (1 ฉบับ) 2. บัญชีรายชื่อผู้ถือหุ้น (บอจ.5)</p>
+              <p class="block"><span>รายละเอียด<span class="req">*</span></span>บริษัทฯ มีความประสงค์ขอลงทะเบียนและแนบเอกสารหลักฐานเพื่อประกอบการพิจารณาตามมาตรการฯ</p>
+              <p class="block"><span>รายชื่อบริษัทที่มอบอำนาจให้</span>-</p>
+              <p class="block"><span>มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา<span class="req">*</span></span>ขอความอนุเคราะห์พิจารณาการลงทะเบียนผู้มีส่วนได้เสียและรับรองเอกสารแนบ</p>
+              <h3>แนบไฟล์ตราประทับบริษัท</h3>
+              <p class="file"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ตราประทับบริษัท.png</p>
+              <h3>แนบไฟล์หนังสือนำส่งฉบับจริง</h3>
+              <h3>แนบไฟล์คำขอฉบับปกปิด<span class="req">*</span></h3>
+              <table>
+                <thead><tr><th>ลำดับ</th><th>ประเภทคำขอ</th><th>แบบไฟล์</th><th>ชื่อไฟล์</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>แบบ ปร.1</td>
+                    <td><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ไฟล์คำขอฉบับปกปิด.pdf</td>
+                    <td>ไฟล์คำขอฉบับปกปิด</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>แนบเอกสารประกอบ</h3>
+              <h3>แนบไฟล์คำขอฉบับเปิดเผย<span class="req">*</span></h3>
+              <table>
+                <thead><tr><th>ลำดับ</th><th>ประเภทคำขอ</th><th>แบบไฟล์</th><th>ชื่อไฟล์</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <p class="block"><span>หมายเหตุ</span>-</p>
+              <p class="block"><span>ประสงค์ยื่นเอกสารฉบับจริง<span class="req">*</span></span>ไม่ใช่<small>การยื่นหรือไม่ยื่นเอกสารฉบับจริงไม่ส่งผลต่อกระบวนการใดๆ</small></p>
+              @if (!director && !head && !officer) {
+              <label class="wide">เสนอให้<span class="req">*</span>
+                <span class="assign">
+                  @if (assistant) {
+                    <button type="button" class="assign__chip" (click)="assistant = false">
+                      <img src="assets/icons/task-x.svg" width="24" height="24" alt="" />
+                      ผู้อำนวยการ
+                    </button>
+                  }
+                </span>
+              </label>
+              <div class="pair">
+                <label>เลขที่ลงรับ (จากกรมฯ)<input type="text" placeholder="ระบุ" /></label>
+                <label>วันเวลาที่ลงรับ
+                  <span class="date">
+                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
+                    <input type="text" placeholder="22/09/2569 14:30 น." />
+                  </span>
+                </label>
+                <label>เลขที่ลงรับ (จากระบบสารบรรณฯ)<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
+                <label>วันเวลาที่ลงรับ<span class="req">*</span>
+                  <span class="date">
+                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
+                    <input type="text" placeholder="22/09/2569 14:30 น." />
+                  </span>
+                </label>
+                <label>เลขที่หนังสือ (จากหน่วยงานภายนอก)<input type="text" placeholder="ระบุ" /></label>
+                <label>วันที่หนังสือ<span class="req">*</span>
+                  <span class="date">
+                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
+                    <input type="text" placeholder="22/09/2569" />
+                  </span>
+                </label>
+              </div>
+              <label class="wide">เรื่อง<input type="text" placeholder="ยื่นคำขอ" /></label>
+              <footer>
+                <app-button type="outline" label="ย้อนกลับ" (click)="back()" />
+                <app-button type="primary" label="ส่ง" (click)="back()" />
+              </footer>
+              }
+            </div>
+          }
+        </section>
+        }
+        @if (director) {
+          <section class="assign-card">
+            <label class="wide">มอบหมายงานให้<span class="req">*</span>
+              <span class="assign">
+                @if (assistant) {
+                  <button type="button" class="assign__chip" (click)="assistant = false">
+                    <img src="assets/icons/task-x.svg" width="24" height="24" alt="" />
+                    นายเอ
+                  </button>
+                }
+              </span>
+            </label>
+            <label class="wide">คำสั่ง/การดำเนินการ<span class="req">*</span>
+              <input type="text" placeholder="ระบุ" />
+            </label>
+            <div class="pair">
+              <label>วันที่มอบหมาย<span class="req">*</span>
+                <span class="date">
+                  <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
+                  <input type="text" placeholder="22/09/2569" />
+                </span>
+              </label>
+              <label>วันเวลาที่ครบกำหนดส่ง<span class="req">*</span>
+                <span class="date">
+                  <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
+                  <input type="text" placeholder="22/09/2569 14:30 น." />
+                </span>
+              </label>
+            </div>
+            <footer>
+              <app-button type="primary" label="ส่ง" (click)="back()" />
+            </footer>
+          </section>
+        }
+        @if (head) {
+          <section class="assign-card">
+            <div class="pair">
+              <div>
+                <p class="field-label">สถานะการรับ<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="receive = 'accept'">
+                    <img [src]="receive === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    รับ
+                  </button>
+                  <button type="button" (click)="receive = 'return'">
+                    <img [src]="receive === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    ส่งคืน
+                  </button>
+                </div>
+              </div>
+              <div>
+                <p class="field-label">สถานะ<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="outcome = 'report'">
+                    <img [src]="outcome === 'report' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    รายงานผล
+                  </button>
+                  <button type="button" (click)="outcome = 'forward'">
+                    <img [src]="outcome === 'forward' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    ส่งต่อ
+                  </button>
+                </div>
+              </div>
+            </div>
+            <label class="wide">มอบหมายงานให้<span class="req">*</span>
+              <span class="assign">
+                @if (assistant) {
+                  <button type="button" class="assign__chip" (click)="assistant = false">
+                    <img src="assets/icons/task-x.svg" width="24" height="24" alt="" />
+                    นายเอ
+                  </button>
+                }
+              </span>
+            </label>
+            <div class="pair">
+              <label>วันที่กำหนดส่ง<span class="req">*</span>
+                <span class="date">
+                  <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
+                  <input type="text" placeholder="22/09/2569" />
+                </span>
+                <small class="hint">แจ้งเตือนผู้รับผิดชอบหลักทางอีเมล ก่อนถึงวันครบกำหนด</small>
+              </label>
+              <label>เวลาครบกำหนดส่ง<span class="req">*</span>
+                <span class="date">
+                  <img src="assets/icons/task-clock.svg" width="24" height="24" alt="" />
+                  <input type="text" placeholder="14:30 น." />
+                </span>
+              </label>
+            </div>
+            <label class="wide">คำสั่ง/การดำเนินการ<span class="req">*</span>
+              <input type="text" placeholder="คำสั่ง/การดำเนินการ" />
+            </label>
+            <div>
+              <p class="field-label">แนบไฟล์เอกสาร</p>
+              <label class="drop">
+                <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                <span>{{ attachment || 'วางไฟล์ที่นี่เพื่ออัพโหลด' }}</span>
+                <input type="file" (change)="pickFile($event)" />
+              </label>
+            </div>
+            <footer class="assign-card__foot">
+              <app-button type="primary" label="ส่ง" (click)="back()" />
+            </footer>
+          </section>
+        }
+        @if (officer) {
+          @if (stage === 3) {
+            <section class="sheet">
+              <button type="button" class="sheet__bar" [class.is-shut]="!reviseOpen" (click)="reviseOpen = !reviseOpen">
+                ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม
+                <img src="assets/icons/task-chevron.svg" width="24" height="24" alt="" [class.is-up]="reviseOpen" />
+              </button>
+              @if (reviseOpen) {
+                <div class="revise">
+                  <span>วันที่ครบกำหนดการแก้ไข<br />เพิ่มเติมคำขอ (4 เดือน)</span>
+                  <b>22/01/2569</b>
+                  <span>สถานะรับเรื่อง<span class="req">*</span></span>
+                  <b>รับ</b>
+                </div>
+              }
+            </section>
+          }
+          @if (stage === 4 || stage === 5) {
+            <section class="sheet">
+              <button type="button" class="sheet__bar" [class.is-shut]="!summaryOpen" (click)="summaryOpen = !summaryOpen">
+                ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม
+                <img src="assets/icons/task-chevron.svg" width="24" height="24" alt="" [class.is-up]="summaryOpen" />
+              </button>
+              @if (summaryOpen) {
+                <div class="sheet__body">
+                  <dl class="facts">
+                    <div><dt>Ref No :</dt><dd>AD2601</dd></div>
+                    <div><dt>ชื่อบริษัท :</dt><dd>บริษัท สยามสตีลการค้า จำกัด</dd></div>
+                    <div><dt>ชื่อสินค้า :</dt><dd>เหล็กแผ่นรีดร้อน (Hot-Rolled Steel)</dd></div>
+                    <div><dt>ประเทศ :</dt><dd>สาธารณรัฐประชาชนจีน</dd></div>
+                  </dl>
+                  <div class="grid">
+                    <p><span>วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)</span>24/09/2569</p>
+                    <p><span>วันที่ครบกำหนด</span>24/09/2569</p>
+                  </div>
+                  <p class="block"><span>หมายเหตุ</span>-</p>
+                  <p class="block"><span>การดำเนินการ<span class="req">*</span></span>แจ้งแก้ไข</p>
+                  <p class="block"><span>เหตุผลความจำเป็นในการขอขยายเวลา<span class="req">*</span></span>เหตุผลความจำเป็นในการขอขยายเวลา</p>
+                  <p class="block"><span>วันที่ครบกำหนดส่ง<span class="req">*</span></span>24/09/2569</p>
+                  <p class="block"><span>แนบเอกสารประกอบ</span><a class="pdf" href="#">ขอขยายเวลา - 24/09/2569.pdf</a></p>
+                  <div class="chip-row">
+                    <span class="chip">ข้อมูลหนังสือนำส่งบริษัท</span>
+                    <app-button type="primary" label="ใบนำส่ง" />
+                  </div>
+                  <div class="grid">
+                    <p><span>วันที่หนังสือ<span class="req">*</span></span>24/09/2569</p>
+                    <p><span>เลขที่หนังสือ<span class="req">*</span></span>อธ 0102/1234</p>
+                  </div>
+                  <p class="block"><span>เรียน<span class="req">*</span></span>ผู้มีอำนาจลงนามขอหนังสือขอให้พิจารณา</p>
+                  <p class="block"><span>เรื่อง<span class="req">*</span></span>ยื่นคำขอขยายเวลา</p>
+                  <p class="block"><span>อ้างถึง<span class="req">*</span></span>-</p>
+                  <p class="block"><span>สิ่งที่แนบมาด้วย<span class="req">*</span></span>-</p>
+                  <p class="block"><span>รายละเอียด<span class="req">*</span></span>-</p>
+                  <p class="block"><span>รายชื่อบริษัทที่มอบอำนาจให้</span>-</p>
+                  <p class="block"><span>มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา<span class="req">*</span></span>มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา</p>
+                  <div class="grid">
+                    <p><span>แนบไฟล์ตราประทับบริษัท</span><a class="pdf" href="#">ตราประทับบริษัท.png</a></p>
+                    <p><span>แนบไฟล์หนังสือนำส่งฉบับจริง</span><a class="pdf" href="#">หน้าหนังสือนำส่งฉบับจริง.png</a></p>
+                  </div>
+                  <p class="block"><span>หมายเหตุ<span class="req">*</span></span>สามารถ Preview ตัวอย่างใบนำส่งนี้เพื่อกรอกข้อมูลตรงส่วน</p>
+                </div>
+              }
+            </section>
+          }
+          @if (stage === 6) {
+            <section class="sheet">
+              <button type="button" class="sheet__bar" [class.is-shut]="!summaryOpen" (click)="summaryOpen = !summaryOpen">
+                คต. พิจารณาคำขอ
+                <img src="assets/icons/task-chevron.svg" width="24" height="24" alt="" [class.is-up]="summaryOpen" />
+              </button>
+              @if (summaryOpen) {
+                <div class="sheet__body">
+                  <div class="grid">
+                    <p><span>วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)</span>22/01/2569</p>
+                    <p><span>วันที่แจ้ง</span>22/01/2569</p>
+                  </div>
+                  <div class="grid">
+                    <p><span>การดำเนินการ<span class="req">*</span></span>แจ้งคำขอครบถ้วนถูกต้อง</p>
+                    <p><span>หมายเหตุ<span class="req">*</span></span>แจ้งคำขอครบถ้วนถูกต้องภายใน 4 เดือน</p>
+                  </div>
+                  <p class="block"><span>ไฟล์แจ้งการพิจารณา</span><a class="pdf" href="#">แก้ไข.pdf</a></p>
+                </div>
+              }
+            </section>
+          }
+          @if (stage === 8) {
+            <section class="sheet">
+              <button type="button" class="sheet__bar" [class.is-shut]="!summaryOpen" (click)="summaryOpen = !summaryOpen">
+                คต. บันทึกผลการพิจารณาของคณะกรรมการฯ
+                <img src="assets/icons/task-chevron.svg" width="24" height="24" alt="" [class.is-up]="summaryOpen" />
+              </button>
+              @if (summaryOpen) {
+                <div class="sheet__body">
+                  <div class="grid">
+                    <p><span>วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)</span>22/01/2569</p>
+                    <p><span>วันที่พิจารณาของคณะกรรมการฯ</span>22/01/2569</p>
+                    <p><span>การพิจารณาคำขอ<span class="req">*</span></span>รับคำขอ</p>
+                    <p><span>สถานะการแจ้งชำระค่าธรรมเนียม<span class="req">*</span></span>ไม่แจ้งชำระ</p>
+                  </div>
+                  <p class="block"><span>หมายเหตุ</span>-</p>
+                  <div class="chip-row"><span class="chip">คต. มีหนังสือแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบการรับคำขอ</span></div>
+                  <p class="block"><span>วันที่แจ้งเรื่อง</span>22/01/2569</p>
+                  <p class="block"><span>แนบไฟล์แจ้งสถานทูต (กรณีรับคำขอ)</span>หนังสือแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบการรับคำขอที่ได้รับมอบขอเข้าดำเนินการ</p>
+                </div>
+              }
+            </section>
+          }
+          @if (stage === 9) {
+            <section class="sheet">
+              <button type="button" class="sheet__bar" [class.is-shut]="!noticeOpen" (click)="noticeOpen = !noticeOpen">
+                คต. บันทึกผลการพิจารณาเปิดการไต่สวน
+                <img src="assets/icons/task-chevron.svg" width="24" height="24" alt="" [class.is-up]="noticeOpen" />
+              </button>
+              @if (noticeOpen) {
+                <div class="sheet__body">
+                  <dl class="facts">
+                    <div><dt>Ref No :</dt><dd>AD2601</dd></div>
+                    <div><dt>ชื่อบริษัท :</dt><dd>บริษัท สยามสตีลการค้า จำกัด</dd></div>
+                    <div><dt>ชื่อสินค้า :</dt><dd>เหล็กแผ่นรีดร้อน (Hot-Rolled Steel)</dd></div>
+                    <div><dt>ประเทศ :</dt><dd>สาธารณรัฐประชาชนจีน</dd></div>
+                  </dl>
+                  <div class="chip-row">
+                    <span class="chip">คต. บันทึกผลการพิจารณาเปิดการไต่สวน</span>
+                    <app-button type="primary" label="ใบนำส่ง" />
+                  </div>
+                  <p class="block"><span>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)</span>22/09/2569</p>
+                  <p class="block"><span>การพิจารณาเปิดไต่สวน<span class="req">*</span></span>เปิดไต่สวน</p>
+                  <p class="block"><span>หมายเหตุ</span>-</p>
+                </div>
+              }
+            </section>
+          }
+          <section class="assign-card">
+            <div class="facts">
+              <span>Ref No :</span><b>AD2601</b>
+              <span>ชื่อบริษัท :</span><b>บริษัท สยามสตีลการค้า จำกัด</b>
+              <span>ชื่อสินค้า :</span><b>เหล็กแผ่นรีดร้อน (Hot-Rolled Steel)</b>
+              <span>ประเทศ :</span><b>สาธารณรัฐประชาชนจีน</b>
+            </div>
+
+            @if (stage === 4 || stage === 5) {
+              <div class="chip-row">
+                <span class="chip">คต. พิจารณาคำขอขยายเวลา</span>
+                @if (stage === 4) { <app-button type="primary" label="ใบนำส่ง" /> }
+              </div>
+            }
+            @if (stage === 6) {
+              <div class="chip-row">
+                <span class="chip">คต. บันทึกผลการพิจารณาของคณะกรรมการฯ</span>
+                <app-button type="primary" label="ใบนำส่ง" />
+              </div>
+            }
+            @if (stage === 8) {
+              <div class="chip-row">
+                <span class="chip">คต. บันทึกผลการพิจารณาเปิดการไต่สวน</span>
+                <app-button type="primary" label="ใบนำส่ง" />
+              </div>
+            }
+            @switch (stage) {
+              @case (0) {
+                <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)<span class="req">*</span>
+                  <span class="date is-locked">
+                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
+                    <input type="text" value="22/09/2569" disabled />
+                  </span>
+                </label>
+                <div>
+                  <p class="field-label">สถานะการรับ<span class="req">*</span></p>
+                  <div class="choice">
+                    <button type="button" (click)="receive = 'accept'">
+                      <img [src]="receive === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ
+                    </button>
+                    <button type="button" (click)="receive = 'return'">
+                      <img [src]="receive === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคืน
+                    </button>
+                  </div>
+                </div>
+              }
+              @case (1) {
+                <div class="pair">
+                  <label>วันที่ยื่นคำขออย่างเป็นทางการ (อิเล็กทรอนิกส์)
+                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                  </label>
+                  <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
+                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                  </label>
+                  <label>ประสงค์ยื่นเอกสารฉบับจริง
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="ใช่" /></span>
+                  </label>
+                  <label>วันที่ยื่นคำขอฉบับจริง (เอกสาร)<span class="req">*</span>
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                </div>
+                <p class="field-label">สถานะ<span class="req">*</span></p>
+                <div class="checks">
+                  @for (kind of kinds; track kind) {
+                    <button type="button" (click)="toggleKind(kind)">
+                      <img [src]="picked.has(kind) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />{{ kind }}
+                    </button>
+                  }
+                </div>
+                <div>
+                  <p class="field-label">แนบไฟล์</p>
+                  <label class="file-btn">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />เลือกไฟล์
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
+                </div>
+                <label class="wide">หมายเหตุ<input type="text" placeholder="ระบุ" /></label>
+                <div>
+                  <p class="field-label">สถานะการยื่นเอกสารฉบับจริง<span class="req">*</span></p>
+                  <div class="choice choice--stack">
+                    <button type="button" (click)="paper = 'done'">
+                      <img [src]="paper === 'done' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ยื่นเอกสารฉบับจริงเรียบร้อย
+                    </button>
+                    <button type="button" (click)="paper = 'missed'">
+                      <img [src]="paper === 'missed' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่ได้เดินทางมายื่นเอกสารฉบับจริงตามที่นัดหมาย
+                    </button>
+                  </div>
+                </div>
+              }
+              @case (2) {
+                <div class="pair">
+                  <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)
+                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                  </label>
+                  <label>วันที่แจ้ง
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                </div>
+                <p class="field-label">การดำเนินการ<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="choice = 'fix'"><img [src]="choice === 'fix' || choice === '' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งแก้ไขเพิ่มเติม</button>
+                  <button type="button" (click)="choice = 'complete'"><img [src]="choice === 'complete' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอครบถ้วนถูกต้อง</button>
+                  <button type="button" (click)="choice = 'late'"><img [src]="choice === 'late' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน</button>
+                </div>
+                <div class="pair">
+                  <label>วันที่ครบกำหนด<span class="req">*</span>
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                  <label>หมายเหตุ<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
+                </div>
+                <p class="field-label">สถานะ<span class="req">*</span></p>
+                <div class="checks">
+                  @for (kind of kinds; track kind) {
+                    <button type="button" (click)="toggleKind(kind)">
+                      <img [src]="picked.has(kind) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />{{ kind }}
+                    </button>
+                  }
+                </div>
+                <p class="field-label">แนบไฟล์หนังสือแจ้งแก้ไข<span class="req">*</span></p>
+                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
+                <div class="file-row">
+                  <label class="drop">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                    <span>{{ attachment || 'วางไฟล์ที่นี่เพื่ออัพโหลด' }}</span>
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <table class="files">
+                    <thead><tr><th>ลำดับ</th><th>วันที่ส่ง</th><th>ไฟล์แนบ</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td>
+                        <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
+                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หนังสือแจ้งแก้ไข.pdf</a></td>
+                        <td><input type="text" placeholder="ระบุ" /></td>
+                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @case (3) {
+                <div class="pair">
+                  <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)
+                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                  </label>
+                  <label>วันที่แจ้ง
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                </div>
+                <p class="field-label">การดำเนินการ<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="choice = 'fix'"><img [src]="choice === 'fix' || choice === '' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งแก้ไขเพิ่มเติม</button>
+                  <button type="button" (click)="choice = 'complete'"><img [src]="choice === 'complete' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอครบถ้วนถูกต้อง</button>
+                  <button type="button" (click)="choice = 'late'"><img [src]="choice === 'late' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน</button>
+                </div>
+                <div class="pair">
+                  <label>วันที่ครบกำหนด<span class="req">*</span>
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                  <label>หมายเหตุ<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
+                </div>
+                <p class="field-label">สถานะ<span class="req">*</span></p>
+                <div class="checks">
+                  @for (kind of kinds; track kind) {
+                    <button type="button" (click)="toggleKind(kind)">
+                      <img [src]="picked.has(kind) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />{{ kind }}
+                    </button>
+                  }
+                </div>
+                <p class="field-label">แนบไฟล์หนังสือแจ้งแก้ไข<span class="req">*</span></p>
+                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
+                <div class="file-row">
+                  <label class="drop">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                    <span>{{ attachment || 'วางไฟล์ที่นี่เพื่ออัพโหลด' }}</span>
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <table class="files">
+                    <thead><tr><th>ลำดับ</th><th>วันที่ส่ง</th><th>ไฟล์แนบ</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td>
+                        <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
+                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หนังสือแจ้งแก้ไข.pdf</a></td>
+                        <td><input type="text" placeholder="ระบุ" /></td>
+                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @case (4) {
+                <div class="pair">
+                  <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)<span class="req">*</span>
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                  <label>วันที่ครบกำหนดส่งใหม่
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                </div>
+                <label class="wide">เหตุผลความจำเป็นในการขอขยายเวลา<input type="text" placeholder="เหตุผลความจำเป็นในการขอขยายเวลา" /></label>
+                <a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ขอขยายเวลา.pdf</a>
+                <p class="field-label">ผลการพิจารณา<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="choice = 'allow'"><img [src]="choice === 'allow' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />อนุญาต</button>
+                  <button type="button" (click)="choice = 'deny'"><img [src]="choice === 'deny' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่อนุญาต</button>
+                </div>
+                <label>กำหนดวันสิ้นสุด<span class="req">*</span>
+                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                </label>
+                <div>
+                  <p class="field-label">แนบไฟล์ผลการพิจารณาการขยายเวลา<span class="req">*</span></p>
+                  <label class="file-btn">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />เลือกไฟล์
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                </div>
+              }
+              @case (5) {
+                <div class="pair">
+                  <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)<span class="req">*</span>
+                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                  </label>
+                  <label>วันที่แจ้ง
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                </div>
+                <p class="field-label">การดำเนินการ<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="choice = 'fix'"><img [src]="choice === 'fix' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งแก้ไขเพิ่มเติม</button>
+                  <button type="button" (click)="choice = 'complete'"><img [src]="choice === 'complete' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอครบถ้วนถูกต้อง</button>
+                  <button type="button" (click)="choice = 'late'"><img [src]="choice === 'late' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน</button>
+                </div>
+                <label class="wide">หมายเหตุ<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
+              }
+              @case (6) {
+                <div class="pair">
+                  <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)<span class="req">*</span>
+                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                  </label>
+                  <label>วันที่พิจารณาของคณะกรรมการฯ
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                </div>
+                <p class="field-label">การพิจารณาคำขอ<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="choice = 'take'"><img [src]="choice === 'take' || choice === '' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับคำขอ</button>
+                  <button type="button" (click)="choice = 'reject'"><img [src]="choice === 'reject' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่รับคำขอ</button>
+                </div>
+                <p class="field-label">สถานะการแจ้งชำระค่าธรรมเนียม<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="feeNotice = 'pay'"><img [src]="feeNotice === 'pay' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งชำระ</button>
+                  <button type="button" (click)="feeNotice = 'skip'"><img [src]="feeNotice === 'skip' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่แจ้งชำระ</button>
+                </div>
+                <label class="wide">หมายเหตุ<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
+                <div class="chip-row"><span class="chip">คต. มีหนังสือแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบการรับคำขอ</span></div>
+                <label>วันที่แจ้งเรื่อง
+                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                </label>
+                <p class="field-label">แนบไฟล์แจ้งสถานทูต (กรณีรับคำขอ)</p>
+                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
+                <div class="file-row">
+                  <label class="drop">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <table class="files">
+                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td>
+                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ไฟล์แจ้งสถานทูต.pdf</a></td>
+                        <td><input type="text" value="แจ้งสถานทูต" /></td>
+                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @case (7) {
+                <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)<span class="req">*</span>
+                  <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                </label>
+                <div class="chip-row"><span class="chip">แจ้งชำระค่าธรรมเนียม</span></div>
+                <a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หนังสือชำระค่าธรรมเนียม.pdf</a>
+                <label>ภายในวันที่
+                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                </label>
+                <p class="field-label">ผลการชำระค่าธรรมเนียม</p>
+                <div class="choice">
+                  <button type="button" (click)="choice = 'paid'"><img [src]="choice === 'paid' || choice === '' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ชำระค่าธรรมเนียมแล้ว</button>
+                </div>
+                <div class="pair">
+                  <label>ชำระเมื่อวันที่
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                  <label>จำนวนเงิน<input type="text" placeholder="ระบุ" /></label>
+                </div>
+                <p class="field-label">แนบไฟล์หลักฐานการชำระค่าธรรมเนียม<span class="req">*</span></p>
+                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
+                <div class="file-row">
+                  <label class="drop">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <table class="files">
+                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td>
+                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หลักฐานการชำระค่าธรรมเนียม.pdf</a></td>
+                        <td><input type="text" value="หลักฐานการชำระค่าธรรมเนียม" /></td>
+                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @case (8) {
+                <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
+                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                </label>
+                <p class="field-label">การพิจารณาเปิดไต่สวน<span class="req">*</span></p>
+                <div class="choice">
+                  <button type="button" (click)="choice = 'open'"><img [src]="choice === 'open' || choice === '' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />เปิดไต่สวน</button>
+                  <button type="button" (click)="choice = 'shut'"><img [src]="choice === 'shut' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่เปิดไต่สวน</button>
+                </div>
+                <label class="wide">หมายเหตุ<input type="text" placeholder="ระบุ" /></label>
+              }
+              @case (9) {
+                <div class="pair">
+                  <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
+                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/01/2569" readonly /></span>
+                  </label>
+                  <label>วันที่ประกาศในราชกิจจานุเบกษา<span class="req">*</span>
+                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  </label>
+                </div>
+                <div class="chip-row">
+                  <span class="chip">คต. แจ้งประกาศเปิดการไต่สวน</span>
+                  <app-button type="primary" label="ใบนำส่ง" />
+                </div>
+                <div class="head-row">
+                  <p class="field-label">แนบไฟล์หนังสือแจ้งไต่สวน<span class="req">*</span></p>
+                  <button type="button" class="add-btn"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
+                </div>
+                <table class="files">
+                  <thead><tr><th>ประเภทผู้มีส่วนได้เสีย</th><th>แนบไฟล์</th><th>กระทำ</th></tr></thead>
+                  <tbody>
+                    <tr><td>ผู้ผลิตภายในประเทศ</td><td><a class="pdf" href="#">ไฟล์ 1.pdf</a></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
+                    <tr><td>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้ผลิตในประเทศ)</td><td><a class="pdf" href="#">ไฟล์ 2.pdf</a></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
+                    <tr><td>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้นำเข้า/ผู้ใช้)</td><td><a class="pdf" href="#">ไฟล์ 3.pdf</a></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
+                  </tbody>
+                </table>
+                <label>ชื่อประกาศการไต่สวน/ทบทวน<span class="req">*</span>
+                  <input type="text" value="ประกาศการไต่สวน/ทบทวน" />
+                </label>
+                <p class="field-label">แนบไฟล์ประกาศกรมฯ เปิดไต่สวน/ทบทวน</p>
+                <p class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</p>
+                <div class="file-row">
+                  <label class="drop">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <table class="files">
+                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td>
+                        <td><a class="pdf" href="#">ไฟล์.pdf</a></td>
+                        <td><input type="text" value="ประกาศกรมฯ เปิดไต่สวน/ทบทวน" /></td>
+                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="field-label">แนบไฟล์ประกาศคณะกรรมการฯ</p>
+                <p class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</p>
+                <div class="file-row">
+                  <label class="drop">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <table class="files">
+                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
+                    <tbody>
+                      <tr><td>1</td><td><a class="pdf" href="#">ไฟล์ 1.pdf</a></td><td><input type="text" value="ผู้ผลิตภายในประเทศ" /></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
+                      <tr><td>2</td><td><a class="pdf" href="#">ไฟล์ 2.pdf</a></td><td><input type="text" value="กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้ผลิตในประเทศ)" /></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
+                      <tr><td>3</td><td><a class="pdf" href="#">ไฟล์ 3.pdf</a></td><td><input type="text" value="ผู้ผลิตภายในประเทศกลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้นำเข้า/" /></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="head-row">
+                  <p class="field-label">แนบไฟล์แบบสอบถาม</p>
+                  <button type="button" class="add-btn"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
+                </div>
+                <table class="files">
+                  <thead><tr><th>ประเภทผู้มีส่วนได้เสีย</th><th>แนบไฟล์</th><th>วันครบกำหนดส่งแบบสอบถาม</th><th>กระทำ</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><select><option>ผู้ผลิตภายในประเทศ</option></select></td>
+                      <td class="file"><button type="button" class="pick">เลือกไฟล์</button><a class="pdf" href="#">file name.png</a></td>
+                      <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
+                      <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                    </tr>
+                    <tr>
+                      <td><select><option>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง</option></select></td>
+                      <td class="file"><button type="button" class="pick">เลือกไฟล์</button><a class="pdf" href="#">file name.png</a></td>
+                      <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
+                      <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                    </tr>
+                    <tr>
+                      <td><select><option>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง</option></select></td>
+                      <td class="file"><button type="button" class="pick">เลือกไฟล์</button><a class="pdf" href="#">file name.png</a></td>
+                      <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
+                      <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="head-row">
+                  <p class="field-label">เพิ่มเติม Ref No. ในสินค้าเดียวกัน</p>
+                  <button type="button" class="add-btn"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
+                </div>
+                <div class="pair">
+                  <label>Case ID<span class="req">*</span><input class="is-locked" type="text" value="AD2601" readonly /></label>
+                  <label>ชื่อสินค้า<input type="text" value="เหล็กแผ่นรีดร้อน (Hot-Rolled Steel)" /></label>
+                  <label>ประเทศ<span class="req">*</span><input type="text" value="เหล็กแผ่นรีดร้อน (Hot-Rolled Steel)" /></label>
+                  <label>รายการที่เลือก<input type="text" placeholder="รายการที่เลือก" /></label>
+                  <label>ประเทศ<span class="req">*</span><textarea></textarea></label>
+                  <label>รายชื่อผู้ส่งออก<textarea>ราชอาณาจักรไทย</textarea></label>
+                  <label>วันที่ให้เปิดเผย<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่เปิดให้ลงทะเบียนเป็นผู้มีส่วนได้เสีย<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่เปิดให้แจ้งความจำนงเข้าร่วมแสดงความคิดเห็น<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่เปิดรับความเห็นเป็นลายลักษณ์อักษร<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span> กำหนดวันส่ง Post Hearing<span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                </div>
+                <div class="chip-row"><span class="chip">แจ้งการชำระค่าธรรมเนียม</span><app-button type="primary" label="ใบนำส่ง" /></div>
+                <div class="pair">
+                  <div>
+                    <p class="field-label">สถานะการแจ้งชำระค่าธรรมเนียม<span class="req">*</span></p>
+                    <div class="choice">
+                      <button type="button"><img src="assets/icons/por1-radio-on.svg" width="24" height="24" alt="" />แจ้งชำระ</button>
+                    </div>
+                  </div>
+                  <label>แจ้งชำระค่าธรรมเนียมภายในวันที่<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                </div>
+                <p class="field-label">แนบไฟล์หนังสือชำระค่าธรรมเนียม<span class="req">*</span></p>
+                <p class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</p>
+                <div class="file-row">
+                  <label class="drop">
+                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
+                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
+                    <input type="file" (change)="pickFile($event)" />
+                  </label>
+                  <table class="files">
+                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td>1</td>
+                        <td><a class="pdf" href="#">ไฟล์.pdf</a></td>
+                        <td><input type="text" value="หนังสือชำระค่าธรรมเนียม" /></td>
+                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              }
+            }
+
+            <footer class="assign-card__foot">
+              @if (stage > 0) { <app-button type="outline" label="บันทึกร่าง" /> }
+              <app-button type="primary" [label]="stage === 0 || stage === 1 || stage === 2 || stage === 3 ? 'ถัดไป' : 'ส่ง'" (click)="nextStage()" />
+            </footer>
+          </section>
+        }
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

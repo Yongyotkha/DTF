@@ -23,6 +23,18 @@ const menus = [
   { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่', 'ยื่นคำร้องขอข้อมูลข่าวสาร', 'รายการยื่นคำร้องขอข้อมูลข่าวสาร'] },
 ];
 
+const staffMenus = [
+  { title: 'คำขอ', items: ['ยื่นคำขอ', 'รายการยื่นคำขอ', 'แก้ไขผู้กระทำแทน'] },
+  { title: 'กระบวนการไต่สวน', items: ['ลงทะเบียนผู้มีส่วนได้เสีย', 'รับ-ส่งข้อมูลอื่นๆ', 'รายงาน'] },
+  {
+    title: 'ระบบ Task Management',
+    items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่', 'ยื่นคำร้องขอข้อมูลข่าวสาร', 'รายการยื่นคำร้องขอข้อมูลข่าวสาร'],
+  },
+  { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่', 'ยื่นคำร้องขอข้อมูลข่าวสาร', 'รายการยื่นคำร้องขอข้อมูลข่าวสาร'] },
+  { title: 'จัดเก็บเอกสารอิเล็กทรอนิกส์', items: [] },
+  { title: 'ตั้งค่าระบบ', items: ['ตั้งค่าผู้ใช้งานและสิทธิ์เข้าใช้งาน'] },
+];
+
 @Component({
   selector: 'app-side-nav',
   imports: [MenuGroup, MenuItem],
@@ -36,9 +48,12 @@ const menus = [
 export class SideNav implements OnInit {
   @Input() open = 'all';
   @Input() active = '';
+  @Input() kind: 'applicant' | 'staff' = 'applicant';
   @Output() readonly chosen = new EventEmitter<string>();
 
-  protected readonly menus = menus;
+  protected menuList() {
+    return this.kind === 'staff' ? staffMenus : menus;
+  }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
 
   constructor(private readonly state: SidebarState) {}
@@ -48,7 +63,8 @@ export class SideNav implements OnInit {
   }
 
   ngOnInit(): void {
-    const titles = this.open === 'all' ? menus.map((menu) => menu.title) : [this.open];
+    const source = this.menuList();
+    const titles = this.open === 'all' ? source.map((menu) => menu.title) : [this.open];
     this.opened.set(new Set(titles));
   }
 

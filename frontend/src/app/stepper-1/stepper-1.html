@@ -20,7 +20,7 @@
       <li>
         <app-vertical-step [state]="step.state" [label]="open ? step.label : ''" [number]="step.number" />
         @if (!last) {
-          <span class="stepper-1__line"></span>
+          <span class="stepper-1__line" [class.is-done]="step.state === 'success'"></span>
         }
       </li>
     }

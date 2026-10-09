@@ -5,6 +5,12 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 
+type RequestStep = {
+  name: string;
+  state: 'done' | 'current' | 'todo';
+  date?: string;
+};
+
 type RequestRow = {
   id: string;
   code: string;
@@ -13,7 +19,19 @@ type RequestRow = {
   status: string;
   created: string;
   ready: boolean;
+  steps: RequestStep[];
 };
+
+const stepNames = ['ยื่นคำขอ', 'ตรวจสอบข้อมูล', 'เปิดการไต่สวน', 'ผลการไต่สวนชั้นต้น', 'ยื่นรับฟังความคิดเห็น', 'ร่างผลการไต่สวน', 'ประกาศผลชั้นที่สุด'];
+const stepDate = 'วันที่ 15 มกราคม 2567 เวลา 16:30';
+
+function requestSteps(current: number): RequestStep[] {
+  return stepNames.map((name, index) => ({
+    name,
+    state: index < current ? 'done' : index === current ? 'current' : 'todo',
+    date: index <= current && index < 2 ? stepDate : undefined,
+  }));
+}
 
 const forms = [
   { code: 'ปร. 1', title: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน', detail: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน ตามมาตรา 33 วรรคหนึ่ง และมาตรา 70' },
@@ -34,15 +52,6 @@ export class RequestsPage {
   protected readonly measures = ['มาตราการ AD', 'มาตราการ CVD', 'มาตราการ SG', 'มาตราการ AC'];
   protected readonly forms = forms;
   protected readonly tabs = ['รายการยื่นคำขอ', 'ฉบับร่าง'];
-  protected readonly steps = [
-    { name: 'ยื่นคำขอ', state: 'done', date: 'วันที่ 15 มกราคม 2567 เวลา 16:30' },
-    { name: 'ตรวจสอบข้อมูล', state: 'current', date: 'วันที่ 15 มกราคม 2567 เวลา 16:30' },
-    { name: 'เปิดการไต่สวน', state: 'todo' },
-    { name: 'ผลการไต่สวนชั้นต้น', state: 'todo' },
-    { name: 'ยื่นรับฟังความคิดเห็น', state: 'todo' },
-    { name: 'ร่างผลการไต่สวน', state: 'todo' },
-    { name: 'ประกาศผลชั้นที่สุด', state: 'todo' },
-  ];
   protected readonly prompts = ['AD คืออะไร', 'CVD คืออะไร', 'SG คืออะไร', 'AC คืออะไร'];
   protected measure = 'มาตราการ AD';
   protected choosing = false;
@@ -53,8 +62,8 @@ export class RequestsPage {
   protected page = 1;
   protected readonly openRows = signal<ReadonlySet<string>>(new Set(['row-1', 'row-2']));
   private readonly rows: RequestRow[] = [
-    { id: 'row-1', code: 'AD0012', goods: 'text', kind: 'ยื่นในนามของตนเอง', status: 'ยื่นคำขอ', created: '22/09/2569 10:20', ready: true },
-    { id: 'row-2', code: 'AD0012', goods: 'text', kind: 'ยื่นในนามของตนเอง', status: 'ยื่นรับฟังความคิดเห็น', created: '22/09/2569 10:20', ready: false },
+    { id: 'row-1', code: 'AD0012', goods: 'text', kind: 'ยื่นในนามของตนเอง', status: 'ยื่นคำขอ', created: '22/09/2569 10:20', ready: true, steps: requestSteps(0) },
+    { id: 'row-2', code: 'AD0012', goods: 'text', kind: 'ยื่นในนามของตนเอง', status: 'ยื่นรับฟังความคิดเห็น', created: '22/09/2569 10:20', ready: false, steps: requestSteps(1) },
   ];
 
   constructor(
@@ -94,6 +103,20 @@ export class RequestsPage {
   protected openChooser(): void {
     this.choosing = true;
     void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
+  }
+
+  protected openForm(code: string): void {
+    if (code === 'ปร. 1') {
+      this.choosing = false;
+      void this.router.navigate(['/requests', 'por-1']);
+      return;
+    }
+    if (code === 'ปร. 2') {
+      this.choosing = false;
+      void this.router.navigate(['/requests', 'por-2']);
+      return;
+    }
+    this.closeChooser();
   }
 
   protected closeChooser(): void {

@@ -1,6 +1,6 @@
 import { Component, OnDestroy, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { Accounts } from '../../accounts';
+import { roleHome, Accounts } from '../../accounts';
 import { DftButton } from '../../button/button';
 import { InputField } from '../../input-field/input-field';
 import { DftModal } from '../../modal/modal';
@@ -49,7 +49,8 @@ export class LoginPage implements OnDestroy {
     this.timer = window.setTimeout(() => {
       this.phase.set('enter');
       this.timer = window.setTimeout(() => {
-        void this.router.navigateByUrl('/home');
+        const role = this.accounts.role;
+        void this.router.navigateByUrl(role ? roleHome[role] : '/home');
       }, 900);
     }, 900);
   }

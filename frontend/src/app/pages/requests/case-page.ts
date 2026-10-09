@@ -57,6 +57,10 @@ export class CasePage {
     void this.router.navigate(['/requests', 'draft', 'A4']);
   }
 
+  protected openChat(): void {
+    void this.router.navigate(['/requests', 'chat']);
+  }
+
   protected toggleHistory(index: number): void {
     this.openHistory = this.openHistory === index ? null : index;
   }
