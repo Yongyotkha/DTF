@@ -1,0 +1,42 @@
+/* Hover Menu 42:514. Primary is Frame 10, secondary is Frame 11. */
+.hover-menu {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 50px;
+  margin: 0;
+  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-white);
+  font-family: "Noto Serif", serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hover-menu[data-tone='primary'] {
+  width: 168px;
+  background: var(--color-primary);
+}
+
+.hover-menu[data-tone='secondary'] {
+  width: 146px;
+  background: var(--color-secondary);
+}
+
+.hover-menu[data-tone='primary']:active:not(:disabled) {
+  background: var(--color-primary-pressed);
+}
+
+.hover-menu[data-tone='secondary']:active:not(:disabled) {
+  background: var(--color-secondary-pressed);
+}
+
+.hover-menu:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  box-shadow: none;
+}

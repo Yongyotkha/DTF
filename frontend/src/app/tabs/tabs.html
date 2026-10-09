@@ -1,0 +1,10 @@
+<div class="tabs" role="tablist">
+  @for (label of labels; track $index) {
+    <button type="button" class="tab" role="tab" [class.tab--active]="active === $index" [attr.aria-selected]="active === $index" (click)="select($index)">
+      {{ label }}
+      @if (marks[$index] != null) {
+        <img [src]="active === $index ? 'assets/icons/tab-count-on.svg' : 'assets/icons/tab-count.svg'" width="16" height="16" alt="" />
+      }
+    </button>
+  }
+</div>

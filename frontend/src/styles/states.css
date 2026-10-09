@@ -1,0 +1,30 @@
+/* State chain for every control. Later matching rules win.
+   default → focus → active → disabled.
+   Disabled clears the focus ring. Motion fades paints already defined for that state. */
+button,
+[role="tab"],
+[role="menuitem"],
+input,
+textarea,
+select {
+  transition:
+    background-color var(--motion-state),
+    color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+button:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  box-shadow: none;
+  cursor: default;
+}

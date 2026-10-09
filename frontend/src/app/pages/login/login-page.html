@@ -1,0 +1,37 @@
+<app-auth-shell [center]="true" [copyright]="true">
+  <h1>เข้าสู่ระบบ</h1>
+  <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" placeholder="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก" [required]="true" [editable]="true" [state]="taxState" [value]="taxId" (valueChange)="taxId = $event" />
+  <app-input-field class="block" label="รหัสผ่าน (Password)" placeholder="ระบุรหัสผ่าน" inputType="password" [required]="true" [editable]="true" [state]="passwordState" [helper]="passwordHelp" [value]="password" (valueChange)="password = $event" />
+  <a class="forgot" routerLink="/forgot-password">ลืมรหัสผ่าน</a>
+  <app-button class="wide" label="เข้าสู่ระบบ" (click)="submit()">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 12H21" fill="none" stroke="currentColor" stroke-linecap="round" /><path d="M15 18L21 12L15 6" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+  </app-button>
+  <p class="or">หรือเข้าสู่ระบบด้วย</p>
+  <div class="sso">
+    <button type="button" class="sso__btn sso__btn--full">
+      <img src="assets/auth/thaid.webp" width="30" height="30" alt="" />
+      ดำเนินการต่อด้วย ThaiD
+    </button>
+    <div class="sso__row">
+      <button type="button" class="sso__btn sso__btn--microsoft">
+        <img src="assets/auth/icon-microsoft.svg" width="16" height="16" alt="" />
+        Microsoft 365
+      </button>
+      <button type="button" class="sso__btn sso__btn--google">
+        <img src="assets/auth/icon-google.svg" width="16" height="16" alt="" />
+        Google
+      </button>
+    </div>
+  </div>
+  <a class="register" routerLink="/register">ลงทะเบียนผู้ใช้งานใหม่</a>
+</app-auth-shell>
+
+@if (phase() !== 'idle') {
+  <div class="notice">
+    @if (phase() === 'success') {
+      <app-modal kind="success" heading="เข้าสู่ระบบสำเร็จ" detail="" [actions]="false" />
+    } @else {
+      <app-modal kind="loading" heading="กำลังเข้าสู่ระบบ" detail="" />
+    }
+  </div>
+}

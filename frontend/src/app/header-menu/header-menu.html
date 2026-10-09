@@ -1,0 +1,22 @@
+<div class="header-menu">
+  <button type="button" class="header-menu__bar" [attr.aria-expanded]="open" (click)="toggle()">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2L12.2428 1.56292C12.0918 1.47903 11.9082 1.47903 11.7572 1.56292L12 2ZM21 7H21.5C21.5 6.81842 21.4016 6.65111 21.2428 6.56292L21 7ZM21 17L21.2428 17.4371C21.4016 17.3489 21.5 17.1816 21.5 17H21ZM12 22L11.7572 22.4371C11.9082 22.521 12.0918 22.521 12.2428 22.4371L12 22ZM3 17H2.5C2.5 17.1816 2.59845 17.3489 2.75718 17.4371L3 17ZM3 7L2.75718 6.56292C2.59845 6.65111 2.5 6.81842 2.5 7H3ZM12 2L11.7572 2.43708L20.7572 7.43708L21 7L21.2428 6.56292L12.2428 1.56292L12 2ZM21 7H20.5V17H21H21.5V7H21ZM21 17L20.7572 16.5629L11.7572 21.5629L12 22L12.2428 22.4371L21.2428 17.4371L21 17ZM12 22L12.2428 21.5629L3.24282 16.5629L3 17L2.75718 17.4371L11.7572 22.4371L12 22ZM3 17H3.5V7H3H2.5V17H3ZM3 7L3.24282 7.43708L12.2428 2.43708L12 2L11.7572 1.56292L2.75718 6.56292L3 7ZM3 7L2.75718 7.43708L11.7572 12.4371L12 12L12.2428 11.5629L3.24282 6.56292L3 7ZM12 12L12.2428 12.4371L21.2428 7.43708L21 7L20.7572 6.56292L11.7572 11.5629L12 12ZM12 12H11.5V22H12H12.5V12H12Z" fill="currentColor"/>
+    </svg>
+    <span>{{ label }}</span>
+    @if (open) {
+      <svg class="header-menu__chevron" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 14L12 8L6 14" fill="none" stroke="currentColor" stroke-linecap="round"/>
+      </svg>
+    } @else {
+      <svg class="header-menu__chevron" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/>
+      </svg>
+    }
+  </button>
+  @if (open) {
+    @for (item of items; track item) {
+      <app-hover-menu tone="primary" [label]="item" />
+    }
+  }
+</div>

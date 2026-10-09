@@ -1,0 +1,10 @@
+<label [class.error]="error">
+  <span>คำนำหน้า <span>*</span></span>
+  <select [class.placeholder]="!value" [value]="value" (change)="choose($any($event.target).value)" (blur)="blurred.emit()">
+    <option value="">เลือก</option>
+    @for (name of options; track name) {
+      <option [value]="name">{{ name }}</option>
+    }
+  </select>
+  @if (error) { <span class="meta">{{ message }}</span> }
+</label>

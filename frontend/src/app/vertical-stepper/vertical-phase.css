@@ -1,0 +1,47 @@
+/* Phase row inside vertical_stepper 551:43562. hide points right, show points down. */
+.vphase {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 200px;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--color-disabled-bg);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text-muted);
+  font-family: "Noto Sans Thai", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vphase svg {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.vphase__label {
+  color: #000000;
+  white-space: nowrap;
+}
+
+.vphase__count {
+  color: var(--color-disabled-text);
+  white-space: nowrap;
+}
+
+.vphase:disabled {
+  background: var(--color-disabled-bg);
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.vphase:disabled .vphase__label,
+.vphase:disabled .vphase__count {
+  color: var(--color-disabled-text);
+}

@@ -1,0 +1,199 @@
+/* Modal 214:4558. Card is 371px, form is 702px. Shadow is black 25% blur 10. */
+.modal {
+  box-sizing: border-box;
+  width: 371px;
+  margin: 0;
+  padding: 16px 24px;
+  border-radius: 8px;
+  background: var(--color-white);
+  box-shadow: 0 0 10px rgb(0 0 0 / 25%);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+}
+
+.modal--form {
+  width: 702px;
+}
+
+.modal--alert {
+  padding: 24px;
+  text-align: center;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal--alert .modal__header {
+  justify-content: center;
+}
+
+.modal h2 {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.modal--alert h2 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+}
+
+.modal__close {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 19px;
+  cursor: pointer;
+}
+
+.modal__message {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: pre-line;
+}
+
+.modal--alert .modal__message {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.modal__email {
+  color: var(--color-primary);
+}
+
+.modal__badge,
+.modal__spinner {
+  display: block;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 8px;
+}
+
+.modal__badge--error,
+.modal__badge--warning,
+.modal__badge--success,
+.modal__badge--email {
+  border-radius: 50%;
+}
+
+.modal__badge--error {
+  background: var(--color-error-bg);
+  color: var(--color-error-hover);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 54px;
+}
+
+.modal__badge--warning {
+  width: 0;
+  height: 0;
+  border-radius: 0;
+  border-left: 28px solid transparent;
+  border-right: 28px solid transparent;
+  border-bottom: 50px solid #fef3e0;
+  background: transparent;
+  color: var(--color-warning);
+  font-size: 0;
+  line-height: 0;
+  position: relative;
+}
+
+.modal__badge--warning::after {
+  content: "!";
+  position: absolute;
+  left: -6px;
+  top: 16px;
+  color: var(--color-warning);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.modal__badge--success {
+  background: transparent;
+  color: var(--color-success-bg);
+}
+
+.modal__badge--email {
+  background: transparent;
+  color: var(--color-info-bg);
+}
+
+.modal__spinner {
+  box-sizing: border-box;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.modal__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 48px;
+}
+
+.modal--alert .modal__actions {
+  justify-content: center;
+}
+
+.modal--form .modal__actions {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.modal__button {
+  box-sizing: border-box;
+  height: 32px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  cursor: pointer;
+}
+
+.modal__button--outline {
+  background: var(--color-white);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.modal__button--danger {
+  background: var(--color-error-red);
+}

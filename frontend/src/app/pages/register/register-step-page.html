@@ -1,0 +1,297 @@
+<div class="screen">
+  <app-top-header class="fluid" />
+  <p class="crumb">
+    <a routerLink="/register">ลงทะเบียนสมาชิก</a>
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M10 6L16 12L10 18" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+    <a [routerLink]="['/register', kind, 1]">{{ title }}</a>
+  </p>
+  <div class="stepper-scroll">
+    <app-steps [current]="step > 3 ? 3 : step" />
+  </div>
+  <section class="sheet" [class.sheet--form]="showFormChrome">
+    @if (step === 1) {
+      <h2>ข้อตกลงและเงื่อนไขการสมัครขอรับชื่อผู้ใช้งาน (username) และรหัสผ่าน (password) และการใช้
+บริการระบบอิเล็กทรอนิกส์มาตรการเยียวยาทางการค้า
+ของกรมการค้าต่างประเทศ กระทรวงพาณิชย์</h2>
+      <div class="terms" #terms (scroll)="onTermsScroll(terms)">{{ agreement }}</div>
+      <p class="pledge">ข้าพเจ้าได้อ่านข้อตกลงและเงื่อนไขนี้เข้าใจโดยละเอียดแล้ว และข้าพเจ้าตกลงยินยอมผูกพัน และปฏิบัติตามข้อตกลงและเงื่อนไขทุกประการ</p>
+      <label class="agree" [class.agree--locked]="!canAccept">
+        <input type="checkbox" [disabled]="!canAccept" [checked]="accepted" (change)="accept($any($event.target).checked)" />
+        <span>ยอมรับข้อตกลงในการบริการ</span>
+      </label>
+      @if (tried() && !accepted) {
+        <p class="hint">โปรดกรอกข้อมูลให้ครบถ้วน</p>
+      }
+    } @else if (showFormChrome) {
+      <header class="form-head">
+        <h2>{{ isAccessForm ? 'กำหนดข้อมูลผู้ใช้งาน สำหรับการเข้าใช้งานระบบ' : 'ลงทะเบียนผู้ประกอบการใหม่ - ' + title }}</h2>
+        <p>โปรดกรอกข้อมูลให้ครบถ้วน</p>
+      </header>
+    }
+    @if (isCorporateForm) {
+      <div class="form-grid">
+        <fieldset class="choice">
+          <legend>ประเทศ <span>*</span></legend>
+          <label><input type="radio" name="country" value="ประเทศไทย" [checked]="value('country') === 'ประเทศไทย'" (change)="setValue('country', 'ประเทศไทย')" />ประเทศไทย</label>
+          <label><input type="radio" name="country" value="ต่างประเทศ" [checked]="value('country') === 'ต่างประเทศ'" (change)="setValue('country', 'ต่างประเทศ')" />ต่างประเทศ</label>
+        </fieldset>
+        <div class="regno">
+          <app-id-number-field label="เลขทะเบียนนิติบุคคล" placeholder="0105538041238" [digitsOnly]="true" [maxLength]="13" [state]="regnoState()" [helper]="regnoHelper()" [value]="value('regno')" (valueChange)="setValue('regno', $event)" (blurred)="touch('regno')" />
+          <app-button type="secondary" label="ตรวจสอบข้อมูล" [loading]="checkingRegno()" (click)="checkRegno()" />
+        </div>
+        <app-input-field class="block span-2" label="ชื่อนิติบุคคล" [required]="true" [editable]="true" placeholder="บริษัท ดาต้า มายนิ่ง จำกัด" [state]="stateOf(fieldBy('name'))" [helper]="message('name')" [value]="value('name')" (valueChange)="setValue('name', $event)" (blurred)="touch('name')" />
+        <app-file-field label="หนังสือรับรองนิติบุคคล" [required]="true" [error]="invalid('cert')" [message]="message('cert')" [value]="value('cert')" (valueChange)="setValue('cert', $event)" (blurred)="touch('cert')" />
+        <app-thai-date-field label="วันที่จดทะเบียน" placeholder="30/04/2538" limit="fromToday" [state]="stateOf(fieldBy('registered'))" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
+        <app-phone-field placeholder="02-348-8700" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
+        <app-email-field placeholder="support@datamining.co.th" [state]="stateOf(fieldBy('email'))" [helper]="message('email')" [value]="value('email')" (valueChange)="setValue('email', $event)" (blurred)="touch('email')" />
+        <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="เลขที่ 102 ถนน ณ ระนอง" [state]="stateOf(fieldBy('address'))" [helper]="message('address')" [value]="value('address')" (valueChange)="setValue('address', $event)" (blurred)="touch('address')" />
+        <app-address-select
+          class="span-2"
+          [province]="value('province')"
+          [district]="value('district')"
+          [subdistrict]="value('subdistrict')"
+          [postcode]="value('postcode')"
+          [provinceError]="stateOf(fieldBy('province')) === 'error'"
+          [districtError]="stateOf(fieldBy('district')) === 'error'"
+          [subdistrictError]="stateOf(fieldBy('subdistrict')) === 'error'"
+          [postcodeError]="stateOf(fieldBy('postcode')) === 'error'"
+          [provinceMessage]="message('province')"
+          [districtMessage]="message('district')"
+          [subdistrictMessage]="message('subdistrict')"
+          [postcodeMessage]="message('postcode')"
+          (provinceChange)="setValue('province', $event)"
+          (districtChange)="setValue('district', $event)"
+          (subdistrictChange)="setValue('subdistrict', $event)"
+          (postcodeChange)="setValue('postcode', $event)"
+          (fieldBlur)="touch($event)"
+        />
+        <app-file-field label="หนังสือยินยอมให้ใช้ข้อมูล" [required]="true" [error]="invalid('consent')" [message]="message('consent')" [value]="value('consent')" (valueChange)="setValue('consent', $event)" (blurred)="touch('consent')" />
+        <div class="download">
+          <span>ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล (กรณีเป็นผู้มอบอำนาจ)</span>
+          <button type="button">ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล</button>
+        </div>
+      </div>
+      <hr class="rule" />
+      <div class="director-bar">
+        <h2>ข้อมูลกรรมการบริษัท</h2>
+        <app-button class="icon-before" type="outline" label="เพิ่มข้อมูล" (click)="openDirector()">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5V19M5 12H19" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+        </app-button>
+      </div>
+      <div class="table-scroll">
+        <app-data-table
+          class="fill"
+          [columns]="['ลำดับ', 'ชื่อ', 'นามสกุล', 'กระทำ']"
+          [rows]="directorRows()"
+        />
+      </div>
+      <label class="authority">
+        <span>กรรมการลงชื่อผูกพัน</span>
+        <textarea maxlength="200" placeholder="ระบุอำนาจกรรมการลงชื่อผูกพันตามหนังสือรับรองกระทรวงพาณิชย์" [value]="value('authority')" (input)="setValue('authority', $any($event.target).value)"></textarea>
+        <span class="authority__meta">
+          <span>อาทิ กรรมการหนึ่งคนลงลายมือชื่อ และประทับตราสำคัญของบริษัท/</span>
+          <span>{{ value('authority').length }} / 200</span>
+        </span>
+      </label>
+    } @else if (isIndividualForm) {
+      <div class="form-grid">
+        <fieldset class="choice lead">
+          <legend>ยืนยันตัวตน <span>*</span></legend>
+          <span class="choice__row">
+            <label><input type="radio" name="identity" value="บัตรประจำตัวประชาชน" [checked]="value('identity') === 'บัตรประจำตัวประชาชน'" (change)="setValue('identity', 'บัตรประจำตัวประชาชน')" />บัตรประจำตัวประชาชน</label>
+            <label><input type="radio" name="identity" value="หนังสือเดินทาง" [checked]="value('identity') === 'หนังสือเดินทาง'" (change)="setValue('identity', 'หนังสือเดินทาง')" />หนังสือเดินทาง (passport)</label>
+          </span>
+        </fieldset>
+        <app-prefix-field class="lead" [error]="invalid('prefix')" [message]="message('prefix')" [value]="value('prefix')" (valueChange)="setValue('prefix', $event)" (blurred)="touch('prefix')" />
+        <app-input-field class="block" label="ชื่อ" [required]="true" [editable]="true" placeholder="ระบุ" [state]="stateOf(fieldBy('name'))" [helper]="message('name')" [value]="value('name')" (valueChange)="setValue('name', $event)" (blurred)="touch('name')" />
+        <app-input-field class="block" label="ชื่อกลาง" [editable]="true" placeholder="ระบุ" [state]="stateOf(fieldBy('middle'))" [helper]="message('middle')" [value]="value('middle')" (valueChange)="setValue('middle', $event)" (blurred)="touch('middle')" />
+        <app-input-field class="block" label="นามสกุล" [required]="true" [editable]="true" placeholder="ระบุ" [state]="stateOf(fieldBy('surname'))" [helper]="message('surname')" [value]="value('surname')" (valueChange)="setValue('surname', $event)" (blurred)="touch('surname')" />
+        <app-thai-date-field label="วัน/เดือน/ปี เกิด" placeholder="22/09/2569" limit="untilToday" [state]="stateOf(fieldBy('birth'))" [helper]="message('birth')" [value]="value('birth')" (valueChange)="setValue('birth', $event)" (blurred)="touch('birth')" />
+        <app-phone-field placeholder="ระบุ" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
+        <app-email-field placeholder="ระบุ" [state]="stateOf(fieldBy('email'))" [helper]="message('email')" [value]="value('email')" (valueChange)="setValue('email', $event)" (blurred)="touch('email')" />
+        <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน" [state]="stateOf(fieldBy('address'))" [helper]="message('address')" [value]="value('address')" (valueChange)="setValue('address', $event)" (blurred)="touch('address')" />
+        <app-address-select
+          class="span-2"
+          [province]="value('province')"
+          [district]="value('district')"
+          [subdistrict]="value('subdistrict')"
+          [postcode]="value('postcode')"
+          [provinceError]="stateOf(fieldBy('province')) === 'error'"
+          [districtError]="stateOf(fieldBy('district')) === 'error'"
+          [subdistrictError]="stateOf(fieldBy('subdistrict')) === 'error'"
+          [postcodeError]="stateOf(fieldBy('postcode')) === 'error'"
+          [provinceMessage]="message('province')"
+          [districtMessage]="message('district')"
+          [subdistrictMessage]="message('subdistrict')"
+          [postcodeMessage]="message('postcode')"
+          (provinceChange)="setValue('province', $event)"
+          (districtChange)="setValue('district', $event)"
+          (subdistrictChange)="setValue('subdistrict', $event)"
+          (postcodeChange)="setValue('postcode', $event)"
+          (fieldBlur)="touch($event)"
+        />
+      </div>
+    } @else if (isAssociationForm) {
+      <div class="form-grid">
+        <fieldset class="choice">
+          <legend>ประเทศ <span>*</span></legend>
+          <label><input type="radio" name="country" value="ประเทศไทย" [checked]="value('country') === 'ประเทศไทย'" (change)="setValue('country', 'ประเทศไทย')" />ประเทศไทย</label>
+          <label><input type="radio" name="country" value="ต่างประเทศ" [checked]="value('country') === 'ต่างประเทศ'" (change)="setValue('country', 'ต่างประเทศ')" />ต่างประเทศ</label>
+        </fieldset>
+        <app-id-number-field label="เลขทะเบียนสมาคมการค้า" placeholder="ระบุ" [state]="stateOf(fieldBy('regno'))" [helper]="message('regno')" [value]="value('regno')" (valueChange)="setValue('regno', $event)" (blurred)="touch('regno')" />
+        <app-input-field class="block span-2" label="ชื่อสมาคมการค้า" [required]="true" [editable]="true" placeholder="ระบุ" [state]="stateOf(fieldBy('name'))" [helper]="message('name')" [value]="value('name')" (valueChange)="setValue('name', $event)" (blurred)="touch('name')" />
+        <app-input-field class="block" label="สถานที่จดทะเบียน" [required]="true" [editable]="true" placeholder="ระบุ" [state]="stateOf(fieldBy('place'))" [helper]="message('place')" [value]="value('place')" (valueChange)="setValue('place', $event)" (blurred)="touch('place')" />
+        <app-thai-date-field label="วันที่จดทะเบียน" placeholder="22/09/2569" limit="fromToday" [state]="stateOf(fieldBy('registered'))" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
+        <app-file-field label="หนังสือรับรองสมาคมการค้า" [required]="true" [error]="invalid('cert')" [message]="message('cert')" [value]="value('cert')" (valueChange)="setValue('cert', $event)" (blurred)="touch('cert')" />
+        <app-file-field label="แนบลายเซ็น" [error]="invalid('signature')" [message]="message('signature')" [value]="value('signature')" (valueChange)="setValue('signature', $event)" (blurred)="touch('signature')" />
+        <app-phone-field placeholder="ระบุ" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
+        <app-email-field placeholder="ระบุ" [state]="stateOf(fieldBy('email'))" [helper]="message('email')" [value]="value('email')" (valueChange)="setValue('email', $event)" (blurred)="touch('email')" />
+        <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน" [state]="stateOf(fieldBy('address'))" [helper]="message('address')" [value]="value('address')" (valueChange)="setValue('address', $event)" (blurred)="touch('address')" />
+        <app-address-select
+          class="span-2"
+          [province]="value('province')"
+          [district]="value('district')"
+          [subdistrict]="value('subdistrict')"
+          [postcode]="value('postcode')"
+          [provinceError]="stateOf(fieldBy('province')) === 'error'"
+          [districtError]="stateOf(fieldBy('district')) === 'error'"
+          [subdistrictError]="stateOf(fieldBy('subdistrict')) === 'error'"
+          [postcodeError]="stateOf(fieldBy('postcode')) === 'error'"
+          [provinceMessage]="message('province')"
+          [districtMessage]="message('district')"
+          [subdistrictMessage]="message('subdistrict')"
+          [postcodeMessage]="message('postcode')"
+          (provinceChange)="setValue('province', $event)"
+          (districtChange)="setValue('district', $event)"
+          (subdistrictChange)="setValue('subdistrict', $event)"
+          (postcodeChange)="setValue('postcode', $event)"
+          (fieldBlur)="touch($event)"
+        />
+        <app-file-field label="หนังสือยินยอมให้ใช้ข้อมูล" [required]="true" [error]="invalid('consent')" [message]="message('consent')" [value]="value('consent')" (valueChange)="setValue('consent', $event)" (blurred)="touch('consent')" />
+        <div class="download">
+          <span>ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล (กรณีเป็นผู้มอบอำนาจ)</span>
+          <button type="button">ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล</button>
+        </div>
+      </div>
+    } @else if (isAccessForm) {
+      <div class="access">
+        @for (field of fields; track field.key) {
+          <app-input-field
+            class="block"
+            [label]="field.label"
+            [required]="field.required || false"
+            [editable]="field.key !== 'username'"
+            [inputType]="field.inputType || 'text'"
+            [placeholder]="field.placeholder || ''"
+            [state]="field.key === 'username' ? usernameState() : stateOf(field)"
+            [helper]="message(field.key)"
+            [value]="value(field.key)"
+            (valueChange)="setValue(field.key, $event)"
+            (blurred)="touch(field.key)"
+          />
+        }
+      </div>
+      <p class="pass-help">รหัสผ่านต้องมีความยาว 8-16 ตัวอักษร และประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักขระพิเศษ</p>
+    } @else {
+      <div class="fields">
+        @for (field of fields; track field.key) {
+          <app-input-field
+            class="block"
+            [label]="field.label"
+            [kind]="field.kind || 'text'"
+            [required]="field.required || false"
+            [editable]="step !== 4"
+            [inputType]="field.inputType || 'text'"
+            [placeholder]="field.placeholder || ''"
+            [state]="stateOf(field)"
+            [helper]="message(field.key)"
+            [value]="value(field.key)"
+            (valueChange)="setValue(field.key, $event)"
+            (blurred)="touch(field.key)"
+          />
+        }
+      </div>
+      @if (tried() && fields.some(field => stateOf(field) === 'error')) {
+        <p class="hint">โปรดกรอกข้อมูลให้ครบถ้วน</p>
+      }
+    }
+    @if (step === 2 && tried() && fields.some(field => stateOf(field) === 'error')) {
+      <p class="hint">โปรดกรอกข้อมูลให้ครบถ้วน</p>
+    }
+    <hr class="rule" />
+    <div class="actions">
+      <app-button class="icon-before" type="outline" label="ย้อนกลับ" (click)="back()">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M21 12H3" fill="none" stroke="currentColor" stroke-linecap="round" /><path d="M9 6L3 12L9 18" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+      </app-button>
+      @if (step < 4) {
+        <app-button [label]="nextLabel" [state]="proceedState" (click)="next()">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 12H21" fill="none" stroke="currentColor" stroke-linecap="round" /><path d="M15 18L21 12L15 6" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+        </app-button>
+      }
+    </div>
+  </section>
+</div>
+
+@if (addingDirector()) {
+  <div class="notice" (click)="closeDirector($event)">
+    <section class="director" role="dialog" aria-label="เพิ่มข้อมูล">
+      <header>
+        <h2>เพิ่มข้อมูล</h2>
+        <button type="button" class="director__close" aria-label="ปิด" (click)="addingDirector.set(false)">✕</button>
+      </header>
+      <app-tabs [labels]="['กรอกข้อมูล', 'นำเข้าไฟล์']" (activeChange)="directorTab.set($event)" />
+      @if (directorTab() === 0) {
+        <div class="director__list">
+          @for (row of directorDraft(); track $index) {
+            <div class="director__row">
+              <app-input-field class="block" label="ชื่อ" [required]="true" [editable]="true" placeholder="ระบุ" [state]="directorState($index, 'name')" [helper]="directorMessage($index, 'name')" [value]="row.name" (valueChange)="setDirectorCell($index, 'name', $event)" />
+              <app-input-field class="block" label="นามสกุล" [required]="true" [editable]="true" placeholder="ระบุ" [state]="directorState($index, 'surname')" [helper]="directorMessage($index, 'surname')" [value]="row.surname" (valueChange)="setDirectorCell($index, 'surname', $event)" />
+              <app-input-field class="block" label="กระทำ" [required]="true" [editable]="true" placeholder="ระบุ" [state]="directorState($index, 'action')" [helper]="directorMessage($index, 'action')" [value]="row.action" (valueChange)="setDirectorCell($index, 'action', $event)" />
+            </div>
+          }
+          <app-button type="outline" label="เพิ่มแถว" (click)="addDirectorRow()" />
+        </div>
+      } @else {
+        <label class="drop" [class.drop--over]="dropOver()" (dragover)="allowDrop($event)" (dragleave)="dropOver.set(false)" (drop)="importDropped($event)">
+          <input type="file" accept=".csv,.txt,.png,.jpg,.jpeg,.pdf" (change)="importPicked($event)" />
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 4V16M12 4L8 8M12 4L16 8M5 20H19" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+          <span>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</span>
+          <span class="drop__hint">CSV คั่นด้วยจุลภาค: ชื่อ, นามสกุล, กระทำ</span>
+        </label>
+        @if (importName()) { <p class="drop__file">{{ importName() }}</p> }
+        @if (importNote()) { <p class="drop__note">{{ importNote() }}</p> }
+        @if (importPreview()) {
+          <span class="drop__preview">
+            @if (importKind() === 'image') {
+              <img [src]="importPreview()" alt="" />
+            } @else {
+              <iframe [src]="importPreview()" title="ตัวอย่างไฟล์"></iframe>
+            }
+          </span>
+        }
+        @if (importRows().length) {
+          <app-data-table [columns]="['ลำดับ', 'ชื่อ', 'นามสกุล', 'กระทำ']" [rows]="importTable()" />
+        }
+      }
+      <div class="director__actions">
+        <button type="button" class="director__button director__button--outline" (click)="addingDirector.set(false)">ยกเลิก</button>
+        <button type="button" class="director__button" (click)="saveDirector()">ยืนยัน</button>
+      </div>
+    </section>
+  </div>
+}
+@if (checkingRegno()) {
+  <div class="notice">
+    <app-modal kind="loading" />
+  </div>
+}
+@if (failed) {
+  <div class="notice" (click)="closeFailed($event)">
+    <app-modal kind="error" />
+  </div>
+}
+@if (step === 4) {
+  <div class="notice" (click)="finish($event)">
+    <app-modal kind="email" [email]="value('email')" />
+  </div>
+}

@@ -1,0 +1,93 @@
+/* Table 134:1913. Header row and body row are 45px. Page size is 231:4556. */
+.dft-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: max-content;
+}
+
+:host(.fill) {
+  display: block;
+  width: 100%;
+}
+
+:host(.fill) .dft-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+:host(.fill) .dft-table th,
+:host(.fill) .dft-table td {
+  height: auto;
+  min-height: 45px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.dft-table th,
+.dft-table td {
+  box-sizing: border-box;
+  height: 45px;
+  padding: 12px;
+  border: 0;
+  border-bottom: 0.5px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.dft-table th {
+  background: var(--color-bg-page);
+  vertical-align: top;
+}
+
+.pagesize {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.pagesize__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.pagesize__arrow svg {
+  width: 24px;
+  height: 24px;
+}
+
+.pagesize__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 9px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.pagesize__page--current {
+  box-sizing: border-box;
+  width: 35px;
+  height: 34px;
+  border-radius: 50px;
+  background: var(--color-info-bg);
+}

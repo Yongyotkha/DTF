@@ -1,0 +1,87 @@
+/* TopHeader 231:3162. Bar is 1440 by 65, with a 1px bottom border. */
+:host(.fluid) {
+  display: block;
+  width: 100%;
+}
+
+:host(.fluid) .top-header {
+  width: 100%;
+}
+
+:host(.fluid) .top-header__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 1440px;
+  height: 65px;
+  margin: 0;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-white);
+}
+
+.top-header img {
+  width: 65px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.top-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.top-header__bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: var(--color-disabled-bg);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.top-header__bell svg {
+  width: 20px;
+  height: 20px;
+}
+
+.top-header__badge {
+  position: absolute;
+  top: -1px;
+  left: 24px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--color-error-red);
+}
+
+.top-header__name {
+  padding: 10px;
+  color: var(--color-primary);
+  font-family: "Noto Serif", serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.top-header__chevron {
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-muted);
+}

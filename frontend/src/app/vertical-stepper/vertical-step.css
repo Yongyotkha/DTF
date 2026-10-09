@@ -1,0 +1,58 @@
+/* vertical_stepper 551:43562. Success, pending, and disabled rows. */
+.vstep {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-family: "Noto Sans Thai", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: nowrap;
+}
+
+.vstep[data-state='pending'] {
+  color: #000000;
+}
+
+.vstep__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+}
+
+.vstep__marker svg {
+  width: 43px;
+  height: 43px;
+}
+
+.vstep__circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.vstep[data-state='pending'] .vstep__circle {
+  background: linear-gradient(#ffb700, #ff7c00);
+  box-shadow: 0 0 0 4px #ffcb88;
+  color: var(--color-white);
+}
+
+.vstep[data-state='disabled'] .vstep__circle {
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-text-muted);
+}
+
+.vstep__label {
+  line-height: 21px;
+}

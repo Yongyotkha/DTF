@@ -1,0 +1,75 @@
+---
+description: Build the Angular UI only from the DFT Figma Design System components. Never invent visual design.
+alwaysApply: true
+---
+
+# Figma is the only design source
+
+Frontend is Angular. Backend is Node.js. The website must match this file:
+
+`https://www.figma.com/design/VyzG2wtedK6PXKrab7G3aj/Design-DFT-i3c--NEW-` page **Design System** (`0:1`).
+
+Before writing or changing UI, read the matching Figma section and copy its color, type, spacing, radius, and states. Do not invent a color, font, spacing, radius, shadow, or layout. Use a color only for the usage written in `design-system/colors.ts`.
+
+## Allowed sections
+
+| Section | Node |
+| --- | --- |
+| Color Palette | `22:109` |
+| Logo | `22:186` |
+| Typography | `22:110` |
+| Icon | `22:169` |
+| Input Fields | `115:474` |
+| Buttons | `115:475` |
+| Table | `134:1913` |
+| Page Header | `414:23114` |
+| Component | `28:129` |
+| Status Tag | `650:72032` |
+| Modal | `214:4559` |
+| Sidebar | `251:6629` |
+| Menu-Bar | `251:15060` |
+| Tabs | `251:15061` |
+| สถานะ | `394:19586` |
+| TopHeader | `231:3162` |
+| Dropdown | `239:4404` |
+| Hover Menu | `42:514` |
+| Menu | `42:544` |
+| steps-menu | `3520:80966` |
+| vertical_stepper | `551:43562` |
+| Stepper-1 | `554:43932` |
+| Login/Register | `214:5601` |
+| Profile | `251:11310` |
+
+## Reuse on a real page
+
+A page pulls styles. It does not restyle them.
+
+- Color, type, radius, shadow, and spacing come from `design-system/tokens.css`. A color is used only for the usage in `design-system/colors.ts`.
+- UI is the Angular component already built for that Figma frame (`app-button`, `app-input-field`, `app-top-header`, and the rest). Do not copy hex values into a new page stylesheet.
+- If the frame is not in the table, stop and ask for its Figma link.
+
+## State chain
+
+Interactive controls follow this order. A later state wins.
+
+1. **default** — the resting paint from that frame
+2. **focus** — `--state-focus-ring` from Buttons and Input Fields
+3. **active** — the pressed or selected paint already measured for that control
+4. **disabled** — `--color-disabled-bg` and `--color-disabled-text`, and the focus ring is removed
+
+`--motion-state` fades background, text, border, and shadow between those paints. It does not add a color.
+
+## Required
+
+```html
+<!-- GOOD — styles come from a listed Figma section -->
+<button class="btn-primary">Save</button>
+<!-- Buttons 115:475, primary #0E2346 -->
+```
+
+```html
+<!-- BAD — a color, size, or layout that is not in that section -->
+<button style="background:#1d4ed8;border-radius:999px">Save</button>
+```
+
+If the screen needs a component that is not in the table, stop and ask for that frame's Figma link. Do not design a substitute.

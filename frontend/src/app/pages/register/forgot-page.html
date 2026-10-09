@@ -1,0 +1,15 @@
+<app-auth-shell [center]="true">
+  <h1>ลืมรหัสผ่าน</h1>
+  <p class="lead">กรุณากรอกชื่อผู้ใช้งานและอีเมลที่ท่านเคยลงทะเบียนไว้ให้ถูกต้อง</p>
+  <app-input-field class="block" label="อีเมล" placeholder="อีเมล" inputType="email" [required]="true" [editable]="true" [state]="emailState" [value]="email" (valueChange)="email = $event" />
+  <app-button class="wide" label="ส่ง" (click)="submit()">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 12H21" fill="none" stroke="currentColor" stroke-linecap="round" /><path d="M15 18L21 12L15 6" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+  </app-button>
+  <a class="back" routerLink="/login">ย้อนกลับเข้าสู่ระบบ</a>
+</app-auth-shell>
+
+@if (sent) {
+  <div class="notice" (click)="closeSent($event)">
+    <app-modal kind="email" />
+  </div>
+}

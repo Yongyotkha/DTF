@@ -1,0 +1,10 @@
+<button type="button" class="side-nav__toggle" (click)="toggle()" [attr.aria-expanded]="!collapsed()" [attr.aria-label]="collapsed() ? 'ขยายเมนู' : 'ย่อเมนู'" [title]="collapsed() ? 'ขยายเมนู' : null">
+  <img [class.side-nav__mark--out]="collapsed()" src="assets/icons/menu-chevron.svg" width="24" height="24" alt="" />
+  @if (!collapsed()) {
+    <span>ย่อเมนู</span>
+  }
+</button>
+@for (menu of menus; track menu.title) {
+  <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="isOpen(menu.title)" [active]="active" [compact]="collapsed()" (chosen)="pick($event)" (toggled)="toggleGroup(menu.title)" (opened)="expand()" />
+}
+<app-menu-item label="คู่มือการใช้งาน" icon="guide" [compact]="collapsed()" />

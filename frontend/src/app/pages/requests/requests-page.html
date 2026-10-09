@@ -1,0 +1,155 @@
+<div class="requests">
+  <app-top-header class="fluid" />
+  <div class="requests__body">
+    <app-side-nav open="คำขอ" [active]="choosing ? 'ยื่นคำขอ' : 'รายการยื่นคำขอ'" (chosen)="openMenu($event)" />
+    <main>
+      <header class="head">
+        <h1>รายการยื่นคำขอ</h1>
+        <app-button class="icon-before" label="ยื่นคำขอ" (click)="openChooser()">
+          <img src="assets/icons/list-plus.svg" width="24" height="24" alt="" />
+        </app-button>
+      </header>
+      <section class="panel">
+        <app-tabs [labels]="tabs" [marks]="[1, 1]" (activeChange)="listTab = $event" />
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                @if (listTab === 0) {
+                  <th class="fold"></th>
+                }
+                <th>รหัส</th>
+                <th>ชื่อสินค้า/ประเทศ</th>
+                <th>ประเภทการยื่น</th>
+                <th>สถานะ</th>
+                <th>วันที่สร้าง</th>
+                <th>ดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of visibleRows; track row.id) {
+                <tr>
+                  @if (listTab === 0) {
+                    <td class="fold">
+                      <button type="button" class="fold__btn" [attr.aria-expanded]="openRows().has(row.id)" [attr.aria-label]="openRows().has(row.id) ? 'ย่อรายการ' : 'ขยายรายการ'" (click)="toggleRow(row.id)">
+                        <img src="assets/icons/row-chevron.svg" width="20" height="20" alt="" [class.fold__mark--shut]="!openRows().has(row.id)" />
+                      </button>
+                    </td>
+                  }
+                  <td>{{ row.code }}</td>
+                  <td>{{ row.goods }}</td>
+                  <td>{{ row.kind }}</td>
+                  <td><span class="pill">{{ row.status }}</span></td>
+                  <td>{{ row.created }}</td>
+                  <td>
+                    <button type="button" class="act" [class.act--wait]="!row.ready" [disabled]="!row.ready" (click)="listTab === 0 ? openCase() : openDraft()">{{ row.ready ? 'ดำเนินการ' : 'รอดำเนินการ' }}</button>
+                  </td>
+                </tr>
+                @if (listTab === 0 && openRows().has(row.id)) {
+                  <tr class="detail">
+                    <td colspan="7">
+                      <ol class="track">
+                        @for (step of steps; track step.name; let last = $last) {
+                          <li class="track__step" [class.track__step--done]="step.state === 'done'">
+                            <span class="track__dot" [class.track__dot--done]="step.state === 'done'" [class.track__dot--now]="step.state === 'current'">
+                              @if (step.state === 'done') {
+                                <img src="assets/icons/step-check.svg" width="20" height="20" alt="" />
+                              } @else if (step.state === 'current') {
+                                <img src="assets/icons/step-history.svg" width="16" height="16" alt="" />
+                              }
+                            </span>
+                            <strong>{{ step.name }}</strong>
+                            @if (step.date) {
+                              <small>{{ step.date }}</small>
+                            }
+                          </li>
+                        }
+                      </ol>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+        <nav class="pages" aria-label="หน้า">
+          <button type="button" aria-label="หน้าก่อน" (click)="shiftPage(-1)">
+            <img class="pages__prev" src="assets/icons/page-chevron.svg" width="24" height="24" alt="" />
+          </button>
+          <button type="button" [class.pages__on]="page === 1" (click)="page = 1">1</button>
+          <button type="button" [class.pages__on]="page === 2" (click)="page = 2">2</button>
+          <button type="button" aria-label="หน้าถัดไป" (click)="shiftPage(1)">
+            <img class="pages__next" src="assets/icons/page-chevron.svg" width="24" height="24" alt="" />
+          </button>
+        </nav>
+      </section>
+      @if (chatOpen) {
+        <section class="ask-panel" aria-label="แชทถาม AI">
+          <header>
+            <img src="assets/icons/chat-avatar.svg" width="44" height="44" alt="" />
+            <span>
+              <strong>แชทถาม AI</strong>
+              ตอบจากเอกสารในเคสนี้เท่านั้น
+            </span>
+          </header>
+          <div class="ask-panel__log">{{ asked }}</div>
+          <div class="ask-panel__chips">
+            @for (prompt of prompts; track prompt) {
+              <button type="button" (click)="usePrompt(prompt)">{{ prompt }}</button>
+            }
+          </div>
+          <form (submit)="$event.preventDefault(); sendQuestion()">
+            <input type="text" name="question" placeholder="คำถามของคุณ" [value]="question" (input)="question = $any($event.target).value" />
+            <button type="submit" aria-label="ส่งคำถาม">
+              <img src="assets/icons/chat-send.svg" width="22" height="22" alt="" />
+            </button>
+          </form>
+        </section>
+      }
+      <button type="button" class="ask-fab" [class.ask-fab--open]="chatOpen" [attr.aria-expanded]="chatOpen" [attr.aria-label]="chatOpen ? 'ปิดแชท' : 'สอบถาม AI'" (click)="toggleChat()">
+        @if (chatOpen) {
+          <img src="assets/icons/chat-close.svg" width="40" height="40" alt="" />
+        } @else {
+          <img src="assets/icons/ask-fab.svg" width="129" height="129" alt="" />
+        }
+      </button>
+    </main>
+  </div>
+</div>
+
+@if (choosing) {
+  <div class="chooser">
+    <section role="dialog" aria-label="เลือกประเภทการยื่นคำขอ">
+      <header>
+        <h2>เลือกประเภทการยื่นคำขอ</h2>
+        <button type="button" aria-label="ปิด" (click)="closeChooser()">✕</button>
+      </header>
+      <div class="chooser__body">
+        <div class="chooser__bar">
+          <div class="measures">
+            @for (item of measures; track item) {
+              <button type="button" [class.active]="measure === item" (click)="measure = item">{{ item }}</button>
+            }
+          </div>
+          <app-button class="icon-before ask-ai" label="สอบถาม AI">
+            <img src="assets/icons/ask-ai.svg" width="21.3547" height="21.3559" alt="" />
+          </app-button>
+        </div>
+        <div class="cards">
+          @for (form of forms; track form.code) {
+            <button type="button" class="card" (click)="closeChooser()">
+              <span class="card__icon" aria-hidden="true">
+                <img src="assets/icons/akar-icons-file.svg" width="18" height="22" alt="" />
+              </span>
+              <span>
+                <strong>แบบ {{ form.code }}</strong>
+                <em>{{ form.title }}</em>
+                <small>{{ form.detail }}</small>
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+}

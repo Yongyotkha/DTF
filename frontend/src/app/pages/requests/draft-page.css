@@ -1,0 +1,260 @@
+.draft {
+  min-height: 100vh;
+  background: var(--color-disabled-bg);
+}
+
+.draft__body {
+  display: flex;
+  align-items: stretch;
+}
+
+main {
+  flex: 1;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  background: var(--color-white);
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  margin: 0 0 10px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.crumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.crumb img {
+  transform: rotate(-90deg);
+}
+
+h1 {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 43px;
+  padding: 10px 20px;
+  border: 1px solid var(--color-chat-border);
+  border-radius: 50px;
+  background: linear-gradient(90deg, var(--color-chat-from), var(--color-chat-to));
+  color: var(--color-white);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-fail);
+  border-radius: 50px;
+  background: var(--color-fail-bg);
+  color: var(--color-fail);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.workspace {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 22px 20px;
+}
+
+.docs {
+  flex: 0 0 339px;
+  box-sizing: border-box;
+  height: 556px;
+  margin: 0;
+  padding: 11px 10px 14px 9px;
+  border: 0.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  list-style: none;
+}
+
+.docs button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 10px;
+  border: 0.5px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-white);
+  color: #000;
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  line-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.docs button.docs__on {
+  background: var(--color-selected-row);
+}
+
+.report {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 556px;
+  padding: 16px 18px 17px 14px;
+  border: 0.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-white);
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  height: 92px;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border: 0.5px solid var(--color-error-red);
+  border-radius: 10px;
+  background: var(--color-fail-row);
+}
+
+.alert p {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  color: var(--color-error-red);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.alert strong {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.report__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+h2,
+.report__head p {
+  margin: 0;
+  font-family: var(--font-sans-thai);
+  font-weight: 400;
+}
+
+h2 {
+  color: #000;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.report__head p,
+.report em {
+  color: var(--color-text-muted);
+  font-style: normal;
+}
+
+.report__head p {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.report ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-top: 0.5px solid var(--color-disabled-text);
+}
+
+.report li > span {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.report li strong,
+.report li small {
+  display: block;
+  font-family: var(--font-sans-thai);
+  font-weight: 400;
+}
+
+.report li strong {
+  color: var(--color-primary);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.report li small {
+  color: var(--color-primary);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.report li small.muted {
+  color: var(--color-text-muted);
+}
+
+.report em {
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    display: block;
+  }
+
+  .docs {
+    height: auto;
+    margin-bottom: 16px;
+  }
+}

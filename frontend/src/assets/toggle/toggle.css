@@ -1,0 +1,15 @@
+/* Switch frame 395:20494. Off is toggle-left 395:20486. On is toggle-right 395:20492. */
+.toggle {
+  box-sizing: border-box;
+  width: 42px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent url("./off.svg") center / 42px 36px no-repeat;
+  cursor: pointer;
+}
+
+.toggle[aria-checked="true"] {
+  background-image: url("./on.svg");
+}

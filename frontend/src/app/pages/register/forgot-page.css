@@ -1,0 +1,46 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+h1 {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+  text-align: center;
+}
+
+.lead {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.back {
+  color: var(--color-link);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-align: center;
+  text-decoration: none;
+  transition: color var(--motion-state);
+}
+
+.back:hover {
+  color: var(--color-link-hover);
+}
+
+.notice {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

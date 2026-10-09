@@ -1,0 +1,16 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="24" height="24" fill="#CFCFCF"/>
+<g id="Icon">
+<path d="M-327 -87C-327 -88.1046 -326.105 -89 -325 -89H167C168.105 -89 169 -88.1046 169 -87V405C169 406.105 168.105 407 167 407H-325C-326.105 407 -327 406.105 -327 405V-87Z" fill="white"/>
+<path d="M-325 -89V-88H167V-89V-90H-325V-89ZM169 -87H168V405H169H170V-87H169ZM167 407V406H-325V407V408H167V407ZM-327 405H-326V-87H-327H-328V405H-327ZM-325 407V406C-325.552 406 -326 405.552 -326 405H-327H-328C-328 406.657 -326.657 408 -325 408V407ZM169 405H168C168 405.552 167.552 406 167 406V407V408C168.657 408 170 406.657 170 405H169ZM167 -89V-88C167.552 -88 168 -87.5523 168 -87H169H170C170 -88.6569 168.657 -90 167 -90V-89ZM-325 -89V-90C-326.657 -90 -328 -88.6569 -328 -87H-327H-326C-326 -87.5523 -325.552 -88 -325 -88V-89Z" fill="black" fill-opacity="0.1"/>
+<g id="icon-set">
+<rect x="-315.5" y="-77.5" width="473" height="281" rx="4.5" stroke="#9747FF" stroke-dasharray="10 5"/>
+<g id="Property 1=camera">
+<g id="Photo &#38; video/camera">
+<path id="Combined Shape" fill-rule="evenodd" clip-rule="evenodd" d="M8 7L8.7396 5.8906C9.11053 5.3342 9.73499 5 10.4037 5H13.5963C14.265 5 14.8895 5.3342 15.2604 5.8906L16 7H21V18H3V7H8Z" stroke="#5B6785" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Oval" fill-rule="evenodd" clip-rule="evenodd" d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#5B6785"/>
+</g>
+</g>
+</g>
+</g>
+</svg>

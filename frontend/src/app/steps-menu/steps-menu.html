@@ -1,0 +1,14 @@
+<div class="steps-menu">
+  @for (section of sections; track section.title; let sectionIndex = $index) {
+    <p class="steps-menu__header">{{ section.title }}</p>
+    <span class="steps-menu__line"></span>
+    @for (item of section.items; track $index; let itemIndex = $index) {
+      <button type="button" class="steps-menu__choice" (click)="select(sectionIndex, itemIndex)">
+        <app-steps-menu-item class="is-fill" [label]="item.label" [state]="item.state" />
+      </button>
+      @if (!isLast(sectionIndex, itemIndex)) {
+        <span class="steps-menu__line"></span>
+      }
+    }
+  }
+</div>

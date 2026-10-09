@@ -1,0 +1,28 @@
+<section class="stepper-1" [class.is-open]="open">
+  @if (open) {
+    <div class="stepper-1__head">
+      <p class="stepper-1__count">ขั้นตอน {{ current }} จาก {{ steps.length }}</p>
+      <button type="button" class="stepper-1__toggle" aria-label="หุบขั้นตอน" (click)="toggle()">
+        <svg viewBox="0 0 27 27" aria-hidden="true">
+          <path d="M15.5 7.5L9.5 13.5L15.5 19.5" fill="none" stroke="currentColor" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  } @else {
+    <button type="button" class="stepper-1__toggle" aria-label="กางขั้นตอน" (click)="toggle()">
+      <svg viewBox="0 0 27 27" aria-hidden="true">
+        <path d="M11.5 19.5L17.5 13.5L11.5 7.5" fill="none" stroke="currentColor" stroke-linecap="round"/>
+      </svg>
+    </button>
+  }
+  <ol class="stepper-1__list">
+    @for (step of steps; track step.number; let last = $last) {
+      <li>
+        <app-vertical-step [state]="step.state" [label]="open ? step.label : ''" [number]="step.number" />
+        @if (!last) {
+          <span class="stepper-1__line"></span>
+        }
+      </li>
+    }
+  </ol>
+</section>

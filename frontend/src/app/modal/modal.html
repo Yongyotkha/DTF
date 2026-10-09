@@ -1,0 +1,56 @@
+<section class="modal" [class.modal--form]="content.form" [class.modal--alert]="content.align === 'center'" role="dialog" [attr.aria-label]="content.title">
+  @switch (content.icon) {
+    @case ('error') {
+      <span class="modal__badge modal__badge--error" aria-hidden="true">!</span>
+    }
+    @case ('warning') {
+      <span class="modal__badge modal__badge--warning" aria-hidden="true">!</span>
+    }
+    @case ('success') {
+      <svg class="modal__badge modal__badge--success" viewBox="0 0 54 54" aria-hidden="true">
+        <circle cx="27" cy="27" r="27" fill="currentColor"/>
+        <path d="M16 28l7 7 15-16" fill="none" stroke="#1e7f4f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    }
+    @case ('email') {
+      <svg class="modal__badge modal__badge--email" viewBox="0 0 54 54" aria-hidden="true">
+        <circle cx="27" cy="27" r="27" fill="currentColor"/>
+        <rect x="15" y="19" width="24" height="16" rx="2" fill="#0e2346"/>
+        <path d="M16 21l11 8 11-8" fill="none" stroke="#e6f1f9" stroke-width="1.5"/>
+      </svg>
+    }
+    @case ('loading') {
+      <span class="modal__spinner" aria-hidden="true"></span>
+    }
+  }
+
+  <header class="modal__header">
+    <h2>{{ content.title }}</h2>
+    @if (content.closable) {
+      <button type="button" class="modal__close" aria-label="ปิด">✕</button>
+    }
+  </header>
+
+  @if (kind === 'email') {
+    <p class="modal__message">ระบบได้ส่งลิงก์สำหรับเปิดใช้งานบัญชี
+ไปยังอีเมล <span class="modal__email">{{ emailAddress }}</span> เรียบร้อยแล้ว</p>
+  } @else if (content.message) {
+    <p class="modal__message">{{ content.message }}</p>
+  }
+
+  @if (content.form) {
+    <div class="modal__fields">
+      @for (item of [1, 2, 3, 4]; track item) {
+        <app-input-field class="modal-field" label="Label" />
+      }
+    </div>
+  }
+
+  @if (content.actions.length) {
+    <div class="modal__actions">
+      @for (action of content.actions; track action.label) {
+        <button type="button" class="modal__button" [class]="'modal__button modal__button--' + action.tone">{{ action.label }}</button>
+      }
+    </div>
+  }
+</section>

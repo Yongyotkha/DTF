@@ -1,0 +1,126 @@
+<div class="address">
+  <label [class.error]="provinceError">
+    <span>จังหวัด <span>*</span></span>
+    <span class="combo" (focusout)="leave($event, 'province')">
+      <input
+        [class.placeholder]="!provinceQuery()"
+        [value]="provinceQuery()"
+        [disabled]="locked('province')"
+        placeholder="เลือก"
+        role="combobox"
+        aria-autocomplete="list"
+        [attr.aria-expanded]="open() === 'province'"
+        (pointerdown)="show('province')"
+        (focus)="show('province')"
+        (input)="type('province', $any($event.target).value)"
+        (keydown)="key('province', $event)"
+      />
+      @if (open() === 'province') {
+        <ul class="menu" role="listbox">
+          @for (name of provinceNames(); track name; let index = $index) {
+            <li>
+              <button type="button" role="option" [class.current]="index === active()" (pointerdown)="$event.preventDefault()" (click)="pick('province', name)">{{ name }}</button>
+            </li>
+          } @empty {
+            <li class="empty">ไม่พบข้อมูล</li>
+          }
+        </ul>
+      }
+    </span>
+    @if (provinceError) { <span class="meta">{{ provinceMessage }}</span> }
+  </label>
+  <label [class.error]="districtError">
+    <span>อำเภอ/เขต <span>*</span></span>
+    <span class="combo" (focusout)="leave($event, 'district')">
+      <input
+        [class.placeholder]="!districtQuery()"
+        [value]="districtQuery()"
+        [disabled]="locked('district')"
+        placeholder="เลือก"
+        role="combobox"
+        aria-autocomplete="list"
+        [attr.aria-expanded]="open() === 'district'"
+        (pointerdown)="show('district')"
+        (focus)="show('district')"
+        (input)="type('district', $any($event.target).value)"
+        (keydown)="key('district', $event)"
+      />
+      @if (open() === 'district') {
+        <ul class="menu" role="listbox">
+          @for (name of districtNames(); track name; let index = $index) {
+            <li>
+              <button type="button" role="option" [class.current]="index === active()" (pointerdown)="$event.preventDefault()" (click)="pick('district', name)">{{ name }}</button>
+            </li>
+          } @empty {
+            <li class="empty">ไม่พบข้อมูล</li>
+          }
+        </ul>
+      }
+    </span>
+    @if (districtError) { <span class="meta">{{ districtMessage }}</span> }
+  </label>
+  <label [class.error]="subdistrictError">
+    <span>ตำบล/แขวง <span>*</span></span>
+    <span class="combo" (focusout)="leave($event, 'subdistrict')">
+      <input
+        [class.placeholder]="!subdistrictQuery()"
+        [value]="subdistrictQuery()"
+        [disabled]="locked('subdistrict')"
+        placeholder="เลือก"
+        role="combobox"
+        aria-autocomplete="list"
+        [attr.aria-expanded]="open() === 'subdistrict'"
+        (pointerdown)="show('subdistrict')"
+        (focus)="show('subdistrict')"
+        (input)="type('subdistrict', $any($event.target).value)"
+        (keydown)="key('subdistrict', $event)"
+      />
+      @if (open() === 'subdistrict') {
+        <ul class="menu" role="listbox">
+          @for (name of subdistrictNames(); track name; let index = $index) {
+            <li>
+              <button type="button" role="option" [class.current]="index === active()" (pointerdown)="$event.preventDefault()" (click)="pick('subdistrict', name)">{{ name }}</button>
+            </li>
+          } @empty {
+            <li class="empty">ไม่พบข้อมูล</li>
+          }
+        </ul>
+      }
+    </span>
+    @if (subdistrictError) { <span class="meta">{{ subdistrictMessage }}</span> }
+  </label>
+  <label [class.error]="postcodeError">
+    <span>รหัสไปรษณีย์ <span>*</span></span>
+    <span class="combo" (focusout)="leave($event, 'postcode')">
+      <input
+        [class.placeholder]="!postcodeQuery()"
+        [value]="postcodeQuery()"
+        [disabled]="locked('postcode')"
+        placeholder="รหัสไปรษณีย์"
+        inputmode="numeric"
+        role="combobox"
+        aria-autocomplete="list"
+        [attr.aria-expanded]="open() === 'postcode'"
+        (pointerdown)="show('postcode')"
+        (focus)="show('postcode')"
+        (input)="type('postcode', $any($event.target).value)"
+        (keydown)="key('postcode', $event)"
+      />
+      @if (open() === 'postcode') {
+        <ul class="menu" role="listbox">
+          @for (name of postcodeNames(); track name; let index = $index) {
+            <li>
+              <button type="button" role="option" [class.current]="index === active()" (pointerdown)="$event.preventDefault()" (click)="pick('postcode', name)">{{ name }}</button>
+            </li>
+          } @empty {
+            <li class="empty">ไม่พบข้อมูล</li>
+          }
+        </ul>
+      }
+    </span>
+    @if (postcodeError) { <span class="meta">{{ postcodeMessage }}</span> }
+  </label>
+</div>
+@if (failed()) {
+  <p class="address__error">โหลดข้อมูลที่อยู่ไม่สำเร็จ</p>
+}

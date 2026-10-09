@@ -1,0 +1,14 @@
+<button
+  class="btn"
+  type="button"
+  [class]="'btn btn--' + type + ' btn--' + size + (full ? ' btn--full' : '') + (inverse ? ' btn--inverse' : '') + (loading ? ' btn--loading' : '')"
+  [attr.data-state]="state === 'default' ? null : state"
+  [disabled]="state === 'disabled'"
+  [attr.aria-busy]="loading ? true : null"
+>
+  @if (loading) {
+    <span class="btn__spinner" aria-hidden="true"></span>
+  }
+  {{ loading ? 'Loading' : label }}
+  <ng-content />
+</button>

@@ -1,0 +1,13 @@
+<div class="home">
+  <app-top-header class="fluid" />
+  <div class="home__body">
+    <app-side-nav (chosen)="openMenu($event)" />
+    <main>
+      <h1>หน้าแรก</h1>
+      <p class="status">
+        <span>สถานะ</span>
+        <app-status-tag tone="info" [label]="roleName" />
+      </p>
+    </main>
+  </div>
+</div>

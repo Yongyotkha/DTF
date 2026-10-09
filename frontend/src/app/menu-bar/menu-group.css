@@ -1,0 +1,8 @@
+.menu-group {
+  width: 260px;
+  background: #2b3d5c;
+}
+
+.menu-group--compact {
+  width: 72px;
+}

@@ -1,0 +1,48 @@
+/* Menu 42:544. Closed clips to the 52px bar. Open shows the submenu underneath. */
+.header-menu {
+  display: flex;
+  flex-direction: column;
+  width: 168px;
+}
+
+.header-menu__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 168px;
+  height: 52px;
+  margin: 0;
+  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-family: "Noto Serif", serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.header-menu__bar svg {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.header-menu__chevron {
+  color: var(--color-border);
+}
+
+.header-menu__bar:active:not(:disabled) {
+  background: var(--color-primary-pressed);
+}
+
+.header-menu__bar:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  box-shadow: none;
+}

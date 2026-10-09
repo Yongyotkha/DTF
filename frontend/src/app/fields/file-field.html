@@ -1,0 +1,22 @@
+<div class="upload" [class.upload--error]="error">
+  <span>{{ label }} @if (required) { <span>*</span> }</span>
+  <label>
+    <input #picker type="file" accept=".pdf,.png,.jpg,.jpeg" (change)="picked($event)" (blur)="blurred.emit()" />
+    <svg viewBox="0 0 12 13" width="12" height="13" aria-hidden="true"><path d="M6 1V9M6 1L3 4M6 1L9 4M1 12H11" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+    เลือกไฟล์
+  </label>
+  @if (value) {
+    <span class="preview">
+      <button type="button" class="preview__remove" aria-label="ลบไฟล์" (click)="remove($event)">✕</button>
+      @if (preview()) {
+        @if (previewKind() === 'image') {
+          <img [src]="preview()" alt="" />
+        } @else {
+          <iframe [src]="preview()" title="ตัวอย่างไฟล์"></iframe>
+        }
+      }
+      <em>{{ value }}</em>
+    </span>
+  }
+  @if (error) { <span class="meta">{{ message }}</span> }
+</div>

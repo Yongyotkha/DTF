@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DFT Color Palette</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./tokens.css" />
+    <style>
+      body {
+        margin: 0;
+        font-family: var(--font-family);
+        background: var(--color-bg-page);
+        color: var(--color-primary);
+      }
+
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 32px 40px 64px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 34px;
+      }
+
+      .subtitle {
+        margin: 6px 0 0;
+        color: var(--color-text-muted);
+        font-size: 14px;
+      }
+
+      h2 {
+        margin: 28px 0 12px;
+        font-size: 18px;
+      }
+
+      .brand-row,
+      .swatch-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .brand {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        min-width: 190px;
+      }
+
+      .chip,
+      .swatch {
+        border-radius: 12px;
+      }
+
+      .chip {
+        width: 100px;
+        height: 100px;
+        flex: none;
+      }
+
+      .brand strong,
+      .swatch strong {
+        display: block;
+        font-size: 16px;
+      }
+
+      .brand span,
+      .swatch span,
+      .swatch small {
+        display: block;
+        color: var(--color-text-muted);
+      }
+
+      .brand span {
+        font-size: 16px;
+        margin-top: 4px;
+      }
+
+      .swatch {
+        width: 200px;
+      }
+
+      .swatch-color {
+        height: 120px;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgb(14 35 70 / 8%);
+      }
+
+      .swatch strong {
+        margin-top: 12px;
+      }
+
+      .swatch span {
+        margin-top: 2px;
+        font-size: 14px;
+      }
+
+      .swatch small {
+        margin-top: 4px;
+        font-size: 12px;
+      }
+
+      .on-navy {
+        background: var(--color-primary);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>DFT Color Palette</h1>
+      <p class="subtitle">Department of Foreign Trade · Design System</p>
+
+      <h2>Brand Colors</h2>
+      <div class="brand-row">
+        <article class="brand">
+          <div class="chip" style="background: var(--color-brand-primary)"></div>
+          <div>
+            <strong>Primary</strong>
+            <span>Navy Blue</span>
+            <span>#0E2346</span>
+          </div>
+        </article>
+        <article class="brand">
+          <div class="chip" style="background: var(--color-brand-secondary)"></div>
+          <div>
+            <strong>Secondary</strong>
+            <span>Light Blue</span>
+            <span>#5CA4D9</span>
+          </div>
+        </article>
+        <article class="brand">
+          <div class="chip" style="background: var(--color-brand-tertiary)"></div>
+          <div>
+            <strong>Tertiary</strong>
+            <span>Sand</span>
+            <span>#E2D5C7</span>
+          </div>
+        </article>
+        <article class="brand">
+          <div class="chip" style="background: var(--color-brand-neutral)"></div>
+          <div>
+            <strong>Neutral</strong>
+            <span>Light Grey</span>
+            <span>#D3D4D6</span>
+          </div>
+        </article>
+      </div>
+
+      <h2>UI Colors (from brand)</h2>
+      <section class="swatch-grid" id="ui"></section>
+
+      <h2>Functional Colors (not in brand palette)</h2>
+      <section class="swatch-grid" id="functional"></section>
+
+      <h2>Interaction States</h2>
+      <section class="swatch-grid" id="interaction"></section>
+
+      <h2>Danger, Link &amp; Inverse States</h2>
+      <section class="swatch-grid" id="danger"></section>
+
+      <h2>Feedback (error = error-red, info = secondary)</h2>
+      <section class="swatch-grid" id="feedback"></section>
+
+      <h2>Text, Background &amp; Overlay</h2>
+      <section class="swatch-grid" id="surface"></section>
+    </main>
+    <script>
+      const groups = {
+        ui: [
+          ["primary", "--color-primary", "#0E2346", "Header, primary button, text"],
+          ["secondary", "--color-secondary", "#5CA4D9", "Icons, highlights, focus"],
+          ["surface-subtle", "--color-surface-subtle", "#E2D5C7", "Toggle background, subtle areas"],
+          ["border", "--color-border", "#D3D4D6", "Borders, dividers"],
+          ["white", "--color-white", "#FFFFFF", "Card, input fields"],
+        ],
+        functional: [
+          ["selected-orange", "--color-selected-orange", "#E8801E", "Selected state (TH)"],
+          ["error-red", "--color-error-red", "#C0182B", "Required * / error"],
+          ["text-muted", "--color-text-muted", "#5B6785", "Placeholder, secondary text"],
+          ["disabled-bg", "--color-disabled-bg", "#F2F2F3", "Disabled input background"],
+          ["disabled-text", "--color-disabled-text", "#9FA7B5", "Disabled input text / icon"],
+        ],
+        interaction: [
+          ["primary-hover", "--color-primary-hover", "#1A3560", "Primary button hover"],
+          ["primary-pressed", "--color-primary-pressed", "#081833", "Primary button pressed"],
+          ["secondary-hover", "--color-secondary-hover", "#4A93CB", "Secondary hover"],
+          ["secondary-pressed", "--color-secondary-pressed", "#3B82BA", "Secondary pressed"],
+          ["focus-ring", "--color-focus-ring", "#5CA4D9", "Focus ring (= secondary)"],
+        ],
+        danger: [
+          ["error-hover", "--color-error-hover", "#A31424", "Danger button hover"],
+          ["error-pressed", "--color-error-pressed", "#86101E", "Danger button pressed"],
+          ["link", "--color-link", "#2F73B0", "Text links (5:1 on white)"],
+          ["link-hover", "--color-link-hover", "#1F5C94", "Link hover (7:1 on white)"],
+          ["inverse-hover", "--color-inverse-hover", "#FFFFFF", "On navy: hover @ 12%", true],
+          ["inverse-pressed", "--color-inverse-pressed", "#FFFFFF", "On navy: pressed @ 20%", true],
+        ],
+        feedback: [
+          ["error-bg", "--color-error-bg", "#FAECEE", "Error banner background"],
+          ["success", "--color-success", "#1E7F4F", "Success text / icon"],
+          ["success-bg", "--color-success-bg", "#E8F4EE", "Success background"],
+          ["warning", "--color-warning", "#B7791F", "Warning text / icon"],
+          ["warning-bg", "--color-warning-bg", "#FDF3E1", "Warning background"],
+          ["info-bg", "--color-info-bg", "#E6F1F9", "Info background"],
+        ],
+        surface: [
+          ["text-on-primary", "--color-text-on-primary", "#FFFFFF", "Text on primary / header"],
+          ["bg-page", "--color-bg-page", "#F7F8FA", "Page background"],
+          ["overlay", "--color-overlay", "#0E2346", "Modal backdrop @ 60%"],
+          ["shadow", "--color-shadow", "#0E2346", "Shadow tint @ 15%"],
+        ],
+      };
+
+      for (const [id, items] of Object.entries(groups)) {
+        const root = document.getElementById(id);
+        for (const [name, token, hex, usage, onNavy] of items) {
+          const article = document.createElement("article");
+          article.className = "swatch";
+          const color = document.createElement("div");
+          color.className = "swatch-color" + (onNavy ? " on-navy" : "");
+          color.style.background = onNavy
+            ? "linear-gradient(var(" + token + "), var(" + token + ")), var(--color-primary)"
+            : "var(" + token + ")";
+          const title = document.createElement("strong");
+          title.textContent = name;
+          const code = document.createElement("span");
+          code.textContent = hex;
+          const note = document.createElement("small");
+          note.textContent = usage;
+          article.append(color, title, code, note);
+          root.append(article);
+        }
+      }
+    </script>
+  </body>
+</html>

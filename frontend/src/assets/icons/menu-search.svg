@@ -1,0 +1,16 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="24" height="24" fill="#CFCFCF"/>
+<g id="Icon">
+<path d="M-358 -121C-358 -122.105 -357.105 -123 -356 -123H136C137.105 -123 138 -122.105 138 -121V371C138 372.105 137.105 373 136 373H-356C-357.105 373 -358 372.105 -358 371V-121Z" fill="white"/>
+<path d="M-356 -123V-122H136V-123V-124H-356V-123ZM138 -121H137V371H138H139V-121H138ZM136 373V372H-356V373V374H136V373ZM-358 371H-357V-121H-358H-359V371H-358ZM-356 373V372C-356.552 372 -357 371.552 -357 371H-358H-359C-359 372.657 -357.657 374 -356 374V373ZM138 371H137C137 371.552 136.552 372 136 372V373V374C137.657 374 139 372.657 139 371H138ZM136 -123V-122C136.552 -122 137 -121.552 137 -121H138H139C139 -122.657 137.657 -124 136 -124V-123ZM-356 -123V-124C-357.657 -124 -359 -122.657 -359 -121H-358H-357C-357 -121.552 -356.552 -122 -356 -122V-123Z" fill="black" fill-opacity="0.1"/>
+<g id="icon-set">
+<rect x="-346.5" y="-111.5" width="473" height="281" rx="4.5" stroke="#9747FF" stroke-dasharray="10 5"/>
+<g id="Property 1=menu-search">
+<g id="Group">
+<path id="Vector" d="M21 21L16.66 16.66" stroke="#0E2346" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_2" d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#0E2346" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+</g>
+</svg>

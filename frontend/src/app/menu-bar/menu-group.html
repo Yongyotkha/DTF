@@ -1,0 +1,8 @@
+<div class="menu-group" [class.menu-group--compact]="compact">
+  <app-menu-item [label]="title" [icon]="icon" [chevron]="true" [compact]="compact" [expanded]="expanded" [state]="expanded ? 'active' : 'default'" (click)="activate()" />
+  @if (expanded && !compact) {
+    @for (item of items; track item) {
+      <app-menu-item level="sub" [label]="item" [state]="item === active ? 'active' : 'default'" (click)="chosen.emit(item)" />
+    }
+  }
+</div>

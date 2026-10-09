@@ -1,0 +1,20 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="24" height="24" fill="#CFCFCF"/>
+<g id="Icon">
+<path d="M-123 -87C-123 -88.1046 -122.105 -89 -121 -89H371C372.105 -89 373 -88.1046 373 -87V405C373 406.105 372.105 407 371 407H-121C-122.105 407 -123 406.105 -123 405V-87Z" fill="white"/>
+<path d="M-121 -89V-88H371V-89V-90H-121V-89ZM373 -87H372V405H373H374V-87H373ZM371 407V406H-121V407V408H371V407ZM-123 405H-122V-87H-123H-124V405H-123ZM-121 407V406C-121.552 406 -122 405.552 -122 405H-123H-124C-124 406.657 -122.657 408 -121 408V407ZM373 405H372C372 405.552 371.552 406 371 406V407V408C372.657 408 374 406.657 374 405H373ZM371 -89V-88C371.552 -88 372 -87.5523 372 -87H373H374C374 -88.6569 372.657 -90 371 -90V-89ZM-121 -89V-90C-122.657 -90 -124 -88.6569 -124 -87H-123H-122C-122 -87.5523 -121.552 -88 -121 -88V-89Z" fill="black" fill-opacity="0.1"/>
+<g id="icon-set">
+<rect x="-111.5" y="-77.5" width="473" height="281" rx="4.5" stroke="#9747FF" stroke-dasharray="10 5"/>
+<g id="Property 1=sorting">
+<g id="Group">
+<path id="Path 3" d="M4 8L7 5L10 8" stroke="#5B6785" stroke-linecap="round"/>
+<path id="Path 2.1" d="M7 20L7 6" stroke="#5B6785" stroke-linecap="round"/>
+</g>
+<g id="Group_2">
+<path id="Path 3_2" d="M20 17L17 20L14 17" stroke="#5B6785" stroke-linecap="round"/>
+<path id="Path 2.1_2" d="M17 5L17 19" stroke="#5B6785" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+</g>
+</svg>

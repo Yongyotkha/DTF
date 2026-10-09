@@ -1,0 +1,323 @@
+/* Buttons 115:475. Component set uses Noto Sans Thai Regular 14, height 40, radius 8. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-sizing: border-box;
+  height: 40px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-white);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-state),
+    color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.btn:disabled {
+  cursor: default;
+}
+
+.btn--sm {
+  height: 32px;
+  padding: 0 16px;
+}
+
+.btn--lg,
+.btn--full {
+  height: 48px;
+}
+
+.btn--full {
+  width: 100%;
+}
+
+:host(.wide) {
+  display: block;
+}
+
+:host(.wide) .btn {
+  width: 100%;
+}
+
+:host(.icon-before) .btn {
+  flex-direction: row-reverse;
+}
+
+/* เลือกประเภทการยื่นคำขอ, สอบถาม AI 3507:72747 */
+:host(.ask-ai) .btn {
+  height: 35px;
+  padding: 0 20px;
+  gap: 4px;
+  border: 1px solid #0093ff;
+  border-radius: 50px;
+  background: linear-gradient(90deg, #00c8ff, #00a1fe);
+  color: var(--color-white);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+:host(.ask-ai) .btn:hover:not(:disabled),
+:host(.ask-ai) .btn:active:not(:disabled),
+:host(.ask-ai) .btn[data-state='hover'],
+:host(.ask-ai) .btn[data-state='pressed'],
+:host(.ask-ai) .btn[data-state='focus'] {
+  border-color: #0093ff;
+  background: linear-gradient(90deg, #00c8ff, #00a1fe);
+  color: var(--color-white);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+}
+
+.btn--primary[data-state='hover'],
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn--primary[data-state='pressed'],
+.btn--primary:active:not(:disabled) {
+  background: var(--color-primary-pressed);
+}
+
+.btn--secondary {
+  background: var(--color-secondary);
+}
+
+.btn--secondary[data-state='hover'],
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-secondary-hover);
+}
+
+.btn--secondary[data-state='pressed'],
+.btn--secondary:active:not(:disabled) {
+  background: var(--color-secondary-pressed);
+}
+
+.btn--secondary[data-state='focus'] {
+  background: var(--color-link);
+}
+
+.btn--outline,
+.btn--danger-outline,
+.btn--pill {
+  background: var(--color-white);
+}
+
+.btn--outline {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn--outline[data-state='hover'],
+.btn--outline:hover:not(:disabled) {
+  background: var(--color-bg-page);
+}
+
+.btn--ghost,
+.btn--link {
+  height: auto;
+  padding: 0;
+  border-color: transparent;
+  color: var(--color-primary);
+}
+
+.btn--ghost[data-state='hover'],
+.btn--ghost:hover:not(:disabled) {
+  height: 40px;
+  padding: 10px 16px;
+  background: var(--color-bg-page);
+}
+
+.btn--ghost[data-state='pressed'],
+.btn--ghost:active:not(:disabled) {
+  height: 40px;
+  padding: 10px 16px;
+  background: var(--color-border);
+}
+
+.btn--pill {
+  border-color: var(--color-border);
+  color: var(--color-primary);
+}
+
+.btn--pill[data-state='hover'],
+.btn--pill:hover:not(:disabled) {
+  border-width: 1.5px;
+  border-color: var(--color-secondary);
+}
+
+.btn--pill[data-state='pressed'],
+.btn--pill:active:not(:disabled) {
+  border-width: 1.5px;
+  border-color: var(--color-secondary-pressed);
+  background: var(--color-bg-page);
+}
+
+.btn--danger {
+  background: var(--color-error-hover);
+}
+
+.btn--danger[data-state='pressed'],
+.btn--danger:active:not(:disabled) {
+  background: var(--color-error-pressed);
+}
+
+.btn--danger.btn--loading {
+  background: var(--color-error-red);
+}
+
+.btn--danger-outline {
+  border-color: var(--color-error-hover);
+  color: var(--color-error-hover);
+}
+
+.btn--danger-outline[data-state='hover'],
+.btn--danger-outline:hover:not(:disabled) {
+  background: var(--color-error-bg);
+}
+
+.btn--link {
+  color: var(--color-secondary);
+}
+
+.btn--link[data-state='hover'],
+.btn--link:hover:not(:disabled) {
+  color: var(--color-link-hover);
+}
+
+.btn--link[data-state='pressed'],
+.btn--link:active:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.btn--link[data-state='focus'] {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.btn[data-state='focus'],
+.btn:focus-visible {
+  box-shadow: var(--state-focus-ring);
+}
+
+.btn:disabled,
+.btn[data-state='disabled'] {
+  box-shadow: none;
+}
+
+.btn--primary:disabled,
+.btn--secondary:disabled,
+.btn--danger:disabled,
+.btn--pill:disabled,
+.btn[data-state='disabled'].btn--primary,
+.btn[data-state='disabled'].btn--secondary,
+.btn[data-state='disabled'].btn--danger,
+.btn[data-state='disabled'].btn--pill {
+  background: var(--color-disabled-bg);
+  border-color: transparent;
+  color: var(--color-disabled-text);
+  box-shadow: none;
+}
+
+.btn--outline:disabled,
+.btn--danger-outline:disabled,
+.btn[data-state='disabled'].btn--outline,
+.btn[data-state='disabled'].btn--danger-outline {
+  background: var(--color-white);
+  border-color: var(--color-border);
+  color: var(--color-disabled-text);
+  box-shadow: none;
+}
+
+.btn--ghost:disabled,
+.btn--link:disabled,
+.btn[data-state='disabled'].btn--ghost,
+.btn[data-state='disabled'].btn--link {
+  background: transparent;
+  color: var(--color-disabled-text);
+  box-shadow: none;
+}
+
+.btn--inverse.btn--primary {
+  background: var(--color-white);
+  color: var(--color-primary);
+}
+
+.btn--inverse.btn--primary[data-state='hover'] {
+  background: var(--color-bg-page);
+}
+
+.btn--inverse.btn--primary[data-state='pressed'] {
+  background: var(--color-border);
+}
+
+.btn--inverse.btn--outline {
+  height: 40px;
+  padding: 10px 16px;
+  border-color: var(--color-white);
+  color: var(--color-white);
+  background: transparent;
+}
+
+.btn--inverse.btn--outline[data-state='hover'] {
+  background: rgb(255 255 255 / 12%);
+}
+
+.btn--inverse.btn--outline[data-state='pressed'] {
+  background: rgb(255 255 255 / 20%);
+}
+
+.btn--inverse.btn--ghost {
+  color: var(--color-white);
+}
+
+.btn--inverse.btn--ghost[data-state='hover'] {
+  background: rgb(255 255 255 / 12%);
+}
+
+.btn--inverse.btn--ghost[data-state='pressed'] {
+  background: rgb(255 255 255 / 20%);
+}
+
+.btn--loading {
+  pointer-events: none;
+}
+
+.btn--loading.btn--secondary {
+  color: var(--color-primary);
+}
+
+.btn__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn--sm .btn__spinner,
+.btn--lg .btn__spinner {
+  width: 16px;
+  height: 16px;
+}

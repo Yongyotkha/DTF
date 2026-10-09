@@ -1,0 +1,91 @@
+/** Usage text is copied from Figma Color Palette 22:109. */
+export const colorUsage = [
+  {
+    group: "Brand Colors",
+    items: [
+      { name: "Primary", token: "--color-brand-primary", value: "#0E2346", usage: "Navy Blue" },
+      { name: "Secondary", token: "--color-brand-secondary", value: "#5CA4D9", usage: "Light Blue" },
+      { name: "Tertiary", token: "--color-brand-tertiary", value: "#E2D5C7", usage: "Sand" },
+      { name: "Neutral", token: "--color-brand-neutral", value: "#D3D4D6", usage: "Light Grey" },
+    ],
+  },
+  {
+    group: "UI Colors (from brand)",
+    items: [
+      { name: "primary", token: "--color-primary", value: "#0E2346", usage: "Header, primary button, text" },
+      { name: "secondary", token: "--color-secondary", value: "#5CA4D9", usage: "Icons, highlights, focus" },
+      { name: "surface-subtle", token: "--color-surface-subtle", value: "#E2D5C7", usage: "Toggle background, subtle areas" },
+      { name: "border", token: "--color-border", value: "#D3D4D6", usage: "Borders, dividers" },
+      { name: "white", token: "--color-white", value: "#FFFFFF", usage: "Card, input fields" },
+    ],
+  },
+  {
+    group: "Functional Colors (not in brand palette)",
+    items: [
+      { name: "selected-orange", token: "--color-selected-orange", value: "#E8801E", usage: "Selected state (TH)" },
+      { name: "error-red", token: "--color-error-red", value: "#C0182B", usage: "Required * / error" },
+      { name: "text-muted", token: "--color-text-muted", value: "#5B6785", usage: "Placeholder, secondary text" },
+      { name: "disabled-bg", token: "--color-disabled-bg", value: "#F2F2F3", usage: "Disabled input background" },
+      { name: "disabled-text", token: "--color-disabled-text", value: "#9FA7B5", usage: "Disabled input text / icon" },
+    ],
+  },
+  {
+    group: "Interaction States",
+    items: [
+      { name: "primary-hover", token: "--color-primary-hover", value: "#1A3560", usage: "Primary button hover" },
+      { name: "primary-pressed", token: "--color-primary-pressed", value: "#081833", usage: "Primary button pressed" },
+      { name: "secondary-hover", token: "--color-secondary-hover", value: "#4A93CB", usage: "Secondary hover" },
+      { name: "secondary-pressed", token: "--color-secondary-pressed", value: "#3B82BA", usage: "Secondary pressed" },
+      { name: "focus-ring", token: "--color-focus-ring", value: "#5CA4D9", usage: "Focus ring (= secondary)" },
+    ],
+  },
+  {
+    group: "Danger, Link & Inverse States",
+    items: [
+      { name: "error-hover", token: "--color-error-hover", value: "#A31424", usage: "Danger button hover" },
+      { name: "error-pressed", token: "--color-error-pressed", value: "#86101E", usage: "Danger button pressed" },
+      { name: "link", token: "--color-link", value: "#2F73B0", usage: "Text links (5:1 on white)" },
+      { name: "link-hover", token: "--color-link-hover", value: "#1F5C94", usage: "Link hover (7:1 on white)" },
+      { name: "inverse-hover", token: "--color-inverse-hover", value: "#FFFFFF at 12%", usage: "On navy: hover @ 12%" },
+      { name: "inverse-pressed", token: "--color-inverse-pressed", value: "#FFFFFF at 20%", usage: "On navy: pressed @ 20%" },
+    ],
+  },
+  {
+    group: "Feedback (error = error-red, info = secondary)",
+    items: [
+      { name: "error-bg", token: "--color-error-bg", value: "#FAECEE", usage: "Error banner background" },
+      { name: "success", token: "--color-success", value: "#1E7F4F", usage: "Success text / icon" },
+      { name: "success-bg", token: "--color-success-bg", value: "#E8F4EE", usage: "Success background" },
+      { name: "warning", token: "--color-warning", value: "#B7791F", usage: "Warning text / icon" },
+      { name: "warning-bg", token: "--color-warning-bg", value: "#FDF3E1", usage: "Warning background" },
+      { name: "info-bg", token: "--color-info-bg", value: "#E6F1F9", usage: "Info background" },
+      { name: "chat-from", token: "--color-chat-from", value: "#1A73E8", usage: "Chat button gradient start, download text" },
+      { name: "chat-to", token: "--color-chat-to", value: "#004AAB", usage: "Chat button gradient end" },
+      { name: "chat-border", token: "--color-chat-border", value: "#0093FF", usage: "Chat button border" },
+      { name: "download-bg", token: "--color-download-bg", value: "#DFF5FF", usage: "Download chip background" },
+      { name: "download-border", token: "--color-download-border", value: "#0085CD", usage: "Download chip border" },
+      { name: "pass-bg", token: "--color-pass-bg", value: "#E6FFED", usage: "Passed review chip background" },
+      { name: "pass-border", token: "--color-pass-border", value: "#34A853", usage: "Passed review chip border" },
+      { name: "pass-text", token: "--color-pass-text", value: "#0EA637", usage: "Passed review text" },
+      { name: "fail-row", token: "--color-fail-row", value: "#FFF1F1", usage: "Failed review row background" },
+      { name: "fail-bg", token: "--color-fail-bg", value: "#FFE6E6", usage: "Failed review chip background" },
+      { name: "fail", token: "--color-fail", value: "#F41717", usage: "Failed review text and border" },
+      { name: "selected-row", token: "--color-selected-row", value: "#EBEBEB", usage: "Selected document row" },
+      { name: "chat-panel", token: "--color-chat-panel", value: "#F8FCFF", usage: "Ask AI panel background" },
+      { name: "chat-sky", token: "--color-chat-sky", value: "#06B9FA", usage: "Ask AI header gradient end" },
+      { name: "chip-bg", token: "--color-chip-bg", value: "#E6F8FF", usage: "Ask AI suggestion chip background" },
+      { name: "chat-placeholder", token: "--color-chat-placeholder", value: "#747474", usage: "Ask AI input placeholder" },
+      { name: "fab-from", token: "--color-fab-from", value: "#00C8FF", usage: "Ask AI button gradient start" },
+      { name: "fab-to", token: "--color-fab-to", value: "#009DFF", usage: "Ask AI button gradient end" },
+    ],
+  },
+  {
+    group: "Text, Background & Overlay",
+    items: [
+      { name: "text-on-primary", token: "--color-text-on-primary", value: "#FFFFFF", usage: "Text on primary / header" },
+      { name: "bg-page", token: "--color-bg-page", value: "#F7F8FA", usage: "Page background" },
+      { name: "overlay", token: "--color-overlay", value: "#0E2346 at 60%", usage: "Modal backdrop @ 60%" },
+      { name: "shadow", token: "--color-shadow", value: "#0E2346 at 15%", usage: "Shadow tint @ 15%" },
+    ],
+  },
+] as const;

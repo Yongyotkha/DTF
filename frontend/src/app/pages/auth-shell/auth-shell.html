@@ -1,0 +1,14 @@
+<section class="auth">
+  <img class="auth__bg" src="assets/auth/bg.webp" alt="" />
+  <div class="auth__brand">
+    <img class="auth__logo" src="assets/auth/logo.webp" alt="กรมการค้าต่างประเทศ" />
+  </div>
+  <div class="auth__panel">
+    <div class="auth__body" [class.auth__body--center]="center">
+      <ng-content />
+      @if (copyright) {
+        <p class="auth__copy">COPYRIGHT DEPARTMENT OF FOREIGN TRADE ALL RIGHTS RESERVED<br />นโยบายเว็บไซต์ | การคุ้มครองข้อมูลส่วนบุคคล | นโยบายรักษาความมั่นคงปลอดภัย | การปฏิเสธความรับผิด</p>
+      }
+    </div>
+  </div>
+</section>

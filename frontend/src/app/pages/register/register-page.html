@@ -1,0 +1,21 @@
+<div class="screen">
+  <app-top-header class="fluid" />
+  <h1>ลงทะเบียนสมาชิก</h1>
+  <section class="sheet">
+    <p>กรุณาเลือกประเภทบุคคลที่ต้องการใช้งาน</p>
+    <div class="grid">
+      @for (card of cards; track card.kind) {
+        <article>
+          <span class="mark"><img [src]="card.icon" width="48" height="48" alt="" /></span>
+          <h2>{{ card.title }}</h2>
+          <p class="audience">{{ card.audience }}</p>
+          <p class="body">{{ card.body }}</p>
+          <a [routerLink]="['/register', card.kind, 1]">
+            {{ card.action }}
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M10 18L16 12L10 6" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+          </a>
+        </article>
+      }
+    </div>
+  </section>
+</div>

@@ -1,0 +1,19 @@
+@import "../../design-system/tokens.css";
+@import "./styles/states.css";
+
+html,
+body,
+app-root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg-page);
+  color: var(--color-primary);
+  font-family: var(--font-family);
+}
+
+app-root {
+  display: block;
+}

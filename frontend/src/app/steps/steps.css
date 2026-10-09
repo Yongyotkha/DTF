@@ -1,0 +1,76 @@
+/* Step 214:5198. Reached steps are navy. Upcoming steps and lines are secondary. */
+.steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 860px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 120px;
+}
+
+.steps__item:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 32.5px;
+  right: calc(50% + 35px);
+  width: 300px;
+  height: 5px;
+  background: var(--color-secondary);
+}
+
+.steps__item--reached:not(:first-child)::before {
+  background: var(--color-primary);
+}
+
+.steps__mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 70px;
+  height: 70px;
+  border: 2px solid var(--color-secondary);
+  border-radius: 50%;
+}
+
+.steps__mark span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: var(--color-white);
+  font-family: "Noto Serif", serif;
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.steps__item--reached .steps__mark {
+  border-color: var(--color-primary);
+}
+
+.steps__item--reached .steps__mark span {
+  background: var(--color-primary);
+}
+
+.steps__label {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  text-align: center;
+}

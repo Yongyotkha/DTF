@@ -1,0 +1,142 @@
+/* Page - Register 115:630. The 1204 column stays centered and shrinks with the viewport. */
+.screen {
+  min-height: 100vh;
+  width: 100%;
+  background: var(--color-bg-page);
+}
+
+h1,
+.sheet {
+  box-sizing: border-box;
+  width: min(1204px, calc(100% - 32px));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+h1 {
+  margin-top: 18px;
+  margin-bottom: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.sheet {
+  margin-top: 39px;
+  margin-bottom: 48px;
+  padding: 48px clamp(16px, 4vw, 48px);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-white);
+  box-shadow:
+    0 8px 10px -6px rgb(226 232 240 / 60%),
+    0 20px 25px -5px rgb(226 232 240 / 60%);
+}
+
+.sheet > p {
+  margin: 0 0 40px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+  text-align: center;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 32px;
+}
+
+article {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 1 287px;
+  flex-direction: column;
+  align-items: center;
+  width: 287px;
+  max-width: 100%;
+  padding: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-white);
+  text-align: center;
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: var(--color-bg-page);
+}
+
+h2 {
+  margin: 0 0 6px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.audience,
+.body {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  white-space: pre-line;
+}
+
+.audience {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.body {
+  margin-top: 12px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+a {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 43px;
+  margin-top: auto;
+  padding: 10px 16px;
+  border: 1px solid #3e4f6b;
+  border-radius: 12px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+a:hover {
+  background: var(--color-bg-page);
+  border-color: var(--color-secondary);
+}
+
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}

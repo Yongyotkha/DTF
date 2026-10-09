@@ -1,0 +1,369 @@
+/* Input Fields 115:474. Columns are field=default | focus | disabled. */
+:host(.modal-field) {
+  display: block;
+  width: 100%;
+}
+
+:host(.modal-field) .field,
+:host(.block) .field {
+  width: 100%;
+}
+
+:host(.block) {
+  display: block;
+  width: 100%;
+}
+.field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 330px;
+  margin: 0;
+}
+
+.field__label {
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.field__required {
+  color: var(--color-error-red);
+}
+
+.field--textarea .field__control textarea {
+  color: var(--color-text-muted);
+}
+
+.field__control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.field__control input,
+.field__control textarea {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.field__control input::placeholder,
+.field__control textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.field__icon {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.field--search .field__control,
+.field--dropdown .field__control {
+  justify-content: space-between;
+}
+
+.field--search .field__control input,
+.field--dropdown .field__control input {
+  flex: 1;
+}
+
+.field--date .field__icon {
+  order: -1;
+}
+
+.field__chips {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 8px 0 4px;
+  border-radius: 8px;
+  background: var(--color-link);
+  color: var(--color-white);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.field__chip svg {
+  width: 16px;
+  height: 16px;
+}
+
+.field__status {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-left: auto;
+}
+
+.field--error .field__status {
+  color: var(--color-error-red);
+}
+
+.field--success .field__status {
+  color: var(--color-success);
+}
+
+.field__spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-left: auto;
+  border: 2.5px solid var(--color-secondary);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.field__meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.field--focus .field__control {
+  border: 2px solid var(--color-secondary);
+  box-shadow: var(--state-focus-ring);
+}
+
+.field--hover .field__control {
+  border-color: var(--color-secondary);
+}
+
+.field--disabled .field__control {
+  background: var(--color-disabled-bg);
+  box-shadow: none;
+}
+
+.field--disabled .field__control input,
+.field--disabled .field__control textarea,
+.field--disabled .field__icon,
+.field--disabled .field__meta {
+  color: var(--color-disabled-text);
+}
+
+.field--disabled .field__control input::placeholder,
+.field--disabled .field__control textarea::placeholder {
+  color: var(--color-disabled-text);
+}
+
+.field--filled .field__control input {
+  color: var(--color-primary);
+}
+
+.field--error .field__control {
+  border: 1.5px solid var(--color-error-red);
+}
+
+.field--error .field__meta {
+  color: var(--color-error-red);
+}
+
+.field--success .field__control {
+  border: 1.5px solid var(--color-success);
+}
+
+.field--success .field__meta {
+  color: var(--color-success);
+}
+
+.field--readonly .field__control {
+  background: var(--color-bg-page);
+}
+
+.field--loading .field__control input {
+  color: var(--color-primary);
+}
+
+.field--textarea .field__control {
+  height: 87px;
+  align-items: flex-start;
+  padding: 12px;
+}
+
+.field--textarea .field__control textarea {
+  height: 100%;
+  resize: none;
+}
+
+.field--textarea.field--focus .field__control {
+  height: 87px;
+}
+
+.field--sm .field__control {
+  height: 32px;
+}
+
+.field--lg .field__control {
+  height: 48px;
+}
+
+.field--inter .field__label,
+.field--inter .field__control input {
+  font-family: Inter, sans-serif;
+}
+
+.field--inter.field--sm .field__control input {
+  font-size: 14px;
+}
+
+.picker {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  box-sizing: border-box;
+  width: min(280px, 100%);
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--color-white);
+  box-shadow: 0 0 5px rgb(0 0 0 / 10%);
+}
+
+.picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.picker__title {
+  display: flex;
+  gap: 8px;
+}
+
+.picker__title button,
+.picker__nav,
+.picker__grid button,
+.picker__choices button,
+.picker__dow {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.picker__title button {
+  padding: 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.picker__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.picker__nav svg {
+  width: 24px;
+  height: 24px;
+}
+
+.picker__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.picker__dow {
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.picker__grid button,
+.picker__choices button {
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.picker__grid button.selected,
+.picker__choices button.selected {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.picker__grid button:disabled,
+.picker__choices button:disabled,
+.picker__nav:disabled {
+  background: transparent;
+  color: var(--color-disabled-text);
+  cursor: default;
+}
+
+.picker__grid button:focus-visible,
+.picker__choices button:focus-visible,
+.picker__title button:focus-visible,
+.picker__nav:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.picker__choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.field--inter.field--md .field__label,
+.field--inter.field--lg .field__label,
+.field--inter.field--md .field__control input,
+.field--inter.field--lg .field__control input {
+  font-size: 16px;
+}

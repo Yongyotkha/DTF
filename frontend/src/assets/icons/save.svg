@@ -1,0 +1,15 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="24" height="24" fill="#CFCFCF"/>
+<g id="Icon">
+<path d="M-327 -53C-327 -54.1046 -326.105 -55 -325 -55H167C168.105 -55 169 -54.1046 169 -53V439C169 440.105 168.105 441 167 441H-325C-326.105 441 -327 440.105 -327 439V-53Z" fill="white"/>
+<path d="M-325 -55V-54H167V-55V-56H-325V-55ZM169 -53H168V439H169H170V-53H169ZM167 441V440H-325V441V442H167V441ZM-327 439H-326V-53H-327H-328V439H-327ZM-325 441V440C-325.552 440 -326 439.552 -326 439H-327H-328C-328 440.657 -326.657 442 -325 442V441ZM169 439H168C168 439.552 167.552 440 167 440V441V442C168.657 442 170 440.657 170 439H169ZM167 -55V-54C167.552 -54 168 -53.5523 168 -53H169H170C170 -54.6569 168.657 -56 167 -56V-55ZM-325 -55V-56C-326.657 -56 -328 -54.6569 -328 -53H-327H-326C-326 -53.5523 -325.552 -54 -325 -54V-55Z" fill="black" fill-opacity="0.1"/>
+<g id="icon-set">
+<rect x="-315.5" y="-43.5" width="473" height="281" rx="4.5" stroke="#9747FF" stroke-dasharray="10 5"/>
+<g id="Property 1=save">
+<path id="Rectangle 2" fill-rule="evenodd" clip-rule="evenodd" d="M16.5858 3C16.851 3 17.1054 3.10536 17.2929 3.29289L21 7L21 20C21 20.5523 20.5523 21 20 21L4 21C3.44772 21 3 20.5523 3 20L3 4C3 3.44772 3.44772 3 4 3L16.5858 3Z" stroke="#5B6785" stroke-linecap="round" stroke-linejoin="round"/>
+<rect id="Rectangle" x="7" y="13" width="10" height="8" stroke="#5B6785" stroke-linejoin="round"/>
+<rect id="Rectangle_2" x="8" y="3" width="8" height="5" stroke="#5B6785" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+</svg>

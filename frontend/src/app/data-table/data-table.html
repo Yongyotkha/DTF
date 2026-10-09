@@ -1,0 +1,36 @@
+<table class="dft-table">
+  <thead>
+    <tr>
+      @for (column of columns; track $index) {
+        <th scope="col">{{ column }}</th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows; track $index) {
+      <tr>
+        @for (cell of row; track $index) {
+          <td>{{ cell }}</td>
+        }
+      </tr>
+    }
+  </tbody>
+</table>
+
+@if (pages.length) {
+  <nav class="pagesize" [attr.aria-label]="'หน้า'">
+    <button type="button" class="pagesize__arrow" aria-label="ก่อนหน้า">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 6L8 12L14 18" fill="none" stroke="currentColor" stroke-linecap="round"/>
+      </svg>
+    </button>
+    @for (item of pages; track item) {
+      <span class="pagesize__page" [class.pagesize__page--current]="item === page">{{ item }}</span>
+    }
+    <button type="button" class="pagesize__arrow" aria-label="ถัดไป">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 6L16 12L10 18" fill="none" stroke="currentColor" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </nav>
+}

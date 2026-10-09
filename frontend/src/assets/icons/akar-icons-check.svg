@@ -1,0 +1,13 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="24" height="24" fill="#CFCFCF"/>
+<g id="Icon">
+<path d="M-157 -121C-157 -122.105 -156.105 -123 -155 -123H337C338.105 -123 339 -122.105 339 -121V371C339 372.105 338.105 373 337 373H-155C-156.105 373 -157 372.105 -157 371V-121Z" fill="white"/>
+<path d="M-155 -123V-122H337V-123V-124H-155V-123ZM339 -121H338V371H339H340V-121H339ZM337 373V372H-155V373V374H337V373ZM-157 371H-156V-121H-157H-158V371H-157ZM-155 373V372C-155.552 372 -156 371.552 -156 371H-157H-158C-158 372.657 -156.657 374 -155 374V373ZM339 371H338C338 371.552 337.552 372 337 372V373V374C338.657 374 340 372.657 340 371H339ZM337 -123V-122C337.552 -122 338 -121.552 338 -121H339H340C340 -122.657 338.657 -124 337 -124V-123ZM-155 -123V-124C-156.657 -124 -158 -122.657 -158 -121H-157H-156C-156 -121.552 -155.552 -122 -155 -122V-123Z" fill="black" fill-opacity="0.1"/>
+<g id="icon-set">
+<rect x="-145.5" y="-111.5" width="473" height="281" rx="4.5" stroke="#9747FF" stroke-dasharray="10 5"/>
+<g id="Property 1=akar-icons:check">
+<path id="Vector" d="M4 12L10 18L20 6" stroke="#0E2346" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+</svg>

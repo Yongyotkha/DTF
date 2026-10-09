@@ -1,0 +1,13 @@
+<button type="button" class="menu-item" [class]="'menu-item menu-item--' + level + ' menu-item--' + state" [class.menu-item--compact]="compact" [attr.aria-label]="label" [title]="compact ? label : null">
+  <span class="menu-item__icon" aria-hidden="true">
+    @if (iconBox; as box) {
+      <img [src]="box.src" [width]="box.width" [height]="box.height" alt="" />
+    }
+  </span>
+  @if (!compact) {
+    <span class="menu-item__label">{{ label }}</span>
+  }
+  @if (chevron && !compact) {
+    <img class="menu-item__chevron" [class.menu-item__chevron--open]="expanded" src="assets/icons/menu-chevron.svg" width="24" height="24" alt="" />
+  }
+</button>

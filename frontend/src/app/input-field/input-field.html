@@ -1,0 +1,114 @@
+<label
+  class="field"
+  [class]="'field field--' + kind + ' field--' + state + ' field--' + size + ' field--' + font"
+>
+  <span class="field__label">
+    {{ label }}
+    @if (optional) {
+      <span class="field__optional"> (optional)</span>
+    }
+    @if (required) {
+      <span class="field__required"> *</span>
+    }
+  </span>
+
+  @if (kind === 'textarea') {
+    <span class="field__control">
+      <textarea [value]="editable ? value : shown" [disabled]="locked" [readonly]="!editable || locked" rows="3" (input)="changed($event)" (blur)="blurred.emit()"></textarea>
+    </span>
+  } @else {
+    <span class="field__control" (pointerdown)="toggleCalendar($event)">
+      @if (kind === 'date') {
+        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 2V5M16 2V5M3 9H21M5 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      }
+      @if (kind === 'multi') {
+        <span class="field__chips">
+          <span class="field__chip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.66 17.66L6.34 6.34M17.66 6.34L6.34 17.66" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>Tags</span>
+          <span class="field__chip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.66 17.66L6.34 6.34M17.66 6.34L6.34 17.66" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>Tags</span>
+        </span>
+      } @else {
+        <input [type]="inputType" [attr.inputmode]="digitsOnly ? 'numeric' : null" [attr.maxlength]="digitsOnly && maxLength > 0 ? maxLength : null" [value]="editable ? value : (isPlaceholder ? '' : shown)" [placeholder]="editable ? (placeholder || placeholdersHint) : (isPlaceholder ? shown : '')" [disabled]="locked" [readonly]="calendar || !editable || locked" [attr.aria-expanded]="calendar ? calendarOpen() : null" (input)="changed($event)" (blur)="blurred.emit()" />
+      }
+      @if (kind === 'search') {
+        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9.59 14.41L4 20" fill="none" stroke="currentColor" stroke-linecap="round"/>
+          <path d="M14 16C10.69 16 8 13.31 8 10C8 6.69 10.69 4 14 4C17.31 4 20 6.69 20 10C20 13.31 17.31 16 14 16Z" fill="none" stroke="currentColor"/>
+        </svg>
+      }
+      @if (kind === 'dropdown') {
+        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/>
+        </svg>
+      }
+      @if (state === 'error') {
+        <svg class="field__status" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 4.5V9" fill="none" stroke="currentColor" stroke-linecap="round"/>
+          <circle cx="8" cy="11.5" r="0.8" fill="currentColor"/>
+        </svg>
+      }
+      @if (state === 'success') {
+        <svg class="field__status" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="8" fill="currentColor"/>
+          <path d="M4.5 8.2L7 10.5L11.5 5.5" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      }
+      @if (state === 'loading') {
+        <span class="field__spinner" aria-hidden="true"></span>
+      }
+    </span>
+    @if (calendar && calendarOpen()) {
+      <span class="picker">
+        <span class="picker__head">
+          <button type="button" class="picker__nav" aria-label="ก่อนหน้า" [disabled]="blockedPrevious()" (click)="shiftCalendar(-1)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6L8 12L14 18" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>
+          </button>
+          <span class="picker__title">
+            <button type="button" (click)="showMonths()">{{ months[viewMonth()] }}</button>
+            <button type="button" (click)="showYears()">{{ buddhist(viewYear()) }}</button>
+          </span>
+          <button type="button" class="picker__nav" aria-label="ถัดไป" [disabled]="blockedNext()" (click)="shiftCalendar(1)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6L16 12L10 18" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>
+          </button>
+        </span>
+        @if (calendarMode() === 'day') {
+          <span class="picker__grid">
+            @for (name of weekdays; track name) {
+              <span class="picker__dow">{{ name }}</span>
+            }
+            @for (cell of calendarDays(); track $index) {
+              @if (cell.day) {
+                <button type="button" [class.selected]="cell.selected" [disabled]="cell.past" (pointerdown)="$event.preventDefault()" (click)="chooseDay(cell.day)">{{ cell.day }}</button>
+              } @else {
+                <span></span>
+              }
+            }
+          </span>
+        } @else if (calendarMode() === 'month') {
+          <span class="picker__choices">
+            @for (name of monthShort; track name; let index = $index) {
+              <button type="button" [class.selected]="index === viewMonth()" [disabled]="pastMonth(index)" (click)="chooseMonth(index)">{{ name }}</button>
+            }
+          </span>
+        } @else {
+          <span class="picker__choices">
+            @for (year of calendarYears(); track year) {
+              <button type="button" [class.selected]="year === viewYear()" [disabled]="pastYear(year)" (click)="chooseYear(year)">{{ buddhist(year) }}</button>
+            }
+          </span>
+        }
+      </span>
+    }
+  }
+
+  @if (helper || counter) {
+    <span class="field__meta">
+      <span>{{ helper }}</span>
+      @if (counter) {
+        <span>{{ counter }}</span>
+      }
+    </span>
+  }
+</label>

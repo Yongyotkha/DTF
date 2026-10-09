@@ -1,0 +1,141 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+h1 {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+  text-align: center;
+}
+
+.forgot {
+  align-self: flex-end;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 24px;
+  text-decoration: none;
+}
+
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.sso {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sso__row {
+  display: flex;
+  gap: 8px;
+}
+
+.sso__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 48px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 100px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.sso__btn:hover {
+  border-color: var(--color-secondary);
+}
+
+.sso__btn:active {
+  background: var(--color-bg-page);
+  border-color: var(--color-secondary-pressed);
+}
+
+.sso__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.sso__btn--full {
+  width: 100%;
+}
+
+.sso__btn--microsoft {
+  flex: 334 1 0;
+}
+
+.sso__btn--google {
+  flex: 298 1 0;
+}
+
+@media (max-width: 720px) {
+  .sso__row {
+    flex-direction: column;
+  }
+
+  .sso__btn--microsoft,
+  .sso__btn--google {
+    flex: none;
+    width: 100%;
+  }
+}
+
+.sso__btn img {
+  display: block;
+  object-fit: contain;
+}
+
+.register {
+  color: var(--color-selected-orange);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 50px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.notice {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-overlay);
+}

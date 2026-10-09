@@ -1,0 +1,8 @@
+<ol class="steps">
+  @for (label of labels; track label; let i = $index) {
+    <li class="steps__item" [class.steps__item--reached]="i < current">
+      <span class="steps__mark"><span>{{ i + 1 }}</span></span>
+      <span class="steps__label">{{ label }}</span>
+    </li>
+  }
+</ol>

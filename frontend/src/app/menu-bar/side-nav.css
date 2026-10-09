@@ -1,0 +1,68 @@
+/* Sidebar 251:6629. Expanded 260px, collapsed 72px. */
+:host {
+  display: flex;
+  flex: 0 0 260px;
+  flex-direction: column;
+  width: 260px;
+  min-height: calc(100vh - 65px);
+  background: #2b3d5c;
+}
+
+:host(.side-nav--collapsed) {
+  flex-basis: 72px;
+  width: 72px;
+}
+
+.side-nav__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  background: #2b3d5c;
+  color: var(--color-white);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 19px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.side-nav__toggle img {
+  flex: none;
+  transform: rotate(90deg);
+}
+
+.side-nav__toggle img.side-nav__mark--out {
+  transform: rotate(-90deg);
+}
+
+:host(.side-nav--collapsed) .side-nav__toggle {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.side-nav__toggle:hover,
+.side-nav__toggle:active {
+  background: #3e4f6b;
+}
+
+.side-nav__toggle span {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  :host:not(.side-nav--collapsed) {
+    position: fixed;
+    z-index: 4;
+    top: 65px;
+    bottom: 0;
+    left: 0;
+  }
+}

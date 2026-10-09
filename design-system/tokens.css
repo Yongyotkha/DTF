@@ -1,0 +1,86 @@
+:root {
+  /* Color Palette 22:109. When to use each token is in design-system/colors.ts. */
+  --color-brand-primary: #0e2346; /* Navy Blue */
+  --color-brand-secondary: #5ca4d9; /* Light Blue */
+  --color-brand-tertiary: #e2d5c7; /* Sand */
+  --color-brand-neutral: #d3d4d6; /* Light Grey */
+
+  --color-primary: #0e2346; /* Header, primary button, text */
+  --color-secondary: #5ca4d9; /* Icons, highlights, focus */
+  --color-surface-subtle: #e2d5c7; /* Toggle background, subtle areas */
+  --color-border: #d3d4d6; /* Borders, dividers */
+  --color-white: #ffffff; /* Card, input fields */
+
+  --color-selected-orange: #e8801e; /* Selected state (TH) */
+  --color-error-red: #c0182b; /* Required * / error */
+  --color-text-muted: #5b6785; /* Placeholder, secondary text */
+  --color-disabled-bg: #f2f2f3; /* Disabled input background */
+  --color-disabled-text: #9fa7b5; /* Disabled input text / icon */
+
+  --color-primary-hover: #1a3560; /* Primary button hover */
+  --color-primary-pressed: #081833; /* Primary button pressed */
+  --color-secondary-hover: #4a93cb; /* Secondary hover */
+  --color-secondary-pressed: #3b82ba; /* Secondary pressed */
+  --color-focus-ring: #5ca4d9; /* Focus ring (= secondary) */
+
+  --color-error-hover: #a31424; /* Danger button hover */
+  --color-error-pressed: #86101e; /* Danger button pressed */
+  --color-link: #2f73b0; /* Text links (5:1 on white) */
+  --color-link-hover: #1f5c94; /* Link hover (7:1 on white) */
+  --color-inverse-hover: rgb(255 255 255 / 12%); /* On navy: hover @ 12% */
+  --color-inverse-pressed: rgb(255 255 255 / 20%); /* On navy: pressed @ 20% */
+
+  --color-error-bg: #faecee; /* Error banner background */
+  --color-success: #1e7f4f; /* Success text / icon */
+  --color-success-bg: #e8f4ee; /* Success background */
+  --color-warning: #b7791f; /* Warning text / icon */
+  --color-warning-bg: #fdf3e1; /* Warning background */
+  --color-info-bg: #e6f1f9; /* Info background */
+  --color-chat-from: #1a73e8; /* Chat button gradient start, download text */
+  --color-chat-to: #004aab; /* Chat button gradient end */
+  --color-chat-border: #0093ff; /* Chat button border */
+  --color-download-bg: #dff5ff; /* Download chip background */
+  --color-download-border: #0085cd; /* Download chip border */
+  --color-pass-bg: #e6ffed; /* Passed review chip background */
+  --color-pass-border: #34a853; /* Passed review chip border */
+  --color-pass-text: #0ea637; /* Passed review text */
+  --color-fail-row: #fff1f1; /* Failed review row background */
+  --color-fail-bg: #ffe6e6; /* Failed review chip background */
+  --color-fail: #f41717; /* Failed review text and border */
+  --color-selected-row: #ebebeb; /* Selected document row */
+  --color-chat-panel: #f8fcff; /* Ask AI panel background */
+  --color-chat-sky: #06b9fa; /* Ask AI header gradient end */
+  --color-chip-bg: #e6f8ff; /* Ask AI suggestion chip background */
+  --color-chat-placeholder: #747474; /* Ask AI input placeholder */
+  --color-fab-from: #00c8ff; /* Ask AI button gradient start */
+  --color-fab-to: #009dff; /* Ask AI button gradient end */
+
+  --color-text-on-primary: #ffffff; /* Text on primary / header */
+  --color-bg-page: #f7f8fa; /* Page background */
+  --color-overlay: rgb(14 35 70 / 60%); /* Modal backdrop @ 60% */
+  --color-shadow: rgb(14 35 70 / 15%); /* Shadow tint @ 15% */
+
+  /* Typography — Figma section 22:110, measured from the sample text nodes */
+  --font-serif: "Noto Serif", serif;
+  --font-serif-thai: "Noto Serif Thai", "Noto Serif", serif;
+  --font-sans-thai: "Noto Sans Thai", sans-serif;
+  --font-family: var(--font-serif-thai);
+
+  --type-heading-size: 32px;
+  --type-heading-weight: 500;
+  --type-title-size: 24px;
+  --type-title-weight: 500;
+  --type-body-size: 16px;
+  --type-body-weight: 400;
+  --type-label-size: 12px;
+  --type-label-weight: 700;
+  --type-button-size: 16px;
+  --type-button-weight: 500;
+  --type-line-height: normal;
+  --shadow-card: 0 8px 24px var(--color-shadow);
+  --focus-ring: 0 0 0 3px var(--color-focus-ring);
+  /* Same ring measured on Buttons 115:475 and Input Fields 115:474. */
+  --state-focus-ring: 0 0 0 3px rgb(92 164 217 / 30%);
+  /* Fades only the paints those states already use. */
+  --motion-state: 180ms ease;
+}

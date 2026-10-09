@@ -1,0 +1,125 @@
+<div class="profile">
+  <app-top-header class="fluid" />
+  <div class="profile__body">
+    <app-side-nav />
+    <main>
+      <header class="profile__head">
+        <h1>ข้อมูลทั่วไป</h1>
+        <app-button label="เปลี่ยนรหัสผ่าน" (click)="openPassword()" />
+      </header>
+      <section class="card">
+        <div class="grid">
+          <app-input-field class="block span-2" label="ชื่อนิติบุคคล" [required]="true" [editable]="true" value="บริษัท ดาต้า มายนิ่ง จำกัด" />
+          <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" value="เลขที่ 102 ถนน ณ ระนอง" />
+          <app-input-field class="block" label="ตำบล/แขวง" kind="dropdown" [required]="true" [editable]="true" value="คลองเตย" />
+          <app-input-field class="block" label="รหัสไปรษณีย์" [required]="true" state="disabled" value="10110" />
+          <app-input-field class="block" label="อีเมล" [required]="true" [editable]="true" value="support@datamining.co.th" />
+          <app-input-field class="block" label="หมายเลขโทรศัพท์" [required]="true" [editable]="true" value="02-348-8700" />
+          <div class="file">
+            <span class="file__label">หนังสือรับรองนิติบุคคล <span>*</span></span>
+            <app-button type="outline" label="เลือกไฟล์" />
+            <button type="button" class="file__name">หนังสือรับรองนิติบุคคล.pdf</button>
+          </div>
+          <app-input-field class="block" label="วันที่จดทะเบียน" kind="date" [required]="true" [editable]="true" value="30/04/2538" />
+          <fieldset class="choice">
+            <legend>ประเทศ <span>*</span></legend>
+            <label><input type="radio" name="country" value="ประเทศไทย" [checked]="country === 'ประเทศไทย'" (change)="country = 'ประเทศไทย'" />ประเทศไทย</label>
+            <label><input type="radio" name="country" value="ต่างประเทศ" [checked]="country === 'ต่างประเทศ'" (change)="country = 'ต่างประเทศ'" />ต่างประเทศ</label>
+          </fieldset>
+          <app-input-field class="block" label="จังหวัด" kind="dropdown" [required]="true" [editable]="true" value="กรุงเทพมหานคร" />
+          <app-input-field class="block" label="อำเภอ/เขต" kind="dropdown" [required]="true" [editable]="true" value="คลองเตย" />
+          <div class="downloads">
+            <button type="button">ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล (กรณีเป็นผู้มอบอำนาจ)</button>
+            <button type="button">ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล</button>
+          </div>
+          <div class="regno">
+            <app-input-field class="block" label="เลขทะเบียนนิติบุคคล" [required]="true" [editable]="true" value="0105538041238" />
+            <app-button type="secondary" label="ตรวจสอบข้อมูล" />
+          </div>
+          <div class="file">
+            <span class="file__label">หนังสือยินยอมให้ใช้ข้อมูล <span>*</span></span>
+            <app-button type="outline" label="เลือกไฟล์" />
+            <button type="button" class="file__name">เอกสารยินยอมใช้ข้อมูล.pdf</button>
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="section-head">
+          <h2>ข้อมูลกรรมการบริษัท</h2>
+          <app-button type="outline" label="เพิ่มข้อมูล" />
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ลำดับ</th>
+                <th>ชื่อ</th>
+                <th>นามสกุล</th>
+                <th>กระทำ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of directors; track row[0]) {
+                <tr>
+                  <td>{{ row[0] }}</td>
+                  <td>{{ row[1] }}</td>
+                  <td>{{ row[2] }}</td>
+                  <td class="actions">กรรมการลงชื่อผูกพัน</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <h2>กรรมการลงชื่อผูกพัน</h2>
+        <app-input-field class="block" kind="textarea" label="ระบุอำนาจกรรมการลงชื่อผูกพันตามหนังสือรับรองกระทรวงพาณิชย์" [editable]="true" helper="อาทิ กรรมการหนึ่งคนลงลายมือชื่อ และประทับตราสำคัญของบริษัท/" counter="0 / 200" />
+
+        <hr />
+
+        <fieldset class="choice">
+          <legend>ต้องการมอบหมายผู้ทำการแทนหรือไม่ <span>*</span></legend>
+          <label><input type="radio" name="delegate" value="ไม่มอบหมาย" [checked]="delegate === 'ไม่มอบหมาย'" (change)="delegate = 'ไม่มอบหมาย'" />ไม่มอบหมาย</label>
+          <label><input type="radio" name="delegate" value="มอบหมาย" [checked]="delegate === 'มอบหมาย'" (change)="delegate = 'มอบหมาย'" />มอบหมาย</label>
+        </fieldset>
+        <fieldset class="choice choice--wrap">
+          <legend>ประเภทการแสดงตราประทับบริษัทและลายเซ็นของผู้มีอำนาจลงนามซึ่งจะปรากฏอยู่บนหนังสือ <span>*</span></legend>
+          <label><input type="radio" name="stamp" value="แบบและแสดงตราประทับบริษัทและลายเซ็น" [checked]="stamp === 'แบบและแสดงตราประทับบริษัทและลายเซ็น'" (change)="stamp = 'แบบและแสดงตราประทับบริษัทและลายเซ็น'" />แบบและแสดงตราประทับบริษัทและลายเซ็น</label>
+          <label><input type="radio" name="stamp" value="แบบและแสดงเฉพาะตราประทับบริษัท" [checked]="stamp === 'แบบและแสดงเฉพาะตราประทับบริษัท'" (change)="stamp = 'แบบและแสดงเฉพาะตราประทับบริษัท'" />แบบและแสดงเฉพาะตราประทับบริษัท</label>
+          <label><input type="radio" name="stamp" value="แบบและแสดงเฉพาะลายเซ็น" [checked]="stamp === 'แบบและแสดงเฉพาะลายเซ็น'" (change)="stamp = 'แบบและแสดงเฉพาะลายเซ็น'" />แบบและแสดงเฉพาะลายเซ็น</label>
+          <label><input type="radio" name="stamp" value="ไม่แนบ" [checked]="stamp === 'ไม่แนบ'" (change)="stamp = 'ไม่แนบ'" />ไม่แนบตราประทับบริษัทและลายเซ็น (แต่ต้องแนบหนังสือนำส่งเองทุกครั้ง)</label>
+        </fieldset>
+        <div class="card__footer">
+          <app-button label="บันทึก" (click)="save()" />
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+@if (passwordOpen) {
+  <div class="notice">
+    <section class="password" role="dialog" aria-label="เปลี่ยนรหัสผ่าน">
+      <header>
+        <h2>เปลี่ยนรหัสผ่าน</h2>
+        <button type="button" class="password__close" aria-label="ปิด" (click)="closePassword()">✕</button>
+      </header>
+      <div class="password__fields">
+        <app-input-field class="block" label="รหัสผ่านปัจจุบัน" inputType="password" [editable]="true" placeholder="123456" [state]="passwordState(currentPassword)" [value]="currentPassword" (valueChange)="currentPassword = $event" />
+        <app-input-field class="block" label="รหัสผ่านใหม่" inputType="password" [editable]="true" placeholder="123456" [state]="passwordState(nextPassword)" [value]="nextPassword" (valueChange)="nextPassword = $event" />
+        <app-input-field class="block" label="ยืนยันรหัสผ่านใหม่" inputType="password" [editable]="true" placeholder="123456" [state]="passwordState(confirmPassword, true)" [value]="confirmPassword" (valueChange)="confirmPassword = $event" />
+      </div>
+      <p>รหัสผ่านต้องมีความยาว 8-16 ตัวอักษร และประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข</p>
+      <div class="password__actions">
+        <app-button type="outline" label="ยกเลิก" (click)="closePassword()" />
+        <app-button label="ยืนยัน" (click)="confirmPasswordChange()" />
+      </div>
+    </section>
+  </div>
+}
+
+@if (saved) {
+  <div class="notice" (click)="closeSaved($event)">
+    <app-modal kind="success" />
+  </div>
+}

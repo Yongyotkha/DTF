@@ -1,0 +1,212 @@
+<main>
+  <p class="brand-en">Noto Serif : Department of Foreign Trade</p>
+  <p class="brand-th">Noto Sans Thai : กรมการค้าต่างประเทศ</p>
+
+  <section class="scale" aria-label="Typography">
+    <p class="heading">Heading</p>
+    <p class="title">Title</p>
+    <p class="body">Body</p>
+    <p class="label">Label</p>
+    <p class="button">Button</p>
+  </section>
+
+  <section class="tags" aria-label="Status Tag">
+    @for (variant of variants; track variant) {
+      <div class="tags__row">
+        @for (tone of tones; track tone) {
+          <app-status-tag [tone]="tone" [variant]="variant" />
+        }
+      </div>
+    }
+  </section>
+
+  <section class="inputs" aria-label="Input Fields">
+    <h2 class="inputs__title">Field types</h2>
+    <div class="inputs__columns">
+      <p>Default</p>
+      <p>Focus</p>
+      <p>Disabled</p>
+    </div>
+    @for (kind of inputKinds; track kind) {
+      <div class="inputs__row">
+        @for (state of inputColumns; track state) {
+          <app-input-field [kind]="kind" [state]="state" />
+        }
+      </div>
+    }
+
+    <h2 class="inputs__title">More states</h2>
+    <div class="inputs__row">
+      <app-input-field state="hover" label="Label" [required]="true" placeholder="text" helper="Helper text" />
+      <app-input-field state="filled" label="Label" [optional]="true" value="text" helper="Helper text" />
+      <app-input-field state="error" label="Label" [required]="true" value="text" helper="Please enter all 13 digits" />
+    </div>
+    <div class="inputs__row">
+      <app-input-field state="success" label="Label" [required]="true" value="text" helper="Verified" />
+      <app-input-field state="readonly" value="text" helper="Read-only" />
+      <app-input-field state="loading" label="Label" [required]="true" value="text" helper="Checking…" />
+    </div>
+
+    <h2 class="inputs__title">Textarea</h2>
+    <div class="inputs__row">
+      <app-input-field kind="textarea" placeholder="text" helper="Helper text" counter="0 / 200" />
+      <app-input-field kind="textarea" state="focus" placeholder="text" helper="Helper text" counter="0 / 200" />
+      <app-input-field kind="textarea" state="disabled" placeholder="text" helper="Helper text" counter="0 / 200" />
+    </div>
+
+    <h2 class="inputs__title">Sizes</h2>
+    <div class="inputs__row">
+      <app-input-field size="sm" font="inter" placeholder="text" />
+      <app-input-field size="md" font="inter" placeholder="text" />
+      <app-input-field size="lg" font="inter" placeholder="text" />
+    </div>
+  </section>
+
+  <section class="buttons" aria-label="Buttons">
+    <h2 class="inputs__title">Buttons</h2>
+    <div class="buttons__head">
+      <span></span>
+      @for (state of buttonStates; track state) {
+        <span>{{ state }}</span>
+      }
+    </div>
+    @for (button of buttonTypes; track button.type) {
+      <div class="buttons__row">
+        <span>{{ button.type }}</span>
+        @for (state of buttonStates; track state) {
+          <app-button [type]="button.type" [state]="state" [label]="button.label" />
+        }
+      </div>
+    }
+    <div class="buttons__row">
+      <span>loading</span>
+      <app-button type="primary" [loading]="true" />
+      <app-button type="secondary" [loading]="true" />
+      <app-button type="outline" [loading]="true" />
+      <app-button type="danger" [loading]="true" />
+    </div>
+    <div class="buttons__row">
+      <span>group</span>
+      <app-button type="outline" label="Back" />
+      <app-button type="primary" label="Next" />
+      <app-button type="ghost" label="Cancel" />
+      <app-button type="primary" label="Save" />
+      <app-button type="outline" label="Cancel" />
+      <app-button type="danger" label="Delete" />
+    </div>
+  </section>
+
+  <section class="table-sample" aria-label="Table">
+    <h2 class="inputs__title">Table</h2>
+    <app-data-table [columns]="tableColumns" [rows]="tableRows" [pages]="[1, 2]" [page]="1" />
+  </section>
+
+  <section class="modals" aria-label="Modal">
+    <h2 class="inputs__title">Modal</h2>
+    <div class="modals__grid">
+      @for (kind of modalKinds; track kind) {
+        <app-modal [kind]="kind" />
+      }
+    </div>
+  </section>
+
+  <section class="menus" aria-label="Menu-Bar">
+    <h2 class="inputs__title">Menu-Bar</h2>
+    <div class="menus__states">
+      <app-menu-item label="main-menu" [chevron]="true" />
+      <app-menu-item label="main-menu" state="active" [chevron]="true" [expanded]="true" />
+      <app-menu-item label="sub-menu" level="sub" />
+      <app-menu-item label="sub-menu" level="sub" state="active" />
+    </div>
+    <div class="menus__boards">
+      <div class="menus__board">
+        @for (menu of businessMenus; track menu.title) {
+          <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="true" [active]="menu.items[0]" />
+        }
+        <app-menu-group title="คำขอ" [items]="businessMenus[0].items" />
+      </div>
+      <div class="menus__board">
+        @for (menu of officerMenus; track menu.title) {
+          <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="true" [active]="menu.items[0]" />
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-sample" aria-label="Tabs">
+    <h2 class="inputs__title">Tabs</h2>
+    <app-tabs [labels]="['Button', 'Button', 'Button', 'Button', 'Button', 'Button', 'Button']" />
+  </section>
+
+  <section class="step-sample" aria-label="Step">
+    <h2 class="inputs__title">Step</h2>
+    <app-steps [current]="1" />
+    <app-steps [current]="2" />
+    <app-steps [current]="3" />
+  </section>
+
+  <section class="header-sample" aria-label="TopHeader">
+    <h2 class="inputs__title">TopHeader</h2>
+    <app-top-header />
+  </section>
+
+  <section class="dropdown-sample" aria-label="Dropdown">
+    <h2 class="inputs__title">Dropdown</h2>
+    <app-dropdown />
+  </section>
+
+  <section class="hover-sample" aria-label="Hover Menu">
+    <h2 class="inputs__title">Hover Menu</h2>
+    <div class="hover-sample__row">
+      <app-hover-menu tone="primary" />
+      <app-hover-menu tone="secondary" />
+    </div>
+  </section>
+
+  <section class="menu-sample" aria-label="Menu">
+    <h2 class="inputs__title">Menu</h2>
+    <div class="menu-sample__row">
+      <app-header-menu />
+      <app-header-menu [open]="true" />
+    </div>
+  </section>
+
+  <section class="steps-menu-sample" aria-label="steps-menu">
+    <h2 class="inputs__title">steps-menu</h2>
+    <div class="steps-menu-sample__row">
+      <div class="steps-menu-sample__states">
+        <app-steps-menu-item state="default" />
+        <app-steps-menu-item state="onclick" />
+        <app-steps-menu-item state="success" />
+      </div>
+      <app-steps-menu />
+    </div>
+  </section>
+
+  <section class="vstep-sample" aria-label="vertical_stepper">
+    <h2 class="inputs__title">vertical_stepper</h2>
+    <div class="vstep-sample__row">
+      <div class="vstep-sample__states">
+        <app-vertical-step state="success" />
+        <app-vertical-step state="pending" />
+        <app-vertical-step state="disabled" />
+      </div>
+      <div class="vstep-sample__states">
+        <app-vertical-phase label="ระยะที่ 1 : เปิดไต่สวน" count="7/7" />
+        <app-vertical-phase label="ระยะที่ 2 : ผลชั้นต้น" count="1/7" />
+        <app-vertical-phase label="ระยะที่ 3 : ผลชั้นที่สุด" count="0/6" />
+        <app-vertical-phase label="ระยะที่ 1 : เปิดไต่สวน" count="7/7" [expanded]="true" />
+        <app-vertical-phase label="ระยะที่ 2 : ผลชั้นต้น" count="1/7" [expanded]="true" />
+        <app-vertical-phase label="ระยะที่ 3 : ผลชั้นที่สุด" count="0/6" [expanded]="true" />
+      </div>
+    </div>
+  </section>
+
+  <section class="stepper-sample" aria-label="Stepper-1">
+    <h2 class="inputs__title">Stepper-1</h2>
+    <div class="stepper-sample__row">
+      <app-stepper-1 [open]="true" />
+      <app-stepper-1 [open]="false" />
+    </div>
+  </section>
+</main>

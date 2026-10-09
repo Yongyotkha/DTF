@@ -1,0 +1,131 @@
+/* Status Tag component set 650:72048. Measured from the variant symbols. */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.status-tag__dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-tag--soft.status-tag--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.status-tag--soft.status-tag--info {
+  background: var(--color-info-bg);
+  border-color: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.status-tag--soft.status-tag--info .status-tag__dot {
+  background: var(--color-secondary);
+}
+
+.status-tag--soft.status-tag--warning {
+  background: #fef3e0;
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.status-tag--soft.status-tag--danger {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-pressed);
+  color: var(--color-error-pressed);
+}
+
+.status-tag--soft.status-tag--danger .status-tag__dot {
+  background: var(--color-error-hover);
+}
+
+.status-tag--soft.status-tag--neutral {
+  background: var(--color-bg-page);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.status-tag--solid {
+  color: var(--color-white);
+}
+
+.status-tag--solid .status-tag__dot {
+  background: var(--color-white);
+}
+
+.status-tag--solid.status-tag--success {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.status-tag--solid.status-tag--info {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.status-tag--solid.status-tag--warning {
+  background: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.status-tag--solid.status-tag--danger {
+  background: var(--color-error-hover);
+  border-color: var(--color-error-hover);
+}
+
+.status-tag--solid.status-tag--neutral {
+  background: var(--color-text-muted);
+  border-color: var(--color-text-muted);
+}
+
+.status-tag--outline.status-tag--success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.status-tag--outline.status-tag--info {
+  border-color: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.status-tag--outline.status-tag--info .status-tag__dot {
+  background: var(--color-secondary);
+}
+
+.status-tag--outline.status-tag--warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.status-tag--outline.status-tag--danger {
+  border-color: var(--color-error-pressed);
+  color: var(--color-error-pressed);
+}
+
+.status-tag--outline.status-tag--danger .status-tag__dot {
+  background: var(--color-error-hover);
+}
+
+.status-tag--outline.status-tag--neutral {
+  background: var(--color-bg-page);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}

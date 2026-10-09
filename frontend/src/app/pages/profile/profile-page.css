@@ -1,0 +1,276 @@
+/* Page - Profile 251:10335. Content sits beside the 260 sidebar. */
+.profile {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.profile__body {
+  display: flex;
+  align-items: stretch;
+}
+
+main {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+}
+
+.profile__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+}
+
+h1,
+h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-weight: 400;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+}
+
+h2 {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  border-radius: 8px;
+  background: var(--color-white);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.span-2 {
+  grid-column: 1 / -1;
+}
+
+.file,
+.downloads,
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.file__label,
+.choice legend {
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.file__label span,
+.choice legend span {
+  color: var(--color-error-red);
+}
+
+.file__name,
+.downloads button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.choice input {
+  accent-color: var(--color-primary);
+}
+
+.choice--wrap {
+  flex-flow: row wrap;
+}
+
+.choice--wrap legend {
+  flex-basis: 100%;
+}
+
+.regno {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.regno app-input-field {
+  flex: 1;
+}
+
+hr {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.section-head,
+.card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card__footer {
+  justify-content: flex-end;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  box-sizing: border-box;
+  height: 45px;
+  padding: 12px;
+  border-bottom: 0.5px solid var(--color-border);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: left;
+}
+
+th {
+  background: var(--color-bg-page);
+}
+
+.notice {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.password {
+  box-sizing: border-box;
+  width: min(702px, 100%);
+  padding: 16px 24px;
+  border-radius: 8px;
+  background: var(--color-white);
+  box-shadow: 0 0 10px rgb(0 0 0 / 25%);
+}
+
+.password header,
+.password__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.password h2 {
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.password__close {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 19px;
+  cursor: pointer;
+}
+
+.password__fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.password p {
+  margin: 8px 0 16px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.password__actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .profile__body {
+    flex-direction: column;
+  }
+
+  aside {
+    flex-basis: auto;
+    width: 100%;
+    min-height: 0;
+  }
+
+  .grid,
+  .password__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
+  }
+
+  .regno,
+  .profile__head {
+    flex-wrap: wrap;
+  }
+}

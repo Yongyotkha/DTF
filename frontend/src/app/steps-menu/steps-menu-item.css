@@ -1,0 +1,60 @@
+/* steps-menu 3520:80966. default, onclick, and success. */
+:host {
+  display: inline-flex;
+}
+
+:host(.is-fill) {
+  display: flex;
+  width: 100%;
+}
+
+.steps-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  height: 21px;
+  margin: 0;
+  padding: 0 16px;
+  color: var(--color-text-muted);
+  font-family: "Noto Sans Thai", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: nowrap;
+}
+
+:host(.is-fill) .steps-item {
+  width: 100%;
+}
+
+.steps-item__dot {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-white);
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state);
+}
+
+.steps-item[data-state='onclick'] {
+  font-weight: 700;
+}
+
+.steps-item[data-state='onclick'] .steps-item__dot {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary);
+}
+
+.steps-item[data-state='success'] .steps-item__dot {
+  border: 0;
+  background: var(--color-success);
+}
+
+.steps-item__label {
+  line-height: 21px;
+}

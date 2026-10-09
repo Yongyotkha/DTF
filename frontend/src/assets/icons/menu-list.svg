@@ -1,0 +1,13 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="24" height="24" fill="#CFCFCF"/>
+<g id="Icon">
+<path d="M-55 -166C-55 -167.105 -54.1046 -168 -53 -168H439C440.105 -168 441 -167.105 441 -166V326C441 327.105 440.105 328 439 328H-53C-54.1046 328 -55 327.105 -55 326V-166Z" fill="white"/>
+<path d="M-53 -168V-167H439V-168V-169H-53V-168ZM441 -166H440V326H441H442V-166H441ZM439 328V327H-53V328V329H439V328ZM-55 326H-54V-166H-55H-56V326H-55ZM-53 328V327C-53.5523 327 -54 326.552 -54 326H-55H-56C-56 327.657 -54.6569 329 -53 329V328ZM441 326H440C440 326.552 439.552 327 439 327V328V329C440.657 329 442 327.657 442 326H441ZM439 -168V-167C439.552 -167 440 -166.552 440 -166H441H442C442 -167.657 440.657 -169 439 -169V-168ZM-53 -168V-169C-54.6569 -169 -56 -167.657 -56 -166H-55H-54C-54 -166.552 -53.5523 -167 -53 -167V-168Z" fill="black" fill-opacity="0.1"/>
+<g id="icon-set">
+<rect x="-43.5" y="-156.5" width="473" height="281" rx="4.5" stroke="#9747FF" stroke-dasharray="10 5"/>
+<g id="Property 1=menu-list">
+<path id="Vector" d="M3 5H3.01M3 12H3.01M3 19H3.01M8 5H21M8 12H21M8 19H21" stroke="#0E2346" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+</svg>

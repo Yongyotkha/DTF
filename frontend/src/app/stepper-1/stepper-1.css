@@ -1,0 +1,77 @@
+/* Stepper-1 554:43932. Open panel is 244 wide. Closed rail is 77 wide. */
+.stepper-1 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 77px;
+  margin: 0;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--color-white);
+}
+
+.stepper-1.is-open {
+  align-items: stretch;
+  width: 244px;
+}
+
+.stepper-1__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stepper-1__count {
+  margin: 0;
+  color: #6b7280;
+  font-family: "Noto Sans Thai", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.stepper-1__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.stepper-1__toggle svg {
+  width: 26px;
+  height: 26px;
+}
+
+.stepper-1__toggle:disabled {
+  background: var(--color-disabled-bg);
+  border-color: var(--color-border);
+  color: var(--color-disabled-text);
+  box-shadow: none;
+}
+
+.stepper-1__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 10px 0 0;
+  list-style: none;
+}
+
+.stepper-1__line {
+  display: block;
+  width: 2px;
+  height: 20px;
+  margin: 5px 0 5px 20.5px;
+  background: var(--color-border);
+}

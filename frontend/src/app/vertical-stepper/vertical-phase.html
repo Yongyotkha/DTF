@@ -1,0 +1,13 @@
+<button type="button" class="vphase" [attr.aria-expanded]="expanded" (click)="toggle()">
+  @if (expanded) {
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/>
+    </svg>
+  } @else {
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M8.33301 15L13.333 10L8.33301 5" fill="none" stroke="currentColor" stroke-linecap="round"/>
+    </svg>
+  }
+  <span class="vphase__label">{{ label }}</span>
+  <span class="vphase__count">{{ count }}</span>
+</button>
