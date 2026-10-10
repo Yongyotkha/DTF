@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 export type DropdownIcon = 'edit' | 'chevron';
 
@@ -18,4 +18,5 @@ export class Dropdown {
     { label: 'เปลี่ยนรหัสผ่าน', icon: 'chevron' },
     { label: 'ออกจากระบบ', icon: 'chevron' },
   ];
+  @Output() pick = new EventEmitter<string>();
 }

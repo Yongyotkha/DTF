@@ -69,6 +69,11 @@ export class Accounts {
     return !!account && account.password === password;
   }
 
+  signOut(): void {
+    this.signedIn = '';
+    sessionStorage.removeItem(sessionKey);
+  }
+
   get role(): AccountRole | '' {
     return this.signedIn;
   }

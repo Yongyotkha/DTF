@@ -110,6 +110,7 @@
         <app-input-field class="block" label="ยืนยันรหัสผ่านใหม่" inputType="password" [editable]="true" placeholder="123456" [state]="passwordState(confirmPassword, true)" [value]="confirmPassword" (valueChange)="confirmPassword = $event" />
       </div>
       <p>รหัสผ่านต้องมีความยาว 8-16 ตัวอักษร และประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข</p>
+      <a class="forgot" routerLink="/forgot-password">ลืมรหัสผ่าน</a>
       <div class="password__actions">
         <app-button type="outline" label="ยกเลิก" (click)="closePassword()" />
         <app-button label="ยืนยัน" (click)="confirmPasswordChange()" />

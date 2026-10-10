@@ -7,9 +7,22 @@
       </svg>
       <span class="top-header__badge"></span>
     </button>
-    <span class="top-header__name">{{ name }}</span>
-    <svg class="top-header__chevron" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/>
-    </svg>
+    <div class="top-header__account">
+      <button type="button" class="top-header__user" [attr.aria-expanded]="menuOpen" aria-haspopup="menu" (click)="toggleMenu()">
+        <span class="top-header__name">{{ name }}</span>
+        <svg class="top-header__chevron" viewBox="0 0 24 24" aria-hidden="true">
+          @if (menuOpen) {
+            <path d="M18 14L12 8L6 14" fill="none" stroke="currentColor" stroke-linecap="round"/>
+          } @else {
+            <path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/>
+          }
+        </svg>
+      </button>
+      @if (menuOpen) {
+        <div class="top-header__menu">
+          <app-dropdown (pick)="pick($event)" />
+        </div>
+      }
+    </div>
   </div>
 </header>

@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { InputField } from '../../input-field/input-field';
 import { SideNav } from '../../menu-bar/side-nav';
@@ -7,7 +8,7 @@ import { TopHeader } from '../../top-header/top-header';
 
 @Component({
   selector: 'app-profile-page',
-  imports: [TopHeader, SideNav, InputField, DftButton, DftModal],
+  imports: [TopHeader, SideNav, InputField, DftButton, DftModal, RouterLink],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css',
 })
@@ -26,6 +27,12 @@ export class ProfilePage {
   protected currentPassword = '';
   protected nextPassword = '';
   protected confirmPassword = '';
+
+  constructor(route: ActivatedRoute) {
+    route.queryParamMap.subscribe((params) => {
+      if (params.get('password') === '1') this.openPassword();
+    });
+  }
 
   protected openPassword(): void {
     this.passwordOpen = true;
