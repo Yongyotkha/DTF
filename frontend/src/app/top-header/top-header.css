@@ -70,6 +70,29 @@
   background: var(--color-error-red);
 }
 
+.top-header__account {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.top-header__user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.top-header__user:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+  border-radius: 8px;
+}
+
 .top-header__name {
   padding: 10px;
   color: var(--color-primary);
@@ -84,4 +107,11 @@
   width: 24px;
   height: 24px;
   color: var(--color-text-muted);
+}
+
+.top-header__menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 4;
 }
