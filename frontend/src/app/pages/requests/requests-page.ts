@@ -70,7 +70,9 @@ export class RequestsPage {
     private readonly router: Router,
     route: ActivatedRoute,
   ) {
-    this.choosing = route.snapshot.queryParamMap.get('choose') === '1';
+    route.queryParamMap.subscribe((params) => {
+      this.choosing = params.get('choose') === '1';
+    });
   }
 
   protected get visibleRows(): RequestRow[] {
