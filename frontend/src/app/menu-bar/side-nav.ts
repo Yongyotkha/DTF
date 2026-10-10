@@ -1,4 +1,6 @@
 import { Injectable, Component, EventEmitter, Input, OnInit, Output, computed, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { Accounts, roleHome } from '../accounts';
 import { MenuGroup } from './menu-group';
 import { MenuItem } from './menu-item';
 
@@ -56,7 +58,11 @@ export class SideNav implements OnInit {
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
 
-  constructor(private readonly state: SidebarState) {}
+  constructor(
+    private readonly state: SidebarState,
+    private readonly router: Router,
+    private readonly accounts: Accounts,
+  ) {}
 
   protected get collapsed() {
     return this.state.collapsed;
@@ -92,6 +98,12 @@ export class SideNav implements OnInit {
   }
 
   protected pick(label: string): void {
+    if (label === 'ยื่นคำขอ') void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
+    if (label === 'รายการยื่นคำขอ') void this.router.navigate(['/requests']);
+    if (label === 'หน้าหลัก') {
+      const role = this.accounts.role;
+      void this.router.navigateByUrl(role ? roleHome[role] : '/home');
+    }
     this.chosen.emit(label);
     if (this.state.narrow()) this.state.preference.set('collapsed');
   }
