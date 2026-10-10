@@ -1,5 +1,6 @@
 <header class="top-header">
   <img src="assets/logo/dft.png" width="65" height="50" alt="กรมการค้าต่างประเทศ Department of Foreign Trade" />
+  @if (account) {
   <div class="top-header__actions">
     <button type="button" class="top-header__bell" aria-label="การแจ้งเตือน">
       <svg viewBox="0 0 17.5 20" aria-hidden="true">
@@ -12,4 +13,5 @@
       <path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/>
     </svg>
   </div>
+  }
 </header>

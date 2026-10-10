@@ -7,4 +7,5 @@ import { Component, Input } from '@angular/core';
 })
 export class TopHeader {
   @Input() name = 'บริษัท โนเนม จำกัด';
+  @Input() account = true;
 }
