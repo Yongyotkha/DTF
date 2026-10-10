@@ -1,0 +1,403 @@
+:host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.ai-thread {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.ai-thread--drag {
+  outline: 2px dashed var(--color-chat-border);
+  outline-offset: -8px;
+}
+
+.ai-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 16px 8px;
+}
+
+.ask-line {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 8px 10px;
+  margin: 0 0 14px;
+}
+
+.ask-line--user {
+  grid-template-columns: minmax(0, 1fr) 36px;
+}
+
+.ask-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50px;
+}
+
+.ask-avatar--user {
+  display: inline-flex;
+  grid-column: 2;
+  grid-row: 1;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-chat-from);
+  color: var(--color-text-on-primary);
+}
+
+.ask-avatar--user svg,
+.ask-actions svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ask-avatar--user svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ask-bubble {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 22px;
+  white-space: pre-wrap;
+}
+
+.ask-line--user .ask-bubble {
+  grid-column: 1;
+  justify-self: end;
+  border-color: transparent;
+  background: var(--color-chip-bg);
+}
+
+.ask-bubble strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.ask-bubble p {
+  margin: 0;
+}
+
+.ask-bubble img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  margin-top: 8px;
+  border-radius: 8px;
+}
+
+.ask-line__file {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ask-line time {
+  color: var(--color-chat-placeholder);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ask-line--user time {
+  grid-column: 1;
+  justify-self: end;
+}
+
+.ask-sources {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-info-bg);
+}
+
+.ask-sources b {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.ask-sources button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ask-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.ask-actions time {
+  margin-left: auto;
+}
+
+.ask-actions button,
+.ai-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.ask-actions button.is-on {
+  color: var(--color-link);
+}
+
+.ai-stop {
+  width: auto;
+  margin-top: 8px;
+  padding: 0 10px;
+  color: var(--color-link);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+}
+
+.ai-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 0 16px 46px;
+}
+
+.ai-chips--follow {
+  justify-content: flex-start;
+  margin: 10px 0 0;
+}
+
+.ai-chips button {
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--color-chat-border);
+  border-radius: 50px;
+  background: var(--color-white);
+  color: var(--color-chat-border);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.ai-note,
+.ai-notice,
+.ai-foot {
+  margin: 0 16px 8px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.ai-notice {
+  color: var(--color-warning);
+}
+
+.ai-files {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 16px;
+  list-style: none;
+}
+
+.ai-files li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ai-files span,
+.ai-files small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ai-files small {
+  grid-column: 1;
+  color: var(--color-text-muted);
+}
+
+.ai-files button {
+  grid-row: 1 / span 2;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.ai-thread form {
+  flex: none;
+  margin: 8px 16px 0;
+}
+
+.ai-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.ai-context button,
+.ai-context select {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ai-context select {
+  margin-left: 4px;
+  color: var(--color-primary);
+}
+
+.ai-compose {
+  display: flex;
+  align-items: flex-end;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 6px 6px 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.ai-compose button[type='button'],
+.ai-compose button[type='submit'] {
+  display: inline-flex;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.ai-compose button[type='submit'],
+.ai-compose button[aria-label='หยุดการตอบ'] {
+  border-radius: 50px;
+  background: var(--color-chat-from);
+  color: var(--color-text-on-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+}
+
+.ai-compose svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ai-compose button:disabled {
+  color: var(--color-disabled-text);
+  cursor: default;
+}
+
+.ai-picker {
+  display: none;
+}
+
+.ai-compose textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 96px;
+  margin: 0;
+  padding: 6px 4px;
+  border: 0;
+  resize: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 22px;
+  outline: none;
+}
+
+.ai-compose textarea::placeholder {
+  color: var(--color-chat-placeholder);
+}
+
+.ai-foot {
+  flex: none;
+  margin-bottom: 12px;
+}
+
+.ai-thread button:focus-visible,
+.ai-thread textarea:focus-visible,
+.ai-thread select:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}

@@ -6,10 +6,20 @@
     <a [routerLink]="['/register', kind, 1]">{{ title }}</a>
   </p>
   <div class="stepper-scroll">
-    <app-steps [current]="step > 3 ? 3 : step" />
+    <app-steps [current]="registered() ? 4 : step" />
   </div>
-  <section class="sheet" [class.sheet--form]="showFormChrome">
-    @if (step === 1) {
+  <section class="sheet" [class.sheet--form]="showFormChrome" [class.sheet--done]="registered()">
+    @if (registered()) {
+      <div class="done">
+        <svg class="done__badge" viewBox="0 0 54 54" aria-hidden="true">
+          <circle cx="27" cy="27" r="27" fill="currentColor"/>
+          <path class="done__check" d="M16 28l7 7 15-16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2>ลงทะเบียนสำเร็จ</h2>
+        <p>บัญชีพร้อมเข้าใช้งานแล้ว</p>
+        <app-button label="ไปยังหน้าเข้าสู่ระบบ" (click)="goLogin()" />
+      </div>
+    } @else if (step === 1) {
       <h2>ข้อตกลงและเงื่อนไขการสมัครขอรับชื่อผู้ใช้งาน (username) และรหัสผ่าน (password) และการใช้
 บริการระบบอิเล็กทรอนิกส์มาตรการเยียวยาทางการค้า
 ของกรมการค้าต่างประเทศ กระทรวงพาณิชย์</h2>
@@ -41,7 +51,7 @@
         </div>
         <app-input-field class="block span-2" label="ชื่อนิติบุคคล" [required]="true" [editable]="true" placeholder="บริษัท ดาต้า มายนิ่ง จำกัด" [state]="stateOf(fieldBy('name'))" [helper]="message('name')" [value]="value('name')" (valueChange)="setValue('name', $event)" (blurred)="touch('name')" />
         <app-file-field label="หนังสือรับรองนิติบุคคล" [required]="true" [error]="invalid('cert')" [message]="message('cert')" [value]="value('cert')" (valueChange)="setValue('cert', $event)" (blurred)="touch('cert')" />
-        <app-thai-date-field label="วันที่จดทะเบียน" placeholder="30/04/2538" limit="fromToday" [state]="stateOf(fieldBy('registered'))" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
+        <app-thai-date-field label="วันที่จดทะเบียน" placeholder="30/04/2538" limit="untilToday" [state]="stateOf(fieldBy('registered'))" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
         <app-phone-field placeholder="02-348-8700" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
         <app-email-field placeholder="support@datamining.co.th" [state]="stateOf(fieldBy('email'))" [helper]="message('email')" [value]="value('email')" (valueChange)="setValue('email', $event)" (blurred)="touch('email')" />
         <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="เลขที่ 102 ถนน ณ ระนอง" [state]="stateOf(fieldBy('address'))" [helper]="message('address')" [value]="value('address')" (valueChange)="setValue('address', $event)" (blurred)="touch('address')" />
@@ -80,7 +90,7 @@
       </div>
       <div class="table-scroll">
         <app-data-table
-          class="fill"
+          class="fill index"
           [columns]="['ลำดับ', 'ชื่อ', 'นามสกุล', 'กระทำ']"
           [rows]="directorRows()"
         />
@@ -141,7 +151,7 @@
         <app-id-number-field label="เลขทะเบียนสมาคมการค้า" placeholder="ระบุ" [state]="stateOf(fieldBy('regno'))" [helper]="message('regno')" [value]="value('regno')" (valueChange)="setValue('regno', $event)" (blurred)="touch('regno')" />
         <app-input-field class="block span-2" label="ชื่อสมาคมการค้า" [required]="true" [editable]="true" placeholder="ระบุ" [state]="stateOf(fieldBy('name'))" [helper]="message('name')" [value]="value('name')" (valueChange)="setValue('name', $event)" (blurred)="touch('name')" />
         <app-input-field class="block" label="สถานที่จดทะเบียน" [required]="true" [editable]="true" placeholder="ระบุ" [state]="stateOf(fieldBy('place'))" [helper]="message('place')" [value]="value('place')" (valueChange)="setValue('place', $event)" (blurred)="touch('place')" />
-        <app-thai-date-field label="วันที่จดทะเบียน" placeholder="22/09/2569" limit="fromToday" [state]="stateOf(fieldBy('registered'))" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
+        <app-thai-date-field label="วันที่จดทะเบียน" placeholder="22/09/2569" limit="untilToday" [state]="stateOf(fieldBy('registered'))" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
         <app-file-field label="หนังสือรับรองสมาคมการค้า" [required]="true" [error]="invalid('cert')" [message]="message('cert')" [value]="value('cert')" (valueChange)="setValue('cert', $event)" (blurred)="touch('cert')" />
         <app-file-field label="แนบลายเซ็น" [error]="invalid('signature')" [message]="message('signature')" [value]="value('signature')" (valueChange)="setValue('signature', $event)" (blurred)="touch('signature')" />
         <app-phone-field placeholder="ระบุ" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
@@ -192,7 +202,38 @@
         }
       </div>
       <p class="pass-help">รหัสผ่านต้องมีความยาว 8-16 ตัวอักษร และประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักขระพิเศษ</p>
-    } @else {
+      @if (kind === 'corporate' && step === 3) {
+        <div class="sso-link">
+          <h2>ผูกวิธีเข้าสู่ระบบ</h2>
+          <p>ไม่บังคับ กรรมการหรือผู้รับมอบอำนาจใช้บัญชีเหล่านี้เข้าแทนบริษัทในครั้งถัดไป</p>
+          <div class="sso">
+            <button type="button" class="sso__btn sso__btn--full" [class.sso__btn--linked]="!!ssoAccount('thaiid')" (click)="linkSso('thaiid')">
+              <img src="assets/auth/thaid.webp" width="30" height="30" alt="" />
+              <span>{{ ssoAccount('thaiid') || 'ดำเนินการต่อด้วย ThaiD' }}</span>
+              @if (ssoAccount('thaiid')) {
+                <app-status-tag tone="success" label="ผูกแล้ว" />
+              }
+            </button>
+            <div class="sso__row">
+              <button type="button" class="sso__btn sso__btn--microsoft" [class.sso__btn--linked]="!!ssoAccount('microsoft')" (click)="linkSso('microsoft')">
+                <img src="assets/auth/icon-microsoft.svg" width="16" height="16" alt="" />
+                <span>{{ ssoAccount('microsoft') || 'Microsoft 365' }}</span>
+                @if (ssoAccount('microsoft')) {
+                  <app-status-tag tone="success" label="ผูกแล้ว" />
+                }
+              </button>
+              <button type="button" class="sso__btn sso__btn--google" [class.sso__btn--linked]="!!ssoAccount('google')" (click)="linkSso('google')">
+                <img src="assets/auth/icon-google.svg" width="16" height="16" alt="" />
+                <span>{{ ssoAccount('google') || 'Google' }}</span>
+                @if (ssoAccount('google')) {
+                  <app-status-tag tone="success" label="ผูกแล้ว" />
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    } @else if (step < 4) {
       <div class="fields">
         @for (field of fields; track field.key) {
           <app-input-field
@@ -218,6 +259,7 @@
     @if (step === 2 && tried() && fields.some(field => stateOf(field) === 'error')) {
       <p class="hint">โปรดกรอกข้อมูลให้ครบถ้วน</p>
     }
+    @if (!registered()) {
     <hr class="rule" />
     <div class="actions">
       <app-button class="icon-before" type="outline" label="ย้อนกลับ" (click)="back()">
@@ -229,6 +271,7 @@
         </app-button>
       }
     </div>
+    }
   </section>
 </div>
 
@@ -290,8 +333,8 @@
     <app-modal kind="error" />
   </div>
 }
-@if (step === 4) {
-  <div class="notice" (click)="finish($event)">
-    <app-modal kind="email" [email]="value('email')" />
+@if (step === 4 && !registered()) {
+  <div class="notice" (click)="confirmOtp($event)">
+    <app-modal kind="otp" [email]="value('email')" [otp]="otp()" [otpState]="otpFieldState()" [otpHelper]="otpFieldHelper()" [otpLeft]="otpLeft()" [otpClock]="otpClockLabel()" [otpResent]="otpResent()" (otpChange)="otp.set($event)" (otpResend)="resendOtp()" />
   </div>
 }

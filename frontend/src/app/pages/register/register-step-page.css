@@ -421,12 +421,176 @@ h2 {
   gap: 16px;
 }
 
+.sheet--done {
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding-top: 64px;
+  padding-bottom: 64px;
+  text-align: center;
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(420px, 100%);
+}
+
+.done__badge {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 8px;
+  color: var(--color-success-bg);
+}
+
+.done__check {
+  color: var(--color-success);
+}
+
+.done h2 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+}
+
+.done p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.done app-button {
+  margin-top: 8px;
+}
+
 .pass-help {
   margin: 0;
   color: var(--color-text-muted);
   font-family: var(--font-sans-thai);
   font-size: 14px;
   line-height: 21px;
+}
+
+.sso-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sso-link h2 {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.sso-link p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.sso {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sso__row {
+  display: flex;
+  gap: 8px;
+}
+
+.sso__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 48px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 100px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.sso__btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sso__btn--linked {
+  justify-content: flex-start;
+}
+
+.sso__btn--linked span {
+  flex: 1;
+  text-align: left;
+}
+
+.sso__btn:hover {
+  border-color: var(--color-secondary);
+}
+
+.sso__btn:active {
+  background: var(--color-bg-page);
+  border-color: var(--color-secondary-pressed);
+}
+
+.sso__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.sso__btn--full {
+  width: 100%;
+}
+
+.sso__btn--microsoft {
+  flex: 334 1 0;
+  min-width: 0;
+}
+
+.sso__btn--google {
+  flex: 298 1 0;
+  min-width: 0;
+}
+
+.sso__btn img {
+  display: block;
+  flex: none;
+  object-fit: contain;
+}
+
+@media (max-width: 720px) {
+  .sso__row {
+    flex-direction: column;
+  }
+
+  .sso__btn--microsoft,
+  .sso__btn--google {
+    flex: none;
+    width: 100%;
+  }
 }
 
 .notice {

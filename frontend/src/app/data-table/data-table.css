@@ -23,6 +23,24 @@
   overflow-wrap: break-word;
 }
 
+/* ลำดับ stays as wide as its label. Name columns stay moderate. กระทำ takes the rest. */
+:host(.fill.index) .dft-table {
+  table-layout: auto;
+}
+
+:host(.fill.index) .dft-table th:first-child,
+:host(.fill.index) .dft-table td:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+:host(.fill.index) .dft-table th:nth-child(2),
+:host(.fill.index) .dft-table td:nth-child(2),
+:host(.fill.index) .dft-table th:nth-child(3),
+:host(.fill.index) .dft-table td:nth-child(3) {
+  width: 18%;
+}
+
 .dft-table th,
 .dft-table td {
   box-sizing: border-box;

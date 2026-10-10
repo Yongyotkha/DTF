@@ -83,36 +83,6 @@
           </button>
         </nav>
       </section>
-      @if (chatOpen) {
-        <section class="ask-panel" aria-label="แชทถาม AI">
-          <header>
-            <img src="assets/icons/chat-avatar.svg" width="44" height="44" alt="" />
-            <span>
-              <strong>แชทถาม AI</strong>
-              ตอบจากเอกสารในเคสนี้เท่านั้น
-            </span>
-          </header>
-          <div class="ask-panel__log">{{ asked }}</div>
-          <div class="ask-panel__chips">
-            @for (prompt of prompts; track prompt) {
-              <button type="button" (click)="usePrompt(prompt)">{{ prompt }}</button>
-            }
-          </div>
-          <form (submit)="$event.preventDefault(); sendQuestion()">
-            <input type="text" name="question" placeholder="คำถามของคุณ" [value]="question" (input)="question = $any($event.target).value" />
-            <button type="submit" aria-label="ส่งคำถาม">
-              <img src="assets/icons/chat-send.svg" width="22" height="22" alt="" />
-            </button>
-          </form>
-        </section>
-      }
-      <button type="button" class="ask-fab" [class.ask-fab--open]="chatOpen" [attr.aria-expanded]="chatOpen" [attr.aria-label]="chatOpen ? 'ปิดแชท' : 'สอบถาม AI'" (click)="toggleChat()">
-        @if (chatOpen) {
-          <img src="assets/icons/chat-close.svg" width="40" height="40" alt="" />
-        } @else {
-          <img src="assets/icons/ask-fab.svg" width="129" height="129" alt="" />
-        }
-      </button>
     </main>
   </div>
 </div>
@@ -131,7 +101,7 @@
               <button type="button" [class.active]="measure === item" (click)="measure = item">{{ item }}</button>
             }
           </div>
-          <app-button class="icon-before ask-ai" label="สอบถาม AI">
+          <app-button class="icon-before ask-ai" label="สอบถาม AI" (click)="openAsk()">
             <img src="assets/icons/ask-ai.svg" width="21.3547" height="21.3559" alt="" />
           </app-button>
         </div>

@@ -1,13 +1,23 @@
-<button type="button" class="side-nav__toggle" (click)="toggle()" [attr.aria-expanded]="!collapsed()" [attr.aria-label]="collapsed() ? 'ขยายเมนู' : 'ย่อเมนู'" [title]="collapsed() ? 'ขยายเมนู' : null">
-  <img [class.side-nav__mark--out]="collapsed()" src="assets/icons/menu-chevron.svg" width="24" height="24" alt="" />
-  @if (!collapsed()) {
-    <span>ย่อเมนู</span>
+<div class="side-nav__body">
+  @if (kind === 'staff') {
+    <app-menu-item label="หน้าหลัก" icon="home" [compact]="collapsed()" [state]="active === 'หน้าหลัก' ? 'active' : 'default'" (click)="pick('หน้าหลัก')" />
+  } @else {
+    <app-menu-item label="หน้าแรก" icon="home" [compact]="collapsed()" [state]="active === 'หน้าแรก' ? 'active' : 'default'" (click)="pick('หน้าแรก')" />
   }
-</button>
-@if (kind === 'staff') {
-  <app-menu-item label="หน้าหลัก" icon="home" [compact]="collapsed()" [state]="active === 'หน้าหลัก' ? 'active' : 'default'" (click)="pick('หน้าหลัก')" />
-}
-@for (menu of menuList(); track menu.title) {
-  <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="isOpen(menu.title)" [active]="active" [compact]="collapsed()" (chosen)="pick($event)" (toggled)="toggleGroup(menu.title)" (opened)="expand()" />
-}
-<app-menu-item label="คู่มือการใช้งาน" icon="guide" [compact]="collapsed()" />
+  @for (menu of menuList(); track menu.title) {
+    <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="isOpen(menu.title)" [active]="active" [compact]="collapsed()" (chosen)="pick($event)" (toggled)="toggleGroup(menu.title)" (opened)="expand()" />
+  }
+  <app-menu-item label="คู่มือการใช้งาน" icon="guide" [compact]="collapsed()" />
+</div>
+<footer class="side-nav__foot">
+  <button type="button" class="side-nav__toggle" (click)="toggle()" [attr.aria-expanded]="!collapsed()" [attr.aria-label]="collapsed() ? 'ขยายเมนู' : 'ย่อเมนู'" [title]="collapsed() ? 'ขยายเมนู' : 'ย่อเมนู'">
+    <span class="side-nav__chevrons" [class.side-nav__chevrons--out]="collapsed()">
+      <img src="assets/icons/menu-chevron.svg" width="16" height="16" alt="" />
+      <img src="assets/icons/menu-chevron.svg" width="16" height="16" alt="" />
+    </span>
+    @if (!collapsed()) {
+      <span>ย่อเมนู</span>
+    }
+  </button>
+  <p class="side-nav__version">{{ collapsed() ? version : 'เวอร์ชัน ' + version }}</p>
+</footer>

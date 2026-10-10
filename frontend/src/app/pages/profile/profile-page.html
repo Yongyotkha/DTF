@@ -39,7 +39,7 @@
           <div class="file">
             <span class="file__label">หนังสือยินยอมให้ใช้ข้อมูล <span>*</span></span>
             <app-button type="outline" label="เลือกไฟล์" />
-            <button type="button" class="file__name">เอกสารยินยอมใช้ข้อมูล.pdf</button>
+            <button type="button" class="file__name">หนังสือยินยอมให้ใช้ข้อมูล.pdf</button>
           </div>
         </div>
 
@@ -65,7 +65,7 @@
                   <td>{{ row[0] }}</td>
                   <td>{{ row[1] }}</td>
                   <td>{{ row[2] }}</td>
-                  <td class="actions">กรรมการลงชื่อผูกพัน</td>
+                  <td>{{ row[3] }}</td>
                 </tr>
               }
             </tbody>
@@ -73,7 +73,7 @@
         </div>
 
         <h2>กรรมการลงชื่อผูกพัน</h2>
-        <app-input-field class="block" kind="textarea" label="ระบุอำนาจกรรมการลงชื่อผูกพันตามหนังสือรับรองกระทรวงพาณิชย์" [editable]="true" helper="อาทิ กรรมการหนึ่งคนลงลายมือชื่อ และประทับตราสำคัญของบริษัท/" counter="0 / 200" />
+        <app-input-field class="block" kind="textarea" label="ระบุอำนาจกรรมการลงชื่อผูกพันตามหนังสือรับรองกระทรวงพาณิชย์" [editable]="true" helper="อาทิ กรรมการหนึ่งคนลงลายมือชื่อ และประทับตราสำคัญของบริษัท/" [value]="authority" [counter]="authority.length + ' / 200'" />
 
         <hr />
 

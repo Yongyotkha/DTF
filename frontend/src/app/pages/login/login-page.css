@@ -120,6 +120,91 @@ h1 {
   object-fit: contain;
 }
 
+.otp-note,
+.otp-timer,
+.otp-sent {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-align: center;
+}
+
+.otp-note b,
+.otp-timer b {
+  color: var(--color-primary);
+  font-weight: 400;
+}
+
+.otp-timer--expired {
+  color: var(--color-error-red);
+}
+
+.otp-sent {
+  color: var(--color-success);
+}
+
+.otp-resend,
+.otp-back {
+  align-self: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  cursor: pointer;
+}
+
+.otp-resend:hover,
+.otp-back:hover {
+  color: var(--color-link-hover);
+}
+
+.otp-resend:focus-visible,
+.otp-back:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.trust {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  text-align: left;
+}
+
+.trust input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--color-primary);
+}
+
+.trust span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trust b {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.trust small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .register {
   color: var(--color-selected-orange);
   font-family: var(--font-sans-thai);

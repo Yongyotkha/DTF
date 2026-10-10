@@ -1,0 +1,79 @@
+/* Digit boxes use Input Fields 115:474: height 40, radius 8, focus ring, error border. */
+:host {
+  display: block;
+  width: 100%;
+}
+
+.otp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.otp__label {
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.otp__required {
+  color: var(--color-error-red);
+}
+
+.otp__boxes {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.otp__box {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  text-align: center;
+  transition:
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.otp__box:hover {
+  border-color: var(--color-secondary);
+}
+
+.otp__box:focus {
+  outline: none;
+  border: 2px solid var(--color-secondary);
+  box-shadow: var(--state-focus-ring);
+}
+
+.otp--error .otp__box {
+  border: 1.5px solid var(--color-error-red);
+}
+
+.otp--error .otp__box:focus {
+  border: 2px solid var(--color-error-red);
+  box-shadow: none;
+}
+
+.otp__help {
+  margin: 0;
+  color: var(--color-error-red);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: center;
+}

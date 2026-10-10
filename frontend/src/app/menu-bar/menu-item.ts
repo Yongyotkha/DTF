@@ -15,6 +15,7 @@ export class MenuItem {
   @Input() compact = false;
 
   protected get iconBox(): { src: string; width: number; height: number } | null {
+    if (this.icon === 'home') return { src: 'assets/icons/menu-home.svg', width: 20, height: 20 };
     if (this.icon === 'request') return { src: 'assets/icons/menu-request.svg', width: 18, height: 22 };
     if (this.icon === 'investigate') return { src: 'assets/icons/menu-investigate.svg', width: 20, height: 20 };
     if (this.icon === 'petition') return { src: 'assets/icons/menu-petition.svg', width: 18, height: 22 };

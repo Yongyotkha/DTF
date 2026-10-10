@@ -1,4 +1,4 @@
-<section class="modal" [class.modal--form]="content.form" [class.modal--alert]="content.align === 'center'" role="dialog" [attr.aria-label]="content.title">
+<section class="modal" [class.modal--form]="content.form" [class.modal--alert]="content.align === 'center'" [class.modal--otp]="kind === 'otp'" role="dialog" [attr.aria-label]="content.title">
   @switch (content.icon) {
     @case ('error') {
       <span class="modal__badge modal__badge--error" aria-hidden="true">!</span>
@@ -34,6 +34,20 @@
   @if (kind === 'email') {
     <p class="modal__message">ระบบได้ส่งลิงก์สำหรับเปิดใช้งานบัญชี
 ไปยังอีเมล <span class="modal__email">{{ emailAddress }}</span> เรียบร้อยแล้ว</p>
+  } @else if (kind === 'otp') {
+    <p class="modal__message">ระบบได้ส่งรหัส OTP ไปยังอีเมล <span class="modal__email">{{ emailAddress }}</span> เพื่อยืนยันกล่องรับข้อความในระบบ</p>
+    <app-otp-field [state]="otpState" [helper]="otpHelper" [value]="otp" (valueChange)="otpChange.emit($event)" />
+    <p class="modal__timer" [class.modal__timer--expired]="otpLeft === 0">
+      @if (otpLeft > 0) {
+        รหัสหมดอายุใน <b>{{ otpClock }}</b>
+      } @else {
+        รหัสหมดอายุแล้ว
+      }
+    </p>
+    @if (otpResent) {
+      <p class="modal__sent">ส่งรหัสใหม่แล้ว</p>
+    }
+    <button type="button" class="modal__resend" (click)="otpResend.emit()">ไม่ได้รับรหัส? ส่งใหม่</button>
   } @else if (content.message) {
     <p class="modal__message">{{ content.message }}</p>
   }
@@ -49,7 +63,7 @@
   @if (content.actions.length) {
     <div class="modal__actions">
       @for (action of content.actions; track action.label) {
-        <button type="button" class="modal__button" [class]="'modal__button modal__button--' + action.tone">{{ action.label }}</button>
+        <button type="button" class="modal__button" [class]="'modal__button modal__button--' + action.tone" [disabled]="kind === 'otp' && otpLeft === 0">{{ action.label }}</button>
       }
     </div>
   }

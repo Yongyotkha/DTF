@@ -10,7 +10,7 @@ import { Dropdown } from '../dropdown/dropdown';
   styleUrl: './top-header.css',
 })
 export class TopHeader {
-  @Input() name = 'บริษัท โนเนม จำกัด';
+  @Input() name = 'บริษัท ดาต้า มายนิ่ง จำกัด';
   @Input() account = true;
   protected menuOpen = false;
 

@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AskAiState } from '../../ask-ai/ask-ai';
 import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
@@ -52,12 +53,8 @@ export class RequestsPage {
   protected readonly measures = ['มาตราการ AD', 'มาตราการ CVD', 'มาตราการ SG', 'มาตราการ AC'];
   protected readonly forms = forms;
   protected readonly tabs = ['รายการยื่นคำขอ', 'ฉบับร่าง'];
-  protected readonly prompts = ['AD คืออะไร', 'CVD คืออะไร', 'SG คืออะไร', 'AC คืออะไร'];
   protected measure = 'มาตราการ AD';
   protected choosing = false;
-  protected chatOpen = false;
-  protected question = '';
-  protected asked = '';
   protected listTab = 0;
   protected page = 1;
   protected readonly openRows = signal<ReadonlySet<string>>(new Set(['row-1', 'row-2']));
@@ -68,6 +65,7 @@ export class RequestsPage {
 
   constructor(
     private readonly router: Router,
+    private readonly askAi: AskAiState,
     route: ActivatedRoute,
   ) {
     route.queryParamMap.subscribe((params) => {
@@ -126,19 +124,8 @@ export class RequestsPage {
     void this.router.navigate(['/requests']);
   }
 
-  protected toggleChat(): void {
-    this.chatOpen = !this.chatOpen;
-  }
-
-  protected usePrompt(prompt: string): void {
-    this.question = prompt;
-  }
-
-  protected sendQuestion(): void {
-    const text = this.question.trim();
-    if (!text) return;
-    this.asked = text;
-    this.question = '';
+  protected openAsk(): void {
+    this.askAi.show();
   }
 
   protected openMenu(label: string): void {

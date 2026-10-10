@@ -13,9 +13,9 @@ import { TopHeader } from '../../top-header/top-header';
   styleUrl: './profile-page.css',
 })
 export class ProfilePage {
+  protected readonly authority = 'นายสุรช ล่ำซำ ลงลายมือชื่อและประทับตราสำคัญของบริษัท';
   protected readonly directors = [
-    ['1', 'กิตติภณ', 'วรโชติเมธี'],
-    ['2', 'ณัฏฐ์ธนัน', 'ศิริวัฒนากุล'],
+    ['1', 'สุรช', 'ล่ำซำ', 'กรรมการผู้จัดการ ลงลายมือชื่อและประทับตราสำคัญของบริษัท'],
   ];
 
   protected country = 'ประเทศไทย';

@@ -1,0 +1,140 @@
+<div class="ai-thread" [class.ai-thread--drag]="dragging()" (dragover)="$event.preventDefault(); dragging.set(true)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+  <div class="ai-log" #log>
+    <article class="ask-line ask-line--ai">
+      <img class="ask-avatar" src="assets/icons/chat-avatar.svg" width="36" height="36" alt="" />
+      <div class="ask-bubble">
+        <p>สวัสดีค่ะ<br />ฉันคือผู้ช่วย AI ของระบบ DFT<br />พร้อมให้คำแนะนำเกี่ยวกับการใช้งานระบบ การยื่นคำขอ และขั้นตอนต่าง ๆ ค่ะ</p>
+      </div>
+    </article>
+    @if (chat.lines().length === 0 && !chat.replying()) {
+      <div class="ai-chips">
+        @for (prompt of prompts; track prompt) {
+          <button type="button" (click)="chat.ask(prompt)">{{ prompt }}</button>
+        }
+      </div>
+    }
+    @for (line of chat.lines(); track line.id) {
+      @if (line.role === 'note') {
+        <p class="ai-note">{{ line.text }}</p>
+      } @else if (line.role === 'user') {
+        <article class="ask-line ask-line--user">
+          <div class="ask-bubble">
+            <p>{{ line.text }}</p>
+            @for (file of line.files ?? []; track file.name) {
+              @if (file.image && file.url) {
+                <img [src]="file.url" [alt]="file.name" />
+              } @else {
+                <span class="ask-line__file">{{ file.name }}</span>
+              }
+            }
+          </div>
+          <span class="ask-avatar ask-avatar--user" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5.5 19.5c.7-2.6 3.1-4.5 6.5-4.5s5.8 1.9 6.5 4.5" /></svg>
+          </span>
+          <time>{{ line.time }} น.</time>
+        </article>
+      } @else {
+        <article class="ask-line ask-line--ai">
+          <img class="ask-avatar" src="assets/icons/chat-avatar.svg" width="36" height="36" alt="" />
+          <div class="ask-bubble">
+            @if (line.title) {
+              <strong>{{ line.title }}</strong>
+            }
+            <p>{{ line.text }}</p>
+            @if (line.sources?.length) {
+              <div class="ask-sources">
+                <b>แหล่งข้อมูลอ้างอิง</b>
+                @for (source of line.sources; track source.label) {
+                  <button type="button" (click)="cite(source)">{{ source.label }}</button>
+                }
+              </div>
+            }
+            <div class="ask-actions">
+              <button type="button" aria-label="ถูกใจ" [class.is-on]="marks()[line.id] === 'up'" (click)="mark(line.id, 'up')">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v8H4v-8h3zm2 8h7.2a2 2 0 0 0 2-1.6l1.2-6A2 2 0 0 0 17.4 9H14V6.4A2.4 2.4 0 0 0 11.6 4L9 9v10z" /></svg>
+              </button>
+              <button type="button" aria-label="ไม่ถูกใจ" [class.is-on]="marks()[line.id] === 'down'" (click)="mark(line.id, 'down')">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 13V5h3v8h-3zm-2-8H7.8a2 2 0 0 0-2 1.6l-1.2 6A2 2 0 0 0 6.6 15H10v2.6A2.4 2.4 0 0 0 12.4 20L15 15V5z" /></svg>
+              </button>
+              <button type="button" aria-label="คัดลอก" (click)="copy(line.text)">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h10v11H9zM5 4h10v3H8v8H5z" /></svg>
+              </button>
+              @if (line.id === lastAiId()) {
+                <button type="button" aria-label="ตอบใหม่" (click)="chat.retry(line.id)">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5" /></svg>
+                </button>
+              }
+              <time>{{ line.time }} น.</time>
+            </div>
+            @if (line.id === lastAiId() && !chat.replying()) {
+              <div class="ai-chips ai-chips--follow">
+                @for (prompt of follow(); track prompt) {
+                  <button type="button" (click)="chat.ask(prompt)">{{ prompt }}</button>
+                }
+              </div>
+            }
+          </div>
+        </article>
+      }
+    }
+    @if (chat.replying()) {
+      <article class="ask-line ask-line--ai" aria-live="polite">
+        <img class="ask-avatar" src="assets/icons/chat-avatar.svg" width="36" height="36" alt="" />
+        <div class="ask-bubble">
+          <p>กำลังตอบ...</p>
+          <button type="button" class="ai-stop" (click)="chat.stop()">หยุด</button>
+        </div>
+      </article>
+    }
+  </div>
+  @if (chat.notice()) {
+    <p class="ai-notice" role="status">{{ chat.notice() }}</p>
+  }
+  @if (chat.pending().length) {
+    <ul class="ai-files">
+      @for (file of chat.pending(); track file.name + file.size + file.message) {
+        <li>
+          <span>{{ file.name }}</span>
+          <small>{{ file.message }}</small>
+          <button type="button" aria-label="เอาไฟล์ออก" (click)="chat.dropPending(file)">✕</button>
+        </li>
+      }
+    </ul>
+  }
+  <form (submit)="$event.preventDefault(); chat.send()">
+    <div class="ai-context">
+      @if (chat.page().enabled) {
+        <span>ใช้บริบท: {{ chat.page().title }}@if (chat.page().requestId) { · {{ chat.page().requestId }} }</span>
+        <button type="button" (click)="chat.page.update((page) => ({ ...page, enabled: false }))">ไม่ใช้</button>
+      } @else {
+        <button type="button" (click)="chat.page.update((page) => ({ ...page, enabled: true }))">ใช้บริบทหน้านี้</button>
+      }
+      <label>
+        ขอบเขต
+        <select [value]="chat.scope()" (change)="chat.scope.set($any($event.target).value)">
+          <option value="thread">ทั้งบทสนทนา</option>
+          <option value="sources">เอกสารที่เลือก</option>
+          <option value="page">หน้านี้</option>
+        </select>
+      </label>
+    </div>
+    <div class="ai-compose">
+      <button type="button" aria-label="แนบไฟล์" (click)="filePicker.click()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12.5l6.2-6.2a3 3 0 0 1 4.2 4.2l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l7.1-7.1" /></svg>
+      </button>
+      <button type="button" aria-label="จับภาพหน้าจอ" (click)="capture()" [disabled]="chat.capturing()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l1-2h6l1 2h4v11H4V7h4z" /><circle cx="12" cy="12.5" r="2.5" /></svg>
+      </button>
+      <input #filePicker class="ai-picker" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" multiple (change)="onFiles($event)" />
+      <textarea rows="1" name="question" placeholder="พิมพ์คำถามของคุณ..." [value]="chat.question()" (input)="chat.question.set($any($event.target).value)" (keydown)="onKey($event)"></textarea>
+      @if (chat.replying()) {
+        <button type="button" aria-label="หยุดการตอบ" (click)="chat.stop()">หยุด</button>
+      } @else {
+        <button type="submit" aria-label="ส่งคำถาม">
+          <img src="assets/icons/chat-send.svg" width="18" height="18" alt="" />
+        </button>
+      }
+    </div>
+  </form>
+  <p class="ai-foot">AI อาจให้ข้อมูลคลาดเคลื่อน โปรดตรวจสอบข้อมูลสำคัญก่อนดำเนินการ</p>
+</div>

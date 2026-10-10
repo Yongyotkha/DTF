@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AiWorkspacePage } from './pages/ai/ai-workspace-page';
 import { DesignSystemPage } from './pages/design-system/design-system';
 import { ForgotPage } from './pages/register/forgot-page';
 import { HomePage } from './pages/home/home-page';
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'register', component: RegisterPage },
   { path: 'register/:kind/:step', component: RegisterStepPage },
   { path: 'home', component: HomePage },
+  { path: 'ai-workspace', component: AiWorkspacePage },
   { path: 'staff', component: StaffHomePage },
   { path: 'staff/tasks/:code', component: StaffTaskPage },
   { path: 'director', component: StaffHomePage, data: { role: 'director' } },

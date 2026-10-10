@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
-import { InputField } from '../input-field/input-field';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { OtpField } from '../fields/otp-field';
+import { InputField, InputState } from '../input-field/input-field';
 
 export type ModalKind =
   | 'confirm'
@@ -10,7 +11,8 @@ export type ModalKind =
   | 'loading'
   | 'success'
   | 'form'
-  | 'email';
+  | 'email'
+  | 'otp';
 
 type ModalAction = { label: string; tone: 'primary' | 'outline' | 'danger' };
 
@@ -121,11 +123,20 @@ const copy: Record<ModalKind, ModalCopy> = {
     actions: [{ label: 'ตกลง', tone: 'primary' }],
     form: false,
   },
+  otp: {
+    title: 'ส่งรหัส OTP เรียบร้อยแล้ว',
+    message: '',
+    closable: false,
+    align: 'center',
+    icon: 'email',
+    actions: [{ label: 'ยืนยัน', tone: 'primary' }],
+    form: false,
+  },
 };
 
 @Component({
   selector: 'app-modal',
-  imports: [InputField],
+  imports: [InputField, OtpField],
   templateUrl: './modal.html',
   styleUrl: './modal.css',
 })
@@ -135,6 +146,14 @@ export class DftModal {
   @Input() heading = '';
   @Input() detail: string | null = null;
   @Input() actions = true;
+  @Input() otp = '';
+  @Input() otpState: InputState = 'default';
+  @Input() otpHelper = '';
+  @Input() otpLeft = 0;
+  @Input() otpClock = '';
+  @Input() otpResent = false;
+  @Output() otpChange = new EventEmitter<string>();
+  @Output() otpResend = new EventEmitter<void>();
 
   protected get content(): ModalCopy {
     const base = copy[this.kind];

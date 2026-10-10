@@ -15,10 +15,11 @@ import { IdNumberField } from '../../fields/id-number-field';
 import { PhoneField } from '../../fields/phone-field';
 import { PrefixField } from '../../fields/prefix-field';
 import { ThaiDateField } from '../../fields/thai-date-field';
+import { StatusTag } from '../../status-tag/status-tag';
 import { Accounts } from '../../accounts';
 import { AddressSelect } from './address-select';
 import { agreementText } from './agreement';
-import { RegisterDraft } from './register-draft';
+import { DraftSso, DraftSsoProvider, RegisterDraft } from './register-draft';
 import { ThaiAddress } from './thai-address';
 
 type Kind = 'corporate' | 'individual' | 'association';
@@ -96,6 +97,35 @@ const details: Record<Kind, Field[]> = {
   ],
 };
 
+const corporateSample: Record<string, string> = {
+  country: 'ประเทศไทย',
+  regno: '0105538041238',
+  name: 'บริษัท ดาต้า มายนิ่ง จำกัด',
+  cert: 'หนังสือรับรองนิติบุคคล.pdf',
+  registered: '30/04/2538',
+  phone: '02-348-8700',
+  email: 'support@datamining.co.th',
+  address: 'เลขที่ 102 ถนน ณ ระนอง',
+  province: 'กรุงเทพมหานคร',
+  district: 'คลองเตย',
+  subdistrict: 'คลองเตย',
+  postcode: '10110',
+  consent: 'หนังสือยินยอมให้ใช้ข้อมูล.pdf',
+  authority: 'นายสุรช ล่ำซำ ลงลายมือชื่อและประทับตราสำคัญของบริษัท',
+  password: 'Dft@2569',
+  confirm: 'Dft@2569',
+};
+
+const corporateDirectors: Director[] = [
+  { name: 'สุรช', surname: 'ล่ำซำ', action: 'กรรมการผู้จัดการ ลงลายมือชื่อและประทับตราสำคัญของบริษัท' },
+];
+
+const corporateSso: DraftSso[] = [
+  { provider: 'thaiid', account: 'นายสุรช ล่ำซำ' },
+  { provider: 'google', account: 'support@datamining.co.th' },
+  { provider: 'microsoft', account: 'support@datamining.co.th' },
+];
+
 const access: Field[] = [
   { key: 'username', label: 'ชื่อผู้ใช้งาน', required: true },
   { key: 'password', label: 'รหัสผ่าน', required: true, inputType: 'password', placeholder: '123456' },
@@ -104,7 +134,7 @@ const access: Field[] = [
 
 @Component({
   selector: 'app-register-step',
-  imports: [TopHeader, Steps, Tabs, InputField, DftButton, DataTable, DftModal, RouterLink, AddressSelect, EmailField, PhoneField, IdNumberField, ThaiDateField, FileField, PrefixField],
+  imports: [TopHeader, Steps, Tabs, InputField, DftButton, DataTable, DftModal, RouterLink, AddressSelect, EmailField, PhoneField, IdNumberField, ThaiDateField, FileField, PrefixField, StatusTag],
   templateUrl: './register-step-page.html',
   styleUrl: './register-step-page.css',
 })
@@ -124,6 +154,14 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   protected readonly importRows = signal<Director[]>([]);
   protected readonly importNote = signal('');
   private directorTried = false;
+  protected readonly otp = signal('256901');
+  protected readonly otpTried = signal(false);
+  protected readonly otpDone = signal(false);
+  protected readonly otpLeft = signal(15 * 60);
+  protected readonly otpResent = signal(false);
+  private readonly sampleOtp = '256901';
+  private otpClock?: ReturnType<typeof setInterval>;
+  private otpResentTimer?: ReturnType<typeof setTimeout>;
   protected readonly checkingRegno = signal(false);
   protected readonly regnoCheck = signal<'idle' | 'success' | 'error'>('idle');
   private regnoTimer?: ReturnType<typeof setTimeout>;
@@ -163,8 +201,19 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       });
       this.touched.set({});
       this.failed = false;
-      this.directors.set([]);
       this.addingDirector.set(false);
+      if (kind === 'corporate' && !this.draft.values['name']) {
+        Object.assign(this.draft.values, corporateSample);
+      }
+      if (kind === 'corporate') {
+        if (!this.draft.values['password']) this.draft.values['password'] = corporateSample['password'];
+        if (!this.draft.values['confirm']) this.draft.values['confirm'] = corporateSample['confirm'];
+      }
+      if (kind === 'corporate' && !this.draft.directorsReady) {
+        if (this.draft.directors.length === 0) this.draft.directors = corporateDirectors.map((row) => ({ ...row }));
+        this.draft.directorsReady = true;
+      }
+      this.directors.set(kind === 'corporate' ? this.draft.directors.map((row) => ({ ...row })) : []);
       if ((kind === 'corporate' || kind === 'association') && !this.draft.values['country']) {
         this.draft.values['country'] = 'ประเทศไทย';
       }
@@ -172,6 +221,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
         this.draft.values['identity'] = 'บัตรประจำตัวประชาชน';
       }
       if (step >= 3) this.assignUsername();
+      if (step === 4 && !this.mailboxVerified && !this.otpDone()) this.ensureOtpClock();
     });
   }
 
@@ -179,6 +229,8 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
     this.clearImport();
     clearTimeout(this.regnoTimer);
+    clearInterval(this.otpClock);
+    clearTimeout(this.otpResentTimer);
   }
 
   protected get title(): string {
@@ -208,7 +260,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
 
   protected get fields(): Field[] {
     if (this.step === 2) return details[this.kind];
-    if (this.step === 3 || this.step === 4) return access;
+    if (this.step === 3) return access;
     return [];
   }
 
@@ -237,11 +289,40 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   }
 
   protected get isAccessForm(): boolean {
-    return this.step === 3 || this.step === 4;
+    return this.step === 3;
   }
 
   protected get showFormChrome(): boolean {
-    return this.step > 1;
+    return this.step > 1 && this.step < 4;
+  }
+
+  protected registered(): boolean {
+    return this.step === 4 && (this.mailboxVerified || this.otpDone());
+  }
+
+  protected get mailboxVerified(): boolean {
+    const email = this.value('email').trim().toLowerCase();
+    if (!email) return false;
+    return (['google', 'microsoft'] as const).some((provider) => this.ssoAccount(provider).trim().toLowerCase() === email);
+  }
+
+  protected otpFieldState(): InputState {
+    if (this.otpTried() && this.otpLeft() === 0) return 'error';
+    if (!this.otpTried() || this.otp().trim() === this.sampleOtp) return 'default';
+    return 'error';
+  }
+
+  protected otpFieldHelper(): string {
+    if (this.otpTried() && this.otpLeft() === 0) return 'รหัสหมดอายุแล้ว กดส่งใหม่';
+    if (this.otpFieldState() === 'error') return 'รหัส OTP ไม่ถูกต้อง';
+    return '';
+  }
+
+  protected otpClockLabel(): string {
+    const left = this.otpLeft();
+    const minute = Math.floor(left / 60);
+    const second = left % 60;
+    return `${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
   }
 
   protected fieldBy(key: string): Field {
@@ -262,6 +343,17 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   protected usernameState(): InputState {
     if (this.value('username')) return 'readonly';
     return this.stateOf(this.fieldBy('username'));
+  }
+
+  protected ssoAccount(provider: DraftSsoProvider): string {
+    return this.draft.sso.find((row) => row.provider === provider)?.account ?? '';
+  }
+
+  protected linkSso(provider: DraftSsoProvider): void {
+    if (this.kind !== 'corporate' || this.ssoAccount(provider)) return;
+    const sample = corporateSso.find((row) => row.provider === provider);
+    if (!sample) return;
+    this.draft.sso = [...this.draft.sso, { ...sample }];
   }
 
   private assignUsername(): void {
@@ -352,6 +444,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     if (!source.length || source.some((row) => !this.directorReady(row))) return;
     const next = source.map((row) => ({ name: row.name.trim(), surname: row.surname.trim(), action: row.action.trim() }));
     this.directors.update((current) => [...current, ...next]);
+    this.draft.directors = this.directors().map((row) => ({ ...row }));
     this.addingDirector.set(false);
   }
 
@@ -450,7 +543,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       case 'regno':
         return this.value('country') === 'ต่างประเทศ' ? value.length >= 3 : thaiIdOk(value);
       case 'registered':
-        return thaiDateOk(value, 'fromToday');
+        return thaiDateOk(value, 'untilToday');
       case 'birth':
         return thaiDateOk(value, 'untilToday');
       case 'cert':
@@ -497,7 +590,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       queueMicrotask(() => document.querySelector('.field--error, .upload--error, label.error')?.scrollIntoView({ block: 'center' }));
       return;
     }
-    if (this.step === 3) this.accounts.save(this.value('username'), this.value('password'), this.kind);
+    if (this.step === 3) this.accounts.save(this.value('username'), this.value('password'), this.kind, this.value('email'));
     void this.router.navigate(['/register', this.kind, this.step + 1]);
   }
 
@@ -507,9 +600,41 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     this.failed = false;
   }
 
-  protected finish(event: Event): void {
+  protected confirmOtp(event: Event): void {
     const target = event.target as HTMLElement;
     if (!target.closest('.modal__button')) return;
+    this.otpTried.set(true);
+    if (this.otpLeft() === 0) return;
+    if (this.otp().trim() === this.sampleOtp) {
+      clearInterval(this.otpClock);
+      this.otpDone.set(true);
+    }
+  }
+
+  protected resendOtp(): void {
+    this.otp.set(this.sampleOtp);
+    this.otpTried.set(false);
+    this.otpResent.set(true);
+    clearTimeout(this.otpResentTimer);
+    this.otpResentTimer = setTimeout(() => this.otpResent.set(false), 3000);
+    this.startOtpClock();
+  }
+
+  private ensureOtpClock(): void {
+    if (this.otpClock) return;
+    this.startOtpClock();
+  }
+
+  private startOtpClock(): void {
+    clearInterval(this.otpClock);
+    this.otpLeft.set(15 * 60);
+    this.otpClock = setInterval(() => {
+      this.otpLeft.update((left) => Math.max(0, left - 1));
+      if (this.otpLeft() === 0) clearInterval(this.otpClock);
+    }, 1000);
+  }
+
+  protected goLogin(): void {
     void this.router.navigateByUrl('/login');
   }
 }

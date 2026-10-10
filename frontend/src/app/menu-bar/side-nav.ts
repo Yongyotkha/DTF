@@ -21,7 +21,7 @@ export class SidebarState {
 
 const menus = [
   { title: 'คำขอ', items: ['ยื่นคำขอ', 'รายการยื่นคำขอ', 'แก้ไขผู้กระทำแทน'] },
-  { title: 'กระบวนการไต่สวน', items: ['Case ID', 'ลงทะเบียนผู้มีส่วนได้เสีย', 'รับ-ส่งข้อมูลอื่นๆ', 'รายงาน'] },
+  { title: 'กระบวนการไต่สวน', items: ['ลงทะเบียนผู้มีส่วนได้เสีย', 'รับ-ส่งข้อมูลอื่นๆ'] },
   { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่', 'ยื่นคำร้องขอข้อมูลข่าวสาร', 'รายการยื่นคำร้องขอข้อมูลข่าวสาร'] },
 ];
 
@@ -48,7 +48,7 @@ const staffMenus = [
   },
 })
 export class SideNav implements OnInit {
-  @Input() open = 'all';
+  @Input() open = '';
   @Input() active = '';
   @Input() kind: 'applicant' | 'staff' = 'applicant';
   @Output() readonly chosen = new EventEmitter<string>();
@@ -64,13 +64,14 @@ export class SideNav implements OnInit {
     private readonly accounts: Accounts,
   ) {}
 
+  protected readonly version = '0.1.0';
+
   protected get collapsed() {
     return this.state.collapsed;
   }
 
   ngOnInit(): void {
-    const source = this.menuList();
-    const titles = this.open === 'all' ? source.map((menu) => menu.title) : [this.open];
+    const titles = this.open === 'all' ? this.menuList().map((menu) => menu.title) : this.open ? [this.open] : [];
     this.opened.set(new Set(titles));
   }
 
@@ -100,7 +101,7 @@ export class SideNav implements OnInit {
   protected pick(label: string): void {
     if (label === 'ยื่นคำขอ') void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
     if (label === 'รายการยื่นคำขอ') void this.router.navigate(['/requests']);
-    if (label === 'หน้าหลัก') {
+    if (label === 'หน้าหลัก' || label === 'หน้าแรก') {
       const role = this.accounts.role;
       void this.router.navigateByUrl(role ? roleHome[role] : '/home');
     }
