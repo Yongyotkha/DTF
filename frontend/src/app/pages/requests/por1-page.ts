@@ -1,13 +1,18 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Accounts } from '../../accounts';
 import { DftButton } from '../../button/button';
+import { ThaiDateField } from '../../fields/thai-date-field';
+import { InputField } from '../../input-field/input-field';
+import { thaiDateOk } from '../../fields/field-rules';
 import { SideNav } from '../../menu-bar/side-nav';
 import { DftModal } from '../../modal/modal';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
-import { caseStatusLabel, caseStatusTone, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readCaseStatus, readConsult, readConsultThread, readReviewUntil, readRounds, reviewWaitMs, writeApprovalUntil, writeCaseStatus, writeConsult, writeConsultThread, writeReviewUntil, writeRounds, type CaseStatus, type ConsultNote, type ConsultRequest, type FilingRound, type RoundFile, type RoundFinding } from './case-status';
+import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
+import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultThread, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultPlan, writeConsultThread, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseStatus, type ConsultNote, type ConsultPlan, type ConsultRequest, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 
 type TocLink = { id: string; label: string; anchor?: string };
 type TocGroup = { label: string; items: TocLink[] };
@@ -16,6 +21,91 @@ type HistoryItem = { phase: string; title: string; when: string; detail: string;
 type GoodsRow = { producer: string; goods: string; made: string; sold: string; unit: string };
 type MakerRow = { name: string; address: string; phone: string; fax: string; web: string; email: string };
 type PartyBlock = { key: string; title: string; nameLabel: string; addLabel: string; wrapped: boolean; rows: MakerRow[] };
+
+function field(label: string, value: string, long = false): WorkDraft['fields'][number] {
+  return { label, value, long };
+}
+
+function defaultWorkDrafts(): WorkDraft[] {
+  return [
+    {
+      title: 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง',
+      file: 'นส ถึง 4 หน่วยงาน (print).docx',
+      fields: [
+        field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+        field('วันที่', '20/05/2562'),
+        field('เรื่อง', 'ขอความอนุเคราะห์ข้อมูลผู้ผลิตสินค้าเหล็กแผ่นรีดร้อน'),
+        field('เรียน', 'ผู้อำนวยการศูนย์สารสนเทศโรงงานอุตสาหกรรม กรมโรงงานอุตสาหกรรม\nผู้อำนวยการสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nประธานกลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย\nผู้อำนวยการศูนย์สารสนเทศเศรษฐกิจอุตสาหกรรม สำนักงานเศรษฐกิจอุตสาหกรรม', true),
+        field('สิ่งที่ส่งมาด้วย', '1. แบบแสดงรายชื่อผู้ผลิต พร้อมสถานที่ตั้ง\n2. แบบแสดงกำลังการผลิตและปริมาณการผลิต\n3. แบบแสดงปริมาณความต้องการใช้ภายในประเทศ', true),
+        field('เนื้อความ', 'ด้วยกรมการค้าต่างประเทศได้รับคำขอเลขที่อ้างอิง REF256205150001 จากบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้พิจารณาตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอข้อมูลผู้ผลิตในประเทศ ได้แก่ รายชื่อและสถานที่ตั้ง กำลังการผลิตและปริมาณการผลิตช่วงปี 2561 ถึงต้นปี 2562 และปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน', true),
+        field('กำหนดส่งข้อมูล', '20/06/2562'),
+        field('ลงชื่อ', 'กองปกป้องและตอบโต้ทางการค้า'),
+      ],
+    },
+    {
+      title: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง',
+      file: 'Sum ข้อมูลจาก 4 หน่วยงาน_V2.xlsx',
+      fields: [
+        field('วัตถุประสงค์', 'รวมอุปสงค์และอุปทานให้สอดคล้องกับฐานะผู้ยื่นในคำขอ REF256205150001 และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
+        field('วิธีจัดทำ', '1. รวมรายชื่อผู้ผลิตจาก 4 หน่วยงาน\n2. ดูยอดรวมของแต่ละรายการ\n3. ใช้รายการที่ใหญ่ที่สุดเป็นรายชื่อหลัก\n4. ตรวจชื่อซ้ำจากการพิมพ์หรือบริษัทเดียวกันแต่คนละที่อยู่', true),
+        field('หน่วยงาน', 'กรมโรงงานอุตสาหกรรม\nสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nสภาอุตสาหกรรมแห่งประเทศไทย\nสำนักงานเศรษฐกิจอุตสาหกรรม', true),
+        field('จุดที่ข้อมูลยังไม่ครบ', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562\nปริมาณนำเข้าที่เชื่อมกับความเสียหาย\nรายชื่อผู้ผลิตที่ร่วมยื่นตามหนังสือมอบอำนาจ', true),
+      ],
+    },
+    {
+      title: 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง',
+      file: 'แบบสอบถามเบื้องต้น จาก Sum ข้อมูลจาก 4 หน่วยงาน',
+      fields: [
+        field('ชื่อแบบ', 'แบบสอบถามเบื้องต้น กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
+        field('คำขอ', 'REF256205150001 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
+        field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'เป็นผู้ผลิตในประเทศ ผู้ยื่นคำขอ หรือผู้ที่เกี่ยวข้องอย่างอื่น', true),
+        field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'กำลังการผลิตและปริมาณการผลิต ปี 2561 ถึงต้นปี 2562', true),
+        field('ส่วนที่ 3 ราคา', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 และช่วงเวลาที่ครอบคลุม', true),
+        field('ส่วนที่ 4 ความเสียหาย', 'ปริมาณนำเข้าเชื่อมกับตัวชี้วัดความเสียหายอย่างไร', true),
+        field('ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น', 'รายชื่อผู้ผลิตที่ร่วมยื่นครบตามหนังสือมอบอำนาจหรือไม่', true),
+        field('กำหนดส่งคำตอบ', '20/06/2562'),
+      ],
+    },
+  ];
+}
+
+function noticeLetterFields(action: DocAction, noticedOn: string, dueOn: string, signer: string): WorkDraft['fields'] {
+  const gaps = [
+    'หลักฐานราคายังไม่ครอบคลุมช่วงปลายปี 2561 ถึงต้นปี 2562',
+    'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย',
+    'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบตามหนังสือมอบอำนาจ',
+  ];
+  const subject = action === 'complete'
+    ? 'แจ้งผลการตรวจคำขอครบถ้วนถูกต้อง'
+    : action === 'late'
+      ? 'แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน'
+      : 'แจ้งให้ส่งข้อมูลเพิ่มเติมคำขอตอบโต้การทุ่มตลาด';
+  const body = action === 'complete'
+    ? 'ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด แล้ว เห็นว่าคำขอและเอกสารประกอบครบถ้วนถูกต้อง'
+    : action === 'late'
+      ? `ด้วยครบกำหนดแก้ไขเพิ่มเติมคำขอเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้องในเรื่องดังนี้\n1. ${gaps[0]}\n2. ${gaps[1]}\n3. ${gaps[2]}`
+      : `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 แล้ว ยังไม่ครบถ้วนในเรื่องดังนี้ จึงขอให้ส่งข้อมูลเพิ่มภายใน ${dueOn}\n1. ${gaps[0]}\n2. ${gaps[1]}\n3. ${gaps[2]}`;
+  return [
+    field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+    field('วันที่', noticedOn),
+    field('เรื่อง', subject),
+    field('เรียน', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
+    field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 ลงวันที่ 15/05/2562 เลขสารบรรณ สบ.1605/2562'),
+    field('สิ่งที่ส่งมาด้วย', '-'),
+    field('เนื้อความ', body, true),
+    field('กำหนดส่งข้อมูล', action === 'complete' ? '-' : dueOn),
+    field('ลงชื่อ', signer || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+  ];
+}
+
+function defaultReplyFiles(): ReplyFile[] {
+  return [
+    { name: 'แบบปร1-ฉบับปกปิด-แก้ไข.pdf', title: 'แบบ ปร.1 ฉบับปกปิด (แก้ไข)', group: 'closed' },
+    { name: 'หลักฐานราคา-2561-2562.pdf', title: 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562', group: 'extra' },
+    { name: 'แบบปร1-ฉบับเปิดเผย-แก้ไข.pdf', title: 'แบบ ปร.1 ฉบับเปิดเผย (แก้ไข)', group: 'open' },
+    { name: 'หนังสือขอขยายเวลา.pdf', title: 'หนังสือขอขยายเวลา', group: 'extend' },
+  ];
+}
 
 function emptyParty(): MakerRow {
   return { name: '', address: '', phone: '', fax: '', web: '', email: '' };
@@ -108,12 +198,13 @@ const toc: TocGroup[] = [
 
 @Component({
   selector: 'app-por1-page',
-  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal],
+  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField],
   templateUrl: './por1-page.html',
   styleUrl: './por1-page.css',
 })
 export class Por1Page {
   private readonly guide = inject(FilingAiContext);
+  private readonly accounts = inject(Accounts);
   private readonly view = inject(ChangeDetectorRef);
   private guideField = '';
   protected readonly toc = toc;
@@ -253,6 +344,7 @@ export class Por1Page {
     ],
   };
   protected readonly filedOn = '15/05/2562';
+  protected readonly amendUntil = addThaiMonths(this.filedOn, 4);
   protected docKey = 'cert';
   protected readonly supportDocs: { key: string; label: string; accept: string; hint: string; behalf: boolean }[] = [
     { key: 'cert', label: 'หนังสือรับรองบริษัท', accept: '.png,.jpg,.jpeg,.pdf', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf', behalf: false },
@@ -388,14 +480,16 @@ export class Por1Page {
   protected historyOpen = false;
   protected historyFull = false;
   protected historyTab: 'activity' | 'version' = 'activity';
-  protected notice: 'draft' | 'submitted' | null = null;
+  protected notice: 'draft' | 'submitted' | 'saved' | 'etr' | 'docs' | 'assist' | 'check' | 'reply' | 'suggest' | null = null;
   protected submitting = false;
   private submitTimer = 0;
   private reviewTimer = 0;
   protected reviewLeft = 60;
   protected approvalLeft = 60;
   protected consultOpen = false;
+  protected sideTalk = false;
   protected readonly officerName = filingOfficer;
+  protected approvedBy = readApprovedBy();
   protected readonly officerUnit = filingUnit;
   protected officialOpen = false;
   protected consult: ConsultRequest | null = readConsult();
@@ -403,6 +497,18 @@ export class Por1Page {
   protected consultDetail = 'รายการที่ยังไม่ผ่านมีหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตในประเทศ ต้องการให้นัดหมายเพื่อชี้แจงก่อนส่งแบบคำร้องทางการ';
   protected consultWhen = '16/05/2562 10:00';
   protected consultNotes: ConsultNote[] = readConsultThread();
+  protected consultAssigned = readConsultAssigned();
+  protected consultPlan: ConsultPlan | null = readConsultPlan();
+
+  protected get channelText(): string {
+    return consultChannelLabel(this.consultPlan);
+  }
+
+  protected get consultByChat(): boolean {
+    const channels = this.consultPlan?.channels;
+    if (!channels?.length) return true;
+    return channels.includes('chat');
+  }
   protected consultDraft = '';
   protected pendingFiles: { name: string; image?: string }[] = [];
   protected caseStatus: CaseStatus = readCaseStatus();
@@ -421,6 +527,88 @@ export class Por1Page {
     { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'สัดส่วนผู้ผลิตในประเทศที่ร่วมยื่นยังขาดเอกสารยืนยัน', action: 'เพิ่มเอกสาร' },
   ];
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly reviewRole = (this.route.snapshot.data['review'] as string) || '';
+  protected readonly staffGroups = staffGroups;
+  protected reviewTab: 'form' | 'assign' | 'talk' | 'link' | 'docs' = 'form';
+  protected workDocs: WorkDraft[] = defaultWorkDrafts();
+  protected madeDocs: MadeDoc[] = [];
+  protected editingId = '';
+  protected viewingMade: MadeDoc | null = null;
+  protected docGaps: DocGap[] = [
+    { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
+    { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
+    { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
+  ];
+  protected docAction: DocAction = 'amend';
+  protected docNoticedOn = '20/05/2562';
+  protected docDueOn = '20/06/2562';
+  protected docNote = 'ขอเพิ่มหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
+  protected noticeLetter = noticeLetterFields('amend', '20/05/2562', '20/06/2562', '');
+  protected replyKind: 'fix' | 'extend' = 'fix';
+  protected amendReason = 'ต้องรวบรวมหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 จากผู้ผลิตที่ร่วมยื่น';
+  protected replyNewDue = '20/07/2562';
+  protected replyLetterDate = '22/05/2562';
+  protected replyLetterNo = 'สห.2205/2562';
+  protected replyLetterTo = 'อธิบดีกรมการค้าต่างประเทศ';
+  protected replyLetterSubject = 'ส่งคำขอที่แก้ไขเพิ่มเติม เลขที่อ้างอิง REF256205150001';
+  protected replyLetterBody = 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด ขอส่งคำขอที่แก้ไขเพิ่มเติม ตามหนังสือแจ้งลงวันที่ 20/05/2562 ได้แก่ หลักฐานราคา ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
+  protected replyFiles: ReplyFile[] = defaultReplyFiles();
+  protected replySent = false;
+  protected replyAt = '';
+  protected viewingReply: ReplyFile | null = null;
+  protected noticePasses: NoticePass[] = [];
+  protected noticeSaraban = '';
+  protected committeeAt = '05/06/2562';
+  protected committeeResult: 'take' | 'reject' = 'take';
+  protected committeeFee: 'pay' | 'skip' | '' = 'pay';
+  protected committeeNote = '';
+  protected committeeEmbassyOn = '05/06/2562';
+  protected committeeEmbassyFile = '';
+  protected committeeSent = false;
+  protected committeeSentBy = '';
+  protected docFiles: NoticeFile[] = [{ name: 'หนังสือแจ้งแก้ไข.pdf', title: 'หนังสือแจ้งขอข้อมูลเพิ่ม', sentOn: '20/05/2562' }];
+  protected docSent = false;
+  protected docSentBy = '';
+  protected links: SystemLink[] = readSystemLinks();
+  protected linkLog: SystemLink | null = null;
+  protected linkLogError = false;
+  protected readonly filingSaraban = 'สบ.1605/2562';
+  protected readonly etrRefNo = 'ETR256205170001';
+  protected assignMode: 'group' | 'person' = 'group';
+  protected assignOpen = false;
+  protected bureau = 'กองปกป้องและตอบโต้ทางการค้า';
+  protected pickedPeople: string[] = [];
+  protected pickedGroups: string[] = [];
+  protected draftPeople: string[] = [];
+  protected draftGroups: string[] = [];
+  protected personQuery = '';
+  protected assignNote = '';
+  protected assignOrder = '';
+  protected assignedOn = '';
+  protected dueOn = '';
+  protected assignReply: AssignReply = 'pending';
+  protected replyDraft: '' | 'accept' | 'return' = '';
+  protected replyReason = '';
+  protected groupTasks: GroupTask[] = [];
+  protected groupReturning = '';
+  protected groupReason = '';
+  protected hands: PersonHand[] = [];
+  protected slips: AssignSlip[] = [];
+  protected slipReceipt: 'accept' | 'return' = 'accept';
+  protected slipKind: 'report' | 'forward' = 'forward';
+  protected slipAssignedOn = '';
+  protected slipDueOn = '';
+  protected slipDueTime = '';
+  protected slipRemind = true;
+  protected slipOrder = '';
+  protected slipFiles: AssignFile[] = [];
+  protected slipPeople: string[] = [];
+  protected forwardPick: string[] = [];
+  protected handReturning = '';
+  protected handReason = '';
+  protected receipt: ReceiptRecord | null = readReceipt();
+  protected officeLink: OfficeLink | null = null;
   protected ack = true;
   protected signer = 'นายประกิต กาญจนการไกร';
   protected roleTitle = 'ผู้จัดการสำนักรัฐกิจสัมพันธ์ ผู้รับมอบอำนาจ';
@@ -432,7 +620,55 @@ export class Por1Page {
   }
 
   protected get historyItems(): HistoryItem[] {
-    return this.historyTab === 'activity' ? this.historyActivity : this.historyVersions;
+    const base = this.historyTab === 'activity' ? this.historyActivity : this.historyVersions;
+    if (this.historyTab !== 'activity') return base;
+    const items = [...base];
+    if (this.receipt) {
+      const received: HistoryItem = {
+        phase: 'การลงรับ',
+        title: 'ลงรับจากระบบสารบรรณ',
+        when: `${this.receipt.sarabanDate} · ${this.receipt.sarabanTime} น.`,
+        detail: `เลขที่ลงรับ ${this.receipt.sarabanNo} เรื่อง${this.receipt.subject} เลขที่หนังสือ ${this.receipt.letterNo} วันที่หนังสือ ${this.receipt.letterDate}`,
+        label: 'ลงรับ',
+        tone: 'info',
+      };
+      const filed = items.findIndex((item) => item.title === 'ยื่นครั้งแรก');
+      items.splice(filed + 1, 0, received);
+    }
+    return this.withWorkHistory(items);
+  }
+
+  private withWorkHistory(items: HistoryItem[]): HistoryItem[] {
+    const work = this.slips.map((slip) => ({
+      phase: 'การมอบหมาย',
+      title: `${slip.from} มอบหมายให้ ${slip.to}`,
+      when: slip.assignedOn || '16/05/2562',
+      detail: `${this.receiptText(slip.receipt)} · ${this.kindText(slip.kind)} · กำหนดส่ง ${slip.dueOn}${slip.dueTime ? ` ${slip.dueTime} น.` : ''} · ${slip.order}`,
+      label: slip.receipt === 'return' ? 'ส่งคืน' : 'มอบหมาย',
+      tone: slip.receipt === 'return' ? 'warning' as const : 'info' as const,
+    }));
+    const linked = this.links.find((row) => row.system === 'eTR' && row.state === 'success');
+    const sent = linked
+      ? [{
+          phase: 'การเชื่อมโยงระบบ',
+          title: 'ได้รับ Ref Case ID (eTR)',
+          when: linked.at,
+          detail: linked.detail,
+          label: 'เชื่อมแล้ว',
+          tone: 'success' as const,
+        }]
+      : [];
+    const checked = this.docSent
+      ? [{
+          phase: 'การตรวจสอบเอกสาร',
+          title: this.docActionLabel(this.docAction),
+          when: this.docNoticedOn,
+          detail: `${this.docNote} ครบกำหนด ${this.docDueOn} ส่งทางอีเมลและ e-Office แล้ว${this.replySent ? ` · ผู้ยื่น${this.replyKind === 'extend' ? 'ขอขยายเวลาถึง ' + this.replyNewDue : 'ส่งคำขอที่แก้ไขแล้ว'} เมื่อ ${this.replyAt}` : ''}`,
+          label: this.docAction === 'amend' ? 'ขอเพิ่ม' : 'ตรวจแล้ว',
+          tone: this.docAction === 'amend' ? 'warning' as const : 'success' as const,
+        }]
+      : [];
+    return [...items, ...work, ...sent, ...checked];
   }
 
   private readonly historyActivity: HistoryItem[] = [
@@ -584,11 +820,11 @@ export class Por1Page {
   }
 
   protected get formLocked(): boolean {
-    return this.caseStatus === 'review' || this.caseStatus === 'approval' || this.caseStatus === 'official' || ((this.caseStatus === 'consult' || this.caseStatus === 'revision') && !this.revising);
+    return !!this.reviewRole || this.caseStatus === 'review' || this.caseStatus === 'approval' || this.caseStatus === 'official' || ((this.caseStatus === 'consult' || this.caseStatus === 'revision') && !this.revising);
   }
 
   protected get showForm(): boolean {
-    return this.caseStatus === 'draft' || this.caseStatus === 'cancelled' || this.viewingForm || this.revising;
+    return !!this.reviewRole || this.caseStatus === 'draft' || this.caseStatus === 'cancelled' || this.viewingForm || this.revising;
   }
 
   protected get tracking(): boolean {
@@ -596,7 +832,1258 @@ export class Por1Page {
   }
 
   protected get showStatus(): boolean {
-    return this.tracking && !this.viewingForm && !this.revising && !this.openedRound;
+    return !this.reviewRole && this.tracking && !this.viewingForm && !this.revising && !this.openedRound;
+  }
+
+  protected get bureauGroups() {
+    const text = this.personQuery.trim();
+    return workGroups.filter((group) => !text || `${group.name} ${group.detail}`.includes(text));
+  }
+
+  protected groupHeadName(group: string): string {
+    return groupHead(group);
+  }
+
+  protected get bureauPeople() {
+    const text = this.personQuery.trim();
+    return staffPeople.filter((person) => person.unit === this.bureau && (!text || `${person.name} ${person.title}`.includes(text)));
+  }
+
+  protected get chosenGroups() {
+    return this.pickedGroups.map((name) => {
+      const found = workGroups.find((group) => group.name === name);
+      if (found) return found;
+      return { name, detail: '', unit: '', count: peopleInGroup(name).length };
+    });
+  }
+
+  protected get assignFoot(): string {
+    const parts: string[] = [];
+    if (this.pickedGroups.length) {
+      const heads = this.chosenGroups.reduce((sum, group) => sum + group.count, 0);
+      parts.push(`${this.pickedGroups.length} กลุ่ม (${heads} คน)`);
+    }
+    if (this.pickedPeople.length) parts.push(`${this.pickedPeople.length} คน`);
+    return parts.length ? parts.join(' · ') : 'ยังไม่ได้เลือก';
+  }
+
+  protected setAssignMode(mode: 'group' | 'person'): void {
+    if (this.assignMode === mode) return;
+    this.assignMode = mode;
+    this.personQuery = '';
+  }
+
+  protected setBureau(group: string): void {
+    this.bureau = group;
+    this.personQuery = '';
+  }
+
+  protected openAssign(): void {
+    if (this.reviewRole !== 'director') return;
+    this.draftGroups = [...this.pickedGroups];
+    this.draftPeople = [...this.pickedPeople];
+    this.personQuery = '';
+    this.assignOpen = true;
+  }
+
+  protected closeAssign(): void {
+    this.assignOpen = false;
+    this.personQuery = '';
+  }
+
+  protected applyAssign(): void {
+    if (!this.draftGroups.length) return;
+    this.pickedGroups = [...this.draftGroups];
+    this.groupTasks = this.tasksFor(this.pickedGroups, false);
+    this.hands = this.hands.filter((hand) => this.pickedGroups.includes(hand.group));
+    this.syncSlipPeople(true);
+    this.closeAssign();
+  }
+
+  protected toggleDraftGroup(group: string): void {
+    this.draftGroups = this.draftGroups.includes(group) ? this.draftGroups.filter((item) => item !== group) : [...this.draftGroups, group];
+  }
+
+  protected toggleDraftPerson(name: string): void {
+    this.draftPeople = this.draftPeople.includes(name) ? this.draftPeople.filter((item) => item !== name) : [...this.draftPeople, name];
+  }
+
+  protected toggleGroup(group: string): void {
+    if (this.reviewRole !== 'director') return;
+    this.pickedGroups = this.pickedGroups.filter((item) => item !== group);
+    this.groupTasks = this.groupTasks.filter((task) => task.group !== group);
+    this.hands = this.hands.filter((hand) => hand.group !== group);
+    this.syncSlipPeople(true);
+  }
+
+  protected togglePerson(name: string): void {
+    if (this.reviewRole !== 'director') return;
+    this.pickedPeople = this.pickedPeople.filter((item) => item !== name);
+  }
+
+  protected clearAssign(): void {
+    if (this.reviewRole !== 'director') return;
+    this.pickedGroups = [];
+    this.pickedPeople = [];
+  }
+
+  protected saveAssignment(): void {
+    this.saveSlip();
+  }
+
+  protected get actorName(): string {
+    if (this.signedPerson) return this.signedPerson;
+    if (this.reviewRole === 'director') return this.directorName;
+    return '';
+  }
+
+  protected get directorName(): string {
+    return this.accounts.namedPeople().find((person) => person.role === 'director')?.name ?? '';
+  }
+
+  protected get slipPlace(): string {
+    if (this.reviewRole === 'director' && this.shownTasks.length) return 'director';
+    const task = this.shownTasks.find((item) => item.head === this.signedPerson && item.reply !== 'return');
+    if (task) return task.group;
+    const hand = this.hands.find((item) => item.name === this.signedPerson && item.reply !== 'return');
+    return hand?.name ?? '';
+  }
+
+  protected get slipHint(): string {
+    if (this.slipPlace === 'director') return 'ผู้อำนวยการส่งให้หัวหน้ากลุ่มได้มากกว่า 1 กลุ่ม ชื่อตามสิทธิ์ที่เข้าใช้งาน';
+    if (this.shownTasks.some((task) => task.head === this.signedPerson)) return 'หัวหน้ากลุ่มส่งต่อรายบุคคลในกลุ่ม หรือรายงานผลและส่งคืนให้ผู้อำนวยการ';
+    return 'รายงานผลหรือส่งคืนให้หัวหน้ากลุ่มของตนเอง';
+  }
+
+  protected get slipTargets(): { name: string; detail: string }[] {
+    const named = new Set(this.accounts.namedPeople().map((person) => person.name));
+    if (this.reviewRole === 'director') {
+      return this.shownTasks.filter((task) => named.has(task.head)).map((task) => ({ name: task.head, detail: task.group }));
+    }
+    const task = this.shownTasks.find((item) => item.head === this.signedPerson);
+    if (task) {
+      if (this.slipReceipt === 'return' || this.slipKind === 'report') {
+        const boss = this.slips.find((slip) => slip.to === this.signedPerson)?.from || this.directorName;
+        return boss && named.has(boss) ? [{ name: boss, detail: 'ผู้อำนวยการ' }] : [];
+      }
+      return this.membersOf(task.group).filter((person) => named.has(person.name)).map((person) => ({ name: person.name, detail: person.title }));
+    }
+    const hand = this.hands.find((item) => item.name === this.signedPerson);
+    if (!hand || (this.slipReceipt === 'accept' && this.slipKind === 'forward')) return [];
+    const head = this.shownTasks.find((item) => item.group === hand.group)?.head ?? '';
+    return head && named.has(head) ? [{ name: head, detail: 'หัวหน้ากลุ่ม' }] : [];
+  }
+
+  protected setSlipReceipt(value: 'accept' | 'return'): void {
+    this.slipReceipt = value;
+    this.syncSlipPeople(true);
+  }
+
+  protected setSlipKind(value: 'report' | 'forward'): void {
+    this.slipKind = value;
+    this.syncSlipPeople(true);
+  }
+
+  protected removeSlipPerson(name: string): void {
+    if (this.slipPeople.length < 2) return;
+    this.slipPeople = this.slipPeople.filter((item) => item !== name);
+    if (this.reviewRole !== 'director') return;
+    const task = this.shownTasks.find((item) => item.head === name);
+    if (task) this.toggleGroup(task.group);
+  }
+
+  protected slipsTo(name: string): AssignSlip[] {
+    return this.slips.filter((slip) => slip.to === name);
+  }
+
+  protected receiptText(value: 'accept' | 'return'): string {
+    return value === 'return' ? 'ส่งคืน' : 'รับ';
+  }
+
+  protected kindText(value: 'report' | 'forward'): string {
+    return value === 'report' ? 'รายงานผล' : 'ส่งต่อ';
+  }
+
+  protected addSlipFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const next = [...this.slipFiles];
+    for (const file of input.files ?? []) next.push({ name: file.name, title: file.name });
+    this.slipFiles = next;
+    input.value = '';
+  }
+
+  protected renameSlipFile(index: number, title: string): void {
+    this.slipFiles = this.slipFiles.map((file, item) => (item === index ? { ...file, title } : file));
+  }
+
+  protected removeSlipFile(index: number): void {
+    this.slipFiles = this.slipFiles.filter((_, item) => item !== index);
+  }
+
+  protected get slipReady(): boolean {
+    return !!this.actorName && this.slipPeople.length > 0 && !!this.slipOrder.trim() && thaiDateOk(this.slipAssignedOn, 'any') && thaiDateOk(this.slipDueOn, 'any') && this.timeOk(this.slipDueTime);
+  }
+
+  protected saveSlip(): void {
+    if (!this.slipReady) return;
+    const from = this.actorName;
+    const files = this.slipFiles.map((file) => ({ name: file.name, title: file.title.trim() || file.name }));
+    const made: AssignSlip[] = this.slipPeople.map((name) => ({
+      at: `${Date.now()}-${name}`,
+      from,
+      to: name,
+      group: this.groupOfTarget(name),
+      receipt: this.slipReceipt,
+      kind: this.slipKind,
+      assignedOn: this.slipAssignedOn.trim(),
+      dueOn: this.slipDueOn.trim(),
+      dueTime: this.slipDueTime.trim(),
+      remind: this.slipRemind,
+      order: this.slipOrder.trim(),
+      files,
+    }));
+    const keys = new Set(made.map((slip) => `${slip.from}\0${slip.to}`));
+    this.slips = [...this.slips.filter((slip) => !keys.has(`${slip.from}\0${slip.to}`)), ...made];
+    if (this.reviewRole === 'director') {
+      this.assignOrder = this.slipOrder.trim();
+      this.assignedOn = this.slipAssignedOn.trim();
+      this.dueOn = this.slipDueOn.trim();
+      this.assignNote = this.assignNote.trim();
+      const returned = this.slipReceipt === 'return';
+      this.groupTasks = this.tasksFor(this.pickedGroups, true).map((task) => (
+        returned && this.slipPeople.includes(task.head) ? { ...task, reply: 'return' as const, reason: this.slipOrder.trim() } : task
+      ));
+      this.hands = [];
+      this.assignReply = returned ? 'return' : 'pending';
+      this.replyReason = returned ? this.slipOrder.trim() : '';
+      writeConsultAssigned(!returned);
+      this.consultAssigned = !returned;
+    } else {
+      const task = this.shownTasks.find((item) => item.head === from);
+      if (task) {
+        if (this.slipReceipt === 'return') {
+          this.groupTasks = this.groupTasks.map((item) => (item.group === task.group ? { ...item, reply: 'return', reason: this.slipOrder.trim() } : item));
+          this.hands = this.hands.filter((hand) => hand.group !== task.group);
+        } else if (this.slipKind === 'forward') {
+          this.groupTasks = this.groupTasks.map((item) => (item.group === task.group ? { ...item, reply: 'accept', reason: '' } : item));
+          const rest = this.hands.filter((hand) => hand.group !== task.group);
+          this.hands = [...rest, ...this.slipPeople.map((name) => ({ name, group: task.group, reply: 'pending' as const, reason: '' }))];
+          this.pickedPeople = this.hands.map((hand) => hand.name);
+        } else {
+          this.groupTasks = this.groupTasks.map((item) => (item.group === task.group ? { ...item, reply: 'accept', reason: '' } : item));
+        }
+      } else {
+        const reply: AssignReply = this.slipReceipt === 'return' ? 'return' : 'accept';
+        this.hands = this.hands.map((hand) => (hand.name === from ? { ...hand, reply, reason: reply === 'return' ? this.slipOrder.trim() : '' } : hand));
+      }
+      this.syncReply();
+    }
+    this.forwardPick = [];
+    writeWorkAssignment(this.assignmentPayload());
+    this.notice = 'saved';
+  }
+
+  protected get signedPerson(): string {
+    return this.accounts.personName;
+  }
+
+  protected get stepLabel(): string {
+    return assignmentStepLabel(this.assignmentPayload());
+  }
+
+  protected get stepTone() {
+    return assignmentStepTone(this.assignmentPayload());
+  }
+
+  protected get shownTasks(): GroupTask[] {
+    return this.pickedGroups.flatMap((group) => {
+      const head = groupHead(group);
+      if (!head) return [];
+      return [this.groupTasks.find((task) => task.group === group) ?? { group, head, reply: 'pending' as const, reason: '' }];
+    });
+  }
+
+  protected groupAct(task: GroupTask): boolean {
+    return this.signedPerson === task.head && task.reply === 'pending';
+  }
+
+  protected handOf(name: string): PersonHand | undefined {
+    return this.hands.find((hand) => hand.name === name);
+  }
+
+  protected handsIn(group: string): PersonHand[] {
+    return this.hands.filter((hand) => hand.group === group);
+  }
+
+  protected handAct(name: string): boolean {
+    const hand = this.handOf(name);
+    const task = this.groupTasks.find((item) => item.group === hand?.group);
+    return !!hand && hand.reply === 'pending' && this.signedPerson === name && task?.reply === 'accept';
+  }
+
+  protected handLabel(name: string): string {
+    return assignmentReplyLabel(this.handOf(name)?.reply ?? 'pending');
+  }
+
+  protected handTone(name: string) {
+    return assignmentReplyTone(this.handOf(name)?.reply ?? 'pending');
+  }
+
+  protected membersOf(group: string) {
+    return groupMembers(group);
+  }
+
+  protected showForward(task: GroupTask): boolean {
+    if (this.signedPerson !== task.head || task.reply !== 'accept') return false;
+    if (!this.membersOf(task.group).length) return false;
+    const mine = this.handsIn(task.group);
+    return !mine.length || mine.some((hand) => hand.reply === 'return');
+  }
+
+  protected get handoffSteps(): { title: string; detail: string; state: 'done' | 'now' | 'back' | '' }[] {
+    const tasks = this.shownTasks;
+    const headDone = tasks.length > 0 && tasks.every((task) => task.reply === 'accept');
+    const headBack = tasks.some((task) => task.reply === 'return') && tasks.every((task) => task.reply !== 'pending');
+    const peopleDone = this.hands.length > 0 && this.hands.every((hand) => hand.reply === 'accept') && headDone;
+    const peopleNow = tasks.some((task) => task.reply === 'accept') && (!this.hands.length || this.hands.some((hand) => hand.reply !== 'accept'));
+    return [
+      { title: '1. ผอ. มอบหมายให้กลุ่ม', detail: tasks.length ? `${tasks.length} กลุ่ม` : 'ยังไม่เลือกกลุ่ม', state: tasks.length ? 'done' : '' },
+      {
+        title: '2. หัวหน้ากลุ่ม',
+        detail: tasks.map((task) => task.head).join(' · ') || 'รอเลือกกลุ่ม',
+        state: headBack ? 'back' : headDone ? 'done' : tasks.length ? 'now' : '',
+      },
+      { title: '3. รายบุคคลในกลุ่ม', detail: 'รับ หรือ คืน', state: peopleDone ? 'done' : peopleNow ? 'now' : '' },
+    ];
+  }
+
+  protected acceptGroup(group: string): void {
+    const task = this.groupTasks.find((item) => item.group === group);
+    if (!task || !this.groupAct(task)) return;
+    this.groupTasks = this.groupTasks.map((item) => (item.group === group ? { ...item, reply: 'accept', reason: '' } : item));
+    this.groupReturning = '';
+    this.forwardPick = this.membersOf(group).map((person) => person.name);
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected confirmGroupReturn(group: string): void {
+    const task = this.groupTasks.find((item) => item.group === group);
+    if (!task || !this.groupAct(task) || !this.groupReason.trim()) return;
+    this.groupTasks = this.groupTasks.map((item) => (item.group === group ? { ...item, reply: 'return', reason: this.groupReason.trim() } : item));
+    this.hands = this.hands.filter((hand) => hand.group !== group);
+    this.groupReturning = '';
+    this.groupReason = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected toggleForward(name: string): void {
+    this.forwardPick = this.forwardPick.includes(name) ? this.forwardPick.filter((item) => item !== name) : [...this.forwardPick, name];
+  }
+
+  protected sendForward(group: string): void {
+    const task = this.groupTasks.find((item) => item.group === group);
+    if (!task || this.signedPerson !== task.head || task.reply !== 'accept') return;
+    const picked = this.forwardPick.filter((name) => this.membersOf(group).some((person) => person.name === name));
+    if (!picked.length) return;
+    const rest = this.hands.filter((hand) => hand.group !== group);
+    this.hands = [...rest, ...picked.map((name) => ({ name, group, reply: 'pending' as const, reason: '' }))];
+    this.pickedPeople = this.hands.map((hand) => hand.name);
+    this.handReturning = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected acceptHand(name: string): void {
+    if (!this.handAct(name)) return;
+    this.hands = this.hands.map((hand) => (hand.name === name ? { ...hand, reply: 'accept', reason: '' } : hand));
+    this.handReturning = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected confirmHandReturn(name: string): void {
+    if (!this.handAct(name) || !this.handReason.trim()) return;
+    this.hands = this.hands.map((hand) => (hand.name === name ? { ...hand, reply: 'return', reason: this.handReason.trim() } : hand));
+    this.handReturning = '';
+    this.handReason = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  private syncReply(): void {
+    const step = assignmentStepLabel(this.assignmentPayload());
+    this.assignReply = step === 'รับเรื่องแล้ว' ? 'accept' : step.includes('ส่งคืน') || step === 'มีการส่งคืน' ? 'return' : 'pending';
+    this.replyReason = this.groupTasks.find((task) => task.reply === 'return')?.reason || this.hands.find((hand) => hand.reply === 'return')?.reason || '';
+  }
+
+  private tasksFor(groups: string[], reset: boolean): GroupTask[] {
+    return groups.flatMap((group) => {
+      const head = groupHead(group);
+      if (!head) return [];
+      if (!reset) {
+        const current = this.groupTasks.find((task) => task.group === group);
+        if (current) return [current];
+      }
+      return [{ group, head, reply: 'pending' as const, reason: '' }];
+    });
+  }
+
+  protected saveReply(): void {
+    if (this.reviewRole === 'director' || !this.replyReady || this.replyDraft === '') return;
+    this.assignReply = this.replyDraft;
+    if (this.assignReply !== 'return') this.replyReason = '';
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected get replyReady(): boolean {
+    if (this.replyDraft === 'accept') return true;
+    return this.replyDraft === 'return' && this.replyReason.trim().length > 0;
+  }
+
+  protected get replyLabel(): string {
+    return assignmentReplyLabel(this.assignReply);
+  }
+
+  protected get replyTone() {
+    return assignmentReplyTone(this.assignReply);
+  }
+
+  protected get assignComplete(): boolean {
+    return this.peopleReady && !!this.assignOrder.trim() && thaiDateOk(this.assignedOn, 'any') && thaiDateOk(this.dueOn, 'any');
+  }
+
+  private groupOfTarget(name: string): string {
+    const task = this.shownTasks.find((item) => item.head === name);
+    if (task) return task.group;
+    const person = staffPeople.find((item) => item.name === name);
+    if (person?.work) return person.work;
+    return this.hands.find((hand) => hand.name === name)?.group || this.shownTasks.find((item) => item.head === this.signedPerson)?.group || '';
+  }
+
+  private timeOk(value: string): boolean {
+    const text = value.trim();
+    if (!text) return true;
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(text);
+  }
+
+  private syncSlipPeople(force = false): void {
+    const names = this.slipTargets.map((person) => person.name);
+    if (force || !this.slipPeople.length) {
+      this.slipPeople = names;
+      return;
+    }
+    this.slipPeople = this.slipPeople.filter((name) => names.includes(name));
+    if (!this.slipPeople.length) this.slipPeople = names;
+  }
+
+  private assignmentPayload(): WorkAssignment {
+    return {
+      people: this.pickedPeople,
+      groups: this.pickedGroups,
+      note: this.assignNote.trim(),
+      order: this.assignOrder.trim(),
+      assignedOn: this.assignedOn.trim(),
+      dueOn: this.dueOn.trim(),
+      reply: this.assignReply,
+      reason: this.replyReason.trim(),
+      groupTasks: this.groupTasks,
+      hands: this.hands,
+      slips: this.slips,
+    };
+  }
+
+  protected assignPart: 'people' | 'receipt' = 'people';
+  protected docPart = 0;
+
+  protected get peopleReady(): boolean {
+    return this.pickedGroups.length > 0 || this.pickedPeople.length > 0;
+  }
+
+  protected get showTalkTab(): boolean {
+    return this.reviewRole === 'officer' && this.peopleReady;
+  }
+
+  protected pickReviewTab(tab: 'form' | 'assign' | 'talk' | 'link' | 'docs'): void {
+    if (tab === 'talk' && !this.showTalkTab) return;
+    this.reviewTab = tab;
+    if (tab === 'talk') this.openTalk();
+  }
+
+  protected get etrAccepted(): boolean {
+    return this.approverNames().length > 0;
+  }
+
+  protected get etrDone(): boolean {
+    return this.links.some((row) => row.system === 'eTR' && row.state === 'success');
+  }
+
+  protected linkMode(mode: SystemLink['mode']): string {
+    if (mode === 'retry') return 'ส่งซ้ำอัตโนมัติ';
+    if (mode === 'manual') return 'ผู้ใช้งานส่งใหม่';
+    return 'อัตโนมัติ';
+  }
+
+  /** รายการที่ไม่สำเร็จและยังไม่มีการส่งใหม่สำเร็จตามมา */
+  protected linkPending(row: SystemLink): boolean {
+    if (row.state !== 'error') return false;
+    const at = this.officeStamp(row.at);
+    return !this.links.some((item) => item.system === row.system && item.state === 'success' && this.officeStamp(item.at) >= at);
+  }
+
+  protected get linkFailCount(): number {
+    return this.links.filter((row) => this.linkPending(row)).length;
+  }
+
+  protected get linkSystems(): { name: string; ok: boolean; at: string }[] {
+    const names = ['ระบบสารบรรณ', ...new Set(this.links.map((row) => row.system))];
+    return names.map((name) => {
+      const rows = this.linkRows.filter((row) => row.system === name);
+      const latest = rows[0];
+      return { name, ok: !rows.some((row) => this.linkPending(row)), at: latest?.at || '' };
+    });
+  }
+
+  protected openLinkLog(row: SystemLink, focusError = false): void {
+    this.linkLog = {
+      ...row,
+      log: [...row.log].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at)),
+    };
+    this.linkLogError = focusError;
+  }
+
+  protected linkState(state: SystemLink['state']): string {
+    if (state === 'error') return 'ไม่สำเร็จ';
+    if (state === 'wait') return 'รอส่ง';
+    return 'สำเร็จ';
+  }
+
+  protected get linkRows(): SystemLink[] {
+    const office = this.officeLinks.map((item): SystemLink => ({
+      id: item.no,
+      at: item.at,
+      system: 'ระบบสารบรรณ',
+      title: item.events[0]?.text || 'รับเลขที่ลงรับ',
+      detail: `เลข ${item.no}${item.events[1] ? ` · ${item.events[1].text}` : ''}`,
+      state: 'success' as const,
+      mode: 'auto' as const,
+      refNo: item.no,
+      error: '',
+      log: item.events,
+    }));
+    return [...this.links, ...office].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at));
+  }
+
+  private sampleLinks(): SystemLink[] {
+    return [
+      {
+        id: 'etr-auto-error',
+        at: '17/05/2562 09:10',
+        system: 'eTR',
+        title: 'ส่งข้อมูลคำขออัตโนมัติ',
+        detail: 'ระบบ eTR ไม่ตอบกลับ จึงยังไม่ได้ Ref Case ID (eTR)',
+        state: 'error',
+        mode: 'auto',
+        refNo: '',
+        error: 'ETR-504 Gateway Timeout · ระบบ eTR ไม่ตอบกลับภายใน 30 วินาที หลังส่งซ้ำอัตโนมัติครบ 3 ครั้ง',
+        log: [
+          { at: '17/05/2562 09:10', text: `เตรียมข้อมูลคำขอ ${this.refId} พร้อมเลขสารบรรณ ${this.filingSaraban}` },
+          { at: '17/05/2562 09:10', text: 'ส่งข้อมูลไประบบ eTR ครั้งที่ 1 · ไม่ตอบกลับภายใน 30 วินาที' },
+          { at: '17/05/2562 09:11', text: 'ส่งซ้ำอัตโนมัติครั้งที่ 2 · ไม่ตอบกลับภายใน 30 วินาที' },
+          { at: '17/05/2562 09:12', text: 'ส่งซ้ำอัตโนมัติครั้งที่ 3 · ไม่ตอบกลับ หยุดส่งและรอผู้ใช้งานส่งใหม่' },
+        ],
+      },
+    ];
+  }
+
+  private ensureLinks(): void {
+    let saved = readSystemLinks().filter((row) => row.system !== 'ระบบ e-Office' && row.system !== 'ไปรษณีย์อิเล็กทรอนิกส์');
+    const old = readEtrLink();
+    if (old && !saved.some((row) => row.system === 'eTR' && row.state === 'success')) {
+      saved = [...saved, {
+        id: 'etr-migrated',
+        at: old.backAt || old.sentAt,
+        system: 'eTR',
+        title: 'ได้รับ Ref Case ID (eTR)',
+        detail: `Ref Case ID (eTR) ${old.caseId} จากเลขสารบรรณ ${old.saraban}`,
+        state: 'success',
+        mode: 'auto',
+        refNo: old.caseId,
+        error: '',
+        log: [{ at: old.backAt || old.sentAt, text: `ได้รับ Ref Case ID (eTR) ${old.caseId}` }],
+      }];
+      writeEtrLink(null);
+    }
+    for (const sample of this.sampleLinks()) {
+      const found = saved.find((row) => row.id === sample.id);
+      if (!found) saved = [...saved, sample];
+      else if (!found.log.length) saved = saved.map((row) => (row.id === sample.id ? { ...row, error: sample.error, log: sample.log } : row));
+    }
+    writeSystemLinks(saved);
+    this.links = saved;
+  }
+
+  protected resendLink(failed: SystemLink): void {
+    if (!this.linkPending(failed)) return;
+    const at = '17/05/2562 09:25';
+    const by = this.signedPerson || 'ผู้ใช้งาน';
+    const etr = failed.system === 'eTR';
+    const row: SystemLink = {
+      id: `${failed.id}-resend-${this.links.length}`,
+      at,
+      system: failed.system,
+      title: `ส่งใหม่อีกครั้ง · ${failed.title}`,
+      detail: etr
+        ? `ได้ Ref Case ID (eTR) ${this.etrRefNo} จากเลขสารบรรณ ${this.filingSaraban} เชื่อมกับคำขอ ${this.refId} แล้ว`
+        : `ระบบ ${failed.system} ตอบรับแล้ว`,
+      state: 'success',
+      mode: 'manual',
+      refNo: etr ? this.etrRefNo : '',
+      error: '',
+      log: [
+        { at, text: `${by} กดส่งใหม่อีกครั้งจากรายการที่ไม่สำเร็จเมื่อ ${failed.at} น.` },
+        { at, text: `ส่งข้อมูลคำขอ ${this.refId} ไป${failed.system}` },
+        { at, text: etr ? `ระบบ eTR ตอบกลับ Ref Case ID (eTR) ${this.etrRefNo}` : `ระบบ ${failed.system} ตอบรับแล้ว` },
+      ],
+    };
+    this.links = [...this.links, row];
+    writeSystemLinks(this.links);
+    this.linkLog = null;
+    this.notice = etr ? 'etr' : 'saved';
+  }
+
+  protected docActionLabel(action: DocAction): string {
+    if (action === 'complete') return 'แจ้งคำขอครบถ้วนถูกต้อง';
+    if (action === 'late') return 'แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
+    return 'แจ้งแก้ไขเพิ่มเติม';
+  }
+
+  protected get noticeLead(): string {
+    const base = this.docAction === 'complete'
+      ? 'ตรวจร่างทั้ง 3 รายการแล้ว คำขอครบถ้วนถูกต้อง พร้อมแจ้งผลให้ผู้ยื่น'
+      : this.docAction === 'late'
+        ? `ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil || '15/09/2562'} แล้วยังไม่ครบถ้วนถูกต้อง`
+        : `ตรวจร่างทั้ง 3 รายการแล้ว ข้อมูลยังไม่ครบ จึงแจ้งผู้ยื่นให้ส่งเพิ่มภายใน ${this.docDueOn}`;
+    return this.noticeSaraban ? `${base} เลขรับสารบรรณ ${this.noticeSaraban}` : base;
+  }
+
+  protected get noticeTag(): string {
+    if (this.docAction === 'complete') return 'ครบถ้วนถูกต้อง';
+    if (this.docAction === 'late') return 'ไม่ครบภายใน 4 เดือน';
+    return 'ข้อมูลไม่ครบถ้วน';
+  }
+
+  protected get noticeTone(): 'success' | 'warning' | 'danger' {
+    if (this.docAction === 'complete') return 'success';
+    if (this.docAction === 'late') return 'danger';
+    return 'warning';
+  }
+
+  protected viewingNotice = '';
+
+  protected openNoticeFile(name: string): void {
+    this.viewingNotice = name;
+  }
+
+  protected downloadNoticeFile(name: string): void {
+    const file = this.docFiles.find((item) => item.name === name);
+    const title = file?.title || name;
+    const body = this.noticeLetter.map((item) => `<p><strong>${this.escapeHtml(item.label)}</strong><br>${this.escapeHtml(item.value).replaceAll('\n', '<br>')}</p>`).join('');
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p>${body}</body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name.replace(/\.[^.]+$/, '') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected get canReviewDocs(): boolean {
+    if (this.docSent) return false;
+    if (!this.etrAccepted) return false;
+    if (this.reviewRole === 'director') return true;
+    return this.approverNames().includes(this.signedPerson);
+  }
+
+  protected get docCanSend(): boolean {
+    const dueOk = this.docAction === 'complete' || thaiDateOk(this.docDueOn, 'any');
+    const letterOk = this.noticeLetter.every((item) => item.value.trim());
+    const gapsOk = this.docAction !== 'amend' || (this.docGaps.length > 0 && this.docGaps.every((gap) => gap.title.trim()));
+    return this.canReviewDocs && !!this.docNote.trim() && letterOk && gapsOk && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
+  }
+
+  protected suggestGaps(): void {
+    if (this.docSent) return;
+    const suggested: DocGap[] = this.noticePasses.length
+      ? [{ place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' }]
+      : [
+          { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
+          { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
+          { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
+        ];
+    this.docGaps = suggested.map((gap) => ({ ...gap }));
+    this.docNote = this.docGaps.map((gap) => gap.title).join(' ');
+    const body = this.docGaps.map((gap, index) => `${index + 1}. ${gap.title} ${gap.detail}`).join('\n');
+    this.noticeLetter = this.noticeLetter.map((field) => field.label === 'เนื้อความ'
+      ? { ...field, value: `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง ${this.refId} แล้ว ยังไม่ครบถ้วนดังนี้ จึงขอให้ส่งเพิ่มภายใน ${this.docDueOn}\n${body}` }
+      : field);
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'suggest';
+  }
+
+  protected addGap(): void {
+    if (this.docSent) return;
+    this.docGaps = [...this.docGaps, { place: '', title: '', detail: '' }];
+  }
+
+  protected setGap(index: number, key: keyof DocGap, value: string): void {
+    this.docGaps = this.docGaps.map((gap, item) => item === index ? { ...gap, [key]: value } : gap);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  protected removeGap(index: number): void {
+    this.docGaps = this.docGaps.filter((_, item) => item !== index);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  protected assistNotice(): void {
+    if (this.docSent) return;
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.docNote = this.docAction === 'complete'
+      ? 'ตรวจแล้วคำขอและเอกสารประกอบครบถ้วนถูกต้อง'
+      : this.docAction === 'late'
+        ? 'ครบกำหนด 4 เดือนเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้อง'
+        : 'ขอเพิ่มหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'check';
+  }
+
+  protected setNoticeField(index: number, value: string): void {
+    this.noticeLetter = this.noticeLetter.map((item, itemIndex) => itemIndex === index ? { ...item, value } : item);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  protected madeOf(title: string): MadeDoc[] {
+    return this.madeDocs.filter((item) => item.kind === title);
+  }
+
+  protected pickDoc(index: number): void {
+    this.docPart = index;
+    this.editingId = '';
+  }
+
+  protected assistDraft(): void {
+    const fresh = defaultWorkDrafts()[this.docPart];
+    if (!fresh) return;
+    this.workDocs = this.workDocs.map((item, index) => index === this.docPart ? { ...fresh, fields: fresh.fields.map((field) => ({ ...field })) } : item);
+    writeWorkDrafts(this.workDocs);
+    this.notice = 'assist';
+  }
+
+  protected freshMade(): void {
+    const fresh = defaultWorkDrafts()[this.docPart];
+    if (!fresh) return;
+    this.editingId = '';
+    this.workDocs = this.workDocs.map((item, index) => index === this.docPart ? { ...fresh, fields: fresh.fields.map((field) => ({ ...field })) } : item);
+    writeWorkDrafts(this.workDocs);
+  }
+
+  protected editMade(id: string): void {
+    const found = this.madeDocs.find((item) => item.id === id);
+    if (!found) return;
+    const index = this.workDocs.findIndex((item) => item.title === found.kind);
+    if (index < 0) return;
+    this.docPart = index;
+    this.editingId = id;
+    this.workDocs = this.workDocs.map((item, itemIndex) => itemIndex === index ? { ...item, fields: found.fields.map((field) => ({ ...field })) } : item);
+  }
+
+  protected downloadMade(item: MadeDoc): void {
+    const body = item.fields.map((field) => `<p><strong>${this.escapeHtml(field.label)}</strong><br>${this.escapeHtml(field.value).replaceAll('\n', '<br>')}</p>`).join('');
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(item.kind)} ${filingRefId}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(item.kind)}</h1><p>เลขที่อ้างอิง ${filingRefId} · บันทึกเมื่อ ${this.escapeHtml(item.at)}</p>${body}</body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${item.kind}-${filingRefId}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+
+  protected saveMade(asNew: boolean): void {
+    const current = this.workDocs[this.docPart];
+    if (!current) return;
+    const fields = current.fields.map((field) => ({ ...field }));
+    if (!asNew && this.editingId) {
+      this.madeDocs = this.madeDocs.map((item) => item.id === this.editingId ? { ...item, fields, at: '20/05/2562' } : item);
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `doc-${Date.now()}`, kind: current.title, at: '20/05/2562', fields }];
+      this.editingId = '';
+    }
+    writeMadeDocs(this.madeDocs);
+    this.notice = 'saved';
+  }
+
+  private loadMadeDocs(): void {
+    const saved = readMadeDocs();
+    if (saved.length) {
+      this.madeDocs = saved;
+      return;
+    }
+    this.madeDocs = defaultWorkDrafts().map((doc, index) => ({
+      id: `seed-${index}`,
+      kind: doc.title,
+      at: '20/05/2562',
+      fields: doc.fields.map((field) => ({ ...field })),
+    }));
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected setDraft(doc: number, index: number, value: string): void {
+    this.workDocs = this.workDocs.map((item, itemIndex) => itemIndex === doc
+      ? { ...item, fields: item.fields.map((field, fieldIndex) => fieldIndex === index ? { ...field, value } : field) }
+      : item);
+    writeWorkDrafts(this.workDocs);
+  }
+
+  private loadWorkDrafts(): void {
+    const saved = readWorkDrafts();
+    if (saved.length !== this.workDocs.length) return;
+    this.workDocs = this.workDocs.map((item, index) => {
+      const current = saved[index];
+      if (!current || current.title !== item.title || current.fields.length !== item.fields.length) return item;
+      return { ...item, fields: item.fields.map((field, fieldIndex) => ({ ...field, value: current.fields[fieldIndex]?.value ?? field.value })) };
+    });
+  }
+
+  private loadDocNotice(): void {
+    const saved = readDocNotice();
+    if (!saved) return;
+    this.docAction = saved.action;
+    this.docNoticedOn = saved.noticedOn || this.docNoticedOn;
+    this.docDueOn = saved.dueOn || this.docDueOn;
+    this.docNote = saved.note || this.docNote;
+    if (saved.letter.length === this.noticeLetter.length && saved.letter.every((item, index) => item.label === this.noticeLetter[index]?.label)) {
+      this.noticeLetter = saved.letter.map((item) => ({ ...item }));
+    }
+    if (saved.files.length) this.docFiles = saved.files;
+    if (saved.gaps.length) this.docGaps = saved.gaps.map((gap) => ({ ...gap }));
+    this.noticeSaraban = saved.sarabanNo;
+    if (saved.committee) this.applyCommittee(saved.committee);
+    this.docSent = saved.sent;
+    this.docSentBy = saved.sentBy;
+    this.noticePasses = saved.passes.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null }));
+    if (saved.reply) this.applyReply(saved.reply);
+    else if (saved.action === 'complete') {
+      const kept = [...saved.passes].reverse().find((pass) => pass.reply);
+      if (kept?.reply) this.applyReply(kept.reply);
+    }
+  }
+
+  private applyCommittee(record: CommitteeRecord): void {
+    this.committeeAt = record.at || this.committeeAt;
+    this.committeeResult = record.result;
+    this.committeeFee = record.fee;
+    this.committeeNote = record.note;
+    this.committeeEmbassyOn = record.embassyOn;
+    this.committeeEmbassyFile = record.embassyFile;
+    this.committeeSent = record.sent;
+    this.committeeSentBy = record.sentBy;
+  }
+
+  private committeePayload(): CommitteeRecord {
+    return {
+      at: this.committeeAt.trim(),
+      result: this.committeeResult,
+      fee: this.committeeResult === 'take' ? this.committeeFee : '',
+      note: this.committeeNote.trim(),
+      embassyOn: this.committeeEmbassyOn.trim(),
+      embassyFile: this.committeeEmbassyFile.trim(),
+      sent: true,
+      sentBy: this.signedPerson || this.directorName,
+    };
+  }
+
+  protected get keptReply(): ApplicantReply | null {
+    if (this.replySent) return this.currentReply();
+    return [...this.noticePasses].reverse().find((pass) => pass.reply)?.reply ?? null;
+  }
+
+  protected get canRecordCommittee(): boolean {
+    if (!(this.docSent && this.docAction === 'complete') || this.committeeSent) return false;
+    if (this.reviewRole === 'director') return true;
+    return this.approverNames().includes(this.signedPerson);
+  }
+
+  protected get committeeReady(): boolean {
+    if (!thaiDateOk(this.committeeAt, 'any')) return false;
+    if (this.committeeResult === 'reject') return !!this.committeeNote.trim();
+    if (this.committeeFee === 'skip') return !!this.committeeNote.trim();
+    return this.committeeFee === 'pay';
+  }
+
+  protected setEmbassyFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.committeeEmbassyFile = input.files?.[0]?.name || '';
+    input.value = '';
+  }
+
+  protected saveCommittee(): void {
+    if (!this.canRecordCommittee || !this.committeeReady) return;
+    this.committeeSent = true;
+    this.committeeSentBy = this.signedPerson || this.directorName;
+    writeDocNotice(this.docPayload(true));
+    this.notice = 'saved';
+  }
+
+  private applyReply(reply: ApplicantReply): void {
+    this.replyKind = reply.kind;
+    this.replyAt = reply.at;
+    this.amendReason = reply.reason;
+    this.replyNewDue = reply.newDue;
+    this.replyLetterDate = reply.letterDate;
+    this.replyLetterNo = reply.letterNo;
+    this.replyLetterTo = reply.letterTo;
+    this.replyLetterSubject = reply.letterSubject;
+    this.replyLetterBody = reply.letterBody;
+    if (reply.files.length) this.replyFiles = reply.files;
+    this.replySent = true;
+  }
+
+  private currentReply(): ApplicantReply {
+    return {
+      kind: this.replyKind,
+      at: this.replyAt || (this.noticePasses.length ? '05/06/2562' : '22/05/2562'),
+      reason: this.amendReason.trim(),
+      newDue: this.replyNewDue.trim(),
+      letterDate: this.replyLetterDate.trim(),
+      letterNo: this.replyLetterNo.trim(),
+      letterTo: this.replyLetterTo.trim(),
+      letterSubject: this.replyLetterSubject.trim(),
+      letterBody: this.replyLetterBody.trim(),
+      files: this.replyFiles
+        .filter((file) => this.replyKind === 'extend' ? file.group === 'extend' : file.group !== 'extend')
+        .map((file) => ({ ...file })),
+    };
+  }
+
+  private docPayload(sent: boolean) {
+    return {
+      action: this.docAction,
+      noticedOn: this.docNoticedOn.trim(),
+      dueOn: this.docDueOn.trim(),
+      note: this.docNote.trim(),
+      files: this.docFiles,
+      letter: this.noticeLetter.map((item) => ({ ...item })),
+      gaps: this.docGaps.map((gap) => ({ ...gap })),
+      sarabanNo: this.noticeSaraban,
+      reply: this.replySent ? this.currentReply() : null,
+      committee: this.committeeSent ? this.committeePayload() : null,
+      passes: this.noticePasses.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null })),
+      sent,
+      sentBy: sent ? (this.signedPerson || this.directorName) : this.docSentBy,
+    };
+  }
+
+  protected saveDocs(send: boolean): void {
+    if (send ? !this.docCanSend : this.docSent || !this.canReviewDocs) return;
+    if (send) {
+      this.replySent = false;
+      this.issueNotice();
+    }
+    const payload = this.docPayload(send);
+    writeDocNotice(payload);
+    this.docSent = send;
+    this.docSentBy = payload.sentBy;
+    if (send && this.docAction === 'amend') {
+      writeCaseStatus('revision');
+      this.caseStatus = 'revision';
+    }
+    this.notice = send ? 'docs' : 'saved';
+  }
+
+  private issueNotice(): void {
+    const numbers = ['สบ.2005/2562', 'สบ.2805/2562', 'สบ.0506/2562', 'สบ.1006/2562'];
+    const no = numbers[this.noticePasses.length] || `สบ.${this.noticePasses.length + 1}/2562`;
+    this.noticeSaraban = no;
+    const round = this.noticePasses.length + 1;
+    const title = this.docAction === 'complete' ? 'หนังสือแจ้งคำขอครบถ้วนถูกต้อง' : `หนังสือแจ้งขอข้อมูลเพิ่ม ครั้งที่ ${round}`;
+    const at = `${this.docNoticedOn} 10:30`;
+    this.docFiles = [{ name: `หนังสือแจ้ง-${no.replaceAll('/', '-')}.pdf`, title, sentOn: this.docNoticedOn }];
+    this.madeDocs = [...this.madeDocs, {
+      id: `notice-${no}`,
+      kind: title,
+      at: this.docNoticedOn,
+      fields: [{ label: 'เลขรับสารบรรณ', value: no }, ...this.noticeLetter.map((field) => ({ ...field }))],
+    }];
+    writeMadeDocs(this.madeDocs);
+    this.ensureReceipt();
+    if (!this.receipt) return;
+    const link = {
+      no,
+      at,
+      events: [
+        { at, text: `ส่ง${title}เข้าระบบสารบรรณ` },
+        { at, text: `ได้รับเลขรับ ${no}` },
+      ],
+    };
+    this.receipt = { ...this.receipt, links: [link, ...this.receipt.links.filter((item) => item.no !== no)] };
+    writeReceipt(this.receipt);
+  }
+
+  protected get shownGaps() {
+    return this.docGaps;
+  }
+
+  protected get canDecideReply(): boolean {
+    if (!this.docSent || !this.replySent || this.docAction !== 'amend') return false;
+    if (this.reviewRole === 'director') return true;
+    return this.approverNames().includes(this.signedPerson);
+  }
+
+  private passNow(): NoticePass {
+    return {
+      action: this.docAction,
+      noticedOn: this.docNoticedOn,
+      dueOn: this.docDueOn,
+      note: this.docNote,
+      sentBy: this.docSentBy,
+      sarabanNo: this.noticeSaraban,
+      reply: this.replySent ? this.currentReply() : null,
+    };
+  }
+
+  protected askAgain(): void {
+    if (!this.canDecideReply) return;
+    this.noticePasses = [...this.noticePasses, this.passNow()];
+    this.replySent = false;
+    this.docSent = false;
+    this.docAction = 'amend';
+    this.docNoticedOn = '28/05/2562';
+    this.docDueOn = '20/06/2562';
+    this.docFiles = [];
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.suggestGaps();
+    writeCaseStatus('revision');
+    this.caseStatus = 'revision';
+    this.notice = 'suggest';
+  }
+
+  protected markComplete(): void {
+    if (!this.canDecideReply) return;
+    this.noticePasses = [...this.noticePasses, this.passNow()];
+    this.docAction = 'complete';
+    this.docNoticedOn = '28/05/2562';
+    this.docNote = 'ตรวจคำขอที่แก้ไขแล้ว ครบถ้วนถูกต้อง';
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.issueNotice();
+    this.docSent = true;
+    this.docSentBy = this.signedPerson || this.directorName;
+    writeDocNotice(this.docPayload(true));
+    writeCaseStatus('official');
+    this.caseStatus = 'official';
+    this.notice = 'docs';
+  }
+
+  protected get replyGroups(): { id: ReplyFile['group']; label: string; required: boolean }[] {
+    if (this.replyKind === 'extend') return [{ id: 'extend', label: 'แนบไฟล์ประกอบการขอขยายเวลา', required: true }];
+    return [
+      { id: 'closed', label: 'แนบไฟล์คำขอฉบับปกปิด', required: true },
+      { id: 'extra', label: 'แนบเอกสารประกอบ (ถ้ามี)', required: false },
+      { id: 'open', label: 'แนบไฟล์คำขอฉบับเปิดเผย', required: true },
+    ];
+  }
+
+  protected replyFilesOf(group: ReplyFile['group']): ReplyFile[] {
+    return this.replyFiles.filter((file) => file.group === group);
+  }
+
+  protected get canSendReply(): boolean {
+    const letterOk = !!this.replyLetterDate.trim() && !!this.replyLetterNo.trim() && !!this.replyLetterTo.trim() && !!this.replyLetterSubject.trim() && !!this.replyLetterBody.trim();
+    if (!letterOk || this.replySent) return false;
+    if (this.replyKind === 'extend') return !!this.amendReason.trim() && thaiDateOk(this.replyNewDue, 'any') && this.replyFilesOf('extend').length > 0;
+    return this.replyFilesOf('closed').length > 0 && this.replyFilesOf('open').length > 0;
+  }
+
+  protected addReplyFiles(group: ReplyFile['group'], event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), group }));
+    this.replyFiles = [...this.replyFiles, ...files];
+    input.value = '';
+  }
+
+  protected removeReplyFile(name: string): void {
+    this.replyFiles = this.replyFiles.filter((file) => file.name !== name);
+  }
+
+  protected sendApplicantReply(): void {
+    if (!this.canSendReply) return;
+    this.replyAt = this.noticePasses.length ? '05/06/2562' : '22/05/2562';
+    this.replySent = true;
+    const payload = this.docPayload(this.docSent);
+    payload.sentBy = this.docSentBy;
+    writeDocNotice(payload);
+    this.notice = 'reply';
+  }
+
+  protected downloadReplyFile(file: ReplyFile): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(file.title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(file.title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p><p>${this.escapeHtml(this.replyLetterSubject)}</p><p>${this.escapeHtml(this.replyLetterBody)}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name.replace(/\.[^.]+$/, '') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected addDocFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: this.docNoticedOn || '20/05/2562' }));
+    this.docFiles = [...this.docFiles, ...files];
+    input.value = '';
+  }
+
+  protected renameDocFile(index: number, title: string): void {
+    this.docFiles = this.docFiles.map((file, item) => (item === index ? { ...file, title } : file));
+  }
+
+  protected removeDocFile(index: number): void {
+    this.docFiles = this.docFiles.filter((_, item) => item !== index);
+  }
+
+  protected get officeLinks(): OfficeLink[] {
+    return [...(this.receipt?.links ?? [])].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at));
+  }
+
+  protected openOffice(link: OfficeLink): void {
+    this.officeLink = {
+      ...link,
+      events: [...link.events].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at)),
+    };
+  }
+
+  private officeStamp(at: string): number {
+    const [date, time = '00:00'] = at.split(' ');
+    const [day, month, year] = date.split('/').map(Number);
+    const [hour, minute] = time.split(':').map(Number);
+    return new Date(year || 0, (month || 1) - 1, day || 1, hour || 0, minute || 0).getTime();
+  }
+
+  private seedOfficeLinks(): OfficeLink[] {
+    const ref = filingRefId;
+    return [
+      {
+        no: 'สบ.1820/2562',
+        at: '02/06/2562 11:05',
+        events: [
+          { at: '02/06/2562 11:05', text: 'ระบบสารบรรณส่งเลขที่ลงรับ' },
+          { at: '02/06/2562 11:06', text: `เชื่อมกับคำขอ ${ref}` },
+        ],
+      },
+      {
+        no: 'สบ.1694/2562',
+        at: '20/05/2562 13:20',
+        events: [
+          { at: '20/05/2562 13:20', text: 'ระบบสารบรรณส่งเลขที่ลงรับ' },
+          { at: '20/05/2562 13:21', text: `เชื่อมกับคำขอ ${ref}` },
+        ],
+      },
+      {
+        no: 'สบ.1605/2562',
+        at: '16/05/2562 10:00',
+        events: [
+          { at: '16/05/2562 10:00', text: 'ลงรับคำขอจากระบบสารบรรณ เรื่องยื่นคำขอ' },
+          { at: '16/05/2562 10:01', text: `เชื่อมกับคำขอ ${ref}` },
+        ],
+      },
+    ];
+  }
+
+  private ensureAssignment(): void {
+    const saved = readWorkAssignment();
+    if (saved.people.length || saved.groups.length) {
+      this.pickedPeople = saved.people;
+      this.pickedGroups = saved.groups;
+      this.assignNote = saved.note;
+      this.assignOrder = saved.order;
+      this.assignedOn = saved.assignedOn;
+      this.dueOn = saved.dueOn;
+      this.assignReply = saved.reply;
+      this.replyReason = saved.reason;
+      this.replyDraft = saved.reply === 'pending' ? '' : saved.reply;
+      const work = saved.groups.filter((group) => groupHead(group));
+      if (work.length < 2) {
+        this.pickedGroups = ['กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)'];
+        this.groupTasks = this.tasksFor(this.pickedGroups, true);
+        this.hands = [];
+      } else {
+        this.pickedGroups = work;
+        this.groupTasks = saved.groupTasks.filter((task) => work.includes(task.group));
+        if (this.groupTasks.length < 2) this.groupTasks = this.tasksFor(work, true);
+        this.hands = saved.hands;
+      }
+      this.slips = saved.slips;
+      this.forwardPick = [];
+      if (saved.people.length && !saved.groups.length) this.assignMode = 'person';
+      this.prepareSlip();
+      return;
+    }
+    this.pickedGroups = ['กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)'];
+    this.pickedPeople = [];
+    this.groupTasks = this.tasksFor(this.pickedGroups, true);
+    this.hands = [];
+    this.forwardPick = [];
+    this.assignOrder = 'รับผิดชอบคำขอทุ่มตลาดเหล็กแผ่นรีดร้อน';
+    this.assignedOn = '16/05/2562';
+    this.dueOn = '30/05/2562';
+    this.slips = [];
+    writeWorkAssignment(this.assignmentPayload());
+    this.prepareSlip();
+  }
+
+  private prepareSlip(): void {
+    if (this.hands.some((hand) => hand.name === this.signedPerson)) this.slipKind = 'report';
+    if (!this.slipOrder) this.slipOrder = this.assignOrder || 'รับผิดชอบคำขอทุ่มตลาดเหล็กแผ่นรีดร้อน';
+    if (!this.slipAssignedOn) this.slipAssignedOn = this.assignedOn || '16/05/2562';
+    if (!this.slipDueOn) this.slipDueOn = this.dueOn || '30/05/2562';
+    if (!this.slipDueTime) this.slipDueTime = '14:28';
+    this.syncSlipPeople(true);
+  }
+
+  protected personTitle(name: string): string {
+    return staffPeople.find((person) => person.name === name)?.title || 'เจ้าหน้าที่รายบุคคล';
+  }
+
+  private ensureReceipt(): void {
+    const links = this.seedOfficeLinks();
+    if (!this.receipt) {
+      this.receipt = {
+        deptNo: '',
+        deptDate: '',
+        deptTime: '',
+        sarabanNo: 'สบ.1605/2562',
+        sarabanDate: '16/05/2562',
+        sarabanTime: '10:00',
+        letterNo: 'B1/2562',
+        letterDate: '16/05/2562',
+        subject: 'ยื่นคำขอ',
+        links,
+      };
+      writeReceipt(this.receipt);
+      return;
+    }
+    if (!this.receipt.links.length) {
+      this.receipt = { ...this.receipt, links };
+      writeReceipt(this.receipt);
+    }
+  }
+
+  protected leaveReview(): void {
+    void this.router.navigateByUrl(this.reviewRole === 'officer' ? '/officer' : '/director');
   }
 
   protected get laterRound(): boolean {
@@ -685,10 +2172,22 @@ export class Por1Page {
   }
 
   protected get caseLabel(): string {
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent && this.committeeResult === 'take') return 'รับคำขอ';
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent) return 'ไม่รับคำขอ';
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete') return 'รอคณะกรรมการพิจารณา';
+    if (!this.reviewRole && this.docSent && this.docAction === 'late') return 'ไม่ครบภายใน 4 เดือน';
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend' && this.replySent) return 'ส่งข้อมูลเพิ่มแล้ว';
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend') return 'ขอข้อมูลเพิ่ม';
     return caseStatusLabel(this.caseStatus);
   }
 
   protected get caseTone() {
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent && this.committeeResult === 'reject') return 'danger' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && !this.committeeSent) return 'info' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete') return 'success' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'late') return 'danger' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend' && !this.replySent) return 'warning' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend') return 'info' as const;
     return caseStatusTone(this.caseStatus);
   }
 
@@ -794,15 +2293,47 @@ export class Por1Page {
     const request = { topic, detail, when };
     writeConsult(request);
     this.consult = request;
-    this.consultNotes = this.sampleTalk();
-    writeConsultThread(this.consultNotes);
-    writeCaseStatus('consult');
-    this.caseStatus = 'consult';
+    this.consultNotes = [];
+    this.consultPlan = null;
+    writeConsultThread([]);
+    writeConsultPlan(null);
+    const stay = this.caseStatus === 'official' || this.caseStatus === 'revision';
+    if (stay && this.approverNames().length) {
+      writeConsultAssigned(true);
+      this.consultAssigned = true;
+      this.sideTalk = true;
+    } else if (stay) {
+      writeConsultAssigned(false);
+      this.consultAssigned = false;
+      this.sideTalk = true;
+    } else {
+      writeConsultAssigned(false);
+      this.consultAssigned = false;
+      writeCaseStatus('consult');
+      this.caseStatus = 'consult';
+      this.revising = false;
+      this.viewingForm = false;
+      this.watchAssign();
+    }
     this.consultOpen = false;
-    this.revising = false;
-    this.viewingForm = false;
-    this.openTalk();
+    if (this.consultAssigned && this.consultByChat) this.openTalk();
     this.publishGuide();
+  }
+
+  protected openSideTalk(): void {
+    if (!this.consult) {
+      this.consultTopic = this.caseStatus === 'revision' ? 'สอบถามการส่งข้อมูลเพิ่ม' : 'สอบถามระหว่างยื่นคำขอ';
+      this.consultDetail = `คำขอเลขที่อ้างอิง ${this.refId}`;
+      this.consultWhen = '20/05/2562 10:00';
+      this.consultOpen = true;
+      return;
+    }
+    this.sideTalk = true;
+    if (this.approverNames().length && !this.consultAssigned) {
+      writeConsultAssigned(true);
+      this.consultAssigned = true;
+    }
+    if (this.consultAssigned && this.consultByChat) this.openTalk();
   }
 
   protected talkReady = false;
@@ -894,8 +2425,9 @@ export class Por1Page {
 
   protected sendConsultNote(): void {
     const text = this.consultDraft.trim();
-    if ((!text && !this.pendingFiles.length) || this.caseStatus !== 'consult') return;
-    this.consultNotes = [...this.consultNotes, { from: 'applicant', text, at: '16/05/2562 11:55', files: this.pendingFiles }];
+    const staff = this.reviewRole === 'officer';
+    if ((!text && !this.pendingFiles.length) || (!staff && this.caseStatus !== 'consult')) return;
+    this.consultNotes = [...this.consultNotes, { from: staff ? 'officer' : 'applicant', text, at: '16/05/2562 11:55', files: this.pendingFiles }];
     writeConsultThread(this.consultNotes);
     this.shownCount = Math.min(this.consultNotes.length, this.shownCount + 1);
     this.consultDraft = '';
@@ -936,8 +2468,30 @@ export class Por1Page {
     this.pendingFiles = this.pendingFiles.filter((_, item) => item !== index);
   }
 
+  protected approverNames(): string[] {
+    return acceptedAssignees(readWorkAssignment());
+  }
+
+  protected get canApproveFiling(): boolean {
+    return !!this.reviewRole && this.caseStatus === 'approval' && this.approverNames().includes(this.signedPerson);
+  }
+
+  protected approveOfficial(): void {
+    if (!this.canApproveFiling) return;
+    writeApprovedBy(this.signedPerson);
+    this.approvedBy = this.signedPerson;
+    writeApprovalUntil(0);
+    window.clearInterval(this.approvalTimer);
+    writeCaseStatus('official');
+    this.caseStatus = 'official';
+    this.notice = 'saved';
+    this.publishGuide();
+  }
+
   protected confirmOfficial(): void {
-    const next = this.caseStatus === 'consult' ? 'approval' : 'official';
+    const fromConsult = this.caseStatus === 'consult';
+    const next = fromConsult ? 'approval' : 'official';
+    if (fromConsult) this.readyApprovers();
     writeCaseStatus(next);
     this.caseStatus = next;
     this.officialOpen = false;
@@ -945,11 +2499,83 @@ export class Por1Page {
     this.revising = false;
     this.viewingForm = false;
     this.openedRound = null;
-    if (next === 'approval') {
-      writeApprovalUntil(Date.now() + reviewWaitMs);
+    if (fromConsult) {
+      writeApprovalUntil(0);
+      const note: ConsultNote = {
+        from: 'applicant',
+        text: 'ไม่แก้ไขแบบเพิ่ม และยืนยันส่งแบบยื่นทางการ รอผู้รับมอบหมายที่รับเรื่องแล้วอนุมัติ',
+        at: '16/05/2562 11:55',
+      };
+      this.consultNotes = [...readConsultThread(), note];
+      writeConsultThread(this.consultNotes);
       this.watchApproval();
     }
     this.publishGuide();
+  }
+
+  private readyApprovers(): void {
+    const saved = readWorkAssignment();
+    if (acceptedAssignees(saved).length) return;
+    const ad = 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)';
+    const cvd = 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)';
+    const groups = saved.groups.filter((group) => groupHead(group));
+    const useGroups = groups.length >= 2 ? groups : [ad, cvd];
+    let tasks = saved.groupTasks.filter((task) => useGroups.includes(task.group) && task.head);
+    if (tasks.length < useGroups.length) {
+      tasks = useGroups.map((group) => tasks.find((task) => task.group === group) || { group, head: groupHead(group), reply: 'pending' as const, reason: '' });
+    }
+    const first = tasks.find((task) => task.reply !== 'return') ?? tasks[0];
+    if (!first?.head) return;
+    tasks = tasks.map((task) => task.group === first.group ? { ...task, reply: 'accept' as const, reason: '' } : task);
+    const member = groupMembers(first.group).find((person) => !saved.hands.some((hand) => hand.name === person.name && hand.reply === 'return'));
+    const hands = member
+      ? [{ name: member.name, group: first.group, reply: 'accept' as const, reason: '' }, ...saved.hands.filter((hand) => hand.name !== member.name)]
+      : saved.hands;
+    const slips = [...saved.slips];
+    const order = saved.order || 'รับผิดชอบคำขอทุ่มตลาดเหล็กแผ่นรีดร้อน';
+    if (!slips.some((slip) => slip.from === this.directorName && slip.to === first.head)) {
+      slips.push({
+        at: '16/05/2562 14:28',
+        from: this.directorName,
+        to: first.head,
+        group: first.group,
+        receipt: 'accept',
+        kind: 'forward',
+        assignedOn: saved.assignedOn || '16/05/2562',
+        dueOn: saved.dueOn || '30/05/2562',
+        dueTime: '14:28',
+        remind: true,
+        order,
+        files: [{ name: 'คำสั่งมอบหมาย.pdf', title: 'คำสั่งมอบหมาย' }],
+      });
+    }
+    if (member && !slips.some((slip) => slip.from === first.head && slip.to === member.name)) {
+      slips.push({
+        at: '16/05/2562 14:28',
+        from: first.head,
+        to: member.name,
+        group: first.group,
+        receipt: 'accept',
+        kind: 'forward',
+        assignedOn: '16/05/2562',
+        dueOn: '30/05/2562',
+        dueTime: '14:28',
+        remind: true,
+        order,
+        files: [{ name: 'คำสั่งมอบหมาย.pdf', title: 'คำสั่งมอบหมาย' }],
+      });
+    }
+    writeWorkAssignment({
+      ...saved,
+      groups: useGroups,
+      groupTasks: tasks,
+      hands,
+      slips,
+      order,
+      assignedOn: saved.assignedOn || '16/05/2562',
+      dueOn: saved.dueOn || '30/05/2562',
+    });
+    writeConsultAssigned(true);
   }
 
   private armReview(): void {
@@ -986,6 +2612,30 @@ export class Por1Page {
     this.reviewLeft = 0;
     this.publishGuide();
     this.view.markForCheck();
+  }
+
+  protected get noticeHeading(): string {
+    if (this.notice === 'draft') return 'บันทึกร่างแล้ว';
+    if (this.notice === 'assist') return 'สร้างข้อมูลให้แล้ว';
+    if (this.notice === 'check') return 'ตรวจให้แล้ว';
+    if (this.notice === 'suggest') return 'แนะนำรายการแล้ว';
+    if (this.notice === 'reply') return this.replyKind === 'extend' ? 'ส่งคำขอขยายเวลาแล้ว' : 'ส่งคำขอที่แก้ไขแล้ว';
+    if (this.notice === 'docs') return this.docAction === 'amend' ? 'ส่งแจ้งขอข้อมูลเพิ่มแล้ว' : 'ส่งผลการตรวจแล้ว';
+    if (this.notice === 'etr') return 'ได้รับ Ref Case ID (eTR) แล้ว';
+    if (this.notice === 'saved') return 'ดำเนินการสำเร็จ';
+    return 'ทำรายการสำเร็จ';
+  }
+
+  protected get noticeDetail(): string {
+    if (this.notice === 'assist') return 'ระบบใส่ข้อมูลตั้งต้นของเอกสารนี้ให้แล้ว แก้ไขต่อได้ก่อนกดบันทึก';
+    if (this.notice === 'check') return 'ระบบใส่ข้อมูลตั้งต้นของหนังสือแจ้งแก้ไขให้แล้ว แก้ไขต่อได้ก่อนกดบันทึก';
+    if (this.notice === 'suggest') return 'ระบบใส่รายการที่ควรขอเพิ่มให้แล้ว แก้ไขหรือเพิ่มรายการได้ก่อนกดส่ง';
+    if (this.notice === 'reply') return this.replyKind === 'extend' ? `ขอขยายเวลาส่งถึง ${this.replyNewDue} เจ้าหน้าที่จะพิจารณาคำขอขยายเวลาต่อ` : 'ส่งไฟล์คำขอที่แก้ไขและหนังสือนำส่งให้เจ้าหน้าที่แล้ว';
+    if (this.notice === 'docs') return this.docAction === 'amend' ? `ส่งหนังสือแจ้งขอข้อมูลเพิ่มเข้าระบบสารบรรณแล้ว ได้เลขรับ ${this.noticeSaraban}` : `ส่งผลการตรวจเข้าระบบสารบรรณแล้ว ได้เลขรับ ${this.noticeSaraban}`;
+    if (this.notice === 'etr') return `ระบบ eTR ส่ง Ref Case ID (eTR) ${this.etrRefNo} กลับมา และเชื่อมกับคำขอนี้แล้ว`;
+    if (this.notice === 'saved') return 'ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว';
+    if (this.notice === 'draft') return `คำขอเลขที่อ้างอิง ${this.refId} อยู่ในสถานะร่าง`;
+    return `ระบบได้รับคำขอเลขที่อ้างอิง ${this.refId} แล้ว ผลการตรวจสอบจะแจ้งภายใน 1 นาที`;
   }
 
   protected finishNotice(): void {
@@ -1266,28 +2916,71 @@ export class Por1Page {
 
   ngOnInit(): void {
     this.caseStatus = readCaseStatus();
+    this.loadDocNotice();
+    this.loadWorkDrafts();
+    this.loadMadeDocs();
     this.rounds = readRounds();
     this.consult = readConsult();
     this.consultNotes = readConsultThread();
+    this.consultAssigned = readConsultAssigned();
+    this.consultPlan = readConsultPlan();
+    if (this.reviewRole) {
+      this.viewingForm = true;
+      this.ensureAssignment();
+      if (this.reviewRole === 'director' && !this.consultAssigned) this.reviewTab = 'assign';
+      if (this.slipPlace || this.shownTasks.some((task) => this.groupAct(task)) || this.hands.some((hand) => this.handAct(hand.name))) this.pickReviewTab('assign');
+      else if (this.showTalkTab) this.pickReviewTab('talk');
+      this.ensureReceipt();
+    }
     if (this.caseStatus === 'approval' && !this.consult) {
       writeCaseStatus('official');
       this.caseStatus = 'official';
     }
+    if (this.reviewRole) this.ensureLinks();
     if (this.caseStatus === 'review' && this.rounds.length === 0) {
       this.rounds = [this.captureRound(1)];
       writeRounds(this.rounds);
     }
     if (this.caseStatus === 'review') this.armReview();
-    if (this.caseStatus === 'consult') this.openTalk();
+    if (this.caseStatus === 'consult' && this.consultAssigned && this.consultByChat) this.openTalk();
+    if (this.caseStatus === 'consult' && !this.consultAssigned) this.watchAssign();
     this.watchApproval();
     this.publishGuide();
   }
 
   private approvalTimer = 0;
+  private assignTimer = 0;
+
+  private watchAssign(): void {
+    window.clearInterval(this.assignTimer);
+    if (this.caseStatus !== 'consult' || this.consultAssigned) return;
+    this.assignTimer = window.setInterval(() => {
+      if (!readConsultAssigned()) return;
+      this.consultAssigned = true;
+      this.consultPlan = readConsultPlan();
+      this.consultNotes = readConsultThread();
+      window.clearInterval(this.assignTimer);
+      if (this.consultByChat) this.openTalk();
+      this.publishGuide();
+      this.view.markForCheck();
+    }, 1000);
+  }
 
   private watchApproval(): void {
     window.clearInterval(this.approvalTimer);
     if (this.caseStatus !== 'approval') return;
+    if (this.consult) {
+      this.approvalTimer = window.setInterval(() => {
+        const stored = readCaseStatus();
+        if (stored === 'approval') return;
+        this.caseStatus = stored;
+        this.approvedBy = readApprovedBy();
+        window.clearInterval(this.approvalTimer);
+        this.publishGuide();
+        this.view.markForCheck();
+      }, 1000);
+      return;
+    }
     let until = readApprovalUntil();
     if (!until) {
       until = Date.now() + reviewWaitMs;
@@ -1297,6 +2990,7 @@ export class Por1Page {
       const stored = readCaseStatus();
       if (stored !== 'approval') {
         this.caseStatus = stored;
+        this.approvedBy = readApprovedBy();
         window.clearInterval(this.approvalTimer);
         writeApprovalUntil(0);
         this.view.markForCheck();
@@ -1327,6 +3021,7 @@ export class Por1Page {
     window.clearTimeout(this.talkTimer);
     window.clearInterval(this.reviewTimer);
     window.clearInterval(this.approvalTimer);
+    window.clearInterval(this.assignTimer);
     this.guide.clear();
   }
 

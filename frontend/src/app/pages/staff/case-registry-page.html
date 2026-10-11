@@ -1,0 +1,247 @@
+<div class="registry">
+  <app-top-header class="fluid" />
+  <div class="registry__body">
+    <app-side-nav kind="staff" open="คำขอ" active="รายการยื่นคำขอ" />
+    <main>
+      <header class="registry__head">
+        <div>
+          <h1>คำขอทั้งหมด</h1>
+          <p>รายการคำขอในระบบ สำหรับเจ้าหน้าที่ เพื่อติดตามและดำเนินการ</p>
+        </div>
+        <button type="button" class="export" (click)="exportRows()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V14M8 11L12 15L16 11M5 19H19" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ส่งออก
+        </button>
+      </header>
+
+      <div class="chips" role="tablist" aria-label="สถานะคำขอ">
+        @for (item of chips; track item.id) {
+          <button type="button" role="tab" [class.on]="chip === item.id" [attr.aria-selected]="chip === item.id" (click)="pickChip(item.id)">
+            {{ item.label }}
+            <strong>{{ item.count }}</strong>
+          </button>
+        }
+      </div>
+
+      <section class="panel">
+        <div class="finder">
+          <label>
+            <img src="assets/icons/search.svg" width="20" height="20" alt="" />
+            <input
+              type="search"
+              aria-label="ค้นหาเลขอ้างอิง เลขคดี ชื่อสินค้า ประเทศ หรือพิกัดศุลกากร"
+              placeholder="ค้นหาเลขอ้างอิง / เลขคดี / ชื่อสินค้า / ประเทศ / พิกัดศุลกากร"
+              [value]="query"
+              (input)="query = $any($event.target).value; changed()"
+            />
+          </label>
+          <button type="button" class="filter-toggle" [class.on]="filtersOpen" [attr.aria-expanded]="filtersOpen" (click)="filtersOpen = !filtersOpen">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6H20M7 12H17M10 18H14" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>
+            ตัวกรองเพิ่มเติม
+            <img src="assets/icons/chevron-down.svg" width="16" height="16" alt="" />
+          </button>
+        </div>
+
+        @if (filtersOpen) {
+          <div class="filter-grid">
+            <label>
+              ประเภทมาตรการ
+              <span class="control">
+                <select aria-label="ประเภทมาตรการ" [value]="measure" (change)="measure = $any($event.target).value; changed()">
+                  <option value="">ทุกมาตรการ</option>
+                  @for (item of measures; track item.value) {
+                    <option [value]="item.value">{{ item.label }}</option>
+                  }
+                </select>
+                <img src="assets/icons/chevron-down.svg" width="16" height="16" alt="" />
+              </span>
+            </label>
+            <label>
+              สถานะคำขอ
+              <span class="control">
+                <select aria-label="สถานะคำขอ" [value]="status" (change)="status = $any($event.target).value; changed()">
+                  <option value="">ทุกสถานะ</option>
+                  @for (item of statuses; track item) {
+                    <option [value]="item">{{ item }}</option>
+                  }
+                </select>
+                <img src="assets/icons/chevron-down.svg" width="16" height="16" alt="" />
+              </span>
+            </label>
+            <label>
+              ประเทศแหล่งกำเนิด
+              <span class="control">
+                <select aria-label="ประเทศแหล่งกำเนิด" [value]="country" (change)="country = $any($event.target).value; changed()">
+                  <option value="">ทุกประเทศ</option>
+                  @for (item of countries; track item) {
+                    <option [value]="item">{{ item }}</option>
+                  }
+                </select>
+                <img src="assets/icons/chevron-down.svg" width="16" height="16" alt="" />
+              </span>
+            </label>
+            <label>
+              ช่วงวันที่ยื่นคำขอ
+              <span class="year-pair">
+                <span class="control">
+                  <img src="assets/icons/calendar.svg" width="16" height="16" alt="" />
+                  <select aria-label="ตั้งแต่ปี" [value]="fromYear" (change)="fromYear = $any($event.target).value; changed()">
+                    <option value="">ตั้งแต่ปี</option>
+                    @for (item of years; track item.value) {
+                      <option [value]="item.value">{{ item.label }}</option>
+                    }
+                  </select>
+                </span>
+                <span class="control">
+                  <select aria-label="ถึงปี" [value]="toYear" (change)="toYear = $any($event.target).value; changed()">
+                    <option value="">ถึงปี</option>
+                    @for (item of years; track item.value) {
+                      <option [value]="item.value">{{ item.label }}</option>
+                    }
+                  </select>
+                </span>
+              </span>
+            </label>
+            <label>
+              เรียงตาม
+              <span class="control">
+                <select aria-label="เรียงตาม" [value]="sort" (change)="pickSort($any($event.target).value)">
+                  @for (item of sorts; track item.value) {
+                    <option [value]="item.value">{{ item.label }}</option>
+                  }
+                </select>
+                <img src="assets/icons/chevron-down.svg" width="16" height="16" alt="" />
+              </span>
+            </label>
+          </div>
+          <button type="button" class="clear" (click)="clearFilters()">รีเซ็ตตัวกรอง</button>
+        }
+      </section>
+
+      @if (!visible.length) {
+        <p class="empty">ไม่พบคำขอที่ตรงกับเงื่อนไข</p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-check">
+                  <button type="button" class="check" [attr.aria-pressed]="pageChecked" aria-label="เลือกแถวในหน้านี้" (click)="togglePage()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" />
+                      @if (pageChecked) {
+                        <path d="M7.5 12.2L10.4 15L16.5 8.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
+                      }
+                    </svg>
+                  </button>
+                </th>
+                <th>
+                  <button type="button" class="sort-head" (click)="sortBy('ref')">
+                    เลขอ้างอิงคำขอ
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V18M8 18L5 15M8 18L11 15M16 18V6M16 6L13 9M16 6L19 9" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </th>
+                <th>เลขคดี (Case ID)</th>
+                <th>สินค้า</th>
+                <th>ประเทศแหล่งกำเนิด</th>
+                <th>มาตรการ</th>
+                <th>สถานะคำขอ</th>
+                <th>
+                  <button type="button" class="sort-head" (click)="sortBy('date')">
+                    วันที่ยื่นคำขอ
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V18M8 18L5 15M8 18L11 15M16 18V6M16 6L13 9M16 6L19 9" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </th>
+                <th class="col-act">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of paged; track row.code) {
+                <tr>
+                  <td class="col-check">
+                    <button type="button" class="check" [attr.aria-pressed]="picked.has(row.code)" [attr.aria-label]="'เลือก ' + row.code" (click)="toggle(row.code)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" />
+                        @if (picked.has(row.code)) {
+                          <path d="M7.5 12.2L10.4 15L16.5 8.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
+                        }
+                      </svg>
+                    </button>
+                  </td>
+                  <td class="mono">{{ row.live ? row.code : '—' }}</td>
+                  <td>
+                    @if (published(row)) {
+                      <a class="case-link" [href]="publicUrl(row)" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'เปิด ' + row.code + ' บน thaitr'">
+                        {{ row.code }}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5H19V10M19 5L10 14M17 13.5V18A1 1 0 0 1 16 19H6A1 1 0 0 1 5 18V8A1 1 0 0 1 6 7H10.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </a>
+                    } @else {
+                      <span class="unopened">—</span>
+                      <small>ยังไม่เปิดคดี</small>
+                    }
+                  </td>
+                  <td>{{ row.goods }}</td>
+                  <td>
+                    {{ row.origin }}
+                    <small>{{ sideLabel(row) }}</small>
+                  </td>
+                  <td>{{ row.measure }}</td>
+                  <td>
+                    @if (row.status) {
+                      <app-status-tag variant="soft" [tone]="row.tone" [label]="row.status" />
+                    } @else {
+                      <span class="quiet">ไม่มีสถานะในทะเบียน</span>
+                    }
+                  </td>
+                  <td class="mono">{{ row.date }}</td>
+                  <td class="col-act">
+                    @if (row.live) {
+                      <app-button type="outline" size="sm" label="เปิดคำขอ" (click)="open(row)" />
+                    } @else {
+                      <a class="link-btn" [href]="publicUrl(row)" target="_blank" rel="noopener noreferrer">
+                        ดูเพิ่มเติม
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5H19V10M19 5L10 14M17 13.5V18A1 1 0 0 1 16 19H6A1 1 0 0 1 5 18V8A1 1 0 0 1 6 7H10.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </a>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <label class="page-size">
+            แสดง
+            <span class="control">
+              <select aria-label="จำนวนรายการต่อหน้า" [value]="pageSize" (change)="setPageSize($any($event.target).value)">
+                @for (size of pageSizes; track size) {
+                  <option [value]="size">{{ size }}</option>
+                }
+              </select>
+              <img src="assets/icons/chevron-down.svg" width="16" height="16" alt="" />
+            </span>
+            รายการต่อหน้า
+          </label>
+          <p class="pages">{{ pageLabel }}</p>
+          <div class="pager__nav">
+            <button type="button" aria-label="หน้าแรก" [disabled]="safePage <= 1" (click)="goPage(1)">
+              <img src="assets/icons/chevron-left.svg" width="16" height="16" alt="" />
+              <img src="assets/icons/chevron-left.svg" width="16" height="16" alt="" />
+            </button>
+            <button type="button" aria-label="ก่อนหน้า" [disabled]="safePage <= 1" (click)="shiftPage(-1)">
+              <img src="assets/icons/chevron-left.svg" width="16" height="16" alt="" />
+            </button>
+            <span>{{ safePage }}</span>
+            <button type="button" aria-label="ถัดไป" [disabled]="safePage >= pageCount" (click)="shiftPage(1)">
+              <img src="assets/icons/chevron-right.svg" width="16" height="16" alt="" />
+            </button>
+            <button type="button" aria-label="หน้าสุดท้าย" [disabled]="safePage >= pageCount" (click)="goPage(pageCount)">
+              <img src="assets/icons/chevron-right.svg" width="16" height="16" alt="" />
+              <img src="assets/icons/chevron-right.svg" width="16" height="16" alt="" />
+            </button>
+          </div>
+        </div>
+      }
+    </main>
+  </div>
+</div>

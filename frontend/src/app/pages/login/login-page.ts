@@ -15,6 +15,7 @@ import { AuthShell } from '../auth-shell/auth-shell';
 })
 export class LoginPage implements OnDestroy {
   protected taxId = '';
+  protected rolePick = '';
   protected password = '';
   protected mail = '';
   protected trustDevice = false;
@@ -37,6 +38,33 @@ export class LoginPage implements OnDestroy {
     this.taxId = last?.username ?? '0105538041238';
     this.password = last?.password ?? 'Dft@2569';
     this.mail = last?.email || 'support@datamining.co.th';
+    this.rolePick = this.roles.some((item) => item.username === this.taxId) ? this.taxId : this.roles[0]?.username ?? '';
+  }
+
+  protected get roles() {
+    return this.accounts.demoLogins();
+  }
+
+  protected get roleGroups(): string[] {
+    const groups: string[] = [];
+    for (const item of this.roles) {
+      if (!groups.includes(item.group)) groups.push(item.group);
+    }
+    return groups;
+  }
+
+  protected rolesIn(group: string) {
+    return this.roles.filter((item) => item.group === group);
+  }
+
+  protected pickRole(username: string): void {
+    const account = this.roles.find((item) => item.username === username);
+    if (!account) return;
+    this.rolePick = account.username;
+    this.taxId = account.username;
+    this.password = account.password;
+    this.mail = account.email || 'support@datamining.co.th';
+    this.submitted = false;
   }
 
   protected get taxState() {

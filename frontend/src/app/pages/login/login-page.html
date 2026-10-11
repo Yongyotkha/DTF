@@ -25,6 +25,21 @@
     <button type="button" class="otp-back" (click)="backToForm()">กลับไปเข้าสู่ระบบ</button>
   } @else {
     <h1>เข้าสู่ระบบ</h1>
+    <label class="role">
+      <span>สิทธิ์เข้าใช้งาน</span>
+      <span class="role__control">
+        <select aria-label="สิทธิ์เข้าใช้งาน" [value]="rolePick" (change)="pickRole($any($event.target).value)">
+          @for (group of roleGroups; track group) {
+            <optgroup [label]="group">
+              @for (item of rolesIn(group); track item.username) {
+                <option [value]="item.username">{{ item.label }}</option>
+              }
+            </optgroup>
+          }
+        </select>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
+      </span>
+    </label>
     <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" placeholder="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก" [required]="true" [editable]="true" [state]="taxState" [value]="taxId" (valueChange)="taxId = $event" />
     <app-input-field class="block" label="รหัสผ่าน (Password)" placeholder="ระบุรหัสผ่าน" inputType="password" [required]="true" [editable]="true" [state]="passwordState" [helper]="passwordHelp" [value]="password" (valueChange)="password = $event" />
     <a class="forgot" routerLink="/forgot-password">ลืมรหัสผ่าน</a>

@@ -12,7 +12,7 @@ import { WorkspaceState } from '../workspace/workspace-state';
   styleUrl: './top-header.css',
 })
 export class TopHeader {
-  @Input() name = 'บริษัท ดาต้า มายนิ่ง จำกัด';
+  @Input() name = '';
   @Input() account = true;
   protected menuOpen = false;
 
@@ -23,6 +23,10 @@ export class TopHeader {
     protected readonly sidebar: SidebarState,
     protected readonly workspace: WorkspaceState,
   ) {}
+
+  protected accountName(): string {
+    return this.name || this.accounts.displayName;
+  }
 
   protected showMenu(): boolean {
     return this.account && this.sidebar.mounted() && this.sidebar.narrow();

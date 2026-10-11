@@ -1,0 +1,60 @@
+<aside class="search-frame">
+  @if (sorts.length) {
+    <label class="sf-sort">
+      <span>เรียงตาม</span>
+      <span class="sf-control">
+        <select aria-label="เรียงตาม" [value]="sort" (change)="sortChange.emit($any($event.target).value)">
+          @for (item of sorts; track item.value) {
+            <option [value]="item.value">{{ item.label }}</option>
+          }
+        </select>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>
+      </span>
+    </label>
+  }
+  <form class="sf-card" (submit)="$event.preventDefault(); run()" (keydown.enter)="onEnter($event)">
+    <div class="sf-body">
+    @for (field of fields; track field.id) {
+      <label class="sf-field">
+        <span>{{ field.label }}</span>
+        @if (field.kind === 'text') {
+          <span class="sf-control">
+            <input
+              type="text"
+              [attr.inputmode]="field.digits ? 'numeric' : null"
+              [attr.maxlength]="field.digits && field.maxLength ? field.maxLength : null"
+              [attr.aria-label]="field.label"
+              [placeholder]="field.placeholder || ''"
+              [value]="textOf(field.id)"
+              (input)="setText(field.id, $any($event.target).value, field)"
+            />
+          </span>
+        } @else if (field.kind === 'select') {
+          <span class="sf-control">
+            <select
+              [attr.aria-label]="field.label"
+              [class.is-empty]="!textOf(field.id)"
+              [value]="textOf(field.id)"
+              (change)="setSelect(field.id, $any($event.target).value)"
+            >
+              <option value="">{{ field.placeholder || 'เลือก' }}</option>
+              @for (item of field.options ?? []; track item.value) {
+                <option [value]="item.value">{{ item.label }}</option>
+              }
+            </select>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>
+          </span>
+        } @else {
+          <span class="sf-control">
+            <input type="text" readonly [attr.aria-label]="field.label" [value]="field.value || ''" />
+          </span>
+        }
+      </label>
+    }
+    </div>
+    <div class="sf-actions">
+      <app-button type="outline" label="รีเซ็ต" (click)="wipe()" />
+      <app-button type="primary" label="ค้นหา" (click)="run()" />
+    </div>
+  </form>
+</aside>

@@ -13,6 +13,7 @@ import { Por1Page } from './pages/requests/por1-page';
 import { Por2Page } from './pages/requests/por2-page';
 import { RequestsPage } from './pages/requests/requests-page';
 import { StaffChatPage } from './pages/requests/staff-chat-page';
+import { CaseRegistryPage } from './pages/staff/case-registry-page';
 import { StaffHomePage } from './pages/staff/staff-home-page';
 import { StaffTaskPage } from './pages/staff/staff-task-page';
 
@@ -27,10 +28,13 @@ export const routes: Routes = [
   { path: 'staff', component: StaffHomePage },
   { path: 'staff/tasks/:code', component: StaffTaskPage },
   { path: 'director', component: StaffHomePage, data: { role: 'director' } },
+  { path: 'cases', component: CaseRegistryPage },
+  { path: 'director/filing', component: Por1Page, data: { review: 'director' } },
   { path: 'director/tasks/:code', component: StaffTaskPage, data: { role: 'director' } },
   { path: 'head', component: StaffHomePage, data: { role: 'head' } },
   { path: 'head/tasks/:code', component: StaffTaskPage, data: { role: 'head' } },
   { path: 'officer', component: StaffHomePage, data: { role: 'officer' } },
+  { path: 'officer/filing', component: Por1Page, data: { review: 'officer' } },
   { path: 'officer/tasks/:code', component: StaffTaskPage, data: { role: 'officer' } },
   { path: 'requests', component: RequestsPage },
   { path: 'requests/por-1', component: Por1Page },

@@ -34,7 +34,7 @@
     </button>
     <div class="top-header__account">
       <button type="button" class="top-header__user" [attr.aria-expanded]="menuOpen" aria-haspopup="menu" (click)="toggleMenu()">
-        <span class="top-header__name">{{ name }}</span>
+        <span class="top-header__name">{{ accountName() }}</span>
         <svg class="top-header__chevron" viewBox="0 0 24 24" aria-hidden="true">
           @if (menuOpen) {
             <path d="M18 14L12 8L6 14" fill="none" stroke="currentColor" stroke-linecap="round"/>

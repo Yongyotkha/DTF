@@ -86,7 +86,9 @@ export class SideNav implements OnInit, OnDestroy {
   @Output() readonly chosen = new EventEmitter<string>();
 
   protected menuList() {
-    return this.kind === 'staff' ? staffMenus : menus;
+    const list = this.kind === 'staff' ? staffMenus : menus;
+    if (this.accounts.role !== 'director') return list;
+    return list.map((menu) => ({ ...menu, items: menu.items.filter((item) => item !== 'ยื่นคำขอ') }));
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
   private readonly submenu = signal<string | null>(null);
@@ -173,8 +175,9 @@ export class SideNav implements OnInit, OnDestroy {
   }
 
   protected pick(label: string): void {
-    if (label === 'ยื่นคำขอ') void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
-    if (label === 'รายการยื่นคำขอ') void this.router.navigate(['/requests']);
+    const staff = this.kind === 'staff';
+    if (label === 'ยื่นคำขอ' && !staff) void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
+    if (label === 'รายการยื่นคำขอ') void this.router.navigate(staff ? ['/cases'] : ['/requests']);
     if (label === 'หน้าหลัก' || label === 'หน้าแรก') {
       const role = this.accounts.role;
       void this.router.navigateByUrl(role ? roleHome[role] : '/home');
