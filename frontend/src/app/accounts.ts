@@ -31,6 +31,7 @@ export class Accounts {
     ['1000000000104', { password: 'Officer@2569', role: 'officer' }],
   ]);
   private signedIn: AccountRole | '' = '';
+  private signedInId = '';
 
   constructor() {
     const saved = sessionStorage.getItem(storageKey);
@@ -43,7 +44,8 @@ export class Accounts {
     }
     const session = sessionStorage.getItem(sessionKey);
     if (!session) return;
-    const current = JSON.parse(session) as { role?: string };
+    const current = JSON.parse(session) as { username?: string; role?: string };
+    if (typeof current.username === 'string') this.signedInId = current.username;
     if (current.role && roles.includes(current.role as AccountRole)) this.signedIn = current.role as AccountRole;
   }
 
@@ -60,7 +62,8 @@ export class Accounts {
     const account = this.users.get(username.trim());
     if (!account || account.password !== password) return null;
     this.signedIn = account.role;
-    sessionStorage.setItem(sessionKey, JSON.stringify({ username: username.trim(), role: account.role }));
+    this.signedInId = username.trim();
+    sessionStorage.setItem(sessionKey, JSON.stringify({ username: this.signedInId, role: account.role }));
     return account.role;
   }
 
@@ -69,8 +72,22 @@ export class Accounts {
     return !!account && account.password === password;
   }
 
+  signOut(): void {
+    this.signedIn = '';
+    this.signedInId = '';
+    sessionStorage.removeItem(sessionKey);
+  }
+
   get role(): AccountRole | '' {
     return this.signedIn;
+  }
+
+  get username(): string {
+    return this.signedInId;
+  }
+
+  get displayName(): string {
+    return this.signedInId === '1000000000101' ? 'เจ้าหน้าที่กลุ่ม บท' : 'บริษัท โนเนม จำกัด';
   }
 
   private readAccount(value: string | Account): Account | null {

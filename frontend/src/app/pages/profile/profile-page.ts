@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { InputField } from '../../input-field/input-field';
 import { SideNav } from '../../menu-bar/side-nav';
@@ -26,6 +27,10 @@ export class ProfilePage {
   protected currentPassword = '';
   protected nextPassword = '';
   protected confirmPassword = '';
+
+  constructor(route: ActivatedRoute) {
+    if (route.snapshot.queryParamMap.get('password') === '1') this.passwordOpen = true;
+  }
 
   protected openPassword(): void {
     this.passwordOpen = true;

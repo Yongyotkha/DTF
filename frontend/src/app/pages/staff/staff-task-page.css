@@ -154,6 +154,7 @@ label {
 }
 
 .req {
+  display: inline;
   color: var(--color-error-red);
 }
 
@@ -163,8 +164,8 @@ label {
   gap: 12px 24px;
 }
 
-.block span,
-.grid p span,
+.block > span,
+.grid p > span,
 label {
   display: block;
   margin-bottom: 4px;

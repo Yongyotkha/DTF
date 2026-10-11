@@ -1,7 +1,7 @@
 <div class="staff">
   <app-top-header class="fluid" />
   <div class="staff__body">
-    <app-side-nav kind="staff" open="ระบบ Task Management" active="หน้าหลัก" (chosen)="openMenu($event)" />
+    <app-side-nav kind="staff" open="" active="หน้าหลัก" (chosen)="openMenu($event)" />
     <main>
       <h1>หน้าหลัก</h1>
       <div class="stats">
@@ -18,7 +18,6 @@
       <section class="list" [class.list--director]="styled">
         <header>
           <h2>{{ current.label }}</h2>
-          <p>{{ current.count }} รายการ</p>
         </header>
         @for (row of rows; track $index) {
           <button type="button" class="row" (click)="openCase(row.code)">

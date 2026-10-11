@@ -6,9 +6,9 @@ const narrowQuery = '(max-width: 900px)';
 
 @Injectable({ providedIn: 'root' })
 export class SidebarState {
-  readonly preference = signal<'expanded' | 'collapsed' | null>(null);
+  readonly preference = signal<'expanded' | 'collapsed'>('collapsed');
   readonly narrow = signal(typeof matchMedia === 'function' && matchMedia(narrowQuery).matches);
-  readonly collapsed = computed(() => this.preference() === 'collapsed' || (this.preference() === null && this.narrow()));
+  readonly collapsed = computed(() => this.preference() === 'collapsed');
 
   constructor() {
     if (typeof matchMedia !== 'function') return;
@@ -64,7 +64,7 @@ export class SideNav implements OnInit {
 
   ngOnInit(): void {
     const source = this.menuList();
-    const titles = this.open === 'all' ? source.map((menu) => menu.title) : [this.open];
+    const titles = this.open === 'all' ? source.map((menu) => menu.title) : this.open ? [this.open] : [];
     this.opened.set(new Set(titles));
   }
 
