@@ -1,6 +1,8 @@
 import { Component, ElementRef, Injectable, WritableSignal, computed, effect, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatLine, ChatSource, Conversation, MemoryAiApi, SourceFile, SourceKind, nextLineId, nextSourceId } from './ai-api';
+import { FilingAiContext, FilingSnapshot, guideQuestions, guideWelcome, mockFilingGuide } from './filing-context';
+import { filingRefId } from '../pages/requests/case-status';
 
 export type ChatMode = 'closed' | 'floating' | 'expanded';
 export type AnswerScope = 'thread' | 'sources' | 'page';
@@ -22,7 +24,7 @@ export type PageContext = {
   enabled: boolean;
 };
 
-type Scripted = { title: string; text: string; sources?: ChatSource[] };
+type Scripted = { title: string; text: string; sources?: ChatSource[]; jumps?: { id: string; label: string }[] };
 
 export const guidePrompts = ['ขั้นตอนการยื่นคำขอคืออะไร?', 'สถานะในแต่ละขั้นตอนหมายถึงอะไร?', 'เอกสารที่ต้องเตรียมมีอะไรบ้าง?', 'วิธีแก้ไขคำขอหลังยื่นแล้ว?'];
 
@@ -72,6 +74,7 @@ function clock(): string {
 function pageTitle(path: string): { title: string; requestId: string } {
   const requestId = /^\/requests\/(?!por-|draft|chat)([^/]+)$/.exec(path)?.[1] ?? '';
   if (path.startsWith('/home')) return { title: 'หน้าแรก', requestId };
+  if (path === '/requests/por-1') return { title: 'แบบ ปร.1', requestId: filingRefId };
   if (path.startsWith('/requests/por-')) return { title: 'แบบคำขอ', requestId: '' };
   if (path.startsWith('/requests/draft')) return { title: 'ฉบับร่าง', requestId: '' };
   if (requestId) return { title: 'รายละเอียดคำขอ', requestId };
@@ -101,7 +104,10 @@ export class AskAiState {
 
   private replyTimer = 0;
 
-  constructor(private readonly api: MemoryAiApi) {
+  constructor(
+    private readonly api: MemoryAiApi,
+    private readonly filing: FilingAiContext,
+  ) {
     this.conversations = this.api.conversations;
     this.activeId = this.api.activeId;
   }
@@ -124,6 +130,32 @@ export class AskAiState {
 
   close(): void {
     this.mode.set('closed');
+  }
+
+  prompts(): string[] {
+    const snapshot = this.filing.snapshot();
+    return snapshot ? guideQuestions(snapshot) : guidePrompts;
+  }
+
+  welcome(): string {
+    const snapshot = this.filing.snapshot();
+    return snapshot ? guideWelcome(snapshot) : '';
+  }
+
+  guideTitle(): string {
+    const snapshot = this.filing.snapshot();
+    return snapshot ? `${snapshot.formType} · ${snapshot.measureType} · ${snapshot.currentSectionTitle}` : '';
+  }
+
+  guideLine(): string {
+    const snapshot = this.filing.snapshot();
+    if (!snapshot) return '';
+    const field = snapshot.currentField ? ` · ช่อง ${snapshot.currentField}` : '';
+    return `${snapshot.formType} · ${snapshot.measureType} · ${snapshot.requestId} · ${snapshot.currentSectionTitle}${field}`;
+  }
+
+  go(id: string): void {
+    this.filing.go(id);
   }
 
   setPage(path: string): void {
@@ -197,9 +229,10 @@ export class AskAiState {
     this.replying.set(true);
     const page = this.page();
     const scope = this.scope();
+    const filing = this.filing.snapshot();
     window.clearTimeout(this.replyTimer);
     this.replyTimer = window.setTimeout(() => {
-      const reply = this.replyFor(text, attached, selected, scope, page);
+      const reply = this.replyFor(text, attached, selected, scope, page, filing);
       this.api.addLines(conversationId, [{ id: nextLineId(), role: 'ai', time: clock(), ...reply }]);
       this.replying.set(false);
     }, 400);
@@ -276,7 +309,7 @@ export class AskAiState {
     return { id: nextSourceId(), name: file.name, url: file.url, kind: file.kind, size: file.size, selected: false };
   }
 
-  private replyFor(text: string, files: SourceFile[], selected: SourceFile[], scope: AnswerScope, page: PageContext): Scripted {
+  private replyFor(text: string, files: SourceFile[], selected: SourceFile[], scope: AnswerScope, page: PageContext, filing: FilingSnapshot | null): Scripted {
     const names = [...files.map((file) => file.name), ...selected.map((file) => file.name)];
     if (files.length > 0 || (scope === 'sources' && selected.length > 0)) {
       return {
@@ -285,8 +318,15 @@ export class AskAiState {
         sources: files.map((file) => ({ label: file.name, sourceId: file.id })),
       };
     }
+    if (filing) {
+      const guided = mockFilingGuide.reply(text, filing);
+      if (guided) return guided;
+    }
     const known = scriptedAnswers[text];
     const base = known ?? { title: text, text: 'ยังไม่มีคำตอบจากคลังคำถามช่วยใช้งานสำหรับข้อความนี้ และยังไม่ได้เชื่อมต่อโมเดล' };
+    if (filing && page.enabled) {
+      return { ...base, text: `${base.text}\n\nใช้บริบท ${filing.formType} · ${filing.measureType} · ${filing.currentSectionTitle} ไม่ได้ส่งเนื้อหาในฟอร์ม` };
+    }
     if (scope === 'page' && page.enabled) {
       const where = page.requestId ? `${page.title} · ${page.requestId}` : page.title;
       return { ...base, text: `${base.text}\n\nใช้บริบทเฉพาะชื่อหน้า «${where}» ไม่ได้ส่งเนื้อหาในฟอร์ม` };
@@ -302,13 +342,12 @@ export class AskAiState {
 })
 export class AiThread {
   private readonly log = viewChild<ElementRef<HTMLElement>>('log');
-  protected readonly prompts = guidePrompts;
   protected readonly marks = signal<Readonly<Record<number, 'up' | 'down'>>>({});
   protected readonly dragging = signal(false);
   protected readonly lastAiId = computed(() => [...this.chat.lines()].reverse().find((line) => line.role === 'ai')?.id ?? 0);
   protected readonly follow = computed(() => {
     const title = [...this.chat.lines()].reverse().find((line) => line.role === 'ai')?.title ?? '';
-    return guidePrompts.filter((prompt) => prompt !== title).slice(0, 2);
+    return this.chat.prompts().filter((prompt) => prompt !== title).slice(0, 3);
   });
 
   constructor(

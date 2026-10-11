@@ -3,12 +3,25 @@
     <article class="ask-line ask-line--ai">
       <img class="ask-avatar" src="assets/icons/chat-avatar.svg" width="36" height="36" alt="" />
       <div class="ask-bubble">
-        <p>สวัสดีค่ะ<br />ฉันคือผู้ช่วย AI ของระบบ DFT<br />พร้อมให้คำแนะนำเกี่ยวกับการใช้งานระบบ การยื่นคำขอ และขั้นตอนต่าง ๆ ค่ะ</p>
+        @if (chat.welcome(); as hello) {
+          <p>{{ hello }}</p>
+          <p class="ai-sample">คำแนะนำตัวอย่าง · ยังไม่เชื่อมต่อโมเดล และไม่ได้ตรวจเนื้อหาเอกสาร</p>
+          <p class="ai-kicker">ทำได้ทันที</p>
+          <div class="ai-jumps">
+            <button type="button" (click)="chat.ask(chat.prompts()[0])">ตรวจส่วนนี้</button>
+            <button type="button" (click)="chat.ask(chat.prompts()[1])">เอกสารของส่วนนี้</button>
+          </div>
+        } @else {
+          <p>สวัสดีค่ะ<br />ฉันคือผู้ช่วย AI ของระบบ DFT<br />พร้อมให้คำแนะนำเกี่ยวกับการใช้งานระบบ การยื่นคำขอ และขั้นตอนต่าง ๆ ค่ะ</p>
+        }
       </div>
     </article>
     @if (chat.lines().length === 0 && !chat.replying()) {
+      @if (chat.welcome()) {
+        <p class="ai-kicker ai-kicker--chips">คำถามแนะนำ</p>
+      }
       <div class="ai-chips">
-        @for (prompt of prompts; track prompt) {
+        @for (prompt of chat.prompts(); track prompt) {
           <button type="button" (click)="chat.ask(prompt)">{{ prompt }}</button>
         }
       </div>
@@ -41,6 +54,13 @@
               <strong>{{ line.title }}</strong>
             }
             <p>{{ line.text }}</p>
+            @if (line.jumps?.length) {
+              <div class="ai-jumps">
+                @for (jump of line.jumps; track jump.id) {
+                  <button type="button" (click)="chat.go(jump.id)">{{ jump.label }}</button>
+                }
+              </div>
+            }
             @if (line.sources?.length) {
               <div class="ask-sources">
                 <b>แหล่งข้อมูลอ้างอิง</b>
@@ -103,8 +123,12 @@
   }
   <form (submit)="$event.preventDefault(); chat.send()">
     <div class="ai-context">
-      @if (chat.page().enabled) {
+      @if (chat.guideLine(); as line) {
+        <span>ใช้บริบท: {{ line }}</span>
+      } @else if (chat.page().enabled) {
         <span>ใช้บริบท: {{ chat.page().title }}@if (chat.page().requestId) { · {{ chat.page().requestId }} }</span>
+      }
+      @if (chat.page().enabled) {
         <button type="button" (click)="chat.page.update((page) => ({ ...page, enabled: false }))">ไม่ใช้</button>
       } @else {
         <button type="button" (click)="chat.page.update((page) => ({ ...page, enabled: true }))">ใช้บริบทหน้านี้</button>

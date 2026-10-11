@@ -1,8 +1,15 @@
 <div class="menu-group" [class.menu-group--compact]="compact">
-  <app-menu-item [label]="title" [icon]="icon" [chevron]="true" [compact]="compact" [expanded]="expanded" [state]="expanded ? 'active' : 'default'" (click)="activate()" />
+  <app-menu-item [label]="title" [icon]="icon" [chevron]="true" [compact]="compact" [expanded]="compact ? flyout : expanded" [controls]="compact && items.length ? flyoutId : ''" [state]="groupActive ? 'active' : 'default'" (click)="activate()" />
   @if (expanded && !compact) {
     @for (item of items; track item) {
       <app-menu-item level="sub" [label]="item" [state]="item === active ? 'active' : 'default'" (click)="chosen.emit(item)" />
     }
+  }
+  @if (flyout && compact && items.length) {
+    <div class="menu-group__flyout" role="group" [id]="flyoutId" [attr.aria-label]="title" [style.top.px]="flyoutTop">
+      @for (item of items; track item) {
+        <app-menu-item level="sub" [label]="item" [state]="item === active ? 'active' : 'default'" (click)="chosen.emit(item)" />
+      }
+    </div>
   }
 </div>

@@ -1,6 +1,12 @@
 /* TopHeader 231:3162. Bar is 1440 by 65, with a 1px bottom border. */
-:host(.fluid) {
+:host {
   display: block;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+:host(.fluid) {
   width: 100%;
 }
 
@@ -33,10 +39,101 @@
   object-fit: contain;
 }
 
+.top-header__lead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .top-header__actions {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+}
+
+.top-header__nav,
+.top-header__tool {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: var(--color-disabled-bg);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.top-header__nav svg,
+.top-header__tool svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.top-header__tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 6;
+  display: none;
+  padding: 4px 8px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.top-header__nav:hover .top-header__tip,
+.top-header__nav:focus-visible .top-header__tip,
+.top-header__tool:hover .top-header__tip,
+.top-header__tool:focus-visible .top-header__tip {
+  display: block;
+}
+
+.top-header__nav:focus-visible,
+.top-header__tool:focus-visible,
+.top-header__exit:focus-visible,
+.top-header__bell:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.top-header__exit {
+  height: 32px;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.top-header__exit:hover {
+  background: var(--color-bg-page);
+}
+
+.top-header--focus {
+  box-shadow: var(--shadow-card);
 }
 
 .top-header__bell {
@@ -74,6 +171,22 @@
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .top-header {
+    gap: 8px;
+    padding: 0 16px;
+  }
+
+  .top-header__actions {
+    gap: 8px;
+  }
+
+  .top-header__name {
+    max-width: 88px;
+  }
 }
 
 .top-header__user {

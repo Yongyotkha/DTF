@@ -1,21 +1,49 @@
-import { Injectable, Component, EventEmitter, Input, OnInit, Output, computed, signal } from '@angular/core';
+import { Injectable, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, computed, effect, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Accounts, roleHome } from '../accounts';
+import { WorkspaceState } from '../workspace/workspace-state';
 import { MenuGroup } from './menu-group';
 import { MenuItem } from './menu-item';
 
 const narrowQuery = '(max-width: 900px)';
+const sidebarKey = 'dft-sidebar';
+
+function readSidebar(): 'expanded' | 'collapsed' | null {
+  try {
+    const saved = sessionStorage.getItem(sidebarKey);
+    return saved === 'expanded' || saved === 'collapsed' ? saved : null;
+  } catch {
+    return null;
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class SidebarState {
-  readonly preference = signal<'expanded' | 'collapsed' | null>(null);
+  readonly preference = signal<'expanded' | 'collapsed' | null>(readSidebar());
   readonly narrow = signal(typeof matchMedia === 'function' && matchMedia(narrowQuery).matches);
-  readonly collapsed = computed(() => this.preference() === 'collapsed' || (this.preference() === null && this.narrow()));
+  readonly drawer = signal(false);
+  readonly mounted = signal(false);
+  readonly collapsed = computed(() => !this.narrow() && this.preference() === 'collapsed');
 
   constructor() {
+    effect(() => {
+      const value = this.preference();
+      if (!value) return;
+      try {
+        sessionStorage.setItem(sidebarKey, value);
+      } catch {
+        /* private browsing */
+      }
+    });
+    effect(() => {
+      document.body.classList.toggle('nav-drawer', this.narrow() && this.drawer());
+    });
     if (typeof matchMedia !== 'function') return;
     const query = matchMedia(narrowQuery);
-    query.addEventListener('change', () => this.narrow.set(query.matches));
+    query.addEventListener('change', () => {
+      this.narrow.set(query.matches);
+      if (!query.matches) this.drawer.set(false);
+    });
   }
 }
 
@@ -43,11 +71,15 @@ const staffMenus = [
   templateUrl: './side-nav.html',
   styleUrl: './side-nav.css',
   host: {
+    id: 'sidebar',
+    role: 'navigation',
     '[class.side-nav--collapsed]': 'collapsed()',
+    '[class.side-nav--open]': 'drawerOpen()',
+    '[class.side-nav--quiet]': 'quiet()',
     'aria-label': 'เมนูหลัก',
   },
 })
-export class SideNav implements OnInit {
+export class SideNav implements OnInit, OnDestroy {
   @Input() open = '';
   @Input() active = '';
   @Input() kind: 'applicant' | 'staff' = 'applicant';
@@ -57,11 +89,14 @@ export class SideNav implements OnInit {
     return this.kind === 'staff' ? staffMenus : menus;
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
+  private readonly submenu = signal<string | null>(null);
 
   constructor(
     private readonly state: SidebarState,
+    private readonly workspace: WorkspaceState,
     private readonly router: Router,
     private readonly accounts: Accounts,
+    private readonly host: ElementRef<HTMLElement>,
   ) {}
 
   protected readonly version = '0.1.0';
@@ -70,9 +105,38 @@ export class SideNav implements OnInit {
     return this.state.collapsed;
   }
 
+  protected get narrow() {
+    return this.state.narrow;
+  }
+
   ngOnInit(): void {
+    this.state.mounted.set(true);
     const titles = this.open === 'all' ? this.menuList().map((menu) => menu.title) : this.open ? [this.open] : [];
     this.opened.set(new Set(titles));
+  }
+
+  ngOnDestroy(): void {
+    this.state.mounted.set(false);
+    this.state.drawer.set(false);
+  }
+
+  protected drawerOpen(): boolean {
+    return this.state.narrow() && this.state.drawer();
+  }
+
+  protected quiet(): boolean {
+    const mode = this.workspace.mode();
+    return !this.state.narrow() && mode === 'focus';
+  }
+
+  protected toggleLabel(): string {
+    if (this.state.narrow()) return 'ปิดเมนู';
+    return this.state.collapsed() ? 'ขยายเมนู' : 'ย่อเมนู';
+  }
+
+  protected toggleExpanded(): boolean {
+    if (this.state.narrow()) return this.drawerOpen();
+    return !this.state.collapsed();
   }
 
   protected isOpen(title: string): boolean {
@@ -80,22 +144,32 @@ export class SideNav implements OnInit {
   }
 
   protected toggleGroup(title: string): void {
-    const collapsed = this.state.collapsed();
-    if (collapsed) this.expand();
+    if (this.state.collapsed()) {
+      this.submenu.update((current) => (current === title ? null : title));
+      return;
+    }
+    this.submenu.set(null);
     this.opened.update((current) => {
       const next = new Set(current);
-      if (collapsed || !next.has(title)) next.add(title);
-      else next.delete(title);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
       return next;
     });
   }
 
   protected toggle(): void {
+    if (this.state.narrow()) {
+      this.closeDrawer();
+      return;
+    }
+    this.submenu.set(null);
     this.state.preference.set(this.state.collapsed() ? 'expanded' : 'collapsed');
+    queueMicrotask(() => document.getElementById('sidebar-collapse')?.focus());
   }
 
-  protected expand(): void {
-    this.state.preference.set('expanded');
+  protected closeDrawer(restoreFocus = true): void {
+    this.state.drawer.set(false);
+    if (restoreFocus) queueMicrotask(() => document.getElementById('sidebar-menu')?.focus());
   }
 
   protected pick(label: string): void {
@@ -106,6 +180,49 @@ export class SideNav implements OnInit {
       void this.router.navigateByUrl(role ? roleHome[role] : '/home');
     }
     this.chosen.emit(label);
-    if (this.state.narrow()) this.state.preference.set('collapsed');
+    this.submenu.set(null);
+    if (this.state.narrow()) this.closeDrawer(false);
+  }
+
+  protected closeFlyouts(): void {
+    if (this.submenu()) this.submenu.set(null);
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected closeFlyout(event: MouseEvent): void {
+    if (!this.state.collapsed()) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('app-menu-group')) return;
+    this.submenu.set(null);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  protected onKey(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (this.submenu()) {
+        this.submenu.set(null);
+        return;
+      }
+      const assistantOpen = !!document.querySelector('.ask-panel') && this.workspace.band() !== 'desktop';
+      if (assistantOpen) return;
+      if (this.drawerOpen()) {
+        event.preventDefault();
+        this.closeDrawer();
+      }
+      return;
+    }
+    if (event.key !== 'Tab' || !this.drawerOpen()) return;
+    const items = [...this.host.nativeElement.querySelectorAll<HTMLElement>('button, a, input, select, textarea')].filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !this.host.nativeElement.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 }

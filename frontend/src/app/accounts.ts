@@ -4,7 +4,7 @@ const storageKey = 'dft-accounts';
 const sessionKey = 'dft-session';
 const lastKey = 'dft-last-account';
 const trustKey = 'dft-trusted-device';
-const trustSpan = 7 * 24 * 60 * 60 * 1000;
+const trustSpan = 30 * 24 * 60 * 60 * 1000;
 
 export type AccountRole = 'corporate' | 'individual' | 'association' | 'staff' | 'director' | 'head' | 'officer';
 

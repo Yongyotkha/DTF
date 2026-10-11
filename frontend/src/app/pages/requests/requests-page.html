@@ -5,12 +5,12 @@
     <main>
       <header class="head">
         <h1>รายการยื่นคำขอ</h1>
-        <app-button class="icon-before" label="ยื่นคำขอ" (click)="openChooser()">
+        <app-button class="icon-before" label="ยื่นคำขอ" (click)="openChooser($event)">
           <img src="assets/icons/list-plus.svg" width="24" height="24" alt="" />
         </app-button>
       </header>
       <section class="panel">
-        <app-tabs [labels]="tabs" [marks]="[1, 1]" (activeChange)="listTab = $event" />
+        <app-tabs [labels]="tabs" [marks]="[1, 1]" [selected]="listTab" (activeChange)="setListTab($event)" />
         <div class="table-scroll">
           <table>
             <thead>
@@ -39,10 +39,16 @@
                   <td>{{ row.code }}</td>
                   <td>{{ row.goods }}</td>
                   <td>{{ row.kind }}</td>
-                  <td><span class="pill">{{ row.status }}</span></td>
+                  <td>
+                    @if (row.id === 'row-1') {
+                      <app-status-tag [tone]="caseTone" [label]="caseLabel" />
+                    } @else {
+                      <span class="pill">{{ row.status }}</span>
+                    }
+                  </td>
                   <td>{{ row.created }}</td>
                   <td>
-                    <button type="button" class="act" [class.act--wait]="!row.ready" [disabled]="!row.ready" (click)="listTab === 0 ? openCase() : openDraft()">{{ row.ready ? 'ดำเนินการ' : 'รอดำเนินการ' }}</button>
+                    <button type="button" class="act" [class.act--wait]="!row.ready" [disabled]="!row.ready" (click)="listTab === 0 ? openCase() : openDraft()">{{ row.id === 'row-1' && !row.ready ? 'ยกเลิกแล้ว' : (row.ready ? 'ดำเนินการ' : 'รอดำเนินการ') }}</button>
                   </td>
                 </tr>
                 @if (listTab === 0 && openRows().has(row.id)) {
@@ -89,34 +95,48 @@
 
 @if (choosing) {
   <div class="chooser">
-    <section role="dialog" aria-label="เลือกประเภทการยื่นคำขอ">
-      <header>
-        <h2>เลือกประเภทการยื่นคำขอ</h2>
-        <button type="button" aria-label="ปิด" (click)="closeChooser()">✕</button>
+    <section role="dialog" aria-modal="true" aria-labelledby="chooser-title" aria-describedby="chooser-note">
+      <header class="chooser__head">
+        <div>
+          <h2 id="chooser-title">คุณต้องการยื่นคำขอเรื่องใด?</h2>
+          <p id="chooser-note">เลือกแบบฟอร์มให้ตรงกับวัตถุประสงค์</p>
+        </div>
+        <button id="chooser-close" type="button" aria-label="ปิด" (click)="closeChooser()">✕</button>
       </header>
       <div class="chooser__body">
         <div class="chooser__bar">
-          <div class="measures">
-            @for (item of measures; track item) {
-              <button type="button" [class.active]="measure === item" (click)="measure = item">{{ item }}</button>
+          <div class="measures" role="tablist" aria-label="มาตรการ">
+            @for (item of measures; track item.value) {
+              <button type="button" role="tab" [class.active]="measure === item.value" [attr.aria-selected]="measure === item.value" (click)="pickMeasure(item.value)">{{ item.label }}</button>
             }
           </div>
-          <app-button class="icon-before ask-ai" label="สอบถาม AI" (click)="openAsk()">
-            <img src="assets/icons/ask-ai.svg" width="21.3547" height="21.3559" alt="" />
-          </app-button>
         </div>
         <div class="cards">
-          @for (form of forms; track form.code) {
-            <button type="button" class="card" (click)="openForm(form.code)">
-              <span class="card__icon" aria-hidden="true">
-                <img src="assets/icons/akar-icons-file.svg" width="18" height="22" alt="" />
-              </span>
-              <span>
-                <strong>แบบ {{ form.code }}</strong>
-                <em>{{ form.title }}</em>
-                <small>{{ form.detail }}</small>
-              </span>
-            </button>
+          @for (form of forms; track form.code; let index = $index) {
+            <article class="card">
+              <button type="button" class="card__body" (click)="openForm(form.code)">
+                <span class="card__top">
+                  <span class="card__badge">{{ form.code }}</span>
+                  <svg class="card__mark" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="6" y="3.5" width="12" height="17" rx="2" />
+                    <path d="M9 9h6M9 13h6M9 17h4" />
+                  </svg>
+                </span>
+                <h3>{{ purpose(form).label }}</h3>
+                <p>{{ purpose(form).summary }}</p>
+              </button>
+              <div class="card__legal" [id]="'form-legal-' + index" [hidden]="detailCode !== form.code">
+                <p>{{ form.title }}</p>
+                <p>{{ form.detail }}</p>
+              </div>
+              <div class="card__actions">
+                <button type="button" class="card__quiet" [attr.aria-expanded]="detailCode === form.code" [attr.aria-controls]="'form-legal-' + index" (click)="toggleDetail(form.code)">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 11v5M12 8h.01" /></svg>
+                  รายละเอียด
+                </button>
+                <button type="button" class="card__go" (click)="openForm(form.code)">เลือกแบบฟอร์ม →</button>
+              </div>
+            </article>
           }
         </div>
       </div>

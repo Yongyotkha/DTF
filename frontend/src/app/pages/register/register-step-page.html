@@ -313,7 +313,7 @@
           </span>
         }
         @if (importRows().length) {
-          <app-data-table [columns]="['ลำดับ', 'ชื่อ', 'นามสกุล', 'กระทำ']" [rows]="importTable()" />
+          <app-data-table class="fill index" [columns]="['ลำดับ', 'ชื่อ', 'นามสกุล', 'กระทำ']" [rows]="importTable()" />
         }
       }
       <div class="director__actions">

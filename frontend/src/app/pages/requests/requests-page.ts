@@ -1,10 +1,13 @@
-import { Component, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AskAiState } from '../../ask-ai/ask-ai';
 import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
+import { RequestForm, purposeOf, requestForms, requestMeasures } from './form-catalog';
+import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus } from './case-status';
+import { StatusTag } from '../../status-tag/status-tag';
 
 type RequestStep = {
   name: string;
@@ -34,34 +37,28 @@ function requestSteps(current: number): RequestStep[] {
   }));
 }
 
-const forms = [
-  { code: 'ปร. 1', title: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน', detail: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน ตามมาตรา 33 วรรคหนึ่ง และมาตรา 70' },
-  { code: 'ปร. 2', title: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน', detail: 'แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้ การทุ่มตลาดหรือการอุดหนุนตามมาตรา 56' },
-  { code: 'ปร. 2ก', title: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน', detail: 'แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับความตกลงเพื่อระงับการทุ่มตลาดหรือการอุดหนุนตามมา' },
-  { code: 'ปร. 3', title: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน', detail: 'แบบคำขอให้พิจารณาทบทวนการเรียกเก็บอากรตอบโต้ การทุ่มตลาดหรือการอุดหนุนต่อไปตามมาตรา 57' },
-  { code: 'ปร. 3ก', title: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน', detail: 'แบบคำขอให้พิจารณาทบทวนการใช้บังคับความตกลงเพื่อระงับ การทุ่มตลาดหรือการอุดหนุนต่อไปตามมาตรา 48' },
-  { code: 'ปร. 4', title: 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน', detail: 'แบบคำขอให้พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุนสำหรับผู้ส่งออกหรือผู้ผลิตรา' },
-];
-
 @Component({
   selector: 'app-requests-page',
-  imports: [TopHeader, SideNav, DftButton, Tabs],
+  imports: [TopHeader, SideNav, DftButton, Tabs, StatusTag],
   templateUrl: './requests-page.html',
   styleUrl: './requests-page.css',
 })
-export class RequestsPage {
-  protected readonly measures = ['มาตราการ AD', 'มาตราการ CVD', 'มาตราการ SG', 'มาตราการ AC'];
-  protected readonly forms = forms;
+export class RequestsPage implements OnDestroy {
+  protected readonly measures = requestMeasures;
+  protected readonly forms = requestForms;
   protected readonly tabs = ['รายการยื่นคำขอ', 'ฉบับร่าง'];
   protected measure = 'มาตราการ AD';
   protected choosing = false;
+  protected detailCode = '';
   protected listTab = 0;
   protected page = 1;
   protected readonly openRows = signal<ReadonlySet<string>>(new Set(['row-1', 'row-2']));
   private readonly rows: RequestRow[] = [
-    { id: 'row-1', code: 'AD0012', goods: 'text', kind: 'ยื่นในนามของตนเอง', status: 'ยื่นคำขอ', created: '22/09/2569 10:20', ready: true, steps: requestSteps(0) },
+    { id: 'row-1', code: filingRefId, goods: 'เหล็กแผ่นรีดร้อน', kind: 'ยื่นแทนผู้ผลิตบางส่วน', status: 'ยื่นคำขอ', created: '15/05/2562 10:00', ready: true, steps: requestSteps(0) },
     { id: 'row-2', code: 'AD0012', goods: 'text', kind: 'ยื่นในนามของตนเอง', status: 'ยื่นรับฟังความคิดเห็น', created: '22/09/2569 10:20', ready: false, steps: requestSteps(1) },
   ];
+
+  private opener: HTMLElement | null = null;
 
   constructor(
     private readonly router: Router,
@@ -69,14 +66,41 @@ export class RequestsPage {
     route: ActivatedRoute,
   ) {
     route.queryParamMap.subscribe((params) => {
-      this.choosing = params.get('choose') === '1';
+      this.listTab = params.get('tab') === 'draft' ? 1 : 0;
+      const next = params.get('choose') === '1';
+      if (next && !this.choosing) setTimeout(() => document.getElementById('chooser-close')?.focus(), 0);
+      if (!next && this.choosing) setTimeout(() => this.opener?.focus(), 0);
+      this.choosing = next;
+      document.body.classList.toggle('chooser-open', next);
     });
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('chooser-open');
   }
 
   protected get visibleRows(): RequestRow[] {
     if (this.page !== 1) return [];
-    if (this.listTab === 1) return [this.rows[0]];
-    return this.rows;
+    const status = readCaseStatus();
+    const current = { ...this.rows[0], status: caseStatusLabel(status), ready: status !== 'cancelled' };
+    if (this.listTab === 1) return status === 'draft' ? [current] : [];
+    return status === 'draft' ? [this.rows[1]] : [current, this.rows[1]];
+  }
+
+  protected get caseTone() {
+    return caseStatusTone(readCaseStatus());
+  }
+
+  protected get caseLabel(): string {
+    return caseStatusLabel(readCaseStatus());
+  }
+
+  protected setListTab(index: number): void {
+    this.listTab = index;
+    void this.router.navigate(['/requests'], {
+      queryParams: index === 1 ? { tab: 'draft' } : {},
+      replaceUrl: true,
+    });
   }
 
   protected shiftPage(step: number): void {
@@ -100,7 +124,9 @@ export class RequestsPage {
     void this.router.navigate(['/requests', 'draft', 'A4']);
   }
 
-  protected openChooser(): void {
+  protected openChooser(event?: Event): void {
+    const host = event?.currentTarget as HTMLElement | undefined;
+    this.opener = host?.querySelector('button') ?? host ?? null;
     this.choosing = true;
     void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
   }
@@ -124,8 +150,23 @@ export class RequestsPage {
     void this.router.navigate(['/requests']);
   }
 
-  protected openAsk(): void {
-    this.askAi.show();
+  protected pickMeasure(value: string): void {
+    this.measure = value;
+    this.detailCode = '';
+  }
+
+  protected purpose(form: RequestForm) {
+    return purposeOf(form, this.measure);
+  }
+
+  protected toggleDetail(code: string): void {
+    this.detailCode = this.detailCode === code ? '' : code;
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (!this.choosing || this.askAi.mode() !== 'closed') return;
+    this.closeChooser();
   }
 
   protected openMenu(label: string): void {

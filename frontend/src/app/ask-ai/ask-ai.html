@@ -1,29 +1,32 @@
 @if (shown()) {
   @if (chat.mode() !== 'closed') {
     <section class="ask-panel" [class.ask-panel--floating]="chat.mode() === 'floating'" [class.ask-panel--expanded]="chat.mode() === 'expanded'" [class.ask-panel--shot]="chat.capturing()" aria-label="แชทถาม AI">
+      @if (resizable()) {
+        <button type="button" class="ask-panel__resize" aria-label="ปรับความกว้างแผงผู้ช่วย" [attr.aria-valuemin]="320" [attr.aria-valuemax]="560" [attr.aria-valuenow]="workspace.splitWidth()" (pointerdown)="resizeStart($event)" (keydown)="resizeKey($event)"></button>
+      }
       <header>
         <div class="ask-panel__who">
           <img src="assets/icons/chat-avatar.svg" width="40" height="40" alt="" />
           <span>
-            <strong>แชทถาม AI</strong>
-            ตอบคำถามการใช้งานระบบ DFT
+            <strong>{{ chat.guideTitle() ? 'ผู้ช่วยยื่นคำขอ' : 'แชทถาม AI' }}</strong>
+            <small>{{ chat.guideTitle() || 'ตอบคำถามการใช้งานระบบ DFT' }}</small>
           </span>
         </div>
         <div class="ask-panel__tools">
           @if (chat.mode() === 'expanded') {
-            <button type="button" aria-label="ย่อเป็นหน้าต่าง" (click)="chat.minimize()">
+            <button type="button" aria-label="ย่อเป็นหน้าต่าง" (click)="shrink()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
             </button>
           }
           @if (chat.mode() === 'floating') {
-            <button type="button" aria-label="ขยายเป็นแผงขวา" (click)="chat.expand()">
+            <button type="button" aria-label="ขยายเป็นแผงขวา" (click)="grow()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9V5h4M15 5h4v4M5 15v4h4M15 19h4v-4" /></svg>
             </button>
           }
-          <button type="button" aria-label="เปิดหน้าทำงาน" (click)="workspace()">
+          <button type="button" aria-label="เปิดหน้าทำงาน" (click)="openWorkspace()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h6v6H9z" /></svg>
           </button>
-          <button type="button" aria-label="ปิดแชท" (click)="chat.close()">
+          <button type="button" aria-label="ปิดแชท" (click)="dismiss()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" /></svg>
           </button>
         </div>

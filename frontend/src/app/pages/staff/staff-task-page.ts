@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DftButton } from '../../button/button';
@@ -5,9 +6,15 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StepperOne, StepperOneItem } from '../../stepper-1/stepper-1';
 import { TopHeader } from '../../top-header/top-header';
 
+type TaskFile = { name: string; saved: string; title: string; kind: string; due: string };
+
+function taskFile(name: string, title = '', saved = '22/09/2569', kind = '', due = ''): TaskFile {
+  return { name, saved, title, kind, due };
+}
+
 @Component({
   selector: 'app-staff-task-page',
-  imports: [TopHeader, SideNav, DftButton, StepperOne],
+  imports: [TopHeader, SideNav, DftButton, StepperOne, NgTemplateOutlet],
   templateUrl: './staff-task-page.html',
   styleUrl: './staff-task-page.css',
 })
@@ -48,7 +55,43 @@ export class StaffTaskPage {
   protected paper: 'done' | 'missed' | '' = '';
   protected feeNotice: 'pay' | 'skip' = 'skip';
   protected outcome: 'report' | 'forward' = 'forward';
-  protected attachment = '';
+  protected readonly stakeOptions = [
+    'ผู้ผลิตภายในประเทศ',
+    'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้ผลิตในประเทศ)',
+    'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้นำเข้า/ผู้ใช้)',
+    'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง',
+  ];
+  protected lists: Record<string, TaskFile[]> = {
+    assign: [],
+    paper: [],
+    notice: [taskFile('หนังสือแจ้งแก้ไข.pdf')],
+    noticeAgain: [taskFile('หนังสือแจ้งแก้ไข.pdf')],
+    seal: [taskFile('ตราประทับบริษัท.png', '', '24/09/2569')],
+    cover: [],
+    closedForm: [taskFile('ไฟล์คำขอฉบับปกปิด.pdf', 'แบบ ปร.1', '24/09/2569')],
+    extra: [],
+    openForm: [],
+    extend: [],
+    embassy: [taskFile('ไฟล์แจ้งสถานทูต.pdf', 'แจ้งสถานทูต')],
+    feeProof: [taskFile('หลักฐานการชำระค่าธรรมเนียม.pdf', 'หลักฐานการชำระค่าธรรมเนียม')],
+    inquiry: [
+      taskFile('ไฟล์ 1.pdf', 'ผู้ผลิตภายในประเทศ'),
+      taskFile('ไฟล์ 2.pdf', 'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้ผลิตในประเทศ)'),
+      taskFile('ไฟล์ 3.pdf', 'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้นำเข้า/ผู้ใช้)'),
+    ],
+    gazette: [taskFile('ไฟล์.pdf', 'ประกาศกรมฯ เปิดไต่สวน/ทบทวน')],
+    committee: [
+      taskFile('ไฟล์ 1.pdf', 'ผู้ผลิตภายในประเทศ'),
+      taskFile('ไฟล์ 2.pdf', 'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้ผลิตในประเทศ)'),
+      taskFile('ไฟล์ 3.pdf', 'ผู้ผลิตภายในประเทศกลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้นำเข้า/'),
+    ],
+    survey: [
+      taskFile('file name.png', '', '22/09/2569', 'ผู้ผลิตภายในประเทศ', '22/09/2569'),
+      taskFile('file name.png', '', '22/09/2569', 'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง', '22/09/2569'),
+      taskFile('file name.png', '', '22/09/2569', 'กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง', '22/09/2569'),
+    ],
+    feeLetter: [taskFile('ไฟล์.pdf', 'หนังสือชำระค่าธรรมเนียม')],
+  };
 
   private readonly officerLabels = [
     'ข้อมูลการยื่นคำขอ',
@@ -129,9 +172,71 @@ export class StaffTaskPage {
     void this.router.navigate([this.home]);
   }
 
-  protected pickFile(event: Event): void {
+  private readonly previews = new Map<string, string>();
+
+  protected isPdf(name: string): boolean {
+    return name.toLowerCase().endsWith('.pdf');
+  }
+
+  protected preview(name: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const url = this.previews.get(name);
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+
+  protected filesOf(key: string): TaskFile[] {
+    return this.lists[key] ?? [];
+  }
+
+  protected addFiles(key: string, event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.attachment = input.files?.[0]?.name ?? '';
+    this.pushFiles(key, input.files);
+    input.value = '';
+  }
+
+  protected dropFiles(key: string, event: DragEvent): void {
+    event.preventDefault();
+    this.pushFiles(key, event.dataTransfer?.files ?? null);
+  }
+
+  protected nameFile(key: string, index: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.keepPreview(file);
+    const name = file.name;
+    this.lists = {
+      ...this.lists,
+      [key]: this.filesOf(key).map((row, item) => (item === index ? { ...row, name, saved: row.saved || '22/09/2569' } : row)),
+    };
+    input.value = '';
+  }
+
+  protected removeFile(key: string, index: number): void {
+    this.lists = { ...this.lists, [key]: this.filesOf(key).filter((_, item) => item !== index) };
+  }
+
+  protected addBlank(key: string): void {
+    this.lists = {
+      ...this.lists,
+      [key]: [...this.filesOf(key), taskFile('', '', '', this.stakeOptions[0], '22/09/2569')],
+    };
+  }
+
+  private keepPreview(file: File): void {
+    const current = this.previews.get(file.name);
+    if (current) URL.revokeObjectURL(current);
+    this.previews.set(file.name, URL.createObjectURL(file));
+  }
+
+  private pushFiles(key: string, list: FileList | null): void {
+    if (!list?.length) return;
+    const next = [...list].map((file) => {
+      this.keepPreview(file);
+      return taskFile(file.name);
+    });
+    this.lists = { ...this.lists, [key]: [...this.filesOf(key), ...next] };
   }
 
   protected toggleKind(kind: string): void {

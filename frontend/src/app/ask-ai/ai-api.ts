@@ -13,6 +13,11 @@ export type ChatSource = {
   sourceId?: string;
 };
 
+export type ChatJump = {
+  id: string;
+  label: string;
+};
+
 export type ChatLine = {
   id: number;
   role: ChatRole;
@@ -21,6 +26,7 @@ export type ChatLine = {
   title?: string;
   sources?: ChatSource[];
   files?: ChatFile[];
+  jumps?: ChatJump[];
 };
 
 export type SourceKind = 'pdf' | 'doc' | 'sheet' | 'image';

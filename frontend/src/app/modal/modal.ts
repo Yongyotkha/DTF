@@ -154,6 +154,7 @@ export class DftModal {
   @Input() otpResent = false;
   @Output() otpChange = new EventEmitter<string>();
   @Output() otpResend = new EventEmitter<void>();
+  @Output() choose = new EventEmitter<string>();
 
   protected get content(): ModalCopy {
     const base = copy[this.kind];

@@ -1,11 +1,11 @@
-import { Component, Input } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Input, OnDestroy } from '@angular/core';
 
 @Component({
   selector: 'app-menu-item',
   templateUrl: './menu-item.html',
   styleUrl: './menu-item.css',
 })
-export class MenuItem {
+export class MenuItem implements AfterViewInit, OnDestroy {
   @Input() label = 'main-menu';
   @Input() level: 'main' | 'sub' = 'main';
   @Input() state: 'default' | 'active' = 'default';
@@ -13,6 +13,15 @@ export class MenuItem {
   @Input() icon: 'request' | 'investigate' | 'petition' | 'guide' | 'home' | '' = '';
   @Input() chevron = false;
   @Input() compact = false;
+  @Input() controls = '';
+
+  protected tipShown = false;
+  protected tipTop = 0;
+  protected tipLeft = 0;
+  private scrollParent: HTMLElement | null = null;
+  private readonly onScroll = () => this.hideTip();
+
+  constructor(private readonly host: ElementRef<HTMLElement>) {}
 
   protected get iconBox(): { src: string; width: number; height: number } | null {
     if (this.icon === 'home') return { src: 'assets/icons/menu-home.svg', width: 20, height: 20 };
@@ -21,5 +30,29 @@ export class MenuItem {
     if (this.icon === 'petition') return { src: 'assets/icons/menu-petition.svg', width: 18, height: 22 };
     if (this.icon === 'guide') return { src: 'assets/icons/menu-guide.svg', width: 22, height: 20 };
     return null;
+  }
+
+  ngAfterViewInit(): void {
+    this.scrollParent = this.host.nativeElement.closest('.side-nav__body');
+    this.scrollParent?.addEventListener('scroll', this.onScroll, { passive: true });
+  }
+
+  ngOnDestroy(): void {
+    this.scrollParent?.removeEventListener('scroll', this.onScroll);
+  }
+
+  protected showTip(event: Event): void {
+    if (!this.compact || (this.chevron && this.expanded)) {
+      this.tipShown = false;
+      return;
+    }
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.tipTop = rect.top + rect.height / 2;
+    this.tipLeft = rect.right + 8;
+    this.tipShown = true;
+  }
+
+  protected hideTip(): void {
+    this.tipShown = false;
   }
 }

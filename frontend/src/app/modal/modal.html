@@ -27,7 +27,7 @@
   <header class="modal__header">
     <h2>{{ content.title }}</h2>
     @if (content.closable) {
-      <button type="button" class="modal__close" aria-label="ปิด">✕</button>
+        <button type="button" class="modal__close" aria-label="ปิด" (click)="choose.emit('ปิด')">✕</button>
     }
   </header>
 
@@ -63,7 +63,7 @@
   @if (content.actions.length) {
     <div class="modal__actions">
       @for (action of content.actions; track action.label) {
-        <button type="button" class="modal__button" [class]="'modal__button modal__button--' + action.tone" [disabled]="kind === 'otp' && otpLeft === 0">{{ action.label }}</button>
+        <button type="button" class="modal__button" [class]="'modal__button modal__button--' + action.tone" [disabled]="kind === 'otp' && otpLeft === 0" (click)="choose.emit(action.label)">{{ action.label }}</button>
       }
     </div>
   }
