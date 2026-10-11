@@ -6,34 +6,19 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 import { RequestForm, purposeOf, requestForms, requestMeasures } from './form-catalog';
-import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus } from './case-status';
+import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus, readRounds, startFilingCase } from './case-status';
+import { archiveCases, draftCases, ListedCase, RequestStep } from './request-cases';
 import { StatusTag } from '../../status-tag/status-tag';
 
-type RequestStep = {
-  name: string;
-  state: 'done' | 'current' | 'todo';
-  date?: string;
-};
+type RequestRow = ListedCase & { ready: boolean; filing: boolean };
 
-type RequestRow = {
-  id: string;
-  code: string;
-  goods: string;
-  kind: string;
-  status: string;
-  created: string;
-  ready: boolean;
-  steps: RequestStep[];
-};
+const filingSteps = ['ยื่นคำขอ', 'ตรวจสอบข้อมูล', 'เปิดการไต่สวน', 'ผลการไต่สวนชั้นต้น', 'รับฟังความคิดเห็น', 'ร่างผลการไต่สวน', 'ประกาศผลชั้นที่สุด'];
 
-const stepNames = ['ยื่นคำขอ', 'ตรวจสอบข้อมูล', 'เปิดการไต่สวน', 'ผลการไต่สวนชั้นต้น', 'ยื่นรับฟังความคิดเห็น', 'ร่างผลการไต่สวน', 'ประกาศผลชั้นที่สุด'];
-const stepDate = 'วันที่ 15 มกราคม 2567 เวลา 16:30';
-
-function requestSteps(current: number): RequestStep[] {
-  return stepNames.map((name, index) => ({
+function filingProgress(current: number): RequestStep[] {
+  return filingSteps.map((name, index) => ({
     name,
     state: index < current ? 'done' : index === current ? 'current' : 'todo',
-    date: index <= current && index < 2 ? stepDate : undefined,
+    date: index === 0 && current > 0 ? '15/05/2562 10:00' : undefined,
   }));
 }
 
@@ -46,17 +31,13 @@ function requestSteps(current: number): RequestStep[] {
 export class RequestsPage implements OnDestroy {
   protected readonly measures = requestMeasures;
   protected readonly forms = requestForms;
-  protected readonly tabs = ['รายการยื่นคำขอ', 'ฉบับร่าง'];
   protected measure = 'มาตราการ AD';
   protected choosing = false;
   protected detailCode = '';
   protected listTab = 0;
-  protected page = 1;
-  protected readonly openRows = signal<ReadonlySet<string>>(new Set(['row-1', 'row-2']));
-  private readonly rows: RequestRow[] = [
-    { id: 'row-1', code: filingRefId, goods: 'เหล็กแผ่นรีดร้อน', kind: 'ยื่นแทนผู้ผลิตบางส่วน', status: 'ยื่นคำขอ', created: '15/05/2562 10:00', ready: true, steps: requestSteps(0) },
-    { id: 'row-2', code: 'AD0012', goods: 'text', kind: 'ยื่นในนามของตนเอง', status: 'ยื่นรับฟังความคิดเห็น', created: '22/09/2569 10:20', ready: false, steps: requestSteps(1) },
-  ];
+  protected query = '';
+  protected statusFilter = '';
+  protected readonly openRows = signal<ReadonlySet<string>>(new Set());
 
   private opener: HTMLElement | null = null;
 
@@ -79,32 +60,86 @@ export class RequestsPage implements OnDestroy {
     document.body.classList.remove('chooser-open');
   }
 
-  protected get visibleRows(): RequestRow[] {
-    if (this.page !== 1) return [];
+  protected get tabLabels(): string[] {
+    return [`รายการยื่นคำขอ (${this.filedRows.length})`, `ฉบับร่าง (${this.draftRows.length})`];
+  }
+
+  protected get filedRows(): RequestRow[] {
     const status = readCaseStatus();
-    const current = { ...this.rows[0], status: caseStatusLabel(status), ready: status !== 'cancelled' };
-    if (this.listTab === 1) return status === 'draft' ? [current] : [];
-    return status === 'draft' ? [this.rows[1]] : [current, this.rows[1]];
+    const archive = archiveCases.map((item) => this.asRow(item));
+    if (status === 'draft') return archive;
+    return [this.filingRow(status), ...archive];
   }
 
-  protected get caseTone() {
-    return caseStatusTone(readCaseStatus());
+  protected get draftRows(): RequestRow[] {
+    const drafts = draftCases.map((item) => this.asRow(item));
+    return readCaseStatus() === 'draft' ? [this.filingRow('draft'), ...drafts] : drafts;
   }
 
-  protected get caseLabel(): string {
-    return caseStatusLabel(readCaseStatus());
+  protected get statusOptions(): string[] {
+    const source = this.listTab === 1 ? this.draftRows : this.filedRows;
+    return [...new Set(source.map((row) => row.status))];
+  }
+
+  protected get visibleRows(): RequestRow[] {
+    const source = this.listTab === 1 ? this.draftRows : this.filedRows;
+    const query = this.query.trim().toLowerCase();
+    return source.filter((row) => {
+      const statusOk = !this.statusFilter || row.status === this.statusFilter;
+      const text = `${row.code} ${row.goods}`.toLowerCase();
+      return statusOk && (!query || text.includes(query));
+    });
+  }
+
+  protected get filedCount(): number {
+    return this.filedRows.length;
+  }
+
+  protected get reviewCount(): number {
+    return this.filedRows.filter((row) => row.status === 'อยู่ระหว่างตรวจสอบ').length;
+  }
+
+  protected get waitingCount(): number {
+    return this.filedRows.filter((row) => row.waiting).length;
+  }
+
+  protected meta(row: RequestRow): string {
+    const parts = [row.created ? `สร้างเมื่อ ${row.created}` : '', row.round ? `ยื่นครั้งที่ ${row.round}` : ''].filter(Boolean);
+    return parts.join(' · ');
+  }
+
+  private filingRow(status: ReturnType<typeof readCaseStatus>): RequestRow {
+    const rounds = readRounds();
+    const submitted = status !== 'draft' && status !== 'cancelled';
+    return {
+      id: 'filing',
+      code: filingRefId,
+      goods: 'เหล็กแผ่นรีดร้อน จากเวียดนามและอียิปต์',
+      kind: 'ยื่นแทนผู้ผลิตบางส่วน',
+      status: caseStatusLabel(status),
+      tone: caseStatusTone(status),
+      created: '15/05/2562 10:00',
+      round: submitted ? (rounds.at(-1)?.round ?? 1) : null,
+      waiting: status === 'revision',
+      draft: status === 'draft',
+      ready: status !== 'cancelled',
+      filing: true,
+      steps: filingProgress(status === 'draft' || status === 'cancelled' ? 0 : 1),
+      documents: [],
+    };
+  }
+
+  private asRow(item: ListedCase): RequestRow {
+    return { ...item, ready: true, filing: false };
   }
 
   protected setListTab(index: number): void {
     this.listTab = index;
+    this.statusFilter = '';
     void this.router.navigate(['/requests'], {
       queryParams: index === 1 ? { tab: 'draft' } : {},
       replaceUrl: true,
     });
-  }
-
-  protected shiftPage(step: number): void {
-    this.page = Math.min(2, Math.max(1, this.page + step));
   }
 
   protected toggleRow(id: string): void {
@@ -116,12 +151,13 @@ export class RequestsPage implements OnDestroy {
     });
   }
 
-  protected openCase(): void {
-    void this.router.navigate(['/requests', 'AD1120']);
-  }
-
-  protected openDraft(): void {
-    void this.router.navigate(['/requests', 'draft', 'A4']);
+  protected openRow(row: RequestRow): void {
+    if (!row.ready) return;
+    if (row.filing) {
+      void this.router.navigate(['/requests', 'por-1']);
+      return;
+    }
+    void this.router.navigate(['/requests', row.code]);
   }
 
   protected openChooser(event?: Event): void {
@@ -133,6 +169,7 @@ export class RequestsPage implements OnDestroy {
 
   protected openForm(code: string): void {
     if (code === 'ปร. 1') {
+      startFilingCase();
       this.choosing = false;
       void this.router.navigate(['/requests', 'por-1']);
       return;

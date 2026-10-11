@@ -1,8 +1,10 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
+import { filingOfficer, filingRefId, readCaseStatus, writeCaseStatus } from '../requests/case-status';
 
 type Bucket = 'in' | 'pending' | 'out' | 'follow' | 'group';
 
@@ -38,12 +40,15 @@ const sample: TaskCase = {
 
 @Component({
   selector: 'app-staff-home-page',
-  imports: [TopHeader, SideNav, StatusTag],
+  imports: [TopHeader, SideNav, StatusTag, DftButton],
   templateUrl: './staff-home-page.html',
   styleUrl: './staff-home-page.css',
 })
 export class StaffHomePage {
   protected readonly buckets = buckets;
+  protected readonly filingRef = filingRefId;
+  protected readonly officerName = filingOfficer;
+  protected awaitingApproval = readCaseStatus() === 'approval';
   protected selected: Bucket = 'in';
 
   constructor(
@@ -86,6 +91,12 @@ export class StaffHomePage {
       }
     }
     return Array.from({ length: this.current.count }, () => ({ ...sample, group, status, due, tone }));
+  }
+
+  protected approveFiling(): void {
+    if (readCaseStatus() !== 'approval') return;
+    writeCaseStatus('official');
+    this.awaitingApproval = false;
   }
 
   protected openMenu(label: string): void {

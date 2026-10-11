@@ -123,6 +123,14 @@ h2 {
   line-height: 30px;
 }
 
+.status-note {
+  margin: 0 0 16px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
 dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

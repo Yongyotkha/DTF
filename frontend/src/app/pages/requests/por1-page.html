@@ -6,33 +6,304 @@
       <header class="head">
         <div>
           <h1>ยื่นคำขอแบบ ปร. 1 (มาตราการ AD)</h1>
-          <p>เลขที่อ้างอิง {{ refId }} เหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ ยื่นวันที่ 15 พฤษภาคม 2562</p>
+          @if (tracking) {
+            <p>เลขที่อ้างอิง {{ refId }} · ครั้งที่ยื่น {{ filingRound }}</p>
+          } @else {
+            <p>เลขที่อ้างอิง {{ refId }} · เหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์</p>
+            <app-status-tag [tone]="caseTone" [label]="caseLabel" />
+          }
         </div>
         <div class="head__actions">
-          <div class="head__meta">
+          <button type="button" class="head__history" aria-label="ประวัติคำขอ" (click)="historyOpen = true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
+          </button>
+          @if (tracking && !revising) {
+            @if (viewingForm || openedRound) {
+              <app-button type="outline" label="กลับ" (click)="closeRoundView()" />
+            }
+            <span class="head__split" aria-hidden="true"></span>
             <app-status-tag [tone]="caseTone" [label]="caseLabel" />
-            <span>วันที่สร้าง {{ filedOn }}</span>
-          </div>
-          <app-button type="outline" label="บันทึกร่าง" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="saveDraft()" />
-          <app-button type="outline" label="ยกเลิก" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="askCancel()" />
-          <app-button type="primary" label="ยื่นคำขอ" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="submitOpen = true" />
+          } @else {
+            <span class="head__split" aria-hidden="true"></span>
+            <app-button type="outline" label="บันทึกร่าง" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="saveDraft()" />
+            <app-button type="primary" label="ยื่นคำขอ" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="openSubmit()" />
+          }
         </div>
       </header>
-      <section class="sheet">
+      @if (showStatus) {
+        @if (caseStatus === 'official') {
+          <section class="sheet review" aria-label="สถานะยื่นแบบ">
+            <div class="review__lead">
+              <span class="review__badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12.5 9.2 17 19 7" /></svg>
+              </span>
+              <div>
+                <h2>ส่งแบบคำร้องทางการแล้ว</h2>
+                <p>คำขอเลขที่อ้างอิง {{ refId }} อยู่ในสถานะยื่นแบบ เจ้าหน้าที่กำลังรับเรื่อง</p>
+                <p>รอบนี้ไม่มีการแก้ไขแบบเพิ่ม ข้อมูลและไฟล์ที่ส่งไว้ยังเปิดดูได้</p>
+              </div>
+            </div>
+            <div class="review__actions">
+              <app-button class="icon-before" type="primary" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+              </app-button>
+            </div>
+          </section>
+        } @else if (caseStatus === 'approval') {
+          <section class="sheet review" aria-label="รอเจ้าหน้าที่อนุมัติ">
+            <div class="review__lead">
+              <span class="review__badge review__badge--info" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 17h.01M12 7v6M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
+              </span>
+              <div>
+                <h2>ส่งให้เจ้าหน้าที่ผู้ดูแลแล้ว</h2>
+                <p>สถานะรอเจ้าหน้าที่อนุมัติ คำขอเลขที่อ้างอิง {{ refId }} ผู้ดูแลคือ {{ officerName }} จาก{{ officerUnit }}</p>
+                <p class="review__clock" role="timer" aria-live="polite">รอการอนุมัติภายใน 1 นาที · เหลือเวลา {{ approvalClock }}</p>
+                <p>เมื่อครบเวลา สถานะจะเป็นยื่นแบบ</p>
+              </div>
+            </div>
+            <div class="review__actions">
+              <app-button class="icon-before" type="primary" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+              </app-button>
+            </div>
+          </section>
+        } @else if (caseStatus === 'consult') {
+          <section class="sheet consult" aria-label="ปรึกษาเจ้าหน้าที่">
+            <header class="consult__bar">
+              <div>
+                <h2>ปรึกษาเจ้าหน้าที่</h2>
+                <p>เลขอ้างอิง {{ refId }}</p>
+              </div>
+              <app-status-tag tone="success" label="รับเรื่องแล้ว" />
+            </header>
+            <div class="consult__unit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9l6-4 6 4v11M10 20v-4h4v4" /></svg>
+              <div>
+                <span>หน่วยงานรับผิดชอบ</span>
+                <strong>{{ officerUnit }}</strong>
+              </div>
+            </div>
+            <dl class="consult__facts">
+              <div>
+                <dt>ผู้ดูแลคำขอ</dt>
+                <dd>{{ officerName }}</dd>
+              </div>
+              <div>
+                <dt>เวลาที่สะดวก</dt>
+                <dd>{{ consult?.when }}</dd>
+              </div>
+            </dl>
+            @if (consult) {
+              <div class="consult__topic">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /></svg>
+                <div>
+                  <span>หัวข้อการปรึกษา</span>
+                  <strong>{{ consult.topic }}</strong>
+                </div>
+              </div>
+            }
+            <div class="talk-scroll" (scroll)="onTalkScroll($event)">
+              @if (!talkReady || talkLoading) {
+                <p class="talk__loading"><i aria-hidden="true"></i>กำลังโหลดข้อความ</p>
+              }
+              <ol class="talk">
+              @for (note of shownNotes; track note.at + note.text) {
+                @if (showDay($index)) {
+                  <li class="talk__day">{{ noteDay(note.at) }}</li>
+                }
+                <li [class.talk__mine]="note.from === 'applicant'" [class.talk__officer]="note.from === 'officer'">
+                  @if (note.from === 'officer') {
+                    <span class="talk__avatar" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3" /><path d="M6 19c1.4-2.6 3.4-4 6-4s4.6 1.4 6 4" /></svg>
+                    </span>
+                  }
+                  <div>
+                    <strong>{{ note.from === 'officer' ? officerName : 'ผู้ยื่นคำขอ' }}</strong>
+                    @if (note.text) {
+                      <p>{{ note.text }}</p>
+                    }
+                    @if (note.files?.length) {
+                      <ul class="talk__files">
+                        @for (file of note.files; track file.name) {
+                          <li>
+                            @if (file.image) {
+                              <img [src]="file.image" alt="" />
+                            }
+                            <span>{{ file.name }}</span>
+                          </li>
+                        }
+                      </ul>
+                    }
+                    <small>{{ noteClock(note.at) }}</small>
+                  </div>
+                </li>
+              }
+              </ol>
+            </div>
+            <div class="talk__send">
+              <textarea rows="3" aria-label="ข้อความถึงเจ้าหน้าที่" placeholder="พิมพ์ข้อความถึงเจ้าหน้าที่..." [value]="consultDraft" (input)="consultDraft = $any($event.target).value"></textarea>
+              @if (pendingFiles.length) {
+                <ul class="talk__pending">
+                  @for (file of pendingFiles; track $index) {
+                    <li>
+                      <span>{{ file.name }}</span>
+                      <button type="button" aria-label="เอาไฟล์ออก" (click)="dropPending($index)">×</button>
+                    </li>
+                  }
+                </ul>
+              }
+              <div class="talk__bar">
+                <div class="talk__tools">
+                  <label class="talk__tool" aria-label="แนบไฟล์">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12.5 14.5 6a3 3 0 0 1 4 4L10 18.5a4 4 0 0 1-5.5-5.5L12 6" /></svg>
+                    <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx" multiple (change)="addTalkFiles($event)" />
+                  </label>
+                  <button type="button" class="talk__tool" aria-label="ภาพหน้าจอ" (click)="captureTalk()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v10H4z" /><circle cx="12" cy="13" r="3" /></svg>
+                  </button>
+                </div>
+                <app-button type="primary" label="ส่งข้อความ" (click)="sendConsultNote()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </app-button>
+              </div>
+            </div>
+            <div class="review__actions">
+              <app-button class="icon-before" type="primary" label="แก้ไขคำขอ" (click)="startRevise()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+              </app-button>
+              <app-button type="outline" label="ยืนยันส่งแบบยื่นทางการ" (click)="officialOpen = true" />
+              <app-button class="icon-before" type="outline" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+              </app-button>
+            </div>
+          </section>
+        } @else if (caseStatus === 'revision') {
+          <section class="sheet review" aria-label="ผลการตรวจสอบคำขอ">
+            <div class="review__lead">
+              <span class="review__badge review__badge--warn" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 8v5M12 17h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
+              </span>
+              <div>
+                <h2>ผลการตรวจสอบไม่ผ่าน</h2>
+                <p>คำขอครั้งที่ {{ filingRound }} ยังไม่ผ่าน เลือกได้ 1 ทาง หน้านี้จะค้างไว้จนกว่าจะเลือก</p>
+              </div>
+            </div>
+            <div class="review__actions">
+              <app-button class="icon-before" type="primary" label="แก้ไขคำขอ" (click)="startRevise()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+              </app-button>
+              <app-button type="outline" label="ขอที่ปรึกษา" (click)="consultOpen = true" />
+              <app-button type="outline" label="ยืนยันส่งแบบยื่นทางการ" (click)="officialOpen = true" />
+              <app-button class="icon-before" type="outline" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+              </app-button>
+            </div>
+            <ol class="findings">
+              @if (rounds.length) {
+                @for (item of rounds[rounds.length - 1].findings; track item.title) {
+                <li>
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.place }}</small>
+                    <p>{{ item.detail }}</p>
+                  </div>
+                  <app-status-tag [tone]="item.action === 'เพิ่มเอกสาร' ? 'info' : 'warning'" [label]="item.action" />
+                </li>
+                }
+              }
+            </ol>
+          </section>
+        } @else {
+        <section class="sheet review" aria-label="สถานะการตรวจสอบคำขอ">
+          <div class="review__lead">
+            <span class="review__badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 12.5 9.2 17 19 7" /></svg>
+            </span>
+            <div>
+              <h2>ได้รับเอกสารเรียบร้อย</h2>
+              <p>คำขอเลขที่อ้างอิง {{ refId }} ครั้งที่ {{ filingRound }} อยู่ระหว่างตรวจสอบ</p>
+              <p class="review__clock" role="timer" aria-live="polite">รอผลภายใน 1 นาที · เหลือเวลา {{ reviewClock }}</p>
+              <p>หากไม่ผ่าน จะให้เลือกแก้ไข ขอที่ปรึกษา หรือยืนยันส่งแบบยื่นทางการ</p>
+            </div>
+          </div>
+          <ol class="review__steps">
+            <li class="review__now">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg></span>
+              อยู่ระหว่างตรวจสอบข้อมูลและเอกสาร
+            </li>
+            <li>
+              <span aria-hidden="true"></span>
+              รอแจ้งผลการตรวจสอบ
+            </li>
+          </ol>
+          <div class="review__actions">
+            <app-button class="icon-before" type="primary" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+            </app-button>
+          </div>
+        </section>
+        }
+        @if (rounds.length) {
+          <section class="sheet rounds" aria-label="รอบการยื่น">
+            <h2>รอบการยื่นที่เก็บไว้</h2>
+            <div class="rounds__grid">
+              @for (round of rounds; track round.round) {
+                <article>
+                  <div>
+                    <strong>ครั้งที่ {{ round.round }}</strong>
+                    <small>ยื่นเมื่อ {{ round.submittedOn }} · {{ round.files.length }} ไฟล์</small>
+                    <p>{{ round.state === 'revision' ? 'ให้แก้ไขก่อนยื่นรอบถัดไป' : 'อยู่ระหว่างตรวจสอบ' }}</p>
+                  </div>
+                  <button type="button" (click)="openStored(round)">ดูไฟล์ที่เก็บไว้</button>
+                </article>
+              }
+            </div>
+          </section>
+        }
+      }
+      @if (openedRound) {
+        <section class="sheet rounds" aria-label="ไฟล์ของรอบการยื่น">
+          <h2>คำขอครั้งที่ {{ openedRound.round }}</h2>
+          <p class="sheet__view">ยื่นเมื่อ {{ openedRound.submittedOn }} · {{ openedRound.company }} · {{ openedRound.measure }} · ผู้ลงนาม {{ openedRound.signer }}</p>
+          @for (group of roundGroups; track group) {
+            <h3 class="rounds__group">{{ group }}</h3>
+            <ul class="rounds__files">
+              @for (file of filesIn(group); track file.name) {
+                <li><span>{{ file.name }}</span><small>{{ file.saved }}</small></li>
+              }
+            </ul>
+          }
+        </section>
+      }
+      @if (showForm) {
+      <section class="sheet" [class.sheet--view]="formLocked">
         <h2>รายละเอียดเอกสาร</h2>
+        @if (revising) {
+          <p class="sheet__view">กำลังจัดทำครั้งที่ {{ filingRound }} ข้อมูลและไฟล์ของรอบก่อนถูกเก็บไว้แล้ว</p>
+        } @else if (formLocked) {
+          <p class="sheet__view">ข้อมูลที่ยื่นแล้ว เปิดดูได้อย่างเดียว</p>
+        }
         <div class="sheet__split">
           <nav class="toc" aria-label="ส่วนของแบบ ปร. 1">
             @for (group of toc; track group.label) {
-              <p class="toc__group">{{ group.label }}</p>
+              <p class="toc__group" [class.toc__group--fail]="groupFailed(group)">{{ group.label }}</p>
               @for (item of group.items; track item.label) {
-                <button type="button" class="toc__child" [class.toc__on]="current(item)" [attr.aria-current]="current(item) ? 'true' : null" (click)="open(item)">
-                  <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="failed(item)" [attr.aria-current]="current(item) ? 'true' : null" (click)="open(item)">
+                  @if (failed(item)) {
+                    <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
+                  } @else {
+                    <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                  }
                   {{ item.label }}
                 </button>
               }
             }
           </nav>
-          <div class="form" (input)="publishGuide()" (change)="publishGuide()" (click)="publishGuide()" (focusin)="noteField($event)">
+          <fieldset class="form" [disabled]="formLocked" (input)="publishGuide()" (change)="publishGuide()" (click)="publishGuide()" (focusin)="noteField($event)">
+            @if (sectionIssue) {
+              <p class="issue">{{ sectionIssue }}</p>
+            }
             @if (section === '1' && anchor === 'part-1-1') {
               <h3 id="part-1-1">ส่วนที่ 1 ข้อมูลผู้ยื่น</h3>
               <div class="grid">
@@ -250,8 +521,12 @@
               <div class="doc-browser">
                 <div class="doc-nav" role="tablist" aria-label="ประเภทเอกสารประกอบ">
                   @for (item of visibleDocs; track item.key) {
-                    <button type="button" role="tab" [class.doc-nav__on]="activeDoc.key === item.key" [attr.aria-selected]="activeDoc.key === item.key" (click)="openDoc(item.key)">
-                      <img [src]="namesOf(item.key).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                    <button type="button" role="tab" [class.doc-nav__on]="activeDoc.key === item.key" [class.doc-nav__fail]="docIssue(item.key)" [attr.aria-selected]="activeDoc.key === item.key" (click)="openDoc(item.key)">
+                      @if (docIssue(item.key)) {
+                        <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
+                      } @else {
+                        <img [src]="namesOf(item.key).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      }
                       <span>{{ item.label }}<span class="req">*</span></span>
                     </button>
                   }
@@ -280,9 +555,20 @@
                       </thead>
                       <tbody>
                         @for (name of namesOf(activeDoc.key); track name) {
-                          <tr>
-                            <td>{{ name }}</td>
-                            <td><app-status-tag tone="success" /></td>
+                          <tr [class.row-fail]="docIssue(activeDoc.key)">
+                            <td>
+                              {{ name }}
+                              @if (docIssue(activeDoc.key)) {
+                                <small class="doc-reason">{{ docIssue(activeDoc.key) }}</small>
+                              }
+                            </td>
+                            <td>
+                              @if (docIssue(activeDoc.key)) {
+                                <app-status-tag tone="danger" label="ไม่ผ่าน" />
+                              } @else {
+                                <app-status-tag tone="success" label="ผ่าน" />
+                              }
+                            </td>
                             <td>{{ filedOn }}</td>
                             <td class="col-manage">
                               <div class="manage">
@@ -1006,7 +1292,7 @@
               <div class="part-head">
                 <div class="part-head__copy">
                   <h3>คำรับรองและลงนาม</h3>
-                  <p>{{ pledgeSource === 'draft' ? 'แนวทางร่างจากข้อมูลในแบบ ยังไม่ใช่การยืนยันตามกฎหมาย แก้ไขได้ก่อนพิมพ์หรือดาวน์โหลด' : 'ข้อความตั้งต้นมาจากแบบ ปร.1 ผู้ยื่นแก้ไขได้ หรือให้ผู้ช่วยร่างแนวทางจากข้อมูลในแบบ' }}</p>
+                  <p>{{ formLocked ? 'ข้อมูลที่ยื่นแล้ว' : (pledgeSource === 'draft' ? 'แนวทางร่างจากข้อมูลในแบบ ยังไม่ใช่การยืนยันตามกฎหมาย แก้ไขได้ก่อนพิมพ์หรือดาวน์โหลด' : 'ข้อความตั้งต้นมาจากแบบ ปร.1 ผู้ยื่นแก้ไขได้ หรือให้ผู้ช่วยร่างแนวทางจากข้อมูลในแบบ') }}</p>
                 </div>
               </div>
               <label class="note note--doc">
@@ -1076,15 +1362,23 @@
               <div class="part-head">
                 <div class="part-head__copy">
                   <h3>ข้อมูลหนังสือนำส่ง</h3>
-                  <p>ช่องตามแบบหนังสือราชการ ระบบใส่ข้อมูลตัวอย่างของเลขที่อ้างอิง {{ refId }} ไว้แล้ว ผู้ยื่นแก้ไขได้</p>
+                  <p>ช่องตามแบบหนังสือนำส่งของระบบเดิม ระบบใส่ข้อมูลของเลขที่อ้างอิง {{ refId }} ไว้แล้ว ผู้ยื่นแก้ไขได้</p>
                 </div>
               </div>
               <div class="grid">
                 <label class="field">
-                  เลขที่หนังสือ<span class="req">*</span>
-                  <input type="text" [value]="letterNo" (input)="letterNo = $any($event.target).value" />
+                  วันที่หนังสือ<span class="req">*</span>
+                  <span class="date">
+                    <img src="assets/icons/calendar.svg" width="24" height="24" alt="" />
+                    <input type="text" placeholder="15/05/2562" [value]="letterDate" (input)="letterDate = $any($event.target).value" aria-label="วันที่หนังสือ" />
+                  </span>
                 </label>
                 <label class="field">
+                  เลขที่หนังสือ<span class="req">*</span>
+                  <input type="text" [value]="letterNo" (input)="letterNo = $any($event.target).value" />
+                  <small class="field__hint">กรณีไม่มีให้ใส่เครื่องหมายขีด (-)</small>
+                </label>
+                <label class="field field--wide">
                   เรียน<span class="req">*</span>
                   <input type="text" [value]="letterTo" (input)="letterTo = $any($event.target).value" />
                 </label>
@@ -1092,32 +1386,68 @@
                   เรื่อง<span class="req">*</span>
                   <textarea rows="2" [value]="letterSubject" (input)="letterSubject = $any($event.target).value"></textarea>
                 </label>
-                <label class="field">
-                  อ้างถึง
+                <label class="field field--wide">
+                  อ้างถึง<span class="req">*</span>
                   <input type="text" [value]="letterRef" (input)="letterRef = $any($event.target).value" />
+                  <small class="field__hint">กรณีไม่มีให้ใส่เครื่องหมายขีด (-)</small>
                 </label>
-                <label class="field">
-                  สิ่งที่ส่งมาด้วย<span class="req">*</span>
+                <label class="field field--wide">
+                  สิ่งที่แนบมาด้วย<span class="req">*</span>
                   <input type="text" [value]="letterEnclosed" (input)="letterEnclosed = $any($event.target).value" />
                 </label>
               </div>
               <label class="note">
-                เนื้อความ<span class="req">*</span>
+                รายละเอียด<span class="req">*</span>
                 <textarea rows="4" [value]="letterBody" (input)="letterBody = $any($event.target).value"></textarea>
               </label>
+              <label class="note">
+                มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา<span class="req">*</span>
+                <textarea rows="3" [value]="letterPurpose" (input)="letterPurpose = $any($event.target).value"></textarea>
+              </label>
+              <div class="uploads">
+                <label class="upload">
+                  <span>แนบไฟล์ตราประทับบริษัท</span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg,.gif" (change)="setSeal($event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg, gif</small>
+                  @if (sealUrl) {
+                    <img class="sign-preview" [src]="sealUrl" alt="ตราประทับ {{ sealName }}" />
+                  }
+                </label>
+                <label class="upload">
+                  <span>แนบไฟล์หนังสือนำส่งฉบับจริง (ถ้ามี)</span>
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg,.gif,.pdf,.doc,.docx" (change)="setLetterFile($event)" />
+                  </span>
+                  <small>เฉพาะนามสกุล png, jpg, jpeg, gif, pdf, doc, docx</small>
+                  @if (letterFileName) {
+                    <small>{{ letterFileName }}</small>
+                  }
+                </label>
+              </div>
               <div class="table-head">
                 <div class="table-head__copy">
                   <p>หนังสือนำส่ง</p>
+                  <small>เมื่อกรอกครบ กดตัวอย่างนำส่งเพื่อดูหนังสือที่ระบบจัดหน้า</small>
                 </div>
-                <ng-container *ngTemplateOutlet="docActions; context: { kind: 'letter' }" />
+                <div>
+                  <button type="button" class="tool" (click)="docView = 'letter'">ตัวอย่างนำส่ง</button>
+                  <ng-container *ngTemplateOutlet="docActions; context: { kind: 'letter' }" />
+                </div>
               </div>
               <ng-container *ngTemplateOutlet="coverLetter" />
             } @else {
               <h3>{{ heading(section) }}</h3>
             }
-          </div>
+          </fieldset>
         </div>
       </section>
+      }
     </main>
   </div>
 </div>
@@ -1159,9 +1489,13 @@
     <p class="letter__row"><strong>อ้างถึง</strong> {{ letterRef }}</p>
     <p class="letter__row"><strong>สิ่งที่ส่งมาด้วย</strong> {{ letterEnclosed }}</p>
     <p class="letter__body">{{ letterBody }}</p>
+    <p class="letter__body">มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา {{ letterPurpose }}</p>
     <p class="letter__close">จึงเรียนมาเพื่อโปรดพิจารณา</p>
     <div class="letter__sign">
       <p>ขอแสดงความนับถือ</p>
+      @if (sealUrl) {
+        <img class="letter__seal" [src]="sealUrl" alt="ตราประทับบริษัท" />
+      }
       <ng-container *ngTemplateOutlet="signMark" />
       <p class="letter__name">({{ signer }})</p>
       <p>{{ roleTitle }}</p>
@@ -1171,14 +1505,14 @@
 <ng-template #pledgeSheet>
   <article class="letter">
     <h3>คำรับรองและลงนาม</h3>
-    <p class="letter__meta">แบบ ปร.1 · เลขที่อ้างอิง {{ refId }}<br />{{ letterWhen }}</p>
+    <p class="letter__meta">แบบ ปร.1 · เลขที่อ้างอิง {{ refId }}<br />{{ signedWhen }}</p>
     <p>{{ pledgeText }}</p>
     <p>{{ ack ? 'ผู้ยื่นยืนยันคำรับรองแล้ว' : 'ยังไม่ได้ยืนยันคำรับรอง' }}</p>
     <div class="letter__sign">
       <ng-container *ngTemplateOutlet="signMark" />
       <p>{{ signer }}</p>
       <p>{{ roleTitle }}</p>
-      <p>{{ letterWhen }}</p>
+      <p>{{ signedWhen }}</p>
     </div>
   </article>
 </ng-template>
@@ -1260,9 +1594,20 @@
       </thead>
       <tbody>
         @for (file of docsOf(key); track file.name + $index) {
-          <tr>
-            <td>{{ file.name }}</td>
-            <td><app-status-tag tone="success" /></td>
+          <tr [class.row-fail]="docIssue(key)">
+            <td>
+              {{ file.name }}
+              @if (docIssue(key)) {
+                <small class="doc-reason">{{ docIssue(key) }}</small>
+              }
+            </td>
+            <td>
+              @if (docIssue(key)) {
+                <app-status-tag tone="danger" label="ไม่ผ่าน" />
+              } @else {
+                <app-status-tag tone="success" label="ผ่าน" />
+              }
+            </td>
             <td>{{ file.saved }}</td>
             <td class="col-manage">
               <div class="manage">
@@ -1289,37 +1634,213 @@
     </table>
   </div>
 </ng-template>
-@if (cancelOpen) {
-  <div class="notice" (click)="cancelOpen = false">
-    <app-modal kind="warning" heading="ยกเลิกคำขอ" detail="คำขอเลขที่อ้างอิง {{ refId }} จะถูกยกเลิก และไม่ถูกส่งเข้าตรวจสอบ" (click)="$event.stopPropagation()" (choose)="onCancelChoice($event)" />
+@if (historyOpen) {
+  <div class="history" [class.history--full]="historyFull" (click)="closeHistory()">
+    <aside role="dialog" aria-modal="true" aria-label="ประวัติคำขอ" (click)="$event.stopPropagation()">
+      <div class="history__bar">
+        <div>
+          <h2>ประวัติคำขอ</h2>
+          <p>{{ refId }}</p>
+        </div>
+        <div class="history__tools">
+          <button type="button" class="history__tool" [attr.aria-pressed]="historyFull" [attr.aria-label]="historyFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" (click)="historyFull = !historyFull">
+            @if (historyFull) {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M20 15h-5v5M4 15h5v5" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /></svg>
+            }
+          </button>
+          <button type="button" class="history__tool" aria-label="ปิด" (click)="closeHistory()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+      </div>
+      <div class="history__tabs" role="tablist">
+        <button type="button" role="tab" [attr.aria-selected]="historyTab === 'activity'" [class.history__on]="historyTab === 'activity'" (click)="historyTab = 'activity'">การดำเนินการ</button>
+        <button type="button" role="tab" [attr.aria-selected]="historyTab === 'version'" [class.history__on]="historyTab === 'version'" (click)="historyTab = 'version'">เวอร์ชันการยื่น</button>
+      </div>
+      <ol class="history__list">
+        @for (item of historyItems; track item.title) {
+          @if ($first || historyItems[$index - 1].phase !== item.phase) {
+            <li class="history__phase">{{ item.phase }}</li>
+          }
+          <li>
+            <span>{{ $index + 1 }}</span>
+            <div>
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.when }}</small>
+              <p>{{ item.detail }}</p>
+            </div>
+            <app-status-tag [tone]="item.tone" [label]="item.label" />
+          </li>
+        }
+      </ol>
+    </aside>
+  </div>
+}
+@if (submitting) {
+  <div class="send-wait" role="status" aria-live="polite" aria-label="กำลังส่งคำขอ">
+    <section class="send">
+      <span class="send__spin" aria-hidden="true"></span>
+      <h2>กำลังส่งคำขอ</h2>
+      <p>ระบบกำลังนำส่งข้อมูลคำขอ</p>
+    </section>
   </div>
 }
 @if (notice) {
   <div class="notice" (click)="finishNotice()">
-    <app-modal kind="success" [heading]="notice === 'draft' ? 'บันทึกร่างแล้ว' : 'ยื่นคำขอแล้ว'" [detail]="notice === 'draft' ? 'คำขอเลขที่อ้างอิง ' + refId + ' อยู่ในสถานะร่าง' : 'คำขอเลขที่อ้างอิง ' + refId + ' อยู่ในสถานะตรวจสอบคำขอ'" (click)="$event.stopPropagation()" (choose)="finishNotice()" />
+    <app-modal kind="success" [heading]="notice === 'draft' ? 'บันทึกร่างแล้ว' : 'ทำรายการสำเร็จ'" [detail]="notice === 'draft' ? 'คำขอเลขที่อ้างอิง ' + refId + ' อยู่ในสถานะร่าง' : 'ระบบได้รับคำขอเลขที่อ้างอิง ' + refId + ' แล้ว ผลการตรวจสอบจะแจ้งภายใน 1 นาที'" (click)="$event.stopPropagation()" (choose)="finishNotice()" />
   </div>
 }
 @if (submitOpen) {
   <div class="sample sample--submit sample--check" (click)="submitOpen = false">
-    <section role="dialog" aria-modal="true" aria-label="ตรวจสอบก่อนยื่นคำขอ" (click)="$event.stopPropagation()">
-      <div class="submit__bar">
-        <h2>ตรวจสอบก่อนยื่นคำขอ</h2>
-        <button type="button" class="submit__close" (click)="submitOpen = false">✕ ปิด</button>
+    <section class="check" role="dialog" aria-modal="true" aria-labelledby="check-title" (click)="$event.stopPropagation()">
+      <header class="check__bar">
+        <div>
+          <h2 id="check-title">ตรวจสอบก่อนยื่นคำขอ</h2>
+          <p>โปรดตรวจสอบข้อมูลให้ถูกต้องก่อนยืนยัน</p>
+        </div>
+        <span class="check__badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="1.5" /><path d="M9 4.5h6V7H9zM9 11h6M9 15h4" /></svg>
+        </span>
+      </header>
+      <div class="check__body">
+        <article class="check__row">
+          <span class="check__mark" [class.check__mark--gap]="!submitReady" aria-hidden="true">
+            @if (submitReady) {
+              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+            }
+          </span>
+          <div>
+            <strong>{{ submitReady ? 'ข้อมูลที่จำเป็นครบถ้วน' : 'ยังมีรายการที่จำเป็นไม่ครบ' }}</strong>
+            <span>{{ submitReady ? 'สามารถดำเนินการยื่นคำขอต่อได้' : 'กลับไปแก้ไขก่อนยื่น' }}</span>
+          </div>
+          <app-status-tag [tone]="submitReady ? 'success' : 'danger'" [label]="submitReady ? 'พร้อมยื่น' : 'ยังไม่พร้อม'" />
+        </article>
+        <dl class="check__facts">
+          <div>
+            <dt>เลขที่อ้างอิง</dt>
+            <dd>{{ refId }}</dd>
+          </div>
+          <div>
+            <dt>การยื่นครั้งนี้</dt>
+            <dd>ครั้งที่ {{ filingRound }}</dd>
+          </div>
+        </dl>
+        <article class="check__row">
+          <span class="check__mark" [class.check__mark--gap]="!requestReady" aria-hidden="true">
+            @if (requestReady) {
+              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+            }
+          </span>
+          <div>
+            <strong>ข้อมูลคำขอ</strong>
+            <span>เลขอ้างอิงและข้อมูลผู้ยื่น</span>
+          </div>
+          <app-status-tag [tone]="requestReady ? 'success' : 'danger'" [label]="requestReady ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
+        </article>
+        <article class="check__row">
+          <span class="check__mark" [class.check__mark--gap]="!signReady" aria-hidden="true">
+            @if (signReady) {
+              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+            }
+          </span>
+          <div>
+            <strong>ข้อมูลผู้ลงนาม</strong>
+            <span>ชื่อ ตำแหน่ง และวันที่ลงนาม</span>
+          </div>
+          <app-status-tag [tone]="signReady ? 'success' : 'danger'" [label]="signReady ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
+        </article>
+        <article class="check__row">
+          <span class="check__mark" [class.check__mark--gap]="!pledgeReady" aria-hidden="true">
+            @if (pledgeReady) {
+              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+            }
+          </span>
+          <div>
+            <strong>คำรับรอง</strong>
+            <span>{{ pledgeReady ? 'ยืนยันคำรับรองแล้ว' : 'ยังไม่ได้ยืนยัน' }}</span>
+          </div>
+          <app-status-tag [tone]="pledgeReady ? 'success' : 'danger'" [label]="pledgeReady ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
+        </article>
+        <p class="check__lock">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+          หลังยื่นคำขอ ระบบจะล็อกข้อมูลชั่วคราวระหว่างตรวจสอบ และจะแจ้งผลให้ทราบเมื่อดำเนินการเรียบร้อย
+        </p>
+        <label id="check-confirm" class="check__agree">
+          <input type="checkbox" [checked]="submitAck" [disabled]="!submitReady" (change)="submitAck = $any($event.target).checked" />
+          <span class="check__radio" aria-hidden="true"></span>
+          ข้าพเจ้ายืนยันว่าตรวจสอบข้อมูลและเอกสารประกอบเรียบร้อยแล้ว
+        </label>
       </div>
-      <p class="submit__hint">ตรวจข้อมูลในแบบก่อนนำส่ง หนังสือนำส่งอยู่ในส่วนคำรับรองและลงนาม</p>
-      <dl class="submit__check">
-        <div><dt>เลขที่อ้างอิง</dt><dd>{{ refId }}</dd></div>
-        <div><dt>ผู้ยื่น</dt><dd>{{ company }}</dd></div>
-        <div><dt>มาตรการ</dt><dd>{{ measureName }}</dd></div>
-        <div><dt>ผู้ลงนาม</dt><dd>{{ signer }} · {{ roleTitle }}</dd></div>
-        <div><dt>วันที่ลงนาม</dt><dd>{{ letterWhen }}</dd></div>
-        <div><dt>รูปลายเซ็น</dt><dd>{{ signatureUrl ? 'มีรูปลายเซ็น' : 'ยังไม่มีรูปลายเซ็น' }}</dd></div>
-        <div><dt>คำรับรอง</dt><dd>{{ ack ? 'ยืนยันแล้ว' : 'ยังไม่ได้ยืนยัน' }}</dd></div>
-        <div><dt>หนังสือนำส่ง</dt><dd>สร้างจากข้อมูลในแบบแล้ว</dd></div>
-      </dl>
-      <div class="submit__actions">
+      <footer class="check__foot">
+        <button type="button" class="check__jump" aria-label="เลื่อนไปยืนยัน" (click)="scrollConfirm()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+        </button>
         <app-button type="outline" label="กลับไปแก้ไข" (click)="submitOpen = false" />
-        <app-button type="primary" label="ยื่นคำขอ" (click)="confirmSubmit()" />
+        <app-button type="primary" label="ยืนยันการยื่นคำขอ" [state]="canConfirm ? 'default' : 'disabled'" (click)="confirmSubmit()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </app-button>
+      </footer>
+    </section>
+  </div>
+}
+@if (consultOpen) {
+  <div class="sample sample--submit sample--check" (click)="consultOpen = false">
+    <section role="dialog" aria-modal="true" aria-labelledby="consult-title" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2 id="consult-title">ยื่นคำร้องขอพบเจ้าหน้าที่</h2>
+        <button type="button" class="submit__close" (click)="consultOpen = false">✕ ปิด</button>
+      </div>
+      <p class="submit__hint">คำร้องจะส่งถึง {{ officerName }} {{ officerUnit }} หลังจากส่งแล้วคุยต่อกันได้ในหน้านี้</p>
+      <div class="ask">
+        <label>
+          <span>เรื่อง<span class="req">*</span></span>
+          <input type="text" [value]="consultTopic" (input)="consultTopic = $any($event.target).value" />
+        </label>
+        <label>
+          <span>รายละเอียด<span class="req">*</span></span>
+          <textarea rows="4" [value]="consultDetail" (input)="consultDetail = $any($event.target).value"></textarea>
+        </label>
+        <label>
+          <span>วันเวลาที่สะดวก<span class="req">*</span></span>
+          <input type="text" placeholder="16/05/2562 10:00" [value]="consultWhen" (input)="consultWhen = $any($event.target).value" />
+        </label>
+      </div>
+      <div class="submit__actions">
+        <app-button type="outline" label="ยกเลิก" (click)="consultOpen = false" />
+        <app-button type="primary" label="ส่งคำร้อง" (click)="sendConsult()" />
+      </div>
+    </section>
+  </div>
+}
+@if (officialOpen) {
+  <div class="sample sample--submit sample--check" (click)="officialOpen = false">
+    <section role="dialog" aria-modal="true" aria-labelledby="official-title" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2 id="official-title">ยืนยันส่งแบบยื่นทางการ</h2>
+        <button type="button" class="submit__close" (click)="officialOpen = false">✕ ปิด</button>
+      </div>
+      @if (caseStatus === 'consult') {
+        <p class="submit__hint">เรื่องนี้มีเจ้าหน้าที่ผู้ดูแลแล้ว ระบบจะส่งให้ {{ officerName }} อนุมัติ สถานะเป็นรอเจ้าหน้าที่อนุมัติ และภายใน 1 นาทีจะเปลี่ยนเป็นยื่นแบบ</p>
+      } @else {
+        <p class="submit__hint">ระบบจะบันทึกคำขอนี้เป็นสถานะยื่นแบบ</p>
+      }
+      <div class="submit__actions">
+        <app-button type="outline" label="กลับไปพิจารณา" (click)="officialOpen = false" />
+        @if (caseStatus === 'consult') {
+          <app-button type="primary" label="ส่งให้เจ้าหน้าที่อนุมัติ" (click)="confirmOfficial()" />
+        } @else {
+          <app-button type="primary" label="ยืนยันส่งแบบยื่นทางการ" (click)="confirmOfficial()" />
+        }
       </div>
     </section>
   </div>

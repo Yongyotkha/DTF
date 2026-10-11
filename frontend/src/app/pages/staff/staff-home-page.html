@@ -4,6 +4,15 @@
     <app-side-nav kind="staff" open="ระบบ Task Management" active="หน้าหลัก" (chosen)="openMenu($event)" />
     <main>
       <h1>หน้าหลัก</h1>
+      @if (awaitingApproval) {
+        <section class="approve" aria-label="คำขอรออนุมัติยื่นแบบ">
+          <div>
+            <h2>คำขอรออนุมัติยื่นแบบ</h2>
+            <p>เลขที่อ้างอิง {{ filingRef }} ส่งมาให้ {{ officerName }} กดอนุมัติก่อน จึงจะเป็นสถานะยื่นแบบ</p>
+          </div>
+          <app-button type="primary" label="อนุมัติการยื่นแบบ" (click)="approveFiling()" />
+        </section>
+      }
       <div class="stats">
         @for (item of buckets; track item.id) {
           <button type="button" class="stat" [class.stat--on]="selected === item.id" (click)="selected = item.id">

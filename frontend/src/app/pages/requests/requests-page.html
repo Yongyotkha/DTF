@@ -4,90 +4,93 @@
     <app-side-nav open="คำขอ" [active]="choosing ? 'ยื่นคำขอ' : 'รายการยื่นคำขอ'" (chosen)="openMenu($event)" />
     <main>
       <header class="head">
-        <h1>รายการยื่นคำขอ</h1>
-        <app-button class="icon-before" label="ยื่นคำขอ" (click)="openChooser($event)">
+        <div>
+          <h1>รายการยื่นคำขอ</h1>
+          <p class="head__note">จัดการและติดตามสถานะคำขอของคุณ</p>
+        </div>
+        <app-button class="icon-before" label="ยื่นคำขอใหม่" (click)="openChooser($event)">
           <img src="assets/icons/list-plus.svg" width="24" height="24" alt="" />
         </app-button>
       </header>
       <section class="panel">
-        <app-tabs [labels]="tabs" [marks]="[1, 1]" [selected]="listTab" (activeChange)="setListTab($event)" />
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                @if (listTab === 0) {
-                  <th class="fold"></th>
-                }
-                <th>รหัส</th>
-                <th>ชื่อสินค้า/ประเทศ</th>
-                <th>ประเภทการยื่น</th>
-                <th>สถานะ</th>
-                <th>วันที่สร้าง</th>
-                <th>ดำเนินการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of visibleRows; track row.id) {
-                <tr>
-                  @if (listTab === 0) {
-                    <td class="fold">
-                      <button type="button" class="fold__btn" [attr.aria-expanded]="openRows().has(row.id)" [attr.aria-label]="openRows().has(row.id) ? 'ย่อรายการ' : 'ขยายรายการ'" (click)="toggleRow(row.id)">
-                        <img src="assets/icons/row-chevron.svg" width="20" height="20" alt="" [class.fold__mark--shut]="!openRows().has(row.id)" />
-                      </button>
-                    </td>
-                  }
-                  <td>{{ row.code }}</td>
-                  <td>{{ row.goods }}</td>
-                  <td>{{ row.kind }}</td>
-                  <td>
-                    @if (row.id === 'row-1') {
-                      <app-status-tag [tone]="caseTone" [label]="caseLabel" />
-                    } @else {
-                      <span class="pill">{{ row.status }}</span>
-                    }
-                  </td>
-                  <td>{{ row.created }}</td>
-                  <td>
-                    <button type="button" class="act" [class.act--wait]="!row.ready" [disabled]="!row.ready" (click)="listTab === 0 ? openCase() : openDraft()">{{ row.id === 'row-1' && !row.ready ? 'ยกเลิกแล้ว' : (row.ready ? 'ดำเนินการ' : 'รอดำเนินการ') }}</button>
-                  </td>
-                </tr>
-                @if (listTab === 0 && openRows().has(row.id)) {
-                  <tr class="detail">
-                    <td colspan="7">
-                      <ol class="track">
-                        @for (step of row.steps; track step.name; let last = $last) {
-                          <li class="track__step" [class.track__step--done]="step.state === 'done'">
-                            <span class="track__dot" [class.track__dot--done]="step.state === 'done'" [class.track__dot--now]="step.state === 'current'">
-                              @if (step.state === 'done') {
-                                <img src="assets/icons/step-check.svg" width="20" height="20" alt="" />
-                              } @else if (step.state === 'current') {
-                                <img src="assets/icons/step-history.svg" width="16" height="16" alt="" />
-                              }
-                            </span>
-                            <strong>{{ step.name }}</strong>
-                            @if (step.date) {
-                              <small>{{ step.date }}</small>
-                            }
-                          </li>
-                        }
-                      </ol>
-                    </td>
-                  </tr>
-                }
+        <ul class="stats">
+          <li>
+            <span>คำขอทั้งหมด</span>
+            <strong>{{ filedCount }}</strong>
+          </li>
+          <li>
+            <span>อยู่ระหว่างตรวจสอบ</span>
+            <strong class="stats__info">{{ reviewCount }}</strong>
+          </li>
+          <li>
+            <span>รอดำเนินการ</span>
+            <strong class="stats__wait">{{ waitingCount }}</strong>
+          </li>
+        </ul>
+        <app-tabs [labels]="tabLabels" [selected]="listTab" (activeChange)="setListTab($event)" />
+        <div class="toolbar">
+          <label class="search">
+            <input type="search" placeholder="ค้นหาเลขคำขอหรือชื่อสินค้า..." aria-label="ค้นหาเลขคำขอหรือชื่อสินค้า" [value]="query" (input)="query = $any($event.target).value" />
+          </label>
+          <label class="filter">
+            <select aria-label="สถานะ" [value]="statusFilter" (change)="statusFilter = $any($event.target).value">
+              <option value="">ทุกสถานะ</option>
+              @for (status of statusOptions; track status) {
+                <option [value]="status">{{ status }}</option>
               }
-            </tbody>
-          </table>
+            </select>
+          </label>
         </div>
-        <nav class="pages" aria-label="หน้า">
-          <button type="button" aria-label="หน้าก่อน" (click)="shiftPage(-1)">
-            <img class="pages__prev" src="assets/icons/page-chevron.svg" width="24" height="24" alt="" />
-          </button>
-          <button type="button" [class.pages__on]="page === 1" (click)="page = 1">1</button>
-          <button type="button" [class.pages__on]="page === 2" (click)="page = 2">2</button>
-          <button type="button" aria-label="หน้าถัดไป" (click)="shiftPage(1)">
-            <img class="pages__next" src="assets/icons/page-chevron.svg" width="24" height="24" alt="" />
-          </button>
-        </nav>
+        @if (visibleRows.length === 0) {
+          <p class="empty">ไม่พบคำขอที่ตรงกับเงื่อนไข</p>
+        }
+        <div class="case-list">
+          @for (row of visibleRows; track row.id) {
+            <article class="case-card">
+              <div class="case-card__main">
+                <div class="case-card__copy">
+                  <p class="case-card__code">{{ row.code }}</p>
+                  <h2>{{ row.goods }}</h2>
+                  <p>{{ row.kind }}</p>
+                  @if (meta(row)) {
+                    <p class="case-card__meta">{{ meta(row) }}</p>
+                  }
+                </div>
+                <div class="case-card__side">
+                  <app-status-tag [tone]="row.tone" [label]="row.status" />
+                  <app-button type="outline" [label]="row.ready ? 'ดูคำขอ' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row)">
+                    @if (row.ready) {
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    }
+                  </app-button>
+                </div>
+              </div>
+              <button type="button" class="case-card__progress" [attr.aria-expanded]="openRows().has(row.id)" (click)="toggleRow(row.id)">
+                <span>ดูความคืบหน้าคำขอ</span>
+                <img src="assets/icons/row-chevron.svg" width="20" height="20" alt="" [class.case-card__shut]="!openRows().has(row.id)" />
+              </button>
+              @if (openRows().has(row.id)) {
+                <ol class="track">
+                  @for (step of row.steps; track step.name) {
+                    <li class="track__step" [class.track__step--done]="step.state === 'done'">
+                      <span class="track__dot" [class.track__dot--done]="step.state === 'done'" [class.track__dot--now]="step.state === 'current'">
+                        @if (step.state === 'done') {
+                          <img src="assets/icons/step-check.svg" width="20" height="20" alt="" />
+                        } @else if (step.state === 'current') {
+                          <img src="assets/icons/step-history.svg" width="16" height="16" alt="" />
+                        }
+                      </span>
+                      <strong>{{ step.name }}</strong>
+                      @if (step.date) {
+                        <small>{{ step.date }}</small>
+                      }
+                    </li>
+                  }
+                </ol>
+              }
+            </article>
+          }
+        </div>
       </section>
     </main>
   </div>
