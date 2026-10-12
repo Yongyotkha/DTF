@@ -2125,11 +2125,14 @@ export class Por1Page {
     const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn }));
     this.inquiryPayFiles = [...this.inquiryPayFiles, ...files];
     input.value = '';
+    this.writeInquiry();
   }
 
   protected removeInquiryPayFile(index: number): void {
-    if (this.inquiryPaySent || this.inquiryPayAck) return;
+    if (this.inquiryPayAck) return;
     this.inquiryPayFiles = this.inquiryPayFiles.filter((_, item) => item !== index);
+    if (!this.inquiryPayFiles.length) this.inquiryPaySent = false;
+    this.writeInquiry();
   }
 
   protected sendInquiryPay(): void {
@@ -2139,7 +2142,8 @@ export class Por1Page {
   }
 
   protected ackInquiryPay(): void {
-    if (!this.inquiryPaySent || this.inquiryPayAck || !this.inquiryPayFiles.length) return;
+    if (!this.inquiryFeeSent || this.inquiryPayAck || !this.inquiryPayFiles.length) return;
+    this.inquiryPaySent = true;
     this.inquiryPayAck = true;
     this.writeInquiry();
     this.inquiryPart = 'vote';
@@ -3458,6 +3462,7 @@ export class Por1Page {
     }
     if (this.caseStatus === 'review') this.armReview();
     if (!this.reviewRole && this.route.snapshot.queryParamMap.get('consult') === '1') this.openConsult();
+    if (this.reviewRole && this.inquiryFeeSent && !this.inquiryOpen) this.watchInquiry();
     if (this.caseStatus === 'consult' && this.consultAssigned && this.consultByChat) this.openTalk();
     if (this.caseStatus === 'consult' && !this.consultAssigned) this.watchAssign();
     this.watchApproval();
@@ -3466,6 +3471,18 @@ export class Por1Page {
 
   private approvalTimer = 0;
   private assignTimer = 0;
+  private inquiryTimer = 0;
+
+  private watchInquiry(): void {
+    window.clearInterval(this.inquiryTimer);
+    this.inquiryTimer = window.setInterval(() => {
+      const saved = readDocNotice()?.inquiry;
+      if (!saved) return;
+      if (saved.paySent === this.inquiryPaySent && saved.payAck === this.inquiryPayAck && saved.payFiles.length === this.inquiryPayFiles.length && saved.open === this.inquiryOpen) return;
+      this.applyInquiry(saved);
+      this.view.markForCheck();
+    }, 1000);
+  }
 
   private watchAssign(): void {
     window.clearInterval(this.assignTimer);
@@ -3544,6 +3561,7 @@ export class Por1Page {
     window.clearInterval(this.reviewTimer);
     window.clearInterval(this.approvalTimer);
     window.clearInterval(this.assignTimer);
+    window.clearInterval(this.inquiryTimer);
     this.guide.clear();
   }
 

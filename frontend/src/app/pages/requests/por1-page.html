@@ -103,9 +103,9 @@
                 } @else if (committeeResult === 'take' && inquiryFeeSent && !inquiryPayAck) {
                   <p>คณะกรรมการรับคำขอแล้ว กรุณาชำระค่าธรรมเนียมคำขอ {{ inquiryFeeAmount }} บาท ภายใน {{ inquiryFeeDue }} ค่าธรรมเนียมนี้ไม่ใช่อากร AD</p>
                 } @else if (committeeResult === 'take' && inquiryOpen === 'open') {
-                  <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }}</p>
+                  <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }} ประกาศทางเว็บไซต์กรม และแจ้งผู้มีส่วนได้เสียกับรัฐบาลประเทศผู้ส่งออกแล้ว</p>
                 } @else if (committeeResult === 'take' && inquiryOpen === 'close') {
-                  <p>คณะกรรมการมีมติไม่เปิดไต่สวน สถานะปิดการไต่สวน</p>
+                  <p>มีมติไม่เปิดไต่สวน แจ้งผู้ยื่นแล้ว ปิดคำขอ และสถานะเป็นปิดการไต่สวน</p>
                 } @else if (committeeResult === 'take' && inquiryDecide === 'return') {
                   <p>คณะกรรมการคืนคำขอ</p>
                 } @else if (committeeResult === 'take' && committeeFee === 'pay') {
@@ -1457,6 +1457,7 @@
               <header class="assign-head">
                 <div>
                   <h2>เปิดไต่สวน</h2>
+                  <p>มาตรา 39 เริ่มจากวาระพิจารณาและมติรับคำขอ จากนั้นแจ้งชำระค่าธรรมเนียม รับทราบหลักฐาน แล้วมีมติเปิดหรือไม่เปิดไต่สวน</p>
                 </div>
                 @if (inquiryOpen === 'open') {
                   <app-status-tag tone="success" label="เปิดการไต่สวน" />
@@ -1611,8 +1612,19 @@
                       </section>
                     } @else if (inquiryPart === 'proof') {
                       <section class="notice-form" aria-label="หลักฐานการชำระ">
-                        <h3>หลักฐานการชำระค่าธรรมเนียม</h3>
-                        <p class="link-detail">ผู้ยื่นแนบหลักฐานจากหน้าคำขอ แล้วเจ้าหน้าที่รับทราบ</p>
+                        <div class="reply-bar">
+                          <div>
+                            <h3>หลักฐานการชำระค่าธรรมเนียม</h3>
+                            <p class="link-detail">ผู้ยื่นส่งหลักฐานจากหน้าคำขอ หรือบันทึกหลักฐานที่ได้รับ แล้วรับทราบเพื่อไปมติเปิดไต่สวน</p>
+                          </div>
+                          @if (!inquiryPayAck) {
+                            <label class="pick">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                              เพิ่ม
+                              <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addInquiryPayFiles($event)" />
+                            </label>
+                          }
+                        </div>
                         @if (inquiryPayFiles.length) {
                           <div class="table-wrap slip-files">
                             <table>
@@ -1638,6 +1650,11 @@
                                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
                                           ดู
                                         </button>
+                                        @if (!inquiryPayAck) {
+                                          <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeInquiryPayFile(n)">
+                                            <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                                          </button>
+                                        }
                                       </div>
                                     </td>
                                   </tr>
@@ -1646,11 +1663,11 @@
                             </table>
                           </div>
                         } @else {
-                          <p>ยังไม่มีหลักฐานการชำระจากผู้ยื่น</p>
+                          <p>ยังไม่มีหลักฐานการชำระ แนบไฟล์แล้วกดรับทราบ</p>
                         }
                         @if (!inquiryPayAck) {
                           <footer class="doc-foot">
-                            <app-button type="primary" label="รับทราบหลักฐาน" [state]="inquiryPaySent ? 'default' : 'disabled'" (click)="ackInquiryPay()" />
+                            <app-button type="primary" label="รับทราบหลักฐาน" [state]="inquiryPayFiles.length ? 'default' : 'disabled'" (click)="ackInquiryPay()" />
                           </footer>
                         } @else {
                           <p>เจ้าหน้าที่รับทราบหลักฐานแล้ว ขั้นต่อไปคือมติเปิดไต่สวน</p>
@@ -1680,13 +1697,22 @@
                             <app-button type="primary" label="บันทึกมติ" [state]="inquiryOpenDraft === 'open' || (inquiryOpenDraft === 'close' && inquiryCloseNote.trim()) ? 'default' : 'disabled'" (click)="saveInquiryOpen()" />
                           </footer>
                         } @else if (inquiryOpen === 'open') {
-                          <p>เปิดการไต่สวนแล้ว ส่งเข้า e-TR</p>
-                          <p>Case ID {{ inquiryCaseId }}</p>
-                          <p>สถานะเปิดการไต่สวน แจ้งค่าธรรมเนียมและผู้มีส่วนได้เสียแล้ว</p>
+                          <p>มติเปิดไต่สวนเมื่อ {{ inquiryOpenAt }}</p>
+                          <ol class="findings">
+                            <li><div><strong>ส่งเข้า e-TR</strong><p>Case ID {{ inquiryCaseId }}</p></div></li>
+                            <li><div><strong>สถานะเปิดการไต่สวน</strong><p>แจ้งค่าธรรมเนียมและผู้มีส่วนได้เสียแล้ว</p></div></li>
+                            <li><div><strong>ประกาศและแจ้งผู้เกี่ยวข้อง</strong><p>ประกาศทางเว็บไซต์กรม แจ้งผู้ยื่น และหนังสือพิมพ์หรือรัฐบาลประเทศผู้ส่งออก</p></div></li>
+                          </ol>
+                          <p>บันทึกโดย {{ inquirySentBy }}</p>
                         } @else {
-                          <p>มีมติไม่เปิดไต่สวน แจ้งอีเมลผู้ยื่น บันทึกผล และปิดคำขอแล้ว</p>
-                          <p>สถานะปิดการไต่สวน</p>
+                          <p>มติไม่เปิดไต่สวนเมื่อ {{ inquiryOpenAt }}</p>
                           @if (inquiryCloseNote) { <p>{{ inquiryCloseNote }}</p> }
+                          <ol class="findings">
+                            <li><div><strong>แจ้งผู้เกี่ยวข้อง</strong><p>ส่งอีเมลว่าไม่เปิดไต่สวน บันทึกผล และแจ้งผู้ยื่น</p></div></li>
+                            <li><div><strong>ปิดคำขอ</strong><p>สถานะปิดการไต่สวน และสถานะคำขอเป็นปิดคำขอ</p></div></li>
+                            <li><div><strong>ส่งเข้า e-TR</strong><p>บันทึกผลไม่เปิดไต่สวนแล้ว</p></div></li>
+                          </ol>
+                          <p>บันทึกโดย {{ inquirySentBy }}</p>
                         }
                       </section>
                     }
