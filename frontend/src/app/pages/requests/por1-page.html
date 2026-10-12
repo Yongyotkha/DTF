@@ -106,6 +106,14 @@
                 <p>{{ docNote }}</p>
                 @if (!committeeSent) {
                   <p>ขั้นตอนต่อไปคือการพิจารณาของคณะกรรมการ เอกสารที่ส่งไว้ยังเปิดดูได้</p>
+                } @else if (committeeResult === 'take' && inquiryFeeSent && !inquiryPayAck) {
+                  <p>คณะกรรมการรับคำขอแล้ว กรุณาชำระค่าธรรมเนียมคำขอ {{ inquiryFeeAmount }} บาท ภายใน {{ inquiryFeeDue }} ค่าธรรมเนียมนี้ไม่ใช่อากร AD</p>
+                } @else if (committeeResult === 'take' && inquiryOpen === 'open') {
+                  <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }}</p>
+                } @else if (committeeResult === 'take' && inquiryOpen === 'close') {
+                  <p>คณะกรรมการมีมติไม่เปิดไต่สวน สถานะปิดการไต่สวน</p>
+                } @else if (committeeResult === 'take' && inquiryDecide === 'return') {
+                  <p>คณะกรรมการคืนคำขอ</p>
                 } @else if (committeeResult === 'take' && committeeFee === 'pay') {
                   <p>คณะกรรมการรับคำขอเมื่อ {{ committeeAt }} และแจ้งให้ชำระค่าธรรมเนียม</p>
                 } @else if (committeeResult === 'take') {
@@ -116,6 +124,49 @@
                 }
               </div>
             </div>
+            @if (inquiryFeeSent && !inquiryPayAck) {
+              <div class="reply-bar">
+                <h3>หลักฐานการชำระค่าธรรมเนียม</h3>
+                @if (!inquiryPaySent) {
+                  <label class="pick">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                    เพิ่ม
+                    <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addInquiryPayFiles($event)" />
+                  </label>
+                }
+              </div>
+              @if (inquiryPayFiles.length) {
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="col-no">ลำดับ</th>
+                        <th>วันที่ส่ง</th>
+                        <th>ไฟล์แนบ</th>
+                        <th>ชื่อเอกสาร</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (file of inquiryPayFiles; track file.name; let n = $index) {
+                        <tr>
+                          <td class="col-no">{{ n + 1 }}</td>
+                          <td>{{ file.sentOn }}</td>
+                          <td>{{ file.name }}</td>
+                          <td>{{ file.title }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+              @if (!inquiryPaySent) {
+                <footer class="doc-foot">
+                  <app-button type="primary" label="ส่งหลักฐาน" [state]="inquiryPayFiles.length ? 'default' : 'disabled'" (click)="sendInquiryPay()" />
+                </footer>
+              } @else {
+                <p>ส่งหลักฐานแล้ว รอเจ้าหน้าที่รับทราบ</p>
+              }
+            }
             @if (keptReply) {
               <h3>เอกสารที่ส่งไว้</h3>
               <div class="table-wrap">
@@ -665,6 +716,10 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M8 13l2 2 4-4" /></svg>
               ตรวจสอบเอกสาร
             </button>
+            <button type="button" [class.on]="reviewTab === 'inquiry'" (click)="pickReviewTab('inquiry')">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16" /><path d="M5 4h10l-2 4 2 4H5" /></svg>
+              เปิดไต่สวน
+            </button>
             <button type="button" [class.on]="reviewTab === 'link'" (click)="pickReviewTab('link')">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.2 1.2" /><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.2-1.2" /></svg>
               เชื่อมโยงระบบ
@@ -1167,7 +1222,7 @@
                         </section>
                       }
                     </section>
-                  } @else {
+                  } @else if (docPart === workDocs.length + 1) {
                     <header class="assign-head">
                       <div>
                         <h2>พิจารณาของคณะกรรมการฯ</h2>
@@ -1335,6 +1390,249 @@
                   }
                 </div>
               </div>
+            </div>
+          }
+          @if (reviewTab === 'inquiry') {
+            <div class="assign-card">
+              <header class="assign-head">
+                <div>
+                  <h2>เปิดไต่สวน</h2>
+                </div>
+                @if (inquiryOpen === 'open') {
+                  <app-status-tag tone="success" label="เปิดการไต่สวน" />
+                } @else if (inquiryOpen === 'close' || inquiryReturned) {
+                  <app-status-tag tone="danger" [label]="inquiryReturned ? 'คืนคำขอ' : 'ปิดการไต่สวน'" />
+                } @else if (inquiryReached) {
+                  <app-status-tag tone="info" label="รอดำเนินการ" />
+                }
+              </header>
+              @if (!inquiryReached) {
+                <p>คณะกรรมการไม่รับคำขอฉบับสมบูรณ์ จึงไม่เข้าขั้นตอนเปิดไต่สวน</p>
+              } @else {
+                <div class="sheet__split">
+                  <nav class="toc" aria-label="กระบวนการเปิดไต่สวน">
+                    @for (step of inquiryNav; track step.id) {
+                      <button type="button" class="toc__child" [class.toc__on]="inquiryPart === step.id" [attr.aria-current]="inquiryPart === step.id ? 'true' : null" (click)="openInquiryStep(step.id)">
+                        <img [src]="step.done ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                        {{ step.label }}
+                      </button>
+                    }
+                  </nav>
+                  <div class="receipt__view">
+                    @if (inquiryPart === 'agenda') {
+                      <section class="notice-form" aria-label="วาระพิจารณา">
+                        <div class="reply-bar">
+                          <div>
+                            <h3>วาระพิจารณาคำขอ</h3>
+                            <p class="link-detail">AI ร่างวาระให้เจ้าหน้าที่ก่อนเข้าที่ประชุม</p>
+                          </div>
+                          <app-button class="ask-ai icon-before" type="primary" label="ช่วยร่างวาระ" [state]="inquiryDecide ? 'disabled' : 'default'" (click)="fillInquiryAgenda()">
+                            <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                          </app-button>
+                        </div>
+                        <div class="notice-date">
+                          <app-thai-date-field label="วันที่ประชุม" [required]="true" [value]="inquiryAgendaAt" [state]="inquiryDecide ? 'readonly' : 'default'" (valueChange)="inquiryAgendaAt = $event" />
+                        </div>
+                        <div class="draft-form">
+                          @for (item of inquiryFields; track item.label; let i = $index) {
+                            <app-input-field class="block" [class.wide]="item.long" [kind]="item.long ? 'textarea' : 'text'" [label]="item.label" [required]="true" [editable]="!inquiryDecide" [state]="inquiryDecide ? 'readonly' : 'default'" [value]="item.value" (valueChange)="setInquiryField(i, $event)" />
+                          }
+                        </div>
+                        @if (!inquiryDecide) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="บันทึก" [state]="inquiryFields.every((item) => item.value.trim()) ? 'default' : 'disabled'" (click)="saveInquiryAgenda()" />
+                          </footer>
+                        }
+                        <div class="reply-bar">
+                          <div>
+                            <p class="slip-file-label">ไฟล์วาระพิจารณาคำขอ</p>
+                            <p class="link-detail">กดบันทึกเพื่อสร้างจากแบบด้านบน หรือแนบไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
+                          </div>
+                          @if (!inquiryDecide) {
+                            <label class="pick">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                              เพิ่ม
+                              <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addAgendaFiles($event)" />
+                            </label>
+                          }
+                        </div>
+                        <div class="table-wrap slip-files">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th class="col-no">ลำดับ</th>
+                                <th>วันที่ส่ง</th>
+                                <th>ไฟล์แนบ</th>
+                                <th>ชื่อเอกสาร</th>
+                                <th>การจัดการ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (file of inquiryAgendaFiles; track file.name; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ n + 1 }}</td>
+                                  <td>{{ file.sentOn }}</td>
+                                  <td>{{ file.name }}</td>
+                                  <td>{{ file.title }}</td>
+                                  <td>
+                                    <div class="made-actions">
+                                      <button type="button" class="office-view" (click)="openEmbassyFile(file)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        ดู
+                                      </button>
+                                      <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                        ดาวน์โหลด
+                                      </button>
+                                      @if (!inquiryDecide) {
+                                        <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeAgendaFile(n)">
+                                          <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                                        </button>
+                                      }
+                                    </div>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    } @else if (inquiryPart === 'decide') {
+                      <section class="notice-form" aria-label="พิจารณาคำขอ">
+                        <h3>คณะกรรมการพิจารณาคำขอ</h3>
+                        <p class="link-detail">รับแล้วจึงแจ้งชำระค่าธรรมเนียมคำขอ ไม่รับแล้วทำหนังสือคืนคำขอ</p>
+                        <div class="slip-line">
+                          <span>ผลการพิจารณา<span class="req">*</span></span>
+                          <div class="slip-choices">
+                            <button type="button" [disabled]="!!inquiryDecide" (click)="inquiryDecideDraft = 'take'"><img [src]="(inquiryDecide || inquiryDecideDraft) === 'take' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ</button>
+                            <button type="button" [disabled]="!!inquiryDecide" (click)="inquiryDecideDraft = 'return'"><img [src]="(inquiryDecide || inquiryDecideDraft) === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่รับ</button>
+                          </div>
+                        </div>
+                        @if (!inquiryDecide) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="ต่อไป" [state]="inquiryDecideDraft ? 'default' : 'disabled'" (click)="continueInquiryDecide()" />
+                          </footer>
+                        } @else if (inquiryDecide === 'take') {
+                          <p>รับคำขอแล้ว ขั้นต่อไปคือแจ้งชำระค่าธรรมเนียมคำขอ</p>
+                        } @else {
+                          <p>ไม่รับคำขอ ขั้นต่อไปคือทำหนังสือคืนคำขอ</p>
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'letter') {
+                      <section class="notice-form" aria-label="หนังสือคืนคำขอ">
+                        <h3>ทำหนังสือคืนคำขอ</h3>
+                        <label class="assign-remark">
+                          <span>เหตุผลการคืนคำขอ<span class="req">*</span></span>
+                          <textarea rows="3" [disabled]="inquiryReturned" [value]="inquiryCloseNote" (input)="inquiryCloseNote = $any($event.target).value"></textarea>
+                        </label>
+                        @if (!inquiryReturned) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="บันทึกหนังสือคืนคำขอ" [state]="inquiryCloseNote.trim() ? 'default' : 'disabled'" (click)="saveInquiryReturn()" />
+                          </footer>
+                        } @else {
+                          <p>ทำหนังสือคืนคำขอแล้ว โดย {{ inquirySentBy }} และแจ้งผู้ยื่นแล้ว</p>
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'fee') {
+                      <section class="notice-form" aria-label="แจ้งชำระค่าธรรมเนียม">
+                        <h3>แจ้งชำระค่าธรรมเนียมคำขอ</h3>
+                        <p class="link-detail">ระบบแจ้งทางอีเมลให้ผู้ยื่นบันทึกหลักฐานการชำระ ค่าธรรมเนียมนี้ไม่ใช่อากร AD</p>
+                        <div class="draft-form">
+                          <app-input-field class="block" kind="text" label="ยอดค่าธรรมเนียม (บาท)" [required]="true" [editable]="!inquiryFeeSent" [state]="inquiryFeeSent ? 'readonly' : 'default'" [value]="inquiryFeeAmount" (valueChange)="inquiryFeeAmount = $event" />
+                          <app-thai-date-field label="วันที่ครบกำหนดชำระ" [required]="true" [value]="inquiryFeeDue" [state]="inquiryFeeSent ? 'readonly' : 'default'" (valueChange)="inquiryFeeDue = $event" />
+                        </div>
+                        @if (!inquiryFeeSent) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="แจ้งชำระค่าธรรมเนียม" (click)="notifyInquiryFee()" />
+                          </footer>
+                        } @else {
+                          <p>แจ้งอีเมลให้ผู้ยื่นแล้ว ยอด {{ inquiryFeeAmount }} บาท ภายใน {{ inquiryFeeDue }}</p>
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'proof') {
+                      <section class="notice-form" aria-label="หลักฐานการชำระ">
+                        <h3>หลักฐานการชำระค่าธรรมเนียม</h3>
+                        <p class="link-detail">ผู้ยื่นแนบหลักฐานจากหน้าคำขอ แล้วเจ้าหน้าที่รับทราบ</p>
+                        @if (inquiryPayFiles.length) {
+                          <div class="table-wrap slip-files">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="col-no">ลำดับ</th>
+                                  <th>วันที่ส่ง</th>
+                                  <th>ไฟล์แนบ</th>
+                                  <th>ชื่อเอกสาร</th>
+                                  <th>การจัดการ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (file of inquiryPayFiles; track file.name; let n = $index) {
+                                  <tr>
+                                    <td class="col-no">{{ n + 1 }}</td>
+                                    <td>{{ file.sentOn }}</td>
+                                    <td>{{ file.name }}</td>
+                                    <td>{{ file.title }}</td>
+                                    <td>
+                                      <div class="made-actions">
+                                        <button type="button" class="office-view" (click)="viewingMade = { id: file.name, kind: file.title, at: file.sentOn, fields: [{ label: 'ไฟล์แนบ', value: file.name }] }">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          ดู
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        } @else {
+                          <p>ยังไม่มีหลักฐานการชำระจากผู้ยื่น</p>
+                        }
+                        @if (!inquiryPayAck) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="รับทราบหลักฐาน" [state]="inquiryPaySent ? 'default' : 'disabled'" (click)="ackInquiryPay()" />
+                          </footer>
+                        } @else {
+                          <p>เจ้าหน้าที่รับทราบหลักฐานแล้ว ขั้นต่อไปคือมติเปิดไต่สวน</p>
+                        }
+                      </section>
+                    } @else {
+                      <section class="notice-form" aria-label="มติเปิดไต่สวน">
+                        <h3>คณะกรรมการเปิดไต่สวน</h3>
+                        @if (!inquiryOpen) {
+                          <div class="notice-date">
+                            <app-thai-date-field label="วันที่คณะกรรมการเปิดไต่สวน" [required]="true" [value]="inquiryOpenAt" (valueChange)="inquiryOpenAt = $event" />
+                          </div>
+                          <div class="slip-line">
+                            <span>มติเปิดไต่สวน<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="inquiryOpenDraft = 'open'"><img [src]="inquiryOpenDraft === 'open' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />เปิด</button>
+                              <button type="button" (click)="inquiryOpenDraft = 'close'"><img [src]="inquiryOpenDraft === 'close' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่เปิด</button>
+                            </div>
+                          </div>
+                          @if (inquiryOpenDraft === 'close') {
+                            <label class="assign-remark">
+                              <span>เหตุผลที่ไม่เปิดไต่สวน<span class="req">*</span></span>
+                              <textarea rows="3" [value]="inquiryCloseNote" (input)="inquiryCloseNote = $any($event.target).value"></textarea>
+                            </label>
+                          }
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="บันทึกมติ" [state]="inquiryOpenDraft === 'open' || (inquiryOpenDraft === 'close' && inquiryCloseNote.trim()) ? 'default' : 'disabled'" (click)="saveInquiryOpen()" />
+                          </footer>
+                        } @else if (inquiryOpen === 'open') {
+                          <p>เปิดการไต่สวนแล้ว ส่งเข้า e-TR</p>
+                          <p>Case ID {{ inquiryCaseId }}</p>
+                          <p>สถานะเปิดการไต่สวน แจ้งค่าธรรมเนียมและผู้มีส่วนได้เสียแล้ว</p>
+                        } @else {
+                          <p>มีมติไม่เปิดไต่สวน แจ้งอีเมลผู้ยื่น บันทึกผล และปิดคำขอแล้ว</p>
+                          <p>สถานะปิดการไต่สวน</p>
+                          @if (inquiryCloseNote) { <p>{{ inquiryCloseNote }}</p> }
+                        }
+                      </section>
+                    }
+                  </div>
+                </div>
+              }
             </div>
           }
           @if (reviewTab === 'link') {

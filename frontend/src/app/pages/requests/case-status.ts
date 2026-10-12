@@ -533,7 +533,32 @@ export type DocNotice = {
   reply: ApplicantReply | null;
   passes: NoticePass[];
   committee: CommitteeRecord | null;
+  inquiry: InquiryRecord | null;
   sent: boolean;
+  sentBy: string;
+};
+
+export type InquiryPayFile = { name: string; title: string; sentOn: string };
+
+/** เปิดไต่สวนมาตรา 39 หลังคณะกรรมการรับคำขอฉบับสมบูรณ์ */
+export type InquiryRecord = {
+  agendaAt: string;
+  agenda: string;
+  decide: 'take' | 'return' | '';
+  feeAmount: string;
+  feeDue: string;
+  feeSent: boolean;
+  payFiles: InquiryPayFile[];
+  paySent: boolean;
+  payAck: boolean;
+  open: 'open' | 'close' | '';
+  openAt: string;
+  caseId: string;
+  closeNote: string;
+  agendaDone: boolean;
+  agendaFields: { label: string; value: string; long?: boolean }[];
+  agendaFiles: { name: string; title: string; sentOn: string; docId: string }[];
+  returned: boolean;
   sentBy: string;
 };
 
@@ -601,6 +626,7 @@ export function readDocNotice(): DocNotice | null {
           })
         : [],
       committee: readCommittee(value.committee),
+      inquiry: readInquiry(value.inquiry),
       sent: value.sent === true,
       sentBy: typeof value.sentBy === 'string' ? value.sentBy : '',
     };
@@ -665,6 +691,54 @@ function readCommittee(value: CommitteeRecord | null | undefined): CommitteeReco
       : [],
     embassyNotice: value.embassyNotice === true,
     sent: value.sent === true,
+    sentBy: typeof value.sentBy === 'string' ? value.sentBy : '',
+  };
+}
+
+function readInquiry(value: InquiryRecord | null | undefined): InquiryRecord | null {
+  if (!value || typeof value !== 'object') return null;
+  const decide = value.decide === 'take' || value.decide === 'return' ? value.decide : '';
+  const open = value.open === 'open' || value.open === 'close' ? value.open : '';
+  const payFiles = Array.isArray(value.payFiles)
+    ? value.payFiles.flatMap((file) => {
+        if (!file || typeof file.name !== 'string' || !file.name) return [];
+        return [{ name: file.name, title: typeof file.title === 'string' && file.title ? file.title : file.name, sentOn: typeof file.sentOn === 'string' ? file.sentOn : '' }];
+      })
+    : [];
+  if (!decide && !open && value.feeSent !== true && !payFiles.length && !(typeof value.agenda === 'string' && value.agenda.trim())) return null;
+  return {
+    agendaAt: typeof value.agendaAt === 'string' ? value.agendaAt : '',
+    agenda: typeof value.agenda === 'string' ? value.agenda : '',
+    decide,
+    feeAmount: typeof value.feeAmount === 'string' ? value.feeAmount : '',
+    feeDue: typeof value.feeDue === 'string' ? value.feeDue : '',
+    feeSent: value.feeSent === true,
+    payFiles,
+    paySent: value.paySent === true,
+    payAck: value.payAck === true,
+    open,
+    openAt: typeof value.openAt === 'string' ? value.openAt : '',
+    caseId: typeof value.caseId === 'string' ? value.caseId : '',
+    closeNote: typeof value.closeNote === 'string' ? value.closeNote : '',
+    agendaDone: value.agendaDone === true || decide !== '' || value.feeSent === true || open !== '',
+    agendaFields: Array.isArray(value.agendaFields)
+      ? value.agendaFields.flatMap((field) => {
+          if (!field || typeof field.label !== 'string' || !field.label) return [];
+          return [{ label: field.label, value: typeof field.value === 'string' ? field.value : '', long: field.long === true }];
+        })
+      : [],
+    agendaFiles: Array.isArray(value.agendaFiles)
+      ? value.agendaFiles.flatMap((file) => {
+          if (!file || typeof file.name !== 'string' || !file.name) return [];
+          return [{
+            name: file.name,
+            title: typeof file.title === 'string' && file.title ? file.title : file.name,
+            sentOn: typeof file.sentOn === 'string' ? file.sentOn : '',
+            docId: typeof file.docId === 'string' ? file.docId : '',
+          }];
+        })
+      : [],
+    returned: value.returned === true || (decide === 'return' && typeof value.closeNote === 'string' && !!value.closeNote.trim() && typeof value.sentBy === 'string' && !!value.sentBy),
     sentBy: typeof value.sentBy === 'string' ? value.sentBy : '',
   };
 }

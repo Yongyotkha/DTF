@@ -12,7 +12,7 @@ import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultThread, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultPlan, writeConsultThread, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseStatus, type ConsultNote, type ConsultPlan, type ConsultRequest, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultThread, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultPlan, writeConsultThread, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseStatus, type ConsultNote, type ConsultPlan, type ConsultRequest, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 
 type TocLink = { id: string; label: string; anchor?: string };
 type TocGroup = { label: string; items: TocLink[] };
@@ -108,6 +108,22 @@ function embassyLetterFields(on: string, signer: string): WorkDraft['fields'] {
     field('สิ่งที่ส่งมาด้วย', '-'),
     field('เนื้อความ', 'ด้วยคณะกรรมการได้พิจารณารับคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้ไต่สวนการทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบ หนังสือนี้เก็บไว้ในระบบและไม่ส่งให้ผู้ยื่นคำขอ', true),
     field('ลงชื่อ', signer || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+  ];
+}
+
+function agendaFieldList(): { label: string; value: string; long?: boolean }[] {
+  return [
+    field('ระเบียบวาระที่', '3.3'),
+    field('เรื่อง', 'การพิจารณาคำขอให้เปิดไต่สวนตอบโต้การทุ่มตลาด กรณีสินค้าเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากเวียดนามและอียิปต์'),
+    field('ผู้ยื่นคำขอ', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
+    field('สินค้าที่ถูกพิจารณา', 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน'),
+    field('ประเทศแหล่งกำเนิด', 'เวียดนาม และอียิปต์'),
+    field('วันที่ยื่นคำขอ', '15/05/2562'),
+    field('วันที่คำขอครบถ้วน', '28/05/2562'),
+    field('วันครบกำหนด 4 เดือน', '15/09/2562'),
+    field('สัดส่วนผู้ผลิตที่สนับสนุน', 'มากกว่าร้อยละ 25 ของปริมาณการผลิตสินค้าชนิดเดียวกันในประเทศ'),
+    field('ประเด็นพิจารณา', 'คำขอครบถ้วนภายใน 4 เดือน สถานะผู้ยื่นเข้าเงื่อนไขอุตสาหกรรมภายใน และมีหลักฐานการทุ่มตลาดกับความเสียหายเพียงพอให้เปิดไต่สวนตามมาตรา 39 หรือไม่', true),
+    field('ข้อเสนอต่อที่ประชุม', 'เห็นควรรับคำขอและเปิดไต่สวน', true),
   ];
 }
 
@@ -543,7 +559,7 @@ export class Por1Page {
   private readonly route = inject(ActivatedRoute);
   protected readonly reviewRole = (this.route.snapshot.data['review'] as string) || '';
   protected readonly staffGroups = staffGroups;
-  protected reviewTab: 'form' | 'assign' | 'talk' | 'link' | 'docs' = 'form';
+  protected reviewTab: 'form' | 'assign' | 'talk' | 'link' | 'docs' | 'inquiry' = 'form';
   protected workDocs: WorkDraft[] = defaultWorkDrafts();
   protected madeDocs: MadeDoc[] = [];
   protected editingId = '';
@@ -580,6 +596,26 @@ export class Por1Page {
   protected embassyFiles: { name: string; title: string; sentOn: string; docId: string }[] = [];
   protected embassyLetter = embassyLetterFields('05/06/2562', '');
   protected embassyNotice = false;
+  protected inquiryAgendaAt = '10/06/2562';
+  protected inquiryAgenda = '';
+  protected inquiryFields = agendaFieldList();
+  protected inquiryAgendaFiles: { name: string; title: string; sentOn: string; docId: string }[] = [];
+  protected inquiryDecide: 'take' | 'return' | '' = '';
+  protected inquiryFeeAmount = '10,000';
+  protected inquiryFeeDue = '24/06/2562';
+  protected inquiryFeeSent = false;
+  protected inquiryPayFiles: InquiryPayFile[] = [];
+  protected inquiryPaySent = false;
+  protected inquiryPayAck = false;
+  protected inquiryOpen: 'open' | 'close' | '' = '';
+  protected inquiryOpenAt = '10/06/2562';
+  protected inquiryCaseId = '';
+  protected inquiryCloseNote = '';
+  protected inquiryAgendaDone = false;
+  protected inquiryReturned = false;
+  protected inquirySentBy = '';
+  protected inquiryPart: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote' = 'agenda';
+  protected inquiryDecideDraft: 'take' | 'return' | '' = '';
   protected committeeSent = false;
   protected committeeSentBy = '';
   protected docFiles: NoticeFile[] = [{ name: 'หนังสือแจ้งแก้ไข.pdf', title: 'หนังสือแจ้งขอข้อมูลเพิ่ม', sentOn: '20/05/2562' }];
@@ -1320,10 +1356,11 @@ export class Por1Page {
     return this.reviewRole === 'officer' && this.peopleReady;
   }
 
-  protected pickReviewTab(tab: 'form' | 'assign' | 'talk' | 'link' | 'docs'): void {
+  protected pickReviewTab(tab: 'form' | 'assign' | 'talk' | 'link' | 'docs' | 'inquiry'): void {
     if (tab === 'talk' && !this.showTalkTab) return;
     this.reviewTab = tab;
     if (tab === 'talk') this.openTalk();
+    if (tab === 'inquiry') this.placeInquiry();
   }
 
   protected get etrAccepted(): boolean {
@@ -1689,6 +1726,7 @@ export class Por1Page {
     if (saved.gaps.length) this.docGaps = saved.gaps.map((gap) => ({ ...gap }));
     this.noticeSaraban = saved.sarabanNo;
     if (saved.committee) this.applyCommittee(saved.committee);
+    if (saved.inquiry) this.applyInquiry(saved.inquiry);
     this.docSent = saved.sent;
     this.docSentBy = saved.sentBy;
     this.noticePasses = saved.passes.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null }));
@@ -1813,11 +1851,231 @@ export class Por1Page {
     this.notice = 'saved';
   }
 
+  private applyInquiry(record: InquiryRecord): void {
+    this.inquiryAgendaAt = record.agendaAt || this.inquiryAgendaAt;
+    this.inquiryAgenda = record.agenda;
+    if (record.agendaFields.length === this.inquiryFields.length && record.agendaFields.every((item, index) => item.label === this.inquiryFields[index]?.label)) {
+      this.inquiryFields = record.agendaFields.map((item) => ({ ...item }));
+    }
+    this.inquiryAgendaFiles = record.agendaFiles.map((file) => ({ ...file }));
+    this.inquiryDecide = record.decide;
+    this.inquiryFeeAmount = record.feeAmount || this.inquiryFeeAmount;
+    this.inquiryFeeDue = record.feeDue || this.inquiryFeeDue;
+    this.inquiryFeeSent = record.feeSent;
+    this.inquiryPayFiles = record.payFiles.map((file) => ({ ...file }));
+    this.inquiryPaySent = record.paySent;
+    this.inquiryPayAck = record.payAck;
+    this.inquiryOpen = record.open;
+    this.inquiryOpenAt = record.openAt || this.inquiryOpenAt;
+    this.inquiryCaseId = record.caseId;
+    this.inquiryCloseNote = record.closeNote;
+    this.inquiryAgendaDone = record.agendaDone;
+    this.inquiryReturned = record.returned;
+    this.inquirySentBy = record.sentBy;
+    this.inquiryDecideDraft = record.decide;
+    this.placeInquiry();
+  }
+
+  private inquiryPayload(): InquiryRecord | null {
+    const agenda = this.inquiryFields.map((item) => `${item.label}: ${item.value.trim()}`).join('\n');
+    if (!agenda.trim() && !this.inquiryDecide && !this.inquiryFeeSent && !this.inquiryOpen && !this.inquiryPayFiles.length) return null;
+    return {
+      agendaAt: this.inquiryAgendaAt.trim(),
+      agenda,
+      decide: this.inquiryDecide,
+      feeAmount: this.inquiryFeeAmount.trim(),
+      feeDue: this.inquiryFeeDue.trim(),
+      feeSent: this.inquiryFeeSent,
+      payFiles: this.inquiryPayFiles.map((file) => ({ ...file })),
+      paySent: this.inquiryPaySent,
+      payAck: this.inquiryPayAck,
+      open: this.inquiryOpen,
+      openAt: this.inquiryOpenAt.trim(),
+      caseId: this.inquiryCaseId,
+      closeNote: this.inquiryCloseNote.trim(),
+      agendaDone: this.inquiryAgendaDone,
+      agendaFields: this.inquiryFields.map((item) => ({ ...item })),
+      agendaFiles: this.inquiryAgendaFiles.map((file) => ({ ...file })),
+      returned: this.inquiryReturned,
+      sentBy: this.inquirySentBy || this.signedPerson || this.directorName,
+    };
+  }
+
+  private writeInquiry(): void {
+    this.inquirySentBy = this.signedPerson || this.directorName;
+    writeDocNotice(this.docPayload(this.docSent));
+    this.notice = 'saved';
+  }
+
+  protected get inquiryReached(): boolean {
+    if (this.committeeSent && this.committeeResult === 'reject') return false;
+    if (this.committeeSent && this.committeeResult === 'take') return true;
+    return this.caseStatus === 'official';
+  }
+
+  protected fillInquiryAgenda(): void {
+    this.inquiryFields = agendaFieldList();
+    this.notice = 'assist';
+  }
+
+  protected setInquiryField(index: number, value: string): void {
+    this.inquiryFields = this.inquiryFields.map((item, itemIndex) => itemIndex === index ? { ...item, value } : item);
+  }
+
+  private placeInquiry(): void {
+    if (!this.inquiryAgendaDone) this.inquiryPart = 'agenda';
+    else if (!this.inquiryDecide) this.inquiryPart = 'decide';
+    else if (this.inquiryDecide === 'return') this.inquiryPart = 'letter';
+    else if (!this.inquiryFeeSent) this.inquiryPart = 'fee';
+    else if (!this.inquiryPayAck) this.inquiryPart = 'proof';
+    else this.inquiryPart = 'vote';
+  }
+
+  protected get inquiryNav(): { id: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote'; label: string; done: boolean }[] {
+    const steps: { id: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote'; label: string; done: boolean }[] = [
+      { id: 'agenda', label: 'วาระพิจารณา', done: this.inquiryAgendaDone },
+      { id: 'decide', label: 'พิจารณาคำขอ', done: this.inquiryDecide !== '' },
+    ];
+    if (this.inquiryDecide === 'return') steps.push({ id: 'letter', label: 'หนังสือคืนคำขอ', done: this.inquiryReturned });
+    if (this.inquiryDecide === 'take') {
+      steps.push(
+        { id: 'fee', label: 'แจ้งชำระค่าธรรมเนียม', done: this.inquiryFeeSent },
+        { id: 'proof', label: 'หลักฐานการชำระ', done: this.inquiryPayAck },
+        { id: 'vote', label: 'มติเปิดไต่สวน', done: this.inquiryOpen !== '' },
+      );
+    }
+    return steps;
+  }
+
+  protected openInquiryStep(id: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote'): void {
+    const steps = this.inquiryNav;
+    const index = steps.findIndex((step) => step.id === id);
+    const pending = steps.findIndex((step) => !step.done);
+    if (index < 0 || (pending !== -1 && index > pending)) return;
+    this.inquiryPart = id;
+  }
+
+  protected saveInquiryAgenda(): void {
+    if (!this.inquiryReached || this.inquiryFields.some((item) => !item.value.trim()) || !thaiDateOk(this.inquiryAgendaAt, 'any')) return;
+    const id = `agenda-${Date.now()}`;
+    const fields = this.inquiryFields.map((item) => ({ ...item }));
+    this.madeDocs = [...this.madeDocs, { id, kind: 'วาระพิจารณาคำขอ', at: this.inquiryAgendaAt, fields }];
+    writeMadeDocs(this.madeDocs);
+    const base = `วาระพิจารณาคำขอ-${this.inquiryAgendaAt.replaceAll('/', '')}.pdf`;
+    const name = this.inquiryAgendaFiles.some((file) => file.name === base) ? `วาระพิจารณาคำขอ-${this.inquiryAgendaAt.replaceAll('/', '')}-${this.inquiryAgendaFiles.length + 1}.pdf` : base;
+    this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, { name, title: 'วาระพิจารณาคำขอ', sentOn: this.inquiryAgendaAt, docId: id }];
+    this.inquiryAgendaDone = true;
+    this.writeInquiry();
+  }
+
+  protected addAgendaFiles(event: Event): void {
+    if (this.inquiryDecide) return;
+    const input = event.target as HTMLInputElement;
+    const sentOn = this.inquiryAgendaAt.trim() || '10/06/2562';
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn, docId: '' }));
+    this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, ...files];
+    this.inquiryAgendaDone = this.inquiryAgendaFiles.length > 0;
+    input.value = '';
+    this.writeInquiry();
+  }
+
+  protected removeAgendaFile(index: number): void {
+    const file = this.inquiryAgendaFiles[index];
+    if (!file || this.inquiryDecide) return;
+    this.inquiryAgendaFiles = this.inquiryAgendaFiles.filter((_, item) => item !== index);
+    if (file.docId) {
+      this.madeDocs = this.madeDocs.filter((item) => item.id !== file.docId);
+      writeMadeDocs(this.madeDocs);
+    }
+    this.inquiryAgendaDone = this.inquiryAgendaFiles.length > 0;
+    this.writeInquiry();
+  }
+
+  protected continueInquiryDecide(): void {
+    if (!this.inquiryAgendaDone || this.inquiryFeeSent || this.inquiryReturned) return;
+    if (this.inquiryDecideDraft !== 'take' && this.inquiryDecideDraft !== 'return') return;
+    if (this.inquiryDecide) return;
+    this.inquiryDecide = this.inquiryDecideDraft;
+    this.writeInquiry();
+    this.inquiryPart = this.inquiryDecide === 'take' ? 'fee' : 'letter';
+  }
+
+  protected saveInquiryReturn(): void {
+    if (!this.inquiryReached || this.inquiryFeeSent || this.inquiryDecide !== 'return' || !this.inquiryCloseNote.trim()) return;
+    if (this.madeDocs.some((item) => item.kind === 'หนังสือคืนคำขอ')) return;
+    const doc = {
+      id: `return-${Date.now()}`,
+      kind: 'หนังสือคืนคำขอ',
+      at: this.inquiryAgendaAt,
+      fields: [
+        { label: 'เรื่อง', value: 'คืนคำขอให้พิจารณาตอบโต้การทุ่มตลาด' },
+        { label: 'เนื้อความ', value: this.inquiryCloseNote.trim() },
+      ],
+    };
+    this.madeDocs = [...this.madeDocs, doc];
+    writeMadeDocs(this.madeDocs);
+    this.inquiryReturned = true;
+    this.writeInquiry();
+    this.inquiryPart = 'letter';
+  }
+
+  protected notifyInquiryFee(): void {
+    if (!this.inquiryReached || this.inquiryDecide !== 'take' || this.inquiryFeeSent || !this.inquiryFeeAmount.trim() || !thaiDateOk(this.inquiryFeeDue, 'any')) return;
+    this.inquiryFeeSent = true;
+    this.writeInquiry();
+    this.inquiryPart = 'proof';
+  }
+
+  protected addInquiryPayFiles(event: Event): void {
+    if (this.inquiryPayAck) return;
+    const input = event.target as HTMLInputElement;
+    const sentOn = '12/06/2562';
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn }));
+    this.inquiryPayFiles = [...this.inquiryPayFiles, ...files];
+    input.value = '';
+  }
+
+  protected removeInquiryPayFile(index: number): void {
+    if (this.inquiryPaySent || this.inquiryPayAck) return;
+    this.inquiryPayFiles = this.inquiryPayFiles.filter((_, item) => item !== index);
+  }
+
+  protected sendInquiryPay(): void {
+    if (!this.inquiryFeeSent || this.inquiryPayAck || !this.inquiryPayFiles.length) return;
+    this.inquiryPaySent = true;
+    this.writeInquiry();
+  }
+
+  protected ackInquiryPay(): void {
+    if (!this.inquiryPaySent || this.inquiryPayAck || !this.inquiryPayFiles.length) return;
+    this.inquiryPayAck = true;
+    this.writeInquiry();
+    this.inquiryPart = 'vote';
+  }
+
+  protected saveInquiryOpen(): void {
+    if (!this.inquiryPayAck || this.inquiryOpen) return;
+    if (this.inquiryDecide !== 'take') return;
+    const choice = this.inquiryOpenDraft;
+    if (choice === 'close' && !this.inquiryCloseNote.trim()) return;
+    if (choice !== 'open' && choice !== 'close') return;
+    this.inquiryOpen = choice;
+    if (choice === 'open') {
+      const [day, month, year] = this.inquiryOpenAt.split('/');
+      this.inquiryCaseId = day && month && year ? `AD${year}${month}${day}0001` : 'AD256206100001';
+    }
+    this.writeInquiry();
+    this.inquiryPart = 'vote';
+  }
+
+  protected inquiryOpenDraft: 'open' | 'close' | '' = '';
+
   protected saveCommittee(): void {
     if (!this.canRecordCommittee || !this.committeeReady) return;
     this.committeeSent = true;
     this.committeeSentBy = this.signedPerson || this.directorName;
     writeDocNotice(this.docPayload(true));
+    if (this.committeeResult === 'take') this.pickReviewTab('inquiry');
     this.notice = 'saved';
   }
 
@@ -1864,6 +2122,7 @@ export class Por1Page {
       sarabanNo: this.noticeSaraban,
       reply: this.replySent ? this.currentReply() : null,
       committee: this.committeeSent ? this.committeePayload() : null,
+      inquiry: this.inquiryPayload(),
       passes: this.noticePasses.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null })),
       sent,
       sentBy: sent ? (this.signedPerson || this.directorName) : this.docSentBy,
@@ -2268,6 +2527,10 @@ export class Por1Page {
   }
 
   protected get caseLabel(): string {
+    if (this.inquiryOpen === 'open') return 'เปิดการไต่สวน';
+    if (this.inquiryOpen === 'close') return 'ปิดการไต่สวน';
+    if (this.inquiryDecide === 'return') return 'คืนคำขอ';
+    if (this.inquiryFeeSent && !this.inquiryPayAck) return this.inquiryPaySent ? 'รอรับทราบการชำระ' : 'รอชำระค่าธรรมเนียม';
     if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent && this.committeeResult === 'take') return 'รับคำขอ';
     if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent) return 'ไม่รับคำขอ';
     if (!this.reviewRole && this.docSent && this.docAction === 'complete') return 'รอคณะกรรมการพิจารณา';
@@ -2278,6 +2541,9 @@ export class Por1Page {
   }
 
   protected get caseTone() {
+    if (this.inquiryOpen === 'close' || this.inquiryDecide === 'return') return 'danger' as const;
+    if (this.inquiryOpen === 'open') return 'success' as const;
+    if (this.inquiryFeeSent && !this.inquiryPayAck) return 'warning' as const;
     if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent && this.committeeResult === 'reject') return 'danger' as const;
     if (!this.reviewRole && this.docSent && this.docAction === 'complete' && !this.committeeSent) return 'info' as const;
     if (!this.reviewRole && this.docSent && this.docAction === 'complete') return 'success' as const;
