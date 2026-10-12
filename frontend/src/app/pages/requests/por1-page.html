@@ -878,6 +878,10 @@
                     <img [src]="docSent ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
                     แจ้งผลการตรวจ
                   </button>
+                  <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length + 1" [attr.aria-current]="docPart === workDocs.length + 1 ? 'true' : null" (click)="docPart = workDocs.length + 1">
+                    <img [src]="committeeSent ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                    พิจารณาของคณะกรรมการฯ
+                  </button>
                 </nav>
                 <div class="receipt__view">
                   @if (docPart < workDocs.length) {
@@ -947,7 +951,7 @@
                         </tbody>
                       </table>
                     </div>
-                  } @else {
+                  } @else if (docPart === workDocs.length) {
                     <header class="assign-head">
                       <div>
                         <h2>แจ้งผลการตรวจ</h2>
@@ -1030,19 +1034,20 @@
                           <app-input-field class="block" [class.wide]="item.long" [kind]="item.long ? 'textarea' : 'text'" [label]="item.label" [required]="true" [editable]="!docSent" [state]="docSent ? 'readonly' : 'default'" [value]="item.value" (valueChange)="setNoticeField(i, $event)" />
                         }
                       </div>
-                      <div>
-                        <p class="slip-file-label">แนบไฟล์หนังสือแจ้งแก้ไข<span class="req">*</span></p>
-                        <p class="link-detail">เฉพาะไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
-                      </div>
-                      <div class="notice-files">
+                      <div class="reply-bar">
+                        <div>
+                          <p class="slip-file-label">ไฟล์หนังสือแจ้ง</p>
+                          <p class="link-detail">กดบันทึกร่างเพื่อสร้างหนังสือจากแบบด้านบน หรือแนบไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
+                        </div>
                         @if (!docSent) {
-                          <label class="slip-drop">
-                            <img src="assets/icons/por1-upload.svg" width="24" height="24" alt="" />
-                            <strong>วางไฟล์ที่นี่เพื่ออัพโหลด</strong>
-                            <span>คลิกเพื่อเรียกดูไฟล์</span>
+                          <label class="pick">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                            เพิ่ม
                             <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addDocFiles($event)" />
                           </label>
                         }
+                      </div>
+                      <div class="notice-files">
                         <div class="table-wrap slip-files">
                           <table>
                             <thead>
@@ -1161,59 +1166,172 @@
                           </ol>
                         </section>
                       }
-                      @if (docAction === 'complete' && docSent) {
-                        <section class="notice-form" aria-label="พิจารณาของคณะกรรมการ">
-                          <h3>พิจารณาของคณะกรรมการฯ</h3>
-                          @if (committeeSent) {
-                            <p>บันทึกเมื่อ {{ committeeAt }} โดย {{ committeeSentBy }}</p>
-                            <p>{{ committeeResult === 'take' ? 'รับคำขอ' : 'ไม่รับคำขอ' }}@if (committeeResult === 'take') { · {{ committeeFee === 'pay' ? 'แจ้งชำระค่าธรรมเนียม' : 'ไม่แจ้งชำระค่าธรรมเนียม' }} }</p>
-                            @if (committeeNote) { <p>{{ committeeNote }}</p> }
-                            @if (committeeEmbassyFile) { <p>หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก {{ committeeEmbassyFile }} วันที่ {{ committeeEmbassyOn }} เก็บในระบบ ไม่ส่งให้ผู้ยื่น</p> }
-                          } @else {
-                            <div class="notice-date">
-                              <app-thai-date-field label="วันที่พิจารณาของคณะกรรมการ" [required]="true" [value]="committeeAt" (valueChange)="committeeAt = $event" />
-                            </div>
-                            <div class="slip-line">
-                              <span>ผลการพิจารณาคำขอ<span class="req">*</span></span>
-                              <div class="slip-choices">
-                                <button type="button" (click)="committeeResult = 'take'"><img [src]="committeeResult === 'take' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับคำขอ</button>
-                                <button type="button" (click)="committeeResult = 'reject'"><img [src]="committeeResult === 'reject' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่รับคำขอ</button>
-                              </div>
-                            </div>
-                            @if (committeeResult === 'take') {
-                              <div class="slip-line">
-                                <span>สถานะการแจ้งชำระค่าธรรมเนียม<span class="req">*</span></span>
-                                <div class="slip-choices">
-                                  <button type="button" (click)="committeeFee = 'pay'"><img [src]="committeeFee === 'pay' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งชำระ</button>
-                                  <button type="button" (click)="committeeFee = 'skip'"><img [src]="committeeFee === 'skip' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่แจ้งชำระ</button>
-                                </div>
-                              </div>
-                              <div class="notice-date">
-                                <app-thai-date-field label="วันที่แจ้งเรื่องถึงรัฐบาลประเทศผู้ส่งออก" [required]="false" [value]="committeeEmbassyOn" (valueChange)="committeeEmbassyOn = $event" />
-                              </div>
-                              <div class="reply-bar">
-                                <p class="slip-file-label">แนบไฟล์แจ้งสถานทูต เก็บในระบบ ไม่ส่งให้ผู้ยื่น</p>
-                                <label class="pick">
-                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
-                                  เพิ่ม
-                                  <input type="file" accept=".pdf,.doc,.docx" (change)="setEmbassyFile($event)" />
-                                </label>
-                              </div>
-                              @if (committeeEmbassyFile) { <p class="link-detail">{{ committeeEmbassyFile }}</p> }
-                            }
-                            @if (committeeResult === 'reject' || committeeFee === 'skip') {
-                              <label class="assign-remark">
-                                <span>หมายเหตุ<span class="req">*</span></span>
-                                <textarea rows="3" maxlength="500" [value]="committeeNote" (input)="committeeNote = $any($event.target).value"></textarea>
-                              </label>
-                            }
-                            <footer class="doc-foot">
-                              <app-button type="primary" label="บันทึกผลการพิจารณา" [state]="canRecordCommittee && committeeReady ? 'default' : 'disabled'" (click)="saveCommittee()" />
-                            </footer>
-                          }
-                        </section>
-                      }
                     </section>
+                  } @else {
+                    <header class="assign-head">
+                      <div>
+                        <h2>พิจารณาของคณะกรรมการฯ</h2>
+                        <p>เปิดหลังจากแจ้งคำขอครบถ้วนถูกต้องแล้ว บันทึกผลรับหรือไม่รับคำขอ และการแจ้งชำระค่าธรรมเนียม</p>
+                      </div>
+                      @if (committeeSent) {
+                        <app-status-tag [tone]="committeeResult === 'take' ? 'success' : 'danger'" [label]="committeeResult === 'take' ? 'รับคำขอ' : 'ไม่รับคำขอ'" />
+                      } @else if (docAction === 'complete' && docSent) {
+                        <app-status-tag tone="info" label="รอพิจารณา" />
+                      }
+                    </header>
+                    @if (!(docAction === 'complete' && docSent)) {
+                      <p>ยังไม่ถึงขั้นตอนนี้ จนกว่าจะแจ้งคำขอครบถ้วนถูกต้อง</p>
+                    } @else if (committeeSent) {
+                      <p>บันทึกเมื่อ {{ committeeAt }} โดย {{ committeeSentBy }}</p>
+                      <p>{{ committeeResult === 'take' ? 'รับคำขอ' : 'ไม่รับคำขอ' }}@if (committeeResult === 'take') { · {{ committeeFee === 'pay' ? 'แจ้งชำระค่าธรรมเนียม' : 'ไม่แจ้งชำระค่าธรรมเนียม' }} }</p>
+                      @if (committeeNote) { <p>{{ committeeNote }}</p> }
+                            @if (embassyNotice && embassyFiles.length) {
+                              <p>หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก {{ embassyFiles.length }} ฉบับ เก็บในระบบ ไม่ส่งให้ผู้ยื่น</p>
+                              <div class="table-wrap slip-files">
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th class="col-no">ลำดับ</th>
+                                      <th>วันที่ส่ง</th>
+                                      <th>ไฟล์แนบ</th>
+                                      <th>ชื่อเอกสาร</th>
+                                      <th>การจัดการ</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    @for (file of embassyFiles; track file.name; let n = $index) {
+                                      <tr>
+                                        <td class="col-no">{{ n + 1 }}</td>
+                                        <td>{{ file.sentOn }}</td>
+                                        <td>{{ file.name }}</td>
+                                        <td>{{ file.title }}</td>
+                                        <td>
+                                          <div class="made-actions">
+                                            <button type="button" class="office-view" (click)="openEmbassyFile(file)">
+                                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                              ดู
+                                            </button>
+                                            <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">
+                                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                              ดาวน์โหลด
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    }
+                                  </tbody>
+                                </table>
+                              </div>
+                            }
+                    } @else {
+                      <section class="notice-form" aria-label="พิจารณาของคณะกรรมการ">
+                        <div class="notice-date">
+                          <app-thai-date-field label="วันที่พิจารณาของคณะกรรมการ" [required]="true" [value]="committeeAt" (valueChange)="committeeAt = $event" />
+                        </div>
+                        <div class="slip-line">
+                          <span>ผลการพิจารณาคำขอฉบับสมบูรณ์<span class="req">*</span></span>
+                          <div class="slip-choices">
+                            <button type="button" (click)="committeeResult = 'take'"><img [src]="committeeResult === 'take' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับคำขอ</button>
+                            <button type="button" (click)="committeeResult = 'reject'"><img [src]="committeeResult === 'reject' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่รับคำขอ</button>
+                          </div>
+                        </div>
+                        @if (committeeResult === 'take') {
+                          <div class="slip-line">
+                            <span>สถานะการแจ้งชำระค่าธรรมเนียม<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="committeeFee = 'pay'"><img [src]="committeeFee === 'pay' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งชำระ</button>
+                              <button type="button" (click)="committeeFee = 'skip'"><img [src]="committeeFee === 'skip' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่แจ้งชำระ</button>
+                            </div>
+                          </div>
+                          <div class="slip-line">
+                            <span>หนังสือแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบการรับคำขอ</span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="embassyNotice = false"><img [src]="embassyNotice ? 'assets/icons/por1-radio-off.svg' : 'assets/icons/por1-radio-on.svg'" width="24" height="24" alt="" />ไม่มี</button>
+                              <button type="button" (click)="embassyNotice = true"><img [src]="embassyNotice ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />มี</button>
+                            </div>
+                          </div>
+                          @if (embassyNotice) {
+                          <section class="reply-group" aria-label="หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก">
+                            <div class="reply-bar">
+                              <div>
+                                <h3>หนังสือแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบการรับคำขอ</h3>
+                                <p class="link-detail">กดบันทึกเพื่อสร้างหนังสือจากแบบด้านล่าง หรือแนบไฟล์ที่มีอยู่แล้ว เก็บในระบบ ไม่ส่งให้ผู้ยื่น</p>
+                              </div>
+                              <app-button class="ask-ai icon-before" type="primary" label="ช่วยสร้าง" (click)="fillEmbassyLetter()">
+                                <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                              </app-button>
+                            </div>
+                            <div class="draft-form">
+                              @for (item of embassyLetter; track item.label; let i = $index) {
+                                <app-input-field class="block" [class.wide]="item.long" [kind]="item.long ? 'textarea' : 'text'" [label]="item.label" [required]="true" [editable]="true" [value]="item.value" (valueChange)="setEmbassyField(i, $event)" />
+                              }
+                            </div>
+                            <footer class="doc-foot">
+                              <app-button type="primary" label="บันทึก" [state]="embassyLetter.every((item) => item.value.trim()) ? 'default' : 'disabled'" (click)="saveEmbassyDoc()" />
+                            </footer>
+                            <div class="reply-bar">
+                              <div>
+                                <p class="slip-file-label">ไฟล์หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก</p>
+                                <p class="link-detail">สร้างจากปุ่มบันทึก หรือแนบไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
+                              </div>
+                              <label class="pick">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                                เพิ่ม
+                                <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addEmbassyFiles($event)" />
+                              </label>
+                            </div>
+                            <div class="table-wrap slip-files">
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th class="col-no">ลำดับ</th>
+                                      <th>วันที่ส่ง</th>
+                                      <th>ไฟล์แนบ</th>
+                                      <th>ชื่อเอกสาร</th>
+                                      <th>การจัดการ</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    @for (file of embassyFiles; track file.name; let n = $index) {
+                                      <tr>
+                                        <td class="col-no">{{ n + 1 }}</td>
+                                        <td>{{ file.sentOn }}</td>
+                                        <td>{{ file.name }}</td>
+                                        <td>{{ file.title }}</td>
+                                        <td>
+                                          <div class="made-actions">
+                                            <button type="button" class="office-view" (click)="openEmbassyFile(file)">
+                                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                              ดู
+                                            </button>
+                                            <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">
+                                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                              ดาวน์โหลด
+                                            </button>
+                                            <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeEmbassyFile(n)">
+                                              <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    }
+                                  </tbody>
+                                </table>
+                              </div>
+                          </section>
+                          }
+                        }
+                        @if (committeeResult === 'reject' || committeeFee === 'skip') {
+                          <label class="assign-remark">
+                            <span>หมายเหตุ<span class="req">*</span></span>
+                            <textarea rows="3" maxlength="500" [value]="committeeNote" (input)="committeeNote = $any($event.target).value"></textarea>
+                          </label>
+                        }
+                        <footer class="doc-foot">
+                          <app-button type="primary" label="บันทึกผลการพิจารณา" [state]="canRecordCommittee && committeeReady ? 'default' : 'disabled'" (click)="saveCommittee()" />
+                        </footer>
+                      </section>
+                    }
                   }
                 </div>
               </div>
@@ -1408,7 +1526,7 @@
             @if (section === '1' && anchor === 'part-1-1') {
               <h3 id="part-1-1">ส่วนที่ 1 ข้อมูลผู้ยื่น</h3>
               <div class="grid">
-                <fieldset>
+                <fieldset class="field--wide">
                   <legend>มาตรการที่ขอให้ดำเนินการพิจารณา<span class="req">*</span></legend>
                   <div class="choices">
                     <label>

@@ -545,6 +545,9 @@ export type CommitteeRecord = {
   note: string;
   embassyOn: string;
   embassyFile: string;
+  embassyFiles: { name: string; title: string; sentOn: string; docId: string }[];
+  embassyLetter: WorkField[];
+  embassyNotice: boolean;
   sent: boolean;
   sentBy: string;
 };
@@ -643,6 +646,24 @@ function readCommittee(value: CommitteeRecord | null | undefined): CommitteeReco
     note: typeof value.note === 'string' ? value.note : '',
     embassyOn: typeof value.embassyOn === 'string' ? value.embassyOn : '',
     embassyFile: typeof value.embassyFile === 'string' ? value.embassyFile : '',
+    embassyFiles: Array.isArray(value.embassyFiles)
+      ? value.embassyFiles.flatMap((file) => {
+          if (!file || typeof file.name !== 'string' || !file.name) return [];
+          return [{
+            name: file.name,
+            title: typeof file.title === 'string' && file.title ? file.title : file.name,
+            sentOn: typeof file.sentOn === 'string' ? file.sentOn : '',
+            docId: typeof file.docId === 'string' ? file.docId : '',
+          }];
+        })
+      : (typeof value.embassyFile === 'string' && value.embassyFile ? [{ name: value.embassyFile, title: value.embassyFile, sentOn: '', docId: '' }] : []),
+    embassyLetter: Array.isArray(value.embassyLetter)
+      ? value.embassyLetter.flatMap((field) => {
+          if (!field || typeof field.label !== 'string' || !field.label) return [];
+          return [{ label: field.label, value: typeof field.value === 'string' ? field.value : '', long: field.long === true }];
+        })
+      : [],
+    embassyNotice: value.embassyNotice === true,
     sent: value.sent === true,
     sentBy: typeof value.sentBy === 'string' ? value.sentBy : '',
   };

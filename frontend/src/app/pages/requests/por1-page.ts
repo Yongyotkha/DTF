@@ -98,6 +98,19 @@ function noticeLetterFields(action: DocAction, noticedOn: string, dueOn: string,
   ];
 }
 
+function embassyLetterFields(on: string, signer: string): WorkDraft['fields'] {
+  return [
+    field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+    field('วันที่แจ้งเรื่อง', on),
+    field('เรื่อง', 'แจ้งการรับคำขอให้พิจารณาตอบโต้การทุ่มตลาด'),
+    field('เรียน', 'สถานเอกอัครราชทูตเวียดนามประจำประเทศไทย และสถานเอกอัครราชทูตอาหรับรีพับลิกแห่งอียิปต์ประจำประเทศไทย'),
+    field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 เลขสารบรรณ สบ.1605/2562'),
+    field('สิ่งที่ส่งมาด้วย', '-'),
+    field('เนื้อความ', 'ด้วยคณะกรรมการได้พิจารณารับคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้ไต่สวนการทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบ หนังสือนี้เก็บไว้ในระบบและไม่ส่งให้ผู้ยื่นคำขอ', true),
+    field('ลงชื่อ', signer || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+  ];
+}
+
 function defaultReplyFiles(): ReplyFile[] {
   return [
     { name: 'แบบปร1-ฉบับปกปิด-แก้ไข.pdf', title: 'แบบ ปร.1 ฉบับปกปิด (แก้ไข)', group: 'closed' },
@@ -564,7 +577,9 @@ export class Por1Page {
   protected committeeFee: 'pay' | 'skip' | '' = 'pay';
   protected committeeNote = '';
   protected committeeEmbassyOn = '05/06/2562';
-  protected committeeEmbassyFile = '';
+  protected embassyFiles: { name: string; title: string; sentOn: string; docId: string }[] = [];
+  protected embassyLetter = embassyLetterFields('05/06/2562', '');
+  protected embassyNotice = false;
   protected committeeSent = false;
   protected committeeSentBy = '';
   protected docFiles: NoticeFile[] = [{ name: 'หนังสือแจ้งแก้ไข.pdf', title: 'หนังสือแจ้งขอข้อมูลเพิ่ม', sentOn: '20/05/2562' }];
@@ -1690,7 +1705,13 @@ export class Por1Page {
     this.committeeFee = record.fee;
     this.committeeNote = record.note;
     this.committeeEmbassyOn = record.embassyOn;
-    this.committeeEmbassyFile = record.embassyFile;
+    this.embassyFiles = record.embassyFiles.length
+      ? record.embassyFiles.map((file) => ({ name: file.name, title: file.title, sentOn: file.sentOn, docId: file.docId }))
+      : (record.embassyFile ? [{ name: record.embassyFile, title: record.embassyFile, sentOn: record.embassyOn, docId: '' }] : []);
+    if (record.embassyLetter.length === this.embassyLetter.length) {
+      this.embassyLetter = record.embassyLetter.map((field) => ({ ...field }));
+    }
+    this.embassyNotice = record.embassyNotice;
     this.committeeSent = record.sent;
     this.committeeSentBy = record.sentBy;
   }
@@ -1702,7 +1723,10 @@ export class Por1Page {
       fee: this.committeeResult === 'take' ? this.committeeFee : '',
       note: this.committeeNote.trim(),
       embassyOn: this.committeeEmbassyOn.trim(),
-      embassyFile: this.committeeEmbassyFile.trim(),
+      embassyFile: this.embassyFiles[0]?.name || '',
+      embassyFiles: this.embassyFiles.map((file) => ({ ...file })),
+      embassyLetter: this.embassyLetter.map((field) => ({ ...field })),
+      embassyNotice: this.embassyNotice,
       sent: true,
       sentBy: this.signedPerson || this.directorName,
     };
@@ -1722,14 +1746,71 @@ export class Por1Page {
   protected get committeeReady(): boolean {
     if (!thaiDateOk(this.committeeAt, 'any')) return false;
     if (this.committeeResult === 'reject') return !!this.committeeNote.trim();
+    if (this.embassyNotice && !this.embassyFiles.length) return false;
     if (this.committeeFee === 'skip') return !!this.committeeNote.trim();
     return this.committeeFee === 'pay';
   }
 
-  protected setEmbassyFile(event: Event): void {
+  protected addEmbassyFiles(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.committeeEmbassyFile = input.files?.[0]?.name || '';
+    const sentOn = this.committeeAt.trim() || '05/06/2562';
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn, docId: '' }));
+    this.embassyFiles = [...this.embassyFiles, ...files];
     input.value = '';
+  }
+
+  protected removeEmbassyFile(index: number): void {
+    const file = this.embassyFiles[index];
+    if (!file || this.committeeSent) return;
+    this.embassyFiles = this.embassyFiles.filter((_, item) => item !== index);
+    if (!file.docId) return;
+    this.madeDocs = this.madeDocs.filter((item) => item.id !== file.docId);
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected openEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string }): void {
+    const made = this.madeDocs.find((item) => item.id === file.docId);
+    this.viewingMade = made ?? { id: file.name, kind: file.title, at: file.sentOn, fields: [{ label: 'ไฟล์แนบ', value: file.name }, { label: 'ชื่อเอกสาร', value: file.title }] };
+  }
+
+  protected downloadEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string }): void {
+    const made = this.madeDocs.find((item) => item.id === file.docId);
+    if (made) {
+      this.downloadMade(made);
+      return;
+    }
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(file.title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(file.title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p><p>ไฟล์แนบ ${this.escapeHtml(file.name)}</p><p>วันที่ส่ง ${this.escapeHtml(file.sentOn)}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name.replace(/\.[^.]+$/, '') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected setEmbassyField(index: number, value: string): void {
+    this.embassyLetter = this.embassyLetter.map((field, item) => item === index ? { ...field, value } : field);
+    if (this.embassyLetter[index]?.label === 'วันที่แจ้งเรื่อง') this.committeeEmbassyOn = value;
+  }
+
+  protected fillEmbassyLetter(): void {
+    this.embassyLetter = embassyLetterFields(this.committeeEmbassyOn || '05/06/2562', this.signedPerson);
+    this.notice = 'assist';
+  }
+
+  protected saveEmbassyDoc(): void {
+    if (!this.embassyLetter.every((field) => field.value.trim())) return;
+    const dated = this.embassyLetter.find((field) => field.label === 'วันที่แจ้งเรื่อง')?.value || this.committeeEmbassyOn;
+    this.committeeEmbassyOn = dated;
+    const fields = this.embassyLetter.map((field) => ({ ...field }));
+    const id = `embassy-${Date.now()}`;
+    const doc = { id, kind: 'หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก', at: dated, fields };
+    this.madeDocs = [...this.madeDocs, doc];
+    writeMadeDocs(this.madeDocs);
+    const base = `หนังสือแจ้งรัฐบาล-${dated.replaceAll('/', '')}.pdf`;
+    const name = this.embassyFiles.some((file) => file.name === base) ? `หนังสือแจ้งรัฐบาล-${dated.replaceAll('/', '')}-${this.embassyFiles.length + 1}.pdf` : base;
+    this.embassyFiles = [...this.embassyFiles, { name, title: 'หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก', sentOn: dated, docId: id }];
+    this.notice = 'saved';
   }
 
   protected saveCommittee(): void {
@@ -1791,6 +1872,7 @@ export class Por1Page {
 
   protected saveDocs(send: boolean): void {
     if (send ? !this.docCanSend : this.docSent || !this.canReviewDocs) return;
+    if (!send && this.noticeLetter.every((item) => item.value.trim())) this.placeNoticeFile();
     if (send) {
       this.replySent = false;
       this.issueNotice();
@@ -1810,10 +1892,9 @@ export class Por1Page {
     const numbers = ['สบ.2005/2562', 'สบ.2805/2562', 'สบ.0506/2562', 'สบ.1006/2562'];
     const no = numbers[this.noticePasses.length] || `สบ.${this.noticePasses.length + 1}/2562`;
     this.noticeSaraban = no;
-    const round = this.noticePasses.length + 1;
-    const title = this.docAction === 'complete' ? 'หนังสือแจ้งคำขอครบถ้วนถูกต้อง' : `หนังสือแจ้งขอข้อมูลเพิ่ม ครั้งที่ ${round}`;
+    const title = this.noticeFileTitle();
     const at = `${this.docNoticedOn} 10:30`;
-    this.docFiles = [{ name: `หนังสือแจ้ง-${no.replaceAll('/', '-')}.pdf`, title, sentOn: this.docNoticedOn }];
+    this.placeNoticeFile(no);
     this.madeDocs = [...this.madeDocs, {
       id: `notice-${no}`,
       kind: title,
@@ -1833,6 +1914,19 @@ export class Por1Page {
     };
     this.receipt = { ...this.receipt, links: [link, ...this.receipt.links.filter((item) => item.no !== no)] };
     writeReceipt(this.receipt);
+  }
+
+  private noticeFileTitle(): string {
+    if (this.docAction === 'complete') return 'หนังสือแจ้งคำขอครบถ้วนถูกต้อง';
+    if (this.docAction === 'late') return 'หนังสือแจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
+    return `หนังสือแจ้งขอข้อมูลเพิ่ม ครั้งที่ ${this.noticePasses.length + 1}`;
+  }
+
+  private placeNoticeFile(saraban = ''): void {
+    const name = saraban ? `หนังสือแจ้ง-${saraban.replaceAll('/', '-')}.pdf` : 'หนังสือแจ้งแก้ไข.pdf';
+    const row = { name, title: this.noticeFileTitle(), sentOn: this.docNoticedOn };
+    const kept = this.docFiles.filter((file) => file.name !== name && file.name !== 'หนังสือแจ้งแก้ไข.pdf' && !/^หนังสือแจ้ง-สบ\./.test(file.name));
+    this.docFiles = [row, ...kept];
   }
 
   protected get shownGaps() {
@@ -1886,6 +1980,8 @@ export class Por1Page {
     writeDocNotice(this.docPayload(true));
     writeCaseStatus('official');
     this.caseStatus = 'official';
+    this.reviewTab = 'docs';
+    this.docPart = this.workDocs.length + 1;
     this.notice = 'docs';
   }
 
@@ -2801,7 +2897,7 @@ export class Por1Page {
   }
 
   private get activeFindings(): RoundFinding[] {
-    if (this.caseStatus === 'draft' || this.caseStatus === 'review' || this.caseStatus === 'cancelled') return [];
+    if (this.caseStatus === 'draft' || this.caseStatus === 'review' || this.caseStatus === 'cancelled' || this.caseStatus === 'official') return [];
     return this.rounds.at(-1)?.findings ?? [];
   }
 
