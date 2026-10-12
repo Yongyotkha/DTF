@@ -5,8 +5,8 @@ import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
-import { assignmentReachesOfficer } from './staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultPlan, type ConsultChannel, type ConsultPlan } from '../requests/case-status';
+import { assignmentReachesOfficer, groupHead, groupMembers, staffPeople, workGroups } from './staff-roster';
+import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep } from '../requests/case-status';
 
 type Bucket = 'in' | 'pending' | 'out' | 'follow' | 'group';
 type WorkKind = 'request' | 'job' | 'track';
@@ -66,6 +66,8 @@ export class StaffHomePage implements OnDestroy {
   protected awaitingApproval = readCaseStatus() === 'approval';
   protected awaitingConsult = false;
   protected consultAssigned = false;
+  protected consultStep: ConsultStep = 'receive';
+  protected consultMember = '';
   protected consultPlan: ConsultPlan | null = null;
   protected consultTopic = '';
   protected consultWhen = '';
@@ -79,6 +81,8 @@ export class StaffHomePage implements OnDestroy {
   protected deskFilter: DeskFilter = 'wait';
   protected query = '';
   protected assignOpen = false;
+  protected readonly consultGroups = workGroups;
+  protected consultGroup = workGroups[0]?.name ?? '';
 
   private readonly accounts = inject(Accounts);
 
@@ -102,7 +106,10 @@ export class StaffHomePage implements OnDestroy {
 
   protected get deskStats(): { id: DeskFilter; label: string; count: number }[] {
     if (this.role === 'officer') {
-      const mine = assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned) ? 1 : 0;
+      const consultOpen = readCaseStatus() === 'consult' && !!readConsult();
+      const mine = consultOpen
+        ? (this.officerOwnsConsult() ? 1 : 0)
+        : (assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned) ? 1 : 0);
       return [
         { id: 'in', label: 'งานรับเข้า', count: mine },
         { id: 'wait', label: 'รอมอบหมาย', count: 0 },
@@ -178,14 +185,27 @@ export class StaffHomePage implements OnDestroy {
     };
   }
 
+  protected get consultIntakeOpen(): boolean {
+    return readCaseStatus() === 'consult' && !!readConsult() && (this.consultStep === 'receive' || this.consultStep === 'forward');
+  }
+
+  private officerOwnsConsult(): boolean {
+    if (readCaseStatus() !== 'consult' || !readConsult() || this.consultStep !== 'member' || !this.consultAssigned) return false;
+    const me = this.accounts.personName;
+    const saved = readWorkAssignment();
+    if (!me) return saved.people.length > 0 || saved.hands.length > 0;
+    return saved.people.includes(me) || saved.hands.some((hand) => hand.name === me);
+  }
+
   private officerJobs(filter: DeskFilter): TaskCase[] {
-    if (!assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned) && !this.awaitingApproval) return [];
-    if (filter === 'in' || filter === 'doing') {
-      if (this.awaitingApproval) return [this.liveJob(this.canApprove ? 'รอคุณอนุมัติการยื่นแบบ' : 'รอผู้รับมอบหมายอนุมัติ', 'warning')];
-      const saved = readWorkAssignment();
-      return [this.liveJob(assignmentStepLabel(saved), assignmentStepTone(saved))];
+    if (filter !== 'in' && filter !== 'doing') return [];
+    if (readCaseStatus() === 'consult' && readConsult()) {
+      return this.officerOwnsConsult() ? [this.liveJob(assignmentStepLabel(readWorkAssignment()), assignmentStepTone(readWorkAssignment()))] : [];
     }
-    return [];
+    if (this.awaitingApproval) return [this.liveJob(this.canApprove ? 'รอคุณอนุมัติการยื่นแบบ' : 'รอผู้รับมอบหมายอนุมัติ', 'warning')];
+    if (!assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned)) return [];
+    const saved = readWorkAssignment();
+    return [this.liveJob(assignmentStepLabel(saved), assignmentStepTone(saved))];
   }
 
   private directorCatalog(): TaskCase[] {
@@ -205,16 +225,17 @@ export class StaffHomePage implements OnDestroy {
       tone: 'info',
     };
     const rows: TaskCase[] = [filing];
-    if (this.awaitingConsult || this.consultAssigned) {
+    if (readCaseStatus() === 'consult' && readConsult() && this.consultStep !== 'receive' && this.consultStep !== 'forward') {
+      const waitingGroup = this.consultStep === 'director';
       rows.push({
         ...filing,
         title: 'ขอพบเจ้าหน้าที่',
-        kind: this.awaitingConsult ? 'request' : 'job',
-        bucket: this.awaitingConsult ? 'wait' : 'group',
-        group: this.consultAssigned ? caretaker : 'รอผู้อำนวยการมอบหมาย',
+        kind: this.consultStep === 'member' ? 'job' : 'request',
+        bucket: this.consultStep === 'member' ? 'group' : 'wait',
+        group: waitingGroup ? 'รอผู้อำนวยการมอบหมาย' : (readConsultGroup() || caretaker),
         at: this.consultWhen || '16/05/2562 10:00',
-        status: this.awaitingConsult ? 'รอมอบหมาย' : assignmentStepLabel(saved),
-        tone: this.awaitingConsult ? 'warning' : assignmentStepTone(saved),
+        status: waitingGroup ? 'รอมอบหมายกลุ่ม' : this.consultStep === 'group' ? 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่' : assignmentStepLabel(saved),
+        tone: this.consultStep === 'member' ? assignmentStepTone(saved) : 'warning',
       });
     }
     rows.push(
@@ -276,7 +297,7 @@ export class StaffHomePage implements OnDestroy {
 
   protected get bucketView() {
     return buckets.map((item) => {
-      const consultIn = item.id === 'in' && (this.awaitingConsult || (this.role === 'head' && this.consultAssigned));
+      const consultIn = item.id === 'in' && ((this.role === 'head' && this.headsThisGroup && (this.consultStep === 'group' || this.consultAssigned)) || (this.role === 'staff' && this.consultIntakeOpen));
       return consultIn ? { ...item, count: item.count + 1 } : item;
     });
   }
@@ -309,9 +330,12 @@ export class StaffHomePage implements OnDestroy {
       }
     }
     const rows = Array.from({ length: buckets.find((item) => item.id === this.selected)?.count ?? 0 }, () => ({ ...sample, group, status, due, tone }));
-    if (this.role === 'head' && this.consultAssigned && this.selected === 'in') {
+    if (this.role === 'head' && this.headsThisGroup && this.selected === 'in' && readCaseStatus() === 'consult' && (this.consultStep === 'group' || this.consultAssigned)) {
       const saved = readWorkAssignment();
-      return [this.assignedConsultJob(saved.groups[0] || saved.people[0] || 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'), ...rows];
+      return [this.assignedConsultJob(readConsultGroup() || saved.groups[0] || saved.people[0] || 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'), ...rows];
+    }
+    if (this.role === 'staff' && this.selected === 'in' && this.consultIntakeOpen) {
+      return [this.liveJob('รอมอบหมายให้ผู้อำนวยการ', 'warning'), ...rows];
     }
     if (this.selected !== 'in' || !this.awaitingConsult) return rows;
     return [
@@ -343,7 +367,7 @@ export class StaffHomePage implements OnDestroy {
 
   protected jobLabel(row: TaskCase): string {
     if (row.code === this.filingRef && this.canApprove) return 'อนุมัติการยื่นแบบ';
-    if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') return 'มอบหมายผู้ดูแล';
+    if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') return 'มอบหมายกลุ่ม';
     return 'ดูคำขอ';
   }
 
@@ -352,7 +376,117 @@ export class StaffHomePage implements OnDestroy {
       this.approveFiling();
       return;
     }
+    if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') {
+      this.openCode = row.code + row.title;
+      this.assignOpen = true;
+      return;
+    }
     this.openFiling();
+  }
+
+  protected get headsThisGroup(): boolean {
+    if (this.role !== 'head') return false;
+    const me = this.accounts.personName;
+    const head = groupHead(readConsultGroup());
+    return !me || !head || me === head;
+  }
+
+  protected get consultDirectorName(): string {
+    return staffPeople.find((person) => person.title.includes('ผู้อำนวยการ'))?.name ?? 'ผู้อำนวยการ';
+  }
+
+  protected assignIntake(): void {
+    if (this.role !== 'staff' || !this.consultIntakeOpen) return;
+    const saved = readWorkAssignment();
+    const people = saved.people.includes(this.consultDirectorName) ? saved.people : [...saved.people, this.consultDirectorName];
+    writeWorkAssignment({ ...saved, people });
+    writeConsultGroup('');
+    writeConsultStep('director');
+    this.refreshConsult();
+  }
+
+  protected advanceConsultIntake(): void {
+    if (this.consultStep === 'receive') writeConsultStep('forward');
+    else if (this.consultStep === 'forward') writeConsultStep('director');
+    this.refreshConsult();
+  }
+
+  protected get consultMembers() {
+    const group = readConsultGroup();
+    const members = groupMembers(group);
+    if (members.length) return members;
+    return staffPeople.filter((person) => person.work === group && person.lead);
+  }
+
+  protected get consultGroupName(): string {
+    return readConsultGroup();
+  }
+
+  protected get consultAssigneeText(): string {
+    if (this.consultStep === 'member') {
+      return readWorkAssignment().hands.at(-1)?.name || readConsultGroup() || 'มอบหมายแล้ว';
+    }
+    if (this.consultStep === 'group') return `${readConsultGroup() || 'กลุ่มงาน'} รอเลือกเจ้าหน้าที่`;
+    if (this.consultStep === 'director') return 'รอผู้อำนวยการมอบหมายกลุ่ม';
+    if (this.consultStep === 'forward' || this.consultStep === 'receive') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
+    return 'รอเจ้าหน้าที่รับเรื่องมอบหมาย';
+  }
+
+  protected get consultTrackText(): string {
+    if (this.role === 'officer' && this.consultStep === 'receive') return 'รอคุณรับเรื่อง แล้วส่งให้ผู้อำนวยการ';
+    if (this.role === 'officer' && this.consultStep === 'forward') return 'รับเรื่องแล้ว ส่งให้ผู้อำนวยการกอง';
+    if (this.role === 'director' && this.consultStep === 'director') return 'มอบหมายได้เฉพาะกลุ่มงาน';
+    if (this.consultStep === 'group') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่ในกลุ่ม';
+    if (this.consultAssigned) return 'มอบหมายเจ้าหน้าที่ในกลุ่มแล้ว';
+    return 'รอเจ้าหน้าที่รับเรื่อง';
+  }
+
+  protected assignConsultGroup(): void {
+    if (!consultAwaitingDirector() || !this.consultGroup) return;
+    const head = groupHead(this.consultGroup);
+    if (!head) return;
+    writeConsultPlan({ channels: ['chat'], phone: '', email: '', other: '' });
+    const saved = readWorkAssignment();
+    const groups = saved.groups.includes(this.consultGroup) ? saved.groups : [...saved.groups, this.consultGroup];
+    const groupTasks = groups.flatMap((name) => {
+      const current = saved.groupTasks.find((task) => task.group === name);
+      if (current) return [current];
+      const lead = groupHead(name);
+      return lead ? [{ group: name, head: lead, reply: 'pending' as const, reason: '' }] : [];
+    });
+    writeWorkAssignment({
+      people: saved.people,
+      groups,
+      note: saved.note,
+      order: saved.order || 'ดูแลคำร้องขอพบเจ้าหน้าที่',
+      assignedOn: saved.assignedOn || '16/05/2562',
+      dueOn: saved.dueOn || '30/05/2562',
+      reply: saved.reply,
+      reason: saved.reason,
+      groupTasks,
+      hands: saved.hands,
+      slips: saved.slips,
+    });
+    writeConsultGroup(this.consultGroup);
+    writeConsultStep('group');
+    const members = groupMembers(this.consultGroup);
+    this.consultMember = members[0]?.name ?? groupHead(this.consultGroup);
+    this.refreshConsult();
+  }
+
+  protected assignConsultMember(): void {
+    if (readConsultStep() !== 'group' || !this.consultMember) return;
+    const saved = readWorkAssignment();
+    const group = readConsultGroup();
+    const hands = saved.hands.some((hand) => hand.name === this.consultMember)
+      ? saved.hands
+      : [...saved.hands, { name: this.consultMember, group, reply: 'pending' as const, reason: '' }];
+    const people = saved.people.includes(this.consultMember) ? saved.people : [...saved.people, this.consultMember];
+    writeWorkAssignment({ ...saved, people, hands });
+    writeConsultPlan({ channels: ['chat'], phone: '', email: '', other: '' });
+    writeConsultStep('member');
+    writeConsultAssigned(true);
+    this.refreshConsult();
   }
 
   protected approveFiling(): void {
@@ -380,7 +514,7 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected assignConsult(): void {
-    if (!consultAwaitingDirector() || !this.canAssign) return;
+    if (readConsultStep() !== 'member' || !consultAwaitingDirector() || !this.canAssign) return;
     const channels = (['chat', 'phone', 'email', 'other'] as const).filter((channel) => this.channelOn[channel]);
     writeConsultPlan({
       channels,
@@ -399,7 +533,11 @@ export class StaffHomePage implements OnDestroy {
     const request = readConsult();
     this.consultPlan = readConsultPlan();
     this.consultAssigned = !!request && readConsultAssigned();
+    this.consultStep = request ? readConsultStep() : 'receive';
     this.awaitingConsult = this.role === 'director' && consultAwaitingDirector();
+    const group = readConsultGroup();
+    if (group) this.consultGroup = group;
+    if (!this.consultMember) this.consultMember = this.consultMembers[0]?.name ?? '';
     this.consultTopic = request?.topic ?? '';
     this.consultWhen = request?.when ?? '';
     this.awaitingApproval = readCaseStatus() === 'approval';
@@ -429,7 +567,7 @@ export class StaffHomePage implements OnDestroy {
       sender: this.applicantName,
       group,
       at: this.consultWhen || '16/05/2562',
-      status: waiting ? (this.canApprove ? 'รอคุณอนุมัติการยื่นแบบ' : 'รอผู้รับมอบหมายอนุมัติ') : assignmentStepLabel(readWorkAssignment()),
+      status: this.consultStep === 'group' ? 'รอมอบหมายเจ้าหน้าที่ในกลุ่ม' : waiting ? (this.canApprove ? 'รอคุณอนุมัติการยื่นแบบ' : 'รอผู้รับมอบหมายอนุมัติ') : assignmentStepLabel(readWorkAssignment()),
       due: `ครบกำหนดแก้ไขเพิ่มเติม ${this.amendUntil}`,
       tone: waiting ? 'warning' : assignmentStepTone(readWorkAssignment()),
     };
@@ -437,6 +575,8 @@ export class StaffHomePage implements OnDestroy {
 
   protected openCase(code: string): void {
     if (code === this.filingRef) {
+      if (this.role === 'staff' && this.consultIntakeOpen) return;
+      if (this.role === 'head' && this.consultStep === 'group') return;
       if (this.role === 'head') void this.router.navigateByUrl('/officer/filing');
       return;
     }

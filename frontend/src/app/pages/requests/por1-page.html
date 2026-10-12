@@ -2,9 +2,9 @@
   <app-top-header class="fluid" />
   <div class="por1__body">
     @if (reviewRole) {
-      <app-side-nav kind="staff" open="ระบบ Task Management" active="หน้าหลัก" />
+      <app-side-nav kind="staff" open="คำขอ" active="หน้าหลัก" />
     } @else {
-      <app-side-nav open="คำขอ" active="ยื่นคำขอ" />
+      <app-side-nav open="คำขอ" active="ยื่นคำขอ" (chosen)="openApplicantMenu($event)" />
     }
     <main>
       <div [class.review-pin]="!!reviewRole">
@@ -35,16 +35,10 @@
             @if (viewingForm || openedRound) {
               <app-button type="outline" label="กลับ" (click)="closeRoundView()" />
             }
-            <app-button class="icon-before" type="outline" label="แชทเจ้าหน้าที่" (click)="openSideTalk()">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3z" /></svg>
-            </app-button>
             <span class="head__split" aria-hidden="true"></span>
             <app-status-tag [tone]="caseTone" [label]="caseLabel" />
           } @else {
             <span class="head__split" aria-hidden="true"></span>
-            <app-button class="icon-before" type="outline" label="แชทเจ้าหน้าที่" (click)="openSideTalk()">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3z" /></svg>
-            </app-button>
             <app-button type="outline" label="บันทึกร่าง" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="saveDraft()" />
             <app-button type="primary" label="ยื่นคำขอ" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="openSubmit()" />
           }
@@ -251,9 +245,6 @@
               <app-button class="icon-before" type="primary" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
               </app-button>
-              <app-button class="icon-before" type="outline" label="แชทเจ้าหน้าที่" (click)="openSideTalk()">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3z" /></svg>
-              </app-button>
             </div>
           </section>
         } @else if (caseStatus === 'approval') {
@@ -276,17 +267,17 @@
             </div>
           </section>
         } @else if (caseStatus === 'consult' && !consultAssigned) {
-          <section class="sheet review" aria-label="รอผู้อำนวยการมอบหมาย">
+            <section class="sheet review" aria-label="รอเจ้าหน้าที่รับเรื่อง">
             <div class="review__lead">
               <span class="review__badge review__badge--info" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M12 17h.01M12 7v6M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
               </span>
               <div>
                 <h2>ขอที่ปรึกษาแล้ว</h2>
-                <p>คำขอเลขที่อ้างอิง {{ refId }} รอผู้อำนวยการกองมอบหมายผู้ดูแลในระบบนี้</p>
+                <p>คำขอเลขที่อ้างอิง {{ refId }} {{ consultWaitText }}</p>
+                <p>ลำดับมอบหมายคือ เจ้าหน้าที่รับเรื่อง ผู้อำนวยการ กลุ่ม และเจ้าหน้าที่ในกลุ่ม</p>
                 <p>หัวข้อ {{ consult?.topic }}</p>
                 <p>เวลาที่สะดวก {{ consult?.when }}</p>
-                <p>ผู้ดูแล รอผู้อำนวยการกองมอบหมาย</p>
                 <p class="amend-note">วันที่ยื่นครั้งแรก {{ filedOn }} · วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน) {{ amendUntil }}</p>
               </div>
             </div>
@@ -315,7 +306,7 @@
             <dl class="consult__facts">
               <div>
                 <dt>ผู้ดูแลคำขอ</dt>
-                <dd>{{ officerName }}</dd>
+                <dd>{{ consultOfficerName }}</dd>
               </div>
               <div>
                 <dt>เวลาที่สะดวก</dt>
@@ -438,9 +429,7 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
                 </app-button>
               }
-              <app-button class="icon-before" type="outline" label="แชทเจ้าหน้าที่" (click)="openSideTalk()">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3z" /></svg>
-              </app-button>
+              <app-button type="outline" label="ขอที่ปรึกษา" (click)="openConsult()" />
             </div>
             <ol class="findings">
               @for (item of shownGaps; track item.title) {
@@ -563,7 +552,7 @@
               <app-button class="icon-before" type="primary" label="แก้ไขคำขอ" (click)="startRevise()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
               </app-button>
-              <app-button type="outline" label="ขอที่ปรึกษา" (click)="consultOpen = true" />
+              <app-button type="outline" label="ขอที่ปรึกษา" (click)="openConsult()" />
               <app-button type="outline" label="ยืนยันส่งแบบยื่นทางการ" (click)="officialOpen = true" />
               <app-button class="icon-before" type="outline" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -712,6 +701,7 @@
                 ให้คำปรึกษา/สนทนา
               </button>
             }
+            @if (reviewRole !== 'staff') {
             <button type="button" [class.on]="reviewTab === 'docs'" (click)="pickReviewTab('docs')">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M8 13l2 2 4-4" /></svg>
               ตรวจสอบเอกสาร
@@ -724,6 +714,7 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.2 1.2" /><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.2-1.2" /></svg>
               เชื่อมโยงระบบ
             </button>
+            }
           </nav>
           @if (reviewTab === 'assign') {
             <div class="assign-card">
@@ -739,7 +730,7 @@
                     <header class="assign-head">
                       <div>
                         <h2>กลุ่ม/รายชื่อมอบหมาย</h2>
-                        <p>{{ reviewRole === 'director' ? 'ทุกขั้นต้องระบุผู้รับ วันกำหนดส่ง และคำสั่ง แล้วให้ผู้รับมอบหมายเห็น' : 'กรอกการมอบหมายของขั้นนี้ ชื่อคนตามสิทธิ์ที่เข้าใช้งาน' }}</p>
+                        <p>{{ reviewRole === 'staff' ? 'ขั้นนี้มอบหมายให้ผู้อำนวยการเท่านั้น จากนั้นผู้อำนวยการเลือกกลุ่ม และหัวหน้ากลุ่มเลือกเจ้าหน้าที่ในกลุ่ม' : reviewRole === 'director' ? 'ลำดับมอบหมาย เจ้าหน้าที่รับเรื่อง ผู้อำนวยการ กลุ่ม และเจ้าหน้าที่ในกลุ่ม ขั้นนี้ผู้อำนวยการมอบหมายได้เฉพาะกลุ่ม' : 'กรอกการมอบหมายของขั้นนี้ ชื่อคนตามสิทธิ์ที่เข้าใช้งาน' }}</p>
                       </div>
                       @if (reviewRole === 'director') {
                         <button type="button" class="assign-add" (click)="openAssign()">
@@ -748,7 +739,7 @@
                         </button>
                       }
                     </header>
-                    @if (peopleReady) {
+                    @if (peopleReady || reviewRole === 'staff') {
                       <ol class="handoff" aria-label="ขั้นตอนการมอบหมาย">
                         @for (step of handoffSteps; track step.title) {
                           <li [class.is-done]="step.state === 'done'" [class.is-now]="step.state === 'now'" [class.is-back]="step.state === 'back'">
@@ -758,19 +749,37 @@
                         }
                       </ol>
                     }
-                    @if (!peopleReady) {
+                    @if (reviewRole === 'staff' && !directorAssigned) {
+                      <div class="assign-blank">
+                        <span class="mode-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /></svg></span>
+                        <strong>มอบหมายให้ผู้อำนวยการ</strong>
+                        <p>{{ directorName }}</p>
+                        <app-button type="primary" label="มอบหมายให้ผู้อำนวยการ" (click)="assignToDirector()" />
+                      </div>
+                    } @else if (!peopleReady) {
                       <div class="assign-blank">
                         <span class="mode-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 20v-1a3 3 0 0 0-2.2-2.9M16 5.1a3 3 0 0 1 0 5.8" /></svg></span>
                         <strong>ยังไม่มีผู้รับมอบหมาย</strong>
-                        <p>คลิก “เพิ่มผู้รับมอบหมาย” เพื่อเลือกกลุ่มงานหรือเจ้าหน้าที่</p>
+                        <p>คลิก “เพิ่มผู้รับมอบหมาย” เพื่อเลือกกลุ่มงาน</p>
                       </div>
                     } @else {
+                      @if (reviewRole === 'staff' && directorAssigned && !shownTasks.length) {
+                        <ul class="assign-chosen">
+                          <li class="pick-card pick-card--act">
+                            <div class="pick-card__line">
+                              <span class="mode-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /></svg></span>
+                              <span><strong>{{ directorName }}</strong><small>ผู้อำนวยการ</small></span>
+                              <app-status-tag variant="soft" tone="warning" label="รอมอบหมายกลุ่ม" />
+                            </div>
+                          </li>
+                        </ul>
+                      }
                       <ul class="assign-chosen">
                         @for (task of shownTasks; track task.group) {
                           <li class="pick-card pick-card--act">
                             <div class="pick-card__line">
                               <span class="mode-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 20v-1a3 3 0 0 0-2.2-2.9" /></svg></span>
-                              <span><strong>{{ task.group }}</strong><small>หัวหน้ากลุ่ม · {{ task.head }}</small></span>
+                              <span><strong>{{ task.group }}</strong><small>{{ reviewRole === 'director' ? 'กลุ่มงาน' : 'หัวหน้ากลุ่ม · ' + task.head }}</small></span>
                               <app-status-tag variant="soft" [tone]="task.reply === 'accept' ? 'success' : task.reply === 'return' ? 'danger' : 'warning'" [label]="task.reply === 'accept' ? 'รับเรื่องแล้ว' : task.reply === 'return' ? 'ส่งคืน' : 'รอหัวหน้ากลุ่ม'" />
                               @if (reviewRole === 'director') {
                                 <button type="button" [attr.aria-label]="'นำ ' + task.group + ' ออก'" (click)="toggleGroup(task.group)">
@@ -778,7 +787,7 @@
                                 </button>
                               }
                             </div>
-                            @for (slip of slipsTo(task.head); track slip.at) {
+                            @for (slip of slipsForTask(task); track slip.at) {
                               <ng-container [ngTemplateOutlet]="slipView" [ngTemplateOutletContext]="{ slip: slip }" />
                             }
                             @if (groupAct(task)) {
@@ -829,27 +838,29 @@
                       <section class="slip" aria-label="ระบุการมอบหมาย">
                         <h3>ระบุการมอบหมาย</h3>
                         <p>{{ slipHint }}</p>
-                        <div class="slip-line">
-                          <span>สถานะการรับ<span class="req">*</span></span>
-                          <div class="slip-choices">
-                            <button type="button" (click)="setSlipReceipt('accept')"><img [src]="slipReceipt === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ</button>
-                            <button type="button" (click)="setSlipReceipt('return')"><img [src]="slipReceipt === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคืน</button>
+                        @if (reviewRole !== 'director') {
+                          <div class="slip-line">
+                            <span>สถานะการรับ<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="setSlipReceipt('accept')"><img [src]="slipReceipt === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ</button>
+                              <button type="button" (click)="setSlipReceipt('return')"><img [src]="slipReceipt === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคืน</button>
+                            </div>
                           </div>
-                        </div>
-                        <div class="slip-line">
-                          <span>สถานะ<span class="req">*</span></span>
-                          <div class="slip-choices">
-                            <button type="button" (click)="setSlipKind('report')"><img [src]="slipKind === 'report' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รายงานผล</button>
-                            <button type="button" (click)="setSlipKind('forward')"><img [src]="slipKind === 'forward' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งต่อ</button>
+                          <div class="slip-line">
+                            <span>สถานะ<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="setSlipKind('report')"><img [src]="slipKind === 'report' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รายงานผล</button>
+                              <button type="button" (click)="setSlipKind('forward')"><img [src]="slipKind === 'forward' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งต่อ</button>
+                            </div>
                           </div>
-                        </div>
+                        }
                         <div class="slip-line">
                           <span>มอบหมายงานให้<span class="req">*</span></span>
                           @if (slipPeople.length) {
                             <div class="slip-people">
                               @for (name of slipPeople; track name) {
                                 <span class="slip-chip">{{ name }}
-                                  @if (slipPeople.length > 1) {
+                                  @if (slipPeople.length > 1 && name !== directorName) {
                                     <button type="button" [attr.aria-label]="'นำ ' + name + ' ออก'" (click)="removeSlipPerson(name)">✕</button>
                                   }
                                 </span>
@@ -959,6 +970,55 @@
                         <app-input-field class="block" [class.wide]="field.long" [kind]="field.long ? 'textarea' : 'text'" [label]="field.label" [required]="false" [editable]="true" [value]="field.value" (valueChange)="setDraft(docPart, i, $event)" />
                       }
                     </div>
+                    <div class="reply-bar">
+                      <div>
+                        <p class="slip-file-label">ไฟล์แนบอื่น</p>
+                        <p class="link-detail">แนบไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
+                      </div>
+                      <label class="pick">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                        เพิ่ม
+                        <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addExtraFiles($event)" />
+                      </label>
+                    </div>
+                    @if (extrasOf(workDocs[docPart].title).length) {
+                      <div class="table-wrap slip-files">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th class="col-no">ลำดับ</th>
+                              <th>ไฟล์แนบ</th>
+                              <th>ชื่อเอกสาร</th>
+                              <th>การจัดการ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (file of extrasOf(workDocs[docPart].title); track file.name; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ n + 1 }}</td>
+                                <td>{{ file.name }}</td>
+                                <td><input type="text" aria-label="ชื่อเอกสาร" [value]="file.title" (input)="renameExtraFile(workDocs[docPart].title, n, $any($event.target).value)" /></td>
+                                <td>
+                                  <div class="made-actions">
+                                    <button type="button" class="office-view" (click)="viewingMade = { id: file.name, kind: file.title, at: file.sentOn, fields: [{ label: 'ไฟล์แนบ', value: file.name }, { label: 'ชื่อเอกสาร', value: file.title }] }">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                      ดู
+                                    </button>
+                                    <button type="button" class="office-view" (click)="downloadExtraFile(file)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                      ดาวน์โหลด
+                                    </button>
+                                    <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeExtraFile(workDocs[docPart].title, n)">
+                                      <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
                     <footer class="doc-foot">
                       <app-button type="outline" label="สร้างใหม่" (click)="freshMade()" />
                       @if (editingId) {
@@ -3317,7 +3377,7 @@
         <h2 id="consult-title">ยื่นคำร้องขอพบเจ้าหน้าที่</h2>
         <button type="button" class="submit__close" (click)="consultOpen = false">✕ ปิด</button>
       </div>
-      <p class="submit__hint">คำร้องจะส่งถึงผู้อำนวยการกอง เพื่อมอบหมายผู้ดูแลในระบบนี้</p>
+      <p class="submit__hint">ลำดับมอบหมายคือ เจ้าหน้าที่รับเรื่อง ผู้อำนวยการ กลุ่ม และเจ้าหน้าที่ในกลุ่ม</p>
       <div class="ask">
         <label>
           <span>เรื่อง<span class="req">*</span></span>
@@ -3409,7 +3469,7 @@
       <header>
         <div>
           <h2 id="assign-title">เพิ่มผู้รับมอบหมาย</h2>
-          <p>เลือกหัวหน้ากลุ่มได้มากกว่า 1 กลุ่ม</p>
+          <p>เลือกกลุ่มงานได้มากกว่า 1 กลุ่ม</p>
         </div>
         <button type="button" aria-label="ปิด" (click)="closeAssign()">✕</button>
       </header>

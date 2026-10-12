@@ -191,7 +191,12 @@ export function acceptedAssignees(value: WorkAssignment): string[] {
 export function caseStatusLabel(status: CaseStatus): string {
   if (status === 'review') return 'อยู่ระหว่างตรวจสอบ';
   if (status === 'revision') return 'กรุณาแก้ไขข้อมูล';
-  if (status === 'consult' && !readConsultAssigned()) return 'รอผู้อำนวยการมอบหมาย';
+  if (status === 'consult' && !readConsultAssigned()) {
+    const step = readConsultStep();
+    if (step === 'receive' || step === 'forward') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
+    if (step === 'group') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่';
+    return 'รอผู้อำนวยการมอบหมายกลุ่ม';
+  }
   if (status === 'consult') return 'รอนัดพบเจ้าหน้าที่';
   if (status === 'approval') return 'รอผู้รับมอบหมายอนุมัติ';
   if (status === 'official') return 'ยื่นแบบ';
@@ -269,8 +274,32 @@ export function readConsultAssigned(): boolean {
 }
 
 export function consultAwaitingDirector(): boolean {
-  if (readCaseStatus() !== 'consult' || !readConsult()) return false;
-  return sessionStorage.getItem(assignKey) !== '1';
+  return readCaseStatus() === 'consult' && !!readConsult() && readConsultStep() === 'director';
+}
+
+export type ConsultStep = 'receive' | 'forward' | 'director' | 'group' | 'member';
+
+const consultStepKey = 'dft-por1-consult-step';
+const consultGroupKey = 'dft-por1-consult-group';
+
+export function readConsultStep(): ConsultStep {
+  const value = sessionStorage.getItem(consultStepKey);
+  if (value === 'receive' || value === 'forward' || value === 'director' || value === 'group' || value === 'member') return value;
+  if (sessionStorage.getItem(assignKey) === '1') return 'member';
+  return 'receive';
+}
+
+export function writeConsultStep(step: ConsultStep): void {
+  sessionStorage.setItem(consultStepKey, step);
+}
+
+export function readConsultGroup(): string {
+  return sessionStorage.getItem(consultGroupKey) || '';
+}
+
+export function writeConsultGroup(name: string): void {
+  if (!name) sessionStorage.removeItem(consultGroupKey);
+  else sessionStorage.setItem(consultGroupKey, name);
 }
 
 export function writeConsultAssigned(assigned: boolean): void {
@@ -820,6 +849,8 @@ export function startFilingCase(): void {
   writeConsult(null);
   writeConsultThread([]);
   writeConsultPlan(null);
+  sessionStorage.removeItem(consultStepKey);
+  sessionStorage.removeItem(consultGroupKey);
   writeWorkAssignment(null);
   writeReceipt(null);
   writeEtrLink(null);

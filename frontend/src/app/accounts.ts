@@ -28,6 +28,7 @@ export type DemoLogin = { username: string; label: string; password: string; ema
 
 const demoMenu: { username: string; group: string }[] = [
   { username: '0105538041238', group: 'ผู้ยื่นคำขอ' },
+  { username: '1000000000101', group: 'เจ้าหน้าที่รับเรื่อง' },
   { username: '1000000000102', group: 'ผู้อำนวยการ' },
   { username: '1000000000106', group: 'หัวหน้ากลุ่ม' },
   { username: '1000000000107', group: 'หัวหน้ากลุ่ม' },
@@ -54,7 +55,7 @@ export class Accounts {
     ['0125544004802', { password: 'Dft@2569', role: 'corporate' }],
     ['1103700123456', { password: 'Person@2569', role: 'individual' }],
     ['0994000167890', { password: 'Assoc@2569', role: 'association' }],
-    ['1000000000101', { password: 'Staff@2569', role: 'staff' }],
+    ['1000000000101', { password: 'Staff@2569', role: 'staff', email: 'intake@dft.go.th' }],
     ['1000000000102', { password: 'Director@2569', role: 'director', person: 'นางสาวเบญจมาภรณ์ พรมเพิ่ม', personTitle: 'ผู้อำนวยการ' }],
     ['1000000000103', { password: 'Head@2569', role: 'head' }],
     ['1000000000104', { password: 'Officer@2569', role: 'officer' }],

@@ -547,12 +547,57 @@ h1 {
   box-shadow: var(--state-focus-ring);
 }
 
-.job__top,
-.job footer {
+.job__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.job footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.consult-assign {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.consult-assign p {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.consult-assign div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.consult-assign button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.consult-assign button.on {
+  font-weight: 700;
 }
 
 .job__product,
@@ -621,8 +666,8 @@ h1 {
   line-height: 21px;
 }
 
-.job footer {
-  margin-top: 12px;
+.job__who svg {
+  flex: none;
 }
 
 .job label {

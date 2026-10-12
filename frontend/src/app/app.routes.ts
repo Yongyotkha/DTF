@@ -26,6 +26,7 @@ export const routes: Routes = [
   { path: 'home', component: HomePage },
   { path: 'ai-workspace', component: AiWorkspacePage },
   { path: 'staff', component: StaffHomePage },
+  { path: 'staff/filing', component: Por1Page, data: { review: 'staff' } },
   { path: 'staff/tasks/:code', component: StaffTaskPage },
   { path: 'director', component: StaffHomePage, data: { role: 'director' } },
   { path: 'cases', component: CaseRegistryPage },

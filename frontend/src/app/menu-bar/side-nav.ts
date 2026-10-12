@@ -47,22 +47,23 @@ export class SidebarState {
   }
 }
 
-const menus = [
-  { title: 'คำขอ', items: ['ยื่นคำขอ', 'รายการยื่นคำขอ', 'แก้ไขผู้กระทำแทน'] },
-  { title: 'กระบวนการไต่สวน', items: ['ลงทะเบียนผู้มีส่วนได้เสีย', 'รับ-ส่งข้อมูลอื่นๆ'] },
-  { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่', 'ยื่นคำร้องขอข้อมูลข่าวสาร', 'รายการยื่นคำร้องขอข้อมูลข่าวสาร'] },
+type NavMenu = { title: string; items: string[] };
+
+const applicantMenus: NavMenu[] = [
+  { title: 'คำขอ', items: ['ยื่นคำขอ', 'รายการยื่นคำขอ'] },
+  { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่'] },
 ];
 
-const staffMenus = [
-  { title: 'คำขอ', items: ['ยื่นคำขอ', 'รายการยื่นคำขอ', 'แก้ไขผู้กระทำแทน'] },
-  { title: 'กระบวนการไต่สวน', items: ['ลงทะเบียนผู้มีส่วนได้เสีย', 'รับ-ส่งข้อมูลอื่นๆ', 'รายงาน'] },
-  {
-    title: 'ระบบ Task Management',
-    items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่', 'ยื่นคำร้องขอข้อมูลข่าวสาร', 'รายการยื่นคำร้องขอข้อมูลข่าวสาร'],
-  },
-  { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่', 'ยื่นคำร้องขอข้อมูลข่าวสาร', 'รายการยื่นคำร้องขอข้อมูลข่าวสาร'] },
-  { title: 'จัดเก็บเอกสารอิเล็กทรอนิกส์', items: [] },
-  { title: 'ตั้งค่าระบบ', items: ['ตั้งค่าผู้ใช้งานและสิทธิ์เข้าใช้งาน'] },
+const intakeMenus: NavMenu[] = [
+  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
+];
+
+const directorMenus: NavMenu[] = [
+  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
+];
+
+const headMenus: NavMenu[] = [
+  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
 ];
 
 @Component({
@@ -85,10 +86,13 @@ export class SideNav implements OnInit, OnDestroy {
   @Input() kind: 'applicant' | 'staff' = 'applicant';
   @Output() readonly chosen = new EventEmitter<string>();
 
-  protected menuList() {
-    const list = this.kind === 'staff' ? staffMenus : menus;
-    if (this.accounts.role !== 'director') return list;
-    return list.map((menu) => ({ ...menu, items: menu.items.filter((item) => item !== 'ยื่นคำขอ') }));
+  protected menuList(): NavMenu[] {
+    const role = this.accounts.role;
+    if (role === 'officer') return [];
+    if (role === 'head') return headMenus;
+    if (role === 'director') return directorMenus;
+    if (role === 'staff' || this.kind === 'staff') return intakeMenus;
+    return applicantMenus;
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
   private readonly submenu = signal<string | null>(null);
@@ -175,13 +179,14 @@ export class SideNav implements OnInit, OnDestroy {
   }
 
   protected pick(label: string): void {
-    const staff = this.kind === 'staff';
-    if (label === 'ยื่นคำขอ' && !staff) void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
-    if (label === 'รายการยื่นคำขอ') void this.router.navigate(staff ? ['/cases'] : ['/requests']);
-    if (label === 'หน้าหลัก' || label === 'หน้าแรก') {
-      const role = this.accounts.role;
-      void this.router.navigateByUrl(role ? roleHome[role] : '/home');
+    const role = this.accounts.role;
+    const internal = role === 'staff' || role === 'director' || role === 'head' || role === 'officer';
+    if (label === 'ยื่นคำขอ' && !internal) void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
+    if (label === 'รายการยื่นคำขอ') void this.router.navigate(internal ? ['/cases'] : ['/requests']);
+    if (label === 'ยื่นคำร้องขอพบเจ้าหน้าที่' || label === 'รายการยื่นคำร้องขอพบเจ้าหน้าที่') {
+      if (!internal) void this.router.navigate(['/requests/por-1'], { queryParams: { consult: '1' } });
     }
+    if (label === 'หน้าหลัก' || label === 'หน้าแรก') void this.router.navigateByUrl(role ? roleHome[role] : '/home');
     this.chosen.emit(label);
     this.submenu.set(null);
     if (this.state.narrow()) this.closeDrawer(false);

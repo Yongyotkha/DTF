@@ -92,6 +92,13 @@ function stamp(date: string): number {
   styleUrl: './case-registry-page.css',
 })
 export class CaseRegistryPage {
+  constructor(
+    private readonly router: Router,
+    private readonly accounts: Accounts,
+  ) {
+    if (this.accounts.role === 'officer') void this.router.navigateByUrl('/officer');
+  }
+
   protected chip: Band = 'all';
   protected query = '';
   protected measure = '';
@@ -114,11 +121,6 @@ export class CaseRegistryPage {
     { value: 'date-new', label: 'วันที่ยื่น (ล่าสุด)' },
     { value: 'date-old', label: 'วันที่ยื่น (เก่าสุด)' },
   ];
-
-  constructor(
-    private readonly router: Router,
-    private readonly accounts: Accounts,
-  ) {}
 
   protected get rows(): RegistryCase[] {
     const status = caseStatusLabel(readCaseStatus());
@@ -267,7 +269,15 @@ export class CaseRegistryPage {
   protected open(row: RegistryCase): void {
     if (!row.live) return;
     const role = this.accounts.role;
-    void this.router.navigateByUrl(role === 'officer' ? '/officer/filing' : '/director/filing');
+    if (role === 'staff') {
+      void this.router.navigateByUrl('/staff/filing');
+      return;
+    }
+    if (role === 'head' || role === 'officer') {
+      void this.router.navigateByUrl('/officer/filing');
+      return;
+    }
+    void this.router.navigateByUrl('/director/filing');
   }
 
   protected exportRows(): void {

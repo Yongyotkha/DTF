@@ -1,7 +1,7 @@
 <div class="staff">
   <app-top-header class="fluid" />
   <div class="staff__body">
-    <app-side-nav kind="staff" open="ระบบ Task Management" active="หน้าหลัก" (chosen)="openMenu($event)" />
+    <app-side-nav kind="staff" open="คำขอ" active="หน้าหลัก" (chosen)="openMenu($event)" />
     <main>
       @if (role === 'director' || role === 'officer') {
         <header class="desk-head">
@@ -102,6 +102,17 @@
                 }
               </button>
               @if (openCode === row.code + row.title) {
+                @if (role === 'director' && awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') {
+                    <div class="consult-assign">
+                      <p>มอบหมายกลุ่มงาน หัวหน้ากลุ่มจะเลือกเจ้าหน้าที่ในกลุ่มต่อ</p>
+                      <div>
+                        @for (group of consultGroups; track group.name) {
+                          <button type="button" [class.on]="consultGroup === group.name" (click)="consultGroup = group.name">{{ group.name }}</button>
+                        }
+                      </div>
+                      <app-button type="primary" label="มอบหมายกลุ่มนี้" (click)="assignConsultGroup()" />
+                    </div>
+                }
                 <dl class="job__detail">
                   <div>
                     <dt>งาน</dt>
@@ -144,7 +155,7 @@
                     </div>
                     <div>
                       <dt>ผู้รับมอบหมาย</dt>
-                      <dd>{{ consultAssigned ? officerName : 'รอมอบหมาย' }}</dd>
+                      <dd>{{ consultAssigneeText }}</dd>
                     </div>
                     <div>
                       <dt>หน่วยงาน</dt>
@@ -152,7 +163,7 @@
                     </div>
                     <div class="wide">
                       <dt>{{ role === 'director' ? 'การติดตาม' : 'งานนี้' }}</dt>
-                      <dd>{{ role === 'director' ? (consultAssigned ? 'มอบหมายแล้ว ผู้อำนวยการติดตามจากหน้านี้ได้' : 'รอผู้อำนวยการมอบหมายผู้ดูแล') : 'มอบหมายให้คุณแล้ว' }}</dd>
+                      <dd>{{ consultTrackText }}</dd>
                     </div>
                   } @else {
                     <div>
@@ -173,16 +184,35 @@
                 </dl>
               }
               <footer>
-                <small>{{ row.at }}</small>
                 @if (row.code === filingRef && (role === 'director' || role === 'officer')) {
                   <app-button type="primary" [label]="jobLabel(row)" (click)="jobClick(row)" />
                 }
+                <small>{{ row.at }}</small>
               </footer>
             </article>
           }
         </section>
       } @else {
       <h1>หน้าหลัก</h1>
+      @if (role === 'staff' && consultIntakeOpen) {
+        <section class="consult-assign" aria-label="มอบหมายให้ผู้อำนวยการ">
+          <p>มอบหมายให้ผู้อำนวยการ {{ consultDirectorName }}</p>
+          <p>ขั้นถัดไป ผู้อำนวยการเลือกกลุ่ม แล้วหัวหน้ากลุ่มเลือกเจ้าหน้าที่ในกลุ่ม</p>
+          <p>หัวข้อ {{ consultTopic }} · {{ consultWhen }}</p>
+          <app-button type="primary" label="มอบหมายให้ผู้อำนวยการ" (click)="assignIntake()" />
+        </section>
+      }
+      @if (role === 'head' && headsThisGroup && consultStep === 'group') {
+        <section class="consult-assign" aria-label="มอบหมายเจ้าหน้าที่ในกลุ่ม">
+          <p>มอบหมายเจ้าหน้าที่ในกลุ่ม {{ consultGroupName }}</p>
+          <div>
+            @for (person of consultMembers; track person.name) {
+              <button type="button" [class.on]="consultMember === person.name" (click)="consultMember = person.name">{{ person.name }}</button>
+            }
+          </div>
+          <app-button type="primary" label="มอบหมายเจ้าหน้าที่นี้" (click)="assignConsultMember()" />
+        </section>
+      }
       @if (awaitingApproval) {
         <section class="approve" aria-label="คำขอรออนุมัติยื่นแบบ">
           <div>

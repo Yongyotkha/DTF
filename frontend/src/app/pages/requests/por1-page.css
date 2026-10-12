@@ -4333,6 +4333,7 @@ body.workspace-split .head {
 .doc-tools {
   display: flex;
   flex: none;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
 }
@@ -4505,7 +4506,7 @@ body.workspace-split .head {
 
 .reply-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -4534,14 +4535,25 @@ body.workspace-split .head {
 
 .gap-edit {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1.4fr) 40px;
   gap: 12px;
   align-items: end;
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
 }
 
-.gap-edit .trash,
+.gap-edit app-input-field {
+  min-width: 0;
+}
+
+.gap-edit .trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
 .reply-group .trash,
 .notice-files .trash {
   align-self: center;
