@@ -14,12 +14,14 @@ main {
 }
 
 .head {
+  position: sticky;
+  top: 65px;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 97px;
-  padding: 20px;
+  padding: 12px 20px;
   background: var(--color-white);
 }
 
@@ -36,6 +38,13 @@ main {
   overflow-wrap: break-word;
 }
 
+.head__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
 .head h1 {
   font-size: 24px;
   font-weight: 700;
@@ -44,7 +53,6 @@ main {
 
 .head p {
   max-width: 100%;
-  margin-bottom: 8px;
   font-size: 14px;
   font-weight: 400;
   line-height: 21px;
@@ -494,9 +502,10 @@ main {
 .sheet {
   margin: 10px 20px 24px;
   padding: 20px;
-  border: 0.5px solid var(--color-border);
+  border: 0;
   border-radius: 10px;
   background: var(--color-white);
+  box-shadow: var(--shadow-card);
 }
 
 .review__lead {
@@ -603,7 +612,9 @@ main {
   flex-shrink: 0;
   gap: 4px;
   width: 298px;
+  max-height: calc(100vh - 190px);
   padding: 10px;
+  overflow: auto;
 }
 
 .toc__group {
@@ -631,7 +642,7 @@ main {
 }
 
 [id^="part-"] {
-  scroll-margin-top: 88px;
+  scroll-margin-top: 172px;
 }
 
 .toc button {
@@ -653,6 +664,14 @@ main {
   text-align: left;
   cursor: pointer;
   transition: background-color var(--motion-state), border-color var(--motion-state);
+}
+
+.toc button:hover:not(.toc__on):not(.toc__fail) {
+  background: var(--color-bg-page);
+}
+
+.toc button.toc__fail:hover:not(.toc__on) {
+  background: var(--color-error-bg);
 }
 
 .toc button.toc__on {
@@ -1033,7 +1052,7 @@ main {
   color: var(--color-primary);
   font-family: var(--font-sans-thai);
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 24px;
 }
 
@@ -1691,7 +1710,7 @@ table:has(.col-no) {
   color: var(--color-primary);
   font-family: var(--font-sans-thai);
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 21px;
 }
 
@@ -2615,7 +2634,7 @@ table:has(.col-no) {
   background: var(--color-overlay);
 }
 
-.sample section {
+.sample > section {
   display: flex;
   flex-direction: column;
   width: min(1042px, 100%);
@@ -2661,7 +2680,7 @@ table:has(.col-no) {
   height: 149.49%;
 }
 
-.sample section > div {
+.sample > section > div {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -2824,52 +2843,59 @@ table:has(.col-no) {
   box-shadow: var(--state-focus-ring);
 }
 
-.sample--submit section {
+.sample--submit > section {
   width: min(960px, 100%);
   padding: 0;
   overflow: hidden;
 }
 
-.sample--check section.check {
+.sample.sample--check:has(> section.check) {
+  align-items: center;
+  overflow: hidden;
+}
+
+.sample--check > section.check {
   display: flex;
   flex-direction: column;
   width: min(702px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - 48px);
+  min-height: 0;
+  overflow: hidden;
 }
 
-.sample--check section.check > .check__bar {
+.sample--check > section.check > .check__bar {
   display: flex;
 }
 
-.sample--check section.check > .check__foot {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  justify-items: center;
+.sample--check > section.check > .check__foot {
+  display: flex;
 }
 
-.sample--check section.check > .check__body {
+.sample--check > section.check > .check__body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .check__bar,
 .check__foot {
   flex: none;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
 }
 
 .check__bar {
+  justify-content: space-between;
   padding: 16px 20px 12px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .check h2,
 .check__group h3,
-.check__item strong,
-.check__item span,
-.check__item small,
 .check__note,
 .check__bar p {
   margin: 0;
@@ -2883,39 +2909,26 @@ table:has(.col-no) {
   line-height: 28px;
 }
 
-.check__bar p,
-.check__item span {
+.check__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.check__group h3 {
+  color: var(--color-primary);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  padding: 12px 0 0;
+}
+
+.check__bar p {
   color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 400;
   line-height: 21px;
 }
 
-.check__badge,
-.check__jump {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  color: var(--color-primary);
-}
-
-.check__badge {
-  background: transparent;
-}
-
-.check__jump {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-white);
-  cursor: pointer;
-}
-
-.check__badge svg,
-.check__jump svg,
 .check__foot app-button svg,
 .check__mark svg,
 .check__lock svg {
@@ -2928,7 +2941,6 @@ table:has(.col-no) {
   stroke-linejoin: round;
 }
 
-.check__jump:focus-visible,
 .check__agree:focus-within {
   outline: none;
   box-shadow: var(--state-focus-ring);
@@ -2937,11 +2949,14 @@ table:has(.col-no) {
 
 .check__body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 0;
   min-height: 0;
+  max-height: calc(100vh - 220px);
   padding: 4px 20px 16px;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .check__row {
@@ -3044,20 +3059,9 @@ table:has(.col-no) {
   clip: rect(0 0 0 0);
 }
 
-.check__radio {
+.check__agree img {
   flex: none;
-  box-sizing: border-box;
-  width: 18px;
-  height: 18px;
-  border: 1.5px solid var(--color-border);
-  border-radius: 50%;
-  background: var(--color-white);
-}
-
-.check__agree input:checked + .check__radio {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  box-shadow: inset 0 0 0 4px var(--color-white);
+  pointer-events: none;
 }
 
 .check__agree:has(input:disabled) {
@@ -3066,33 +3070,18 @@ table:has(.col-no) {
 }
 
 .check__foot {
-  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
   padding: 12px 20px 16px;
   border-top: 1px solid var(--color-border);
 }
 
-@media (max-width: 720px) {
-  .sample--check section.check > .check__foot {
-    grid-template-columns: auto 1fr;
-  }
-
-  .check__jump {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .check__foot app-button {
-    grid-column: 2;
-    justify-self: end;
-  }
-}
-
-.sample--submit section > div {
+.sample--submit > section > div {
   display: block;
   margin-top: 0;
 }
 
-.sample--submit section > .submit__bar {
+.sample--submit > section > .submit__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3100,7 +3089,7 @@ table:has(.col-no) {
   padding: 18px 20px 12px;
 }
 
-.sample--submit section > .submit__actions {
+.sample--submit > section > .submit__actions {
   display: flex;
   justify-content: flex-end;
   gap: 16px;
@@ -3165,12 +3154,9 @@ body.workspace-split .head {
 }
 
 @media (min-width: 901px) {
-  body.workspace-focus .toc,
-  body.workspace-split .toc {
+  .toc {
     position: sticky;
     top: 172px;
-    max-height: calc(100vh - 190px);
-    overflow: auto;
   }
 }
 
@@ -3238,8 +3224,6 @@ body.workspace-split .head {
   position: sticky;
   top: 65px;
   z-index: 4;
-  background: var(--color-disabled-bg);
-  padding-bottom: 12px;
 }
 
 .review-pin .head {

@@ -7,19 +7,23 @@
       <app-side-nav open="คำขอ" active="ยื่นคำขอ" (chosen)="openApplicantMenu($event)" />
     }
     <main>
-      <div [class.review-pin]="!!reviewRole">
+      <div class="review-pin">
       <header class="head">
         <div>
           @if (reviewRole) {
             <h1>ยื่นคำขอแบบ ปร. 1 (มาตรการ AD)</h1>
             <p>รายละเอียดคำขอและการมอบหมายงาน</p>
           } @else {
-            <h1>ยื่นคำขอแบบ ปร. 1 (มาตราการ AD)</h1>
+            <div class="head__title">
+              <h1>ยื่นคำขอแบบ ปร. 1 (มาตราการ AD)</h1>
+              @if (!tracking) {
+                <app-status-tag [tone]="caseTone" [label]="caseLabel" />
+              }
+            </div>
             @if (tracking) {
               <p>เลขที่อ้างอิง {{ refId }}</p>
             } @else {
-              <p>เลขที่อ้างอิง {{ refId }} · เหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์</p>
-              <app-status-tag [tone]="caseTone" [label]="caseLabel" />
+              <p>แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</p>
             }
           }
         </div>
@@ -40,7 +44,7 @@
           } @else {
             <span class="head__split" aria-hidden="true"></span>
             <app-button type="outline" label="บันทึกร่าง" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="saveDraft()" />
-            <app-button type="primary" label="ยื่นคำขอ" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="openSubmit()" />
+            <app-button type="primary" label="ยื่นตรวจสอบ" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="openSubmit()" />
           }
         </div>
       </header>
@@ -1882,7 +1886,7 @@
               <p class="issue">{{ sectionIssue }}</p>
             }
             @if (section === '1' && anchor === 'part-1-1') {
-              <h3 id="part-1-1">ส่วนที่ 1 ข้อมูลผู้ยื่น</h3>
+              <h3 id="part-1-1">1.1 ผู้ยื่นคำขอ</h3>
               <div class="grid">
                 <fieldset class="field--wide">
                   <legend>มาตรการที่ขอให้ดำเนินการพิจารณา<span class="req">*</span></legend>
@@ -3277,24 +3281,21 @@
           <h2 id="check-title">ตรวจสอบก่อนยื่นคำขอ</h2>
           <p>โปรดตรวจสอบข้อมูลให้ถูกต้องก่อนยืนยัน</p>
         </div>
-        <span class="check__badge" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="1.5" /><path d="M9 4.5h6V7H9zM9 11h6M9 15h4" /></svg>
-        </span>
       </header>
       <div class="check__body">
         <article class="check__row">
-          <span class="check__mark" [class.check__mark--gap]="!submitReady" aria-hidden="true">
-            @if (submitReady) {
+          <span class="check__mark" [class.check__mark--gap]="!sectionsReady" aria-hidden="true">
+            @if (sectionsReady) {
               <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
             } @else {
               <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
             }
           </span>
           <div>
-            <strong>{{ submitReady ? 'ข้อมูลที่จำเป็นครบถ้วน' : 'ยังมีรายการที่จำเป็นไม่ครบ' }}</strong>
-            <span>{{ submitReady ? 'สามารถดำเนินการยื่นคำขอต่อได้' : 'กลับไปแก้ไขก่อนยื่น' }}</span>
+            <strong>{{ sectionsReady ? 'ข้อมูลที่จำเป็นครบถ้วน' : 'ยังมีรายการที่จำเป็นไม่ครบ' }}</strong>
+            <span>{{ sectionsReady ? 'สามารถดำเนินการยื่นคำขอต่อได้' : 'กลับไปแก้ไขก่อนยื่น' }}</span>
           </div>
-          <app-status-tag [tone]="submitReady ? 'success' : 'danger'" [label]="submitReady ? 'พร้อมยื่น' : 'ยังไม่พร้อม'" />
+          <app-status-tag [tone]="sectionsReady ? 'success' : 'danger'" [label]="sectionsReady ? 'พร้อมยื่น' : 'ยังไม่พร้อม'" />
         </article>
         <dl class="check__facts">
           <div>
@@ -3306,66 +3307,46 @@
             <dd>ครั้งที่ {{ filingRound }}</dd>
           </div>
         </dl>
-        <article class="check__row">
-          <span class="check__mark" [class.check__mark--gap]="!requestReady" aria-hidden="true">
-            @if (requestReady) {
-              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
-            } @else {
-              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+        @for (form of checkForms; track form.code) {
+          <div class="check__group">
+            <h3>แบบฟอร์ม {{ form.code }}</h3>
+            @if (!form.groups.length) {
+              <article class="check__row">
+                <span class="check__mark check__mark--gap" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+                </span>
+                <strong>ยังไม่ได้กรอก</strong>
+                <app-status-tag tone="danger" label="ยังไม่ครบ" />
+              </article>
             }
-          </span>
-          <div>
-            <strong>ข้อมูลคำขอ</strong>
-            <span>เลขอ้างอิงและข้อมูลผู้ยื่น</span>
-          </div>
-          <app-status-tag [tone]="requestReady ? 'success' : 'danger'" [label]="requestReady ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
-        </article>
-        <article class="check__row">
-          <span class="check__mark" [class.check__mark--gap]="!signReady" aria-hidden="true">
-            @if (signReady) {
-              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
-            } @else {
-              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+            @for (group of form.groups; track group.label) {
+              <article class="check__row">
+                <span class="check__mark" [class.check__mark--gap]="!groupComplete(group)" aria-hidden="true">
+                  @if (groupComplete(group)) {
+                    <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
+                  }
+                </span>
+                <strong>{{ group.label }}</strong>
+                <app-status-tag [tone]="groupComplete(group) ? 'success' : 'danger'" [label]="groupComplete(group) ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
+              </article>
             }
-          </span>
-          <div>
-            <strong>ข้อมูลผู้ลงนาม</strong>
-            <span>ชื่อ ตำแหน่ง และวันที่ลงนาม</span>
           </div>
-          <app-status-tag [tone]="signReady ? 'success' : 'danger'" [label]="signReady ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
-        </article>
-        <article class="check__row">
-          <span class="check__mark" [class.check__mark--gap]="!pledgeReady" aria-hidden="true">
-            @if (pledgeReady) {
-              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
-            } @else {
-              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
-            }
-          </span>
-          <div>
-            <strong>คำรับรอง</strong>
-            <span>{{ pledgeReady ? 'ยืนยันคำรับรองแล้ว' : 'ยังไม่ได้ยืนยัน' }}</span>
-          </div>
-          <app-status-tag [tone]="pledgeReady ? 'success' : 'danger'" [label]="pledgeReady ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
-        </article>
+        }
         <p class="check__lock">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
           หลังยื่นคำขอ ระบบจะล็อกข้อมูลชั่วคราวระหว่างตรวจสอบ และจะแจ้งผลให้ทราบเมื่อดำเนินการเรียบร้อย
         </p>
         <label id="check-confirm" class="check__agree">
           <input type="checkbox" [checked]="submitAck" [disabled]="!submitReady" (change)="submitAck = $any($event.target).checked" />
-          <span class="check__radio" aria-hidden="true"></span>
+          <img [src]="submitAck ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
           ข้าพเจ้ายืนยันว่าตรวจสอบข้อมูลและเอกสารประกอบเรียบร้อยแล้ว
         </label>
       </div>
       <footer class="check__foot">
-        <button type="button" class="check__jump" aria-label="เลื่อนไปยืนยัน" (click)="scrollConfirm()">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
-        </button>
         <app-button type="outline" label="กลับไปแก้ไข" (click)="submitOpen = false" />
-        <app-button type="primary" label="ยืนยันการยื่นคำขอ" [state]="canConfirm ? 'default' : 'disabled'" (click)="confirmSubmit()">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </app-button>
+        <app-button type="primary" label="ยืนยันยื่นตรวจสอบ" [state]="canConfirm ? 'default' : 'disabled'" (click)="confirmSubmit()" />
       </footer>
     </section>
   </div>

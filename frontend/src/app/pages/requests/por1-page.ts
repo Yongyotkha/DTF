@@ -2738,7 +2738,7 @@ export class Por1Page {
   }
 
   protected get submitReady(): boolean {
-    return this.requestReady && this.signReady && this.pledgeReady;
+    return this.sectionsReady && this.requestReady && this.signReady && this.pledgeReady;
   }
 
   protected get canConfirm(): boolean {
@@ -2748,10 +2748,6 @@ export class Por1Page {
   protected openSubmit(): void {
     this.submitAck = false;
     this.submitOpen = true;
-  }
-
-  protected scrollConfirm(): void {
-    document.getElementById('check-confirm')?.scrollIntoView({ block: 'nearest' });
   }
 
   protected confirmSubmit(): void {
@@ -3283,7 +3279,17 @@ export class Por1Page {
     this.anchor = item.anchor ?? '';
     this.guideField = '';
     this.publishGuide();
-    setTimeout(() => document.querySelector('.form')?.scrollIntoView({ block: 'start' }));
+    this.view.detectChanges();
+    requestAnimationFrame(() => this.revealSection(item.anchor ?? ''));
+  }
+
+  private revealSection(anchor: string): void {
+    const target = (anchor && document.getElementById(anchor)) || document.querySelector('.form');
+    if (!(target instanceof HTMLElement)) return;
+    const pin = document.querySelector('.review-pin');
+    const offset = 65 + (pin instanceof HTMLElement ? pin.offsetHeight : 0);
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top) });
   }
 
   protected current(item: TocLink): boolean {
@@ -3300,6 +3306,65 @@ export class Por1Page {
 
   protected groupFailed(group: TocGroup): boolean {
     return group.items.some((item) => this.failed(item));
+  }
+
+  protected get checkForms(): { code: string; groups: TocGroup[] }[] {
+    const groups = this.measure === 'subsidy'
+      ? this.toc
+      : this.toc.filter((group) => !group.items.some((item) => item.id.startsWith('7')));
+    return [{ code: 'ปร. 1', groups }];
+  }
+
+  protected groupComplete(group: TocGroup): boolean {
+    return group.items.every((item) => this.itemComplete(item));
+  }
+
+  protected get sectionsReady(): boolean {
+    return this.toc.every((group) => this.groupComplete(group));
+  }
+
+  protected itemComplete(item: TocLink): boolean {
+    if (this.failed(item)) return false;
+    const id = item.id;
+    const anchor = item.anchor ?? '';
+    if (id.startsWith('7') && this.measure !== 'subsidy') return true;
+    if (id === 'other') return true;
+    if (id === '1' && anchor === 'part-1-1') {
+      if (!this.hasText(this.company) || !this.hasText(this.nationality) || !this.hasText(this.address) || !this.hasText(this.phone)) return false;
+      return !this.onBehalf || (this.hasText(this.agent) && this.makers.every((row) => this.hasText(row.name)));
+    }
+    if (id === '1' && anchor === 'part-1-2') return this.hasText(this.relatedImport);
+    if (id === '1' && anchor === 'part-1-3') return this.hasText(this.priorAid);
+    if (id === '2') return this.hasText(this.goodsDetail) && this.hasText(this.channelDetail);
+    if (id === '3') {
+      const block = this.parties.find((entry) => anchor === `part-${entry.key}`);
+      return !!block && block.rows.some((row) => this.hasText(row.name));
+    }
+    if (id === '4' && anchor === 'part-4-1') return this.hasText(this.exportCountry) && this.hasText(this.factoryNote) && this.hasText(this.currency);
+    if (id === '4' && anchor === 'part-4-2') return this.hasText(this.thirdReason);
+    if (id === '4' && anchor === 'part-4-3-1') return this.hasText(this.originPeriod) && this.hasText(this.originDetail);
+    if (id === '4' && anchor === 'part-4-3-2') return this.hasText(this.thaiPeriod) && this.hasText(this.thaiDetail);
+    if (id === '4' && anchor === 'part-4-4') return this.hasText(this.specialDetail);
+    if (id === '4' && anchor === 'part-4-5') return this.hasText(this.compareReason) && (this.market === 'yes' || this.hasText(this.method));
+    if (id === '5') return this.hasText(this.exportDetail);
+    if (id === '6') return this.docsOf('margin').length > 0;
+    if (id === '7.1') return this.docsOf('subsidy').length > 0;
+    if (id === '7.2') return this.hasText(this.explainDetail);
+    if (id === '7.3' || id === '7.4') return false;
+    if (id === '8.1') return this.hasText(this.note('importDetail'));
+    if (id === '8.2') return this.hasText(this.note('priceEffect')) && this.hasText(this.note('costEffect'));
+    if (id === '8.3') return this.conditions.every((entry) => this.hasText(this.note(entry.key)));
+    if (id === '8.4') return this.hasText(this.note('factorDetail'));
+    if (id === '8.5') return this.hasText(this.note('summaryDetail'));
+    if (id === '8.6') return this.hasText(this.note('buyerDetail'));
+    if (id === '8.7') return this.hasText(this.note('trendCapacity')) && this.hasText(this.note('trendPrice')) && this.hasText(this.note('trendOther'));
+    if (id === '8.8') return this.hasText(this.note('intentDetail'));
+    if (id === '9') return this.pledgeReady && this.signReady;
+    return this.filled(item);
+  }
+
+  private hasText(value: string): boolean {
+    return !!value.trim();
   }
 
   protected issueFor(item: TocLink): string {

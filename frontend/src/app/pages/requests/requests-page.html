@@ -17,68 +17,37 @@
         @if (visibleRows.length === 0) {
           <p class="empty">ไม่พบคำขอที่ตรงกับเงื่อนไข</p>
         } @else {
-          <div class="table-wrap">
-            <table class="dft-table">
-              <thead>
-                <tr>
-                  <th class="col-expand" scope="col"></th>
-                  <th scope="col">เลขคำขอ</th>
-                  <th scope="col">สินค้า</th>
-                  <th scope="col">แบบคำขอ</th>
-                  <th scope="col">ครั้งที่ยื่น</th>
-                  <th scope="col">วันที่</th>
-                  <th scope="col">สถานะ</th>
-                  <th scope="col">การดำเนินการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of visibleRows; track row.id) {
-                  <tr class="row" [class.row--link]="row.ready" [attr.tabindex]="row.ready ? 0 : null" (click)="openRow(row)" (keydown)="openRowKey($event, row)">
-                    <td class="col-expand">
-                      <button type="button" class="expand" [attr.aria-expanded]="openRows().has(row.id)" [attr.aria-label]="'ดูสถานะ ' + row.code" (click)="toggleRow(row.id, $event)">
-                        <img src="assets/icons/chevron-right.svg" width="24" height="24" alt="" [class.is-open]="openRows().has(row.id)" />
-                      </button>
-                    </td>
-                    <td>{{ row.code }}</td>
-                    <td>{{ row.goods }}</td>
-                    <td>{{ row.kind }}</td>
-                    <td>{{ row.round ? 'ครั้งที่ ' + row.round : '—' }}</td>
-                    <td>{{ dateOnly(row.created) }}</td>
-                    <td>
-                      <app-status-tag [tone]="row.tone" [label]="row.status" />
-                    </td>
-                    <td>
-                      <div class="act">
-                        <app-button type="outline" [label]="row.ready ? 'ดำเนินการ' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row, $event)" />
-                      </div>
-                    </td>
-                  </tr>
-                  @if (openRows().has(row.id)) {
-                    <tr>
-                      <td class="progress-cell" colspan="8">
-                        <ol class="track">
-                          @for (step of row.steps; track step.name) {
-                            <li class="track__step" [class.track__step--done]="step.state === 'done'">
-                              <span class="track__dot" [class.track__dot--done]="step.state === 'done'" [class.track__dot--now]="step.state === 'current'">
-                                @if (step.state === 'done') {
-                                  <img src="assets/icons/step-check.svg" width="20" height="20" alt="" />
-                                } @else if (step.state === 'current') {
-                                  <img src="assets/icons/step-history.svg" width="16" height="16" alt="" />
-                                }
-                              </span>
-                              <strong>{{ step.name }}</strong>
-                              @if (step.date) {
-                                <small>{{ step.date }}</small>
-                              }
-                            </li>
-                          }
-                        </ol>
-                      </td>
-                    </tr>
-                  }
-                }
-              </tbody>
-            </table>
+          <div class="list">
+            @for (row of visibleRows; track row.id) {
+              <article class="item" [class.item--link]="row.ready" [attr.tabindex]="row.ready ? 0 : null" (click)="openRow(row)" (keydown)="openRowKey($event, row)">
+                <header class="item__head">
+                  <div>
+                    <p class="item__code">{{ row.code }}</p>
+                    <p class="item__goods">{{ row.goods }}</p>
+                  </div>
+                  <app-status-tag [tone]="row.tone" [label]="row.status" />
+                </header>
+                <dl class="item__facts">
+                  <div>
+                    <dt>แบบคำขอ</dt>
+                    <dd>{{ row.kind }}</dd>
+                  </div>
+                  <div>
+                    <dt>ครั้งที่ยื่น</dt>
+                    <dd>{{ row.round ? 'ครั้งที่ ' + row.round : '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>วันที่</dt>
+                    <dd>{{ dateOnly(row.created) }}</dd>
+                  </div>
+                </dl>
+                <div class="item__foot">
+                  <div class="act">
+                    <app-button type="outline" [label]="row.ready ? 'ดำเนินการ' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row, $event)" />
+                  </div>
+                </div>
+              </article>
+            }
           </div>
         }
       </section>
@@ -110,7 +79,12 @@
             <article class="card" [class.card--picked]="isPicked(form.code)">
               <label class="card__check">
                 <input type="checkbox" [checked]="isPicked(form.code)" [attr.aria-label]="'เลือก ' + form.code" (change)="setPicked(form.code, $any($event.target).checked)" />
-                <img [src]="isPicked(form.code) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5.25 3H18.75C19.9926 3 21 4.00736 21 5.25V18.75C21 19.9926 19.9926 21 18.75 21H5.25C4.00736 21 3 19.9926 3 18.75V5.25C3 4.00736 4.00736 3 5.25 3Z" />
+                  @if (isPicked(form.code)) {
+                    <path d="M7.2 12.2L10.4 15.3L16.8 8.7" />
+                  }
+                </svg>
               </label>
               <div class="card__main">
                 <div class="card__body">
@@ -130,9 +104,7 @@
         </div>
       </div>
       <footer class="chooser__foot">
-        <app-button type="primary" label="ถัดไป" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </app-button>
+        <app-button type="primary" label="ตกลง" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()" />
       </footer>
       } @else {
       <div class="chooser__body">

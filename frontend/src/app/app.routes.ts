@@ -11,6 +11,11 @@ import { CasePage } from './pages/requests/case-page';
 import { DraftPage } from './pages/requests/draft-page';
 import { Por1Page } from './pages/requests/por1-page';
 import { Por2Page } from './pages/requests/por2-page';
+import { Por2aPage } from './pages/requests/por2a-page';
+import { Por3Page } from './pages/requests/por3-page';
+import { Por3aPage } from './pages/requests/por3a-page';
+import { Por4Page } from './pages/requests/por4-page';
+import { Por5Page } from './pages/requests/por5-page';
 import { FormUploadPage } from './pages/requests/form-upload-page';
 import { RequestsPage } from './pages/requests/requests-page';
 import { StaffChatPage } from './pages/requests/staff-chat-page';
@@ -41,6 +46,11 @@ export const routes: Routes = [
   { path: 'requests', component: RequestsPage },
   { path: 'requests/por-1', component: Por1Page },
   { path: 'requests/por-2', component: Por2Page },
+  { path: 'requests/por-2a', component: Por2aPage },
+  { path: 'requests/por-3', component: Por3Page },
+  { path: 'requests/por-3a', component: Por3aPage },
+  { path: 'requests/por-4', component: Por4Page },
+  { path: 'requests/por-5', component: Por5Page },
   { path: 'requests/upload', component: FormUploadPage },
   { path: 'requests/draft/:id', component: DraftPage },
   { path: 'requests/chat', component: StaffChatPage },

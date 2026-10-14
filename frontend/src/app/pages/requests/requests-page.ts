@@ -27,7 +27,7 @@ function filingProgress(current: number): RequestStep[] {
   selector: 'app-requests-page',
   imports: [TopHeader, SideNav, DftButton, Tabs, StatusTag],
   templateUrl: './requests-page.html',
-  styleUrls: ['../../data-table/data-table.css', './requests-page.css'],
+  styleUrl: './requests-page.css',
 })
 export class RequestsPage implements OnDestroy {
   protected readonly measures = requestMeasures;
@@ -42,7 +42,6 @@ export class RequestsPage implements OnDestroy {
     { value: 'upload', label: 'อัปโหลดไฟล์', summary: 'แนบไฟล์แบบฟอร์มที่จัดทำไว้แล้วเข้าสู่ระบบ' },
   ];
   protected listTab = 0;
-  protected readonly openRows = signal<ReadonlySet<string>>(new Set());
 
   private opener: HTMLElement | null = null;
 
@@ -131,20 +130,17 @@ export class RequestsPage implements OnDestroy {
     });
   }
 
-  protected toggleRow(id: string, event: Event): void {
-    event.stopPropagation();
-    this.openRows.update((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   protected openRow(row: RequestRow, event?: Event): void {
     event?.stopPropagation();
     if (!row.ready) return;
     if (row.filing) {
+      const intent = readFilingIntent();
+      if (intent?.codes.length) {
+        void this.router.navigateByUrl('/requests/upload', {
+          state: { measure: intent.measure, codes: [...intent.codes] },
+        });
+        return;
+      }
       void this.router.navigate(['/requests', 'por-1']);
       return;
     }
@@ -197,7 +193,12 @@ export class RequestsPage implements OnDestroy {
   }
 
   protected continueFiling(): void {
-    this.filingStep = 'method';
+    const picked = this.picked()[this.measure] ?? [];
+    if (!picked.length) return;
+    saveFilingIntent({ measure: this.measure, codes: picked });
+    const form = this.forms.find((item) => picked.includes(item.code) && item.route)
+      ?? this.forms.find((item) => item.route);
+    if (form) this.openForm(form.code);
   }
 
   protected backToForms(): void {
@@ -214,10 +215,11 @@ export class RequestsPage implements OnDestroy {
       saveFilingIntent({ measure: this.measure, codes: picked });
       this.choosing = false;
       document.body.classList.remove('chooser-open');
-      void this.router.navigate(['/requests', 'upload']);
+      void this.router.navigateByUrl('/requests/upload', { state: { measure: this.measure, codes: [...picked] } });
       return;
     }
     if (this.filingMethod !== 'system') return;
+    saveFilingIntent({ measure: this.measure, codes: picked });
     const form = this.forms.find((item) => picked.includes(item.code) && item.route)
       ?? this.forms.find((item) => item.route);
     if (form) this.openForm(form.code);
