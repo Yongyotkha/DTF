@@ -15,9 +15,9 @@ export type SavedLogin = { username: string; password: string; email: string };
 const roles: AccountRole[] = ['corporate', 'individual', 'association', 'staff', 'director', 'head', 'officer'];
 
 export const roleHome: Record<AccountRole, string> = {
-  corporate: '/home',
-  individual: '/home',
-  association: '/home',
+  corporate: '/requests',
+  individual: '/requests',
+  association: '/requests',
   staff: '/staff',
   director: '/director',
   head: '/head',

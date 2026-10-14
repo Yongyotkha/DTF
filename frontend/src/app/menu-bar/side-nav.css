@@ -11,6 +11,9 @@
   height: calc(100vh - 65px);
   min-height: 0;
   background: #2b3d5c;
+  transition:
+    width 180ms ease,
+    flex-basis 180ms ease;
 }
 
 :host(.side-nav--collapsed) {
@@ -20,6 +23,11 @@
 
 :host(.side-nav--quiet) {
   display: none;
+}
+
+:host ::ng-deep .menu-group,
+:host ::ng-deep .menu-group--compact {
+  width: 100%;
 }
 
 .side-nav__head,
@@ -37,26 +45,32 @@
   gap: 8px;
   min-height: 48px;
   padding: 8px 12px 8px 16px;
+  transition: padding 180ms ease;
 }
 
-:host(.side-nav--collapsed) .side-nav__head {
+:host(.side-nav--icons) .side-nav__head {
   justify-content: center;
   padding: 8px 0;
 }
 
 .side-nav__title {
+  flex: 1;
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
   color: var(--color-white);
   font-family: var(--font-sans-thai);
   font-size: 14px;
   font-weight: 400;
   line-height: 19px;
+  white-space: nowrap;
 }
 
 .side-nav__body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .side-nav__foot {
@@ -113,7 +127,7 @@
   text-align: left;
 }
 
-:host(.side-nav--collapsed) .side-nav__version {
+:host(.side-nav--icons) .side-nav__version {
   padding: 0 4px 12px;
   text-align: center;
 }
@@ -151,12 +165,18 @@
     transform: translateX(-100%);
     visibility: hidden;
     pointer-events: none;
+    transition:
+      transform 180ms ease,
+      visibility 0s linear 180ms;
   }
 
   :host(.side-nav--open) {
     transform: none;
     visibility: visible;
     pointer-events: auto;
+    transition:
+      transform 180ms ease,
+      visibility 0s;
   }
 
   :host(.side-nav--quiet) {

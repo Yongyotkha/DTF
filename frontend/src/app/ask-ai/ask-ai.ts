@@ -43,13 +43,53 @@ export class AskAi {
     });
   }
 
+  protected readonly place = signal<{ x: number; y: number } | null>(null);
+  protected readonly dragging = signal(false);
+
   protected resizable(): boolean {
     return this.workspace.band() === 'desktop' && this.chat.mode() === 'expanded';
   }
 
-  protected grow(): void {
-    this.workspace.openSplit();
-    this.chat.expand();
+  protected movable(): boolean {
+    return this.chat.mode() === 'floating' && this.workspace.band() !== 'mobile';
+  }
+
+  protected dragStart(event: PointerEvent): void {
+    if (!this.movable()) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button')) return;
+    const header = event.currentTarget as HTMLElement;
+    const panel = header.closest('.ask-panel') as HTMLElement | null;
+    if (!panel) return;
+    event.preventDefault();
+    header.setPointerCapture(event.pointerId);
+    const rect = panel.getBoundingClientRect();
+    const originX = event.clientX;
+    const originY = event.clientY;
+    const startX = rect.left;
+    const startY = rect.top;
+    const width = rect.width;
+    const height = rect.height;
+    this.dragging.set(true);
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== event.pointerId) return;
+      const maxX = Math.max(0, window.innerWidth - width);
+      const maxY = Math.max(0, window.innerHeight - height);
+      this.place.set({
+        x: Math.min(maxX, Math.max(0, startX + ev.clientX - originX)),
+        y: Math.min(maxY, Math.max(0, startY + ev.clientY - originY)),
+      });
+    };
+    const stop = (ev: PointerEvent) => {
+      if (ev.pointerId !== event.pointerId) return;
+      this.dragging.set(false);
+      header.removeEventListener('pointermove', move);
+      header.removeEventListener('pointerup', stop);
+      header.removeEventListener('pointercancel', stop);
+    };
+    header.addEventListener('pointermove', move);
+    header.addEventListener('pointerup', stop);
+    header.addEventListener('pointercancel', stop);
   }
 
   protected shrink(): void {
@@ -104,13 +144,5 @@ export class AskAi {
     if (this.workspace.band() === 'desktop') return;
     event.preventDefault();
     this.dismiss();
-  }
-
-  protected openWorkspace(): void {
-    const path = this.path();
-    if (!path.startsWith('/ai-workspace')) this.chat.returnPath.set(path || '/requests');
-    this.workspace.leaveSplit();
-    this.chat.mode.set('closed');
-    void this.router.navigate(['/ai-workspace']);
   }
 }

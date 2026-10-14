@@ -1,0 +1,31 @@
+<div class="upload-page">
+  <app-top-header class="fluid" />
+  <div class="upload-page__body">
+    <app-side-nav open="คำขอ" active="ยื่นคำขอ" (chosen)="openMenu($event)" />
+    <main>
+      <header class="head">
+        <div>
+          <h1>อัปโหลดไฟล์เข้าสู่ระบบ</h1>
+          <p class="head__note">{{ measureLabel }} · แนบไฟล์แบบฟอร์มที่จัดทำไว้แล้ว</p>
+        </div>
+        <div class="head__actions">
+          <app-button class="icon-before" type="outline" label="ย้อนกลับ" (click)="back()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+          </app-button>
+          <app-button type="primary" label="ยื่นคำขอ" [state]="canSubmit ? 'default' : 'disabled'" (click)="submit()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </app-button>
+        </div>
+      </header>
+      <section class="panel">
+        @for (form of forms; track form.code) {
+          <article class="item">
+            <h2>แบบฟอร์ม {{ form.code }}</h2>
+            <p>{{ purpose(form).label }}</p>
+            <app-file-field [label]="'ไฟล์แบบฟอร์ม ' + form.code" [required]="true" [value]="files[form.code] ?? ''" (valueChange)="setFile(form.code, $event)" />
+          </article>
+        }
+      </section>
+    </main>
+  </div>
+</div>

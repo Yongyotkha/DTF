@@ -5,8 +5,9 @@ import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
-import { RequestForm, purposeOf, requestForms, requestMeasures } from './form-catalog';
+import { RequestForm, formOf, purposeOf, requestForms, requestMeasures } from './form-catalog';
 import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus, readRounds, startFilingCase } from './case-status';
+import { readFilingIntent, saveFilingIntent } from './filing-intent';
 import { archiveCases, draftCases, ListedCase, RequestStep } from './request-cases';
 import { StatusTag } from '../../status-tag/status-tag';
 
@@ -26,17 +27,21 @@ function filingProgress(current: number): RequestStep[] {
   selector: 'app-requests-page',
   imports: [TopHeader, SideNav, DftButton, Tabs, StatusTag],
   templateUrl: './requests-page.html',
-  styleUrl: './requests-page.css',
+  styleUrls: ['../../data-table/data-table.css', './requests-page.css'],
 })
 export class RequestsPage implements OnDestroy {
   protected readonly measures = requestMeasures;
   protected readonly forms = requestForms;
   protected measure = 'มาตราการ AD';
+  protected readonly picked = signal<Readonly<Record<string, readonly string[]>>>({});
   protected choosing = false;
-  protected detailCode = '';
+  protected filingStep: 'forms' | 'method' = 'forms';
+  protected filingMethod: 'system' | 'upload' | '' = '';
+  protected readonly filingMethods: { value: 'system' | 'upload'; label: string; summary: string }[] = [
+    { value: 'system', label: 'กรอกข้อมูลผ่านทางระบบ', summary: 'กรอกแบบฟอร์มออนไลน์ทีละช่องผ่านเว็บไซต์' },
+    { value: 'upload', label: 'อัปโหลดไฟล์', summary: 'แนบไฟล์แบบฟอร์มที่จัดทำไว้แล้วเข้าสู่ระบบ' },
+  ];
   protected listTab = 0;
-  protected query = '';
-  protected statusFilter = '';
   protected readonly openRows = signal<ReadonlySet<string>>(new Set());
 
   private opener: HTMLElement | null = null;
@@ -49,7 +54,16 @@ export class RequestsPage implements OnDestroy {
     route.queryParamMap.subscribe((params) => {
       this.listTab = params.get('tab') === 'draft' ? 1 : 0;
       const next = params.get('choose') === '1';
-      if (next && !this.choosing) setTimeout(() => document.getElementById('chooser-close')?.focus(), 0);
+      if (next && params.get('method') === '1') {
+        const intent = readFilingIntent();
+        if (intent?.codes.length) {
+          this.measure = intent.measure;
+          this.picked.set({ [intent.measure]: [...intent.codes] });
+          this.filingMethod = 'upload';
+          this.filingStep = 'method';
+        }
+      }
+      if (next && !this.choosing) setTimeout(() => document.getElementById('chooser-close')?.focus({ preventScroll: true }), 0);
       if (!next && this.choosing) setTimeout(() => this.opener?.focus(), 0);
       this.choosing = next;
       document.body.classList.toggle('chooser-open', next);
@@ -76,36 +90,12 @@ export class RequestsPage implements OnDestroy {
     return readCaseStatus() === 'draft' ? [this.filingRow('draft'), ...drafts] : drafts;
   }
 
-  protected get statusOptions(): string[] {
-    const source = this.listTab === 1 ? this.draftRows : this.filedRows;
-    return [...new Set(source.map((row) => row.status))];
+  protected dateOnly(value: string): string {
+    return value.trim().split(/\s+/)[0] || '—';
   }
 
   protected get visibleRows(): RequestRow[] {
-    const source = this.listTab === 1 ? this.draftRows : this.filedRows;
-    const query = this.query.trim().toLowerCase();
-    return source.filter((row) => {
-      const statusOk = !this.statusFilter || row.status === this.statusFilter;
-      const text = `${row.code} ${row.goods}`.toLowerCase();
-      return statusOk && (!query || text.includes(query));
-    });
-  }
-
-  protected get filedCount(): number {
-    return this.filedRows.length;
-  }
-
-  protected get reviewCount(): number {
-    return this.filedRows.filter((row) => row.status === 'อยู่ระหว่างตรวจสอบ').length;
-  }
-
-  protected get waitingCount(): number {
-    return this.filedRows.filter((row) => row.waiting).length;
-  }
-
-  protected meta(row: RequestRow): string {
-    const parts = [row.created ? `สร้างเมื่อ ${row.created}` : '', row.round ? `ยื่นครั้งที่ ${row.round}` : ''].filter(Boolean);
-    return parts.join(' · ');
+    return this.listTab === 1 ? this.draftRows : this.filedRows;
   }
 
   private filingRow(status: ReturnType<typeof readCaseStatus>): RequestRow {
@@ -135,14 +125,14 @@ export class RequestsPage implements OnDestroy {
 
   protected setListTab(index: number): void {
     this.listTab = index;
-    this.statusFilter = '';
     void this.router.navigate(['/requests'], {
       queryParams: index === 1 ? { tab: 'draft' } : {},
       replaceUrl: true,
     });
   }
 
-  protected toggleRow(id: string): void {
+  protected toggleRow(id: string, event: Event): void {
+    event.stopPropagation();
     this.openRows.update((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -151,13 +141,20 @@ export class RequestsPage implements OnDestroy {
     });
   }
 
-  protected openRow(row: RequestRow): void {
+  protected openRow(row: RequestRow, event?: Event): void {
+    event?.stopPropagation();
     if (!row.ready) return;
     if (row.filing) {
       void this.router.navigate(['/requests', 'por-1']);
       return;
     }
     void this.router.navigate(['/requests', row.code]);
+  }
+
+  protected openRowKey(event: KeyboardEvent, row: RequestRow): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.openRow(row);
   }
 
   protected openChooser(event?: Event): void {
@@ -168,36 +165,76 @@ export class RequestsPage implements OnDestroy {
   }
 
   protected openForm(code: string): void {
-    if (code === 'ปร. 1') {
-      startFilingCase();
-      this.choosing = false;
-      void this.router.navigate(['/requests', 'por-1']);
+    const form = formOf(code) ?? this.forms.find((item) => !!item.route);
+    const route = form?.route;
+    if (!route) {
+      this.closeChooser();
       return;
     }
-    if (code === 'ปร. 2') {
-      this.choosing = false;
-      void this.router.navigate(['/requests', 'por-2']);
-      return;
-    }
-    this.closeChooser();
+    if (form?.code === 'ปร. 1') startFilingCase();
+    this.choosing = false;
+    document.body.classList.remove('chooser-open');
+    void this.router.navigateByUrl(route);
   }
 
   protected closeChooser(): void {
     this.choosing = false;
+    this.filingStep = 'forms';
+    this.filingMethod = '';
     void this.router.navigate(['/requests']);
   }
 
   protected pickMeasure(value: string): void {
     this.measure = value;
-    this.detailCode = '';
+  }
+
+  protected isPicked(code: string): boolean {
+    return (this.picked()[this.measure] ?? []).includes(code);
+  }
+
+  protected canContinue(): boolean {
+    return (this.picked()[this.measure] ?? []).length > 0;
+  }
+
+  protected continueFiling(): void {
+    this.filingStep = 'method';
+  }
+
+  protected backToForms(): void {
+    this.filingStep = 'forms';
+  }
+
+  protected pickFilingMethod(value: 'system' | 'upload'): void {
+    this.filingMethod = value;
+  }
+
+  protected confirmMethod(): void {
+    const picked = this.picked()[this.measure] ?? [];
+    if (this.filingMethod === 'upload') {
+      saveFilingIntent({ measure: this.measure, codes: picked });
+      this.choosing = false;
+      document.body.classList.remove('chooser-open');
+      void this.router.navigate(['/requests', 'upload']);
+      return;
+    }
+    if (this.filingMethod !== 'system') return;
+    const form = this.forms.find((item) => picked.includes(item.code) && item.route)
+      ?? this.forms.find((item) => item.route);
+    if (form) this.openForm(form.code);
+  }
+
+  protected setPicked(code: string, picked: boolean): void {
+    this.picked.update((current) => {
+      const list = current[this.measure] ?? [];
+      const has = list.includes(code);
+      if (picked === has) return current;
+      const next = picked ? [...list, code] : list.filter((item) => item !== code);
+      return { ...current, [this.measure]: next };
+    });
   }
 
   protected purpose(form: RequestForm) {
     return purposeOf(form, this.measure);
-  }
-
-  protected toggleDetail(code: string): void {
-    this.detailCode = this.detailCode === code ? '' : code;
   }
 
   @HostListener('document:keydown.escape')

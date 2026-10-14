@@ -11,6 +11,7 @@ import { CasePage } from './pages/requests/case-page';
 import { DraftPage } from './pages/requests/draft-page';
 import { Por1Page } from './pages/requests/por1-page';
 import { Por2Page } from './pages/requests/por2-page';
+import { FormUploadPage } from './pages/requests/form-upload-page';
 import { RequestsPage } from './pages/requests/requests-page';
 import { StaffChatPage } from './pages/requests/staff-chat-page';
 import { CaseRegistryPage } from './pages/staff/case-registry-page';
@@ -40,6 +41,7 @@ export const routes: Routes = [
   { path: 'requests', component: RequestsPage },
   { path: 'requests/por-1', component: Por1Page },
   { path: 'requests/por-2', component: Por2Page },
+  { path: 'requests/upload', component: FormUploadPage },
   { path: 'requests/draft/:id', component: DraftPage },
   { path: 'requests/chat', component: StaffChatPage },
   { path: 'requests/:code', component: CasePage },

@@ -24,9 +24,13 @@ body.ask-docked main {
   }
 }
 
-body.nav-drawer,
-body.chooser-open {
+body.nav-drawer {
   overflow: hidden;
+}
+
+html:has(body.chooser-open) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
 }
 
 @media print {

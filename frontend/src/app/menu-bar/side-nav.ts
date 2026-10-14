@@ -50,7 +50,7 @@ export class SidebarState {
 type NavMenu = { title: string; items: string[] };
 
 const applicantMenus: NavMenu[] = [
-  { title: 'คำขอ', items: ['ยื่นคำขอ', 'รายการยื่นคำขอ'] },
+  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
   { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่'] },
 ];
 
@@ -75,6 +75,7 @@ const headMenus: NavMenu[] = [
     id: 'sidebar',
     role: 'navigation',
     '[class.side-nav--collapsed]': 'collapsed()',
+    '[class.side-nav--icons]': 'layoutCompact()',
     '[class.side-nav--open]': 'drawerOpen()',
     '[class.side-nav--quiet]': 'quiet()',
     'aria-label': 'เมนูหลัก',
@@ -96,6 +97,9 @@ export class SideNav implements OnInit, OnDestroy {
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
   private readonly submenu = signal<string | null>(null);
+  protected readonly layoutCompact = signal(false);
+  private compactTimer = 0;
+  private compactReady = false;
 
   constructor(
     private readonly state: SidebarState,
@@ -103,7 +107,23 @@ export class SideNav implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly accounts: Accounts,
     private readonly host: ElementRef<HTMLElement>,
-  ) {}
+  ) {
+    effect(() => {
+      const collapsed = this.state.collapsed();
+      window.clearTimeout(this.compactTimer);
+      if (!this.compactReady) {
+        this.compactReady = true;
+        this.layoutCompact.set(collapsed);
+        return;
+      }
+      const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!collapsed || reduce) {
+        this.layoutCompact.set(collapsed);
+        return;
+      }
+      this.compactTimer = window.setTimeout(() => this.layoutCompact.set(true), 180);
+    });
+  }
 
   protected readonly version = '0.1.0';
 
@@ -122,6 +142,7 @@ export class SideNav implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.clearTimeout(this.compactTimer);
     this.state.mounted.set(false);
     this.state.drawer.set(false);
   }
