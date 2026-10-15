@@ -19,21 +19,13 @@
                   <li>{{ form.code }}</li>
                 }
               </ul>
-              @if (!tracking) {
-                <app-status-tag [tone]="caseTone" [label]="caseLabel" />
-              }
             </div>
-            @if (!showStatus && tracking) {
-              <p>เลขที่อ้างอิง {{ refId }}</p>
-            } @else if (!tracking) {
-              <p>แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</p>
-            }
           } @else {
             @if (showStatus) {
               <p class="crumb">คำขอ <span aria-hidden="true">›</span> รายละเอียดคำขอ</p>
             }
             <div class="case-title">
-              <h1>{{ filingTitle }}</h1>
+              <h1>ยื่นคำขอ</h1>
               <ul [class.case-title__slash]="showStatus">
                 @for (form of caseForms; track form.code + form.measure) {
                   <li>{{ form.code }}</li>

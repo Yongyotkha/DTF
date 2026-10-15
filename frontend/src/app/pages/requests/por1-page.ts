@@ -16,7 +16,6 @@ import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReply
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { readParty, readText, valueIsWrong, wrongHint } from './form-extract';
-import { filingMeasureTitle } from './filing-intent';
 import { scrollFormToTop } from './form-scroll';
 
 type InquiryStep = 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote' | 'notice' | 'hearing' | 'questions' | 'visit';
@@ -260,7 +259,6 @@ const toc: TocGroup[] = [
   styleUrl: './por1-page.css',
 })
 export class Por1Page {
-  protected readonly filingTitle = filingMeasureTitle();
   private readonly guide = inject(FilingAiContext);
   private readonly accounts = inject(Accounts);
   private readonly view = inject(ChangeDetectorRef);
