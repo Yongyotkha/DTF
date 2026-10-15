@@ -1,0 +1,25 @@
+<div class="fill-upload" (click)="close()">
+  <section role="dialog" aria-modal="true" aria-labelledby="fill-upload-title" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <h2 id="fill-upload-title">อัปโหลดไฟล์</h2>
+        <p>ระบบจะอ่านไฟล์ที่คุณกรอกไว้ แล้วนำข้อมูลมาใส่ในฟอร์มให้ คุณตรวจสอบและแก้ไขได้ก่อนยื่น</p>
+      </div>
+      <button type="button" class="fill-upload__close" aria-label="ปิด" (click)="close()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </header>
+    <div class="fill-upload__drop" [class.fill-upload__drop--over]="over" (click)="pick.click()" (dragover)="allowDrop($event)" (dragleave)="over = false" (drop)="$event.preventDefault(); take($event.dataTransfer?.files ?? null)">
+      <strong>{{ picked || 'ลากไฟล์มาวางที่นี่' }}</strong>
+      <span>รองรับ PDF, DOCX, JPG/PNG · ไม่เกิน 20 MB</span>
+      @if (error) {
+        <span class="fill-upload__error">{{ error }}</span>
+      }
+      <span class="fill-upload__actions">
+        <app-button type="primary" label="เลือกไฟล์" />
+      </span>
+    </div>
+    <input #pick class="fill-upload__file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" (change)="take($any($event.target).files)" />
+    <p class="fill-upload__note">ข้อมูลที่ระบบกรอกให้ยังเป็นร่าง คุณแก้ไขได้ทุกช่องก่อนยื่น</p>
+  </section>
+</div>

@@ -1,0 +1,28 @@
+<div class="otp" [class.otp--error]="state === 'error'">
+  <span class="otp__label">
+    {{ label }}
+    @if (required) {
+      <span class="otp__required">*</span>
+    }
+  </span>
+  <div class="otp__boxes" role="group" [attr.aria-label]="label">
+    @for (digit of slots; track $index) {
+      <input
+        #box
+        class="otp__box"
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="1"
+        [attr.aria-label]="'หลักที่ ' + ($index + 1)"
+        [value]="digit"
+        (input)="type($index, $event)"
+        (keydown)="key($index, $event)"
+        (paste)="paste($event)"
+      />
+    }
+  </div>
+  @if (helper) {
+    <p class="otp__help">{{ helper }}</p>
+  }
+</div>

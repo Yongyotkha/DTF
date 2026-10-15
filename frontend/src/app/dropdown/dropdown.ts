@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 
-export type DropdownIcon = 'edit' | 'chevron';
+export type DropdownIcon = 'profile' | 'password' | 'logout';
 
 export interface DropdownItem {
   label: string;
@@ -14,9 +14,9 @@ export interface DropdownItem {
 })
 export class Dropdown {
   @Input() items: DropdownItem[] = [
-    { label: 'ข้อมูลโปรไฟล์', icon: 'edit' },
-    { label: 'เปลี่ยนรหัสผ่าน', icon: 'chevron' },
-    { label: 'ออกจากระบบ', icon: 'chevron' },
+    { label: 'ข้อมูลโปรไฟล์', icon: 'profile' },
+    { label: 'เปลี่ยนรหัสผ่าน', icon: 'password' },
+    { label: 'ออกจากระบบ', icon: 'logout' },
   ];
-  @Output() readonly chosen = new EventEmitter<string>();
+  @Output() pick = new EventEmitter<string>();
 }

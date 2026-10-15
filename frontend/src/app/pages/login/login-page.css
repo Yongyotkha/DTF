@@ -13,6 +13,70 @@ h1 {
   text-align: center;
 }
 
+.role {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.role__control {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.role__control:hover {
+  border-color: var(--color-secondary);
+}
+
+.role__control:focus-within {
+  border: 2px solid var(--color-secondary);
+  box-shadow: var(--state-focus-ring);
+}
+
+.role select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  cursor: pointer;
+}
+
+.role svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
 .forgot {
   align-self: flex-end;
   color: var(--color-primary);
@@ -118,6 +182,91 @@ h1 {
 .sso__btn img {
   display: block;
   object-fit: contain;
+}
+
+.otp-note,
+.otp-timer,
+.otp-sent {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-align: center;
+}
+
+.otp-note b,
+.otp-timer b {
+  color: var(--color-primary);
+  font-weight: 400;
+}
+
+.otp-timer--expired {
+  color: var(--color-error-red);
+}
+
+.otp-sent {
+  color: var(--color-success);
+}
+
+.otp-resend,
+.otp-back {
+  align-self: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  cursor: pointer;
+}
+
+.otp-resend:hover,
+.otp-back:hover {
+  color: var(--color-link-hover);
+}
+
+.otp-resend:focus-visible,
+.otp-back:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.trust {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  text-align: left;
+}
+
+.trust input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--color-primary);
+}
+
+.trust span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trust b {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.trust small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .register {

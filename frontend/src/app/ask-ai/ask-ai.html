@@ -1,0 +1,35 @@
+@if (shown()) {
+  @if (chat.mode() !== 'closed') {
+    <section class="ask-panel" [class.ask-panel--floating]="chat.mode() === 'floating'" [class.ask-panel--expanded]="chat.mode() === 'expanded'" [class.ask-panel--shot]="chat.capturing()" [class.ask-panel--movable]="movable()" [class.ask-panel--dragged]="movable() && place()" [class.ask-panel--dragging]="dragging()" [style.left.px]="movable() ? place()?.x : null" [style.top.px]="movable() ? place()?.y : null" aria-label="แชทถาม AI">
+      @if (resizable()) {
+        <button type="button" class="ask-panel__resize" aria-label="ปรับความกว้างแผงผู้ช่วย" [attr.aria-valuemin]="320" [attr.aria-valuemax]="560" [attr.aria-valuenow]="workspace.splitWidth()" (pointerdown)="resizeStart($event)" (keydown)="resizeKey($event)"></button>
+      }
+      <header (pointerdown)="dragStart($event)">
+        <div class="ask-panel__who">
+          <img src="assets/icons/chat-avatar.svg" width="40" height="40" alt="" />
+          <span>
+            <strong>{{ chat.guideTitle() ? 'ผู้ช่วยยื่นคำขอ' : 'แชทถาม AI' }}</strong>
+            <small>{{ chat.guideTitle() || 'ตอบคำถามการใช้งานระบบ DFT' }}</small>
+          </span>
+        </div>
+        <div class="ask-panel__tools">
+          @if (chat.mode() === 'expanded') {
+            <button type="button" aria-label="ย่อเป็นหน้าต่าง" (click)="shrink()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
+            </button>
+          }
+          <button type="button" aria-label="ปิดแชท" (click)="dismiss()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" /></svg>
+          </button>
+        </div>
+      </header>
+      <app-ai-thread />
+    </section>
+  }
+  @if (chat.mode() === 'closed') {
+    <button type="button" class="ask-launcher" aria-expanded="false" aria-label="สอบถาม AI" (click)="chat.show()">
+      <img src="assets/icons/chat-avatar.svg" width="36" height="36" alt="" />
+      <span>แชทถาม AI<small>DFT Assistant</small></span>
+    </button>
+  }
+}

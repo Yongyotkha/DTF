@@ -1,0 +1,154 @@
+<div class="workspace">
+  <app-top-header class="fluid" />
+  <div class="workspace__body">
+    <app-side-nav (chosen)="openMenu($event)" />
+    <main>
+      <header class="workspace__bar">
+        <div>
+          <h1>DFT AI Workspace</h1>
+          <p>บทสนทนาอยู่ในแท็บนี้เท่านั้น ยังไม่บันทึกขึ้นเซิร์ฟเวอร์ และยังไม่อ่านเนื้อหาไฟล์</p>
+        </div>
+        <div class="workspace__bar-actions">
+          <button type="button" (click)="historyOpen.set(!historyOpen())">{{ historyOpen() ? 'ซ่อนประวัติ' : 'แสดงประวัติ' }}</button>
+          <button type="button" (click)="sourcesOpen.set(!sourcesOpen())">{{ sourcesOpen() ? 'ซ่อนแหล่งข้อมูล' : 'แสดงแหล่งข้อมูล' }}</button>
+          <button type="button" (click)="shrink('expanded')">ย่อเป็นแผงขวา</button>
+          <button type="button" (click)="shrink('floating')">ย่อเป็นหน้าต่าง</button>
+        </div>
+      </header>
+      <div class="workspace__tabs" role="tablist" aria-label="ส่วนของหน้าทำงาน">
+        <button type="button" role="tab" [attr.aria-selected]="pane() === 'history'" [class.is-on]="pane() === 'history'" (click)="pane.set('history')">ประวัติ</button>
+        <button type="button" role="tab" [attr.aria-selected]="pane() === 'chat'" [class.is-on]="pane() === 'chat'" (click)="pane.set('chat')">แชท</button>
+        <button type="button" role="tab" [attr.aria-selected]="pane() === 'sources'" [class.is-on]="pane() === 'sources'" (click)="pane.set('sources')">แหล่งข้อมูล</button>
+      </div>
+      <div class="workspace__grid" [class.no-history]="!historyOpen()" [class.no-sources]="!sourcesOpen()">
+        <aside class="workspace__history" [class.is-pane]="pane() === 'history'" aria-label="ประวัติบทสนทนา">
+          <button type="button" class="workspace__new" (click)="chat.create(); pane.set('chat')">แชทใหม่</button>
+          <label class="workspace__search">
+            ค้นหา
+            <input type="search" placeholder="ค้นหาแชท เอกสาร หรือรูป" [value]="query()" (input)="query.set($any($event.target).value)" />
+          </label>
+          <div class="workspace__filters" role="group" aria-label="ประเภทผลการค้นหา">
+            @for (item of filters; track item) {
+              <button type="button" [class.is-on]="filter() === item" (click)="filter.set(item)">{{ filterLabel[item] }}</button>
+            }
+          </div>
+          @if (query().trim()) {
+            @if (hits().length === 0) {
+              <p class="workspace__empty">ไม่พบผลลัพธ์</p>
+            } @else {
+              <ul class="workspace__hits">
+                @for (hit of hits(); track hit.kind + hit.id) {
+                  <li>
+                    <button type="button" (click)="openHit(hit)">
+                      <strong>
+                        @for (part of parts(hit.title); track $index) {
+                          @if (part.hit) { <mark>{{ part.text }}</mark> } @else { {{ part.text }} }
+                        }
+                      </strong>
+                      <small>{{ hit.kind === 'chat' ? 'แชท' : hit.kind === 'image' ? 'รูปภาพ' : 'เอกสาร' }} · {{ hit.preview }}</small>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+            @for (group of groups(); track group[0]) {
+              <h2>{{ group[0] }}</h2>
+              <ul>
+                @for (item of group[1]; track item.id) {
+                  <li [class.is-on]="item.id === chat.activeId()">
+                    @if (editing() === item.id) {
+                      <input [value]="draftTitle()" (input)="draftTitle.set($any($event.target).value)" (keydown.enter)="saveRename()" aria-label="ชื่อบทสนทนา" />
+                      <button type="button" (click)="saveRename()">บันทึก</button>
+                    } @else {
+                      <button type="button" class="workspace__title" (click)="openConversation(item.id)">
+                        {{ item.title }}
+                        @if (item.sources.length) { <small>{{ item.sources.length }} ไฟล์</small> }
+                      </button>
+                      <button type="button" (click)="startRename(item)">เปลี่ยนชื่อ</button>
+                      <button type="button" (click)="chat.archive(item.id)">เก็บถาวร</button>
+                      <button type="button" (click)="chat.askRemove(item.id)">ลบ</button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+            @if (archived().length) {
+              <button type="button" class="workspace__archive" (click)="archiveOpen.set(!archiveOpen())">{{ archiveOpen() ? 'ซ่อนที่เก็บถาวร' : 'ที่เก็บถาวร (' + archived().length + ')' }}</button>
+              @if (archiveOpen()) {
+                <ul>
+                  @for (item of archived(); track item.id) {
+                    <li [class.is-on]="item.id === chat.activeId()">
+                      <button type="button" class="workspace__title" (click)="openConversation(item.id)">{{ item.title }}</button>
+                      <button type="button" (click)="chat.archive(item.id)">นำกลับ</button>
+                      <button type="button" (click)="chat.askRemove(item.id)">ลบ</button>
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          }
+        </aside>
+        <section class="workspace__chat" [class.is-pane]="pane() === 'chat'" aria-label="บทสนทนา">
+          <app-ai-thread />
+        </section>
+        <aside class="workspace__sources" [class.is-pane]="pane() === 'sources'" aria-label="แหล่งข้อมูล">
+          @if (chat.viewing(); as file) {
+            <div class="viewer">
+              <button type="button" (click)="chat.viewingId.set(null)">กลับไปรายการ</button>
+              <strong>{{ file.name }}</strong>
+              <p>{{ kindLabel(file.kind) }} · {{ formatSize(file.size) }}</p>
+              @if (file.kind === 'image' && file.url) {
+                <div class="viewer__tools">
+                  <button type="button" (click)="zoomBy(-0.25)">ย่อ</button>
+                  <button type="button" (click)="zoomBy(0.25)">ขยาย</button>
+                </div>
+                <img [src]="file.url" [alt]="file.name" [style.transform]="'scale(' + chat.zoom() + ')'" />
+              } @else if (file.kind === 'pdf' && frame(file.url); as src) {
+                <iframe [src]="src" [title]="file.name"></iframe>
+              } @else {
+                <p>ยังเปิดตัวอย่างไฟล์ชนิดนี้ในเบราว์เซอร์ไม่ได้</p>
+              }
+              <p>ยังไม่มีการเน้นข้อความหรือวิเคราะห์รูป เพราะยังไม่มีบริการอ่านไฟล์</p>
+            </div>
+          } @else {
+            <h2>แหล่งข้อมูล</h2>
+            <label class="workspace__search">
+              ค้นในรายการนี้
+              <input type="search" placeholder="ชื่อไฟล์" [value]="sourceQuery()" (input)="sourceQuery.set($any($event.target).value)" />
+            </label>
+            <div class="workspace__filters">
+              <button type="button" [class.is-on]="sourceFilter() === 'all'" (click)="sourceFilter.set('all')">ทั้งหมด</button>
+              <button type="button" [class.is-on]="sourceFilter() === 'documents'" (click)="sourceFilter.set('documents')">เอกสาร</button>
+              <button type="button" [class.is-on]="sourceFilter() === 'images'" (click)="sourceFilter.set('images')">รูปภาพ</button>
+            </div>
+            @if (visibleSources().length === 0) {
+              <p class="workspace__empty">ยังไม่มีไฟล์ในบทสนทนานี้ แนบจากช่องพิมพ์ได้ ไฟล์จะอยู่เฉพาะแท็บนี้</p>
+            } @else {
+              <ul class="workspace__files">
+                @for (file of visibleSources(); track file.id) {
+                  <li>
+                    <label>
+                      <input type="checkbox" [checked]="file.selected" (change)="chat.setSourceSelected(file.id, $any($event.target).checked)" />
+                      <span>{{ file.name }}</span>
+                      <small>{{ kindLabel(file.kind) }} · {{ formatSize(file.size) }}</small>
+                    </label>
+                    <button type="button" (click)="chat.viewingId.set(file.id); chat.zoom.set(1)">เปิด</button>
+                    <button type="button" (click)="chat.removeSource(file.id)">เอาออก</button>
+                  </li>
+                }
+              </ul>
+            }
+          }
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+@if (chat.deleteId()) {
+  <div class="workspace__modal" (click)="chat.deleteId.set('')">
+    <div (click)="$event.stopPropagation(); confirm($event)">
+      <app-modal kind="delete" heading="ลบบทสนทนา" detail="บทสนทนานี้จะถูกลบจากแท็บนี้ การกระทำนี้ย้อนกลับไม่ได้ และยังไม่ได้เก็บบนเซิร์ฟเวอร์" />
+    </div>
+  </div>
+}

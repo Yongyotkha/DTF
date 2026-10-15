@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
-import { StepsMenu, StepsMenuSection } from '../../steps-menu/steps-menu';
+import { StatusTag } from '../../status-tag/status-tag';
+import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
 
 type DocItem = { key: string; title: string; hint?: string; required?: boolean; excel?: boolean };
@@ -77,7 +78,7 @@ function blankApplicant(open = true): Applicant {
 
 @Component({
   selector: 'app-por2-page',
-  imports: [TopHeader, SideNav, DftButton, StepsMenu],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
   templateUrl: './por2-page.html',
   styleUrl: './por2-page.css',
 })
@@ -105,6 +106,7 @@ export class Por2Page {
   protected roleTitle = '';
   protected signedOn = '';
   protected reviewOpen = false;
+  protected uploadOpen = false;
   protected readonly behalfLeft = behalfLeft;
   protected readonly behalfRight = behalfRight;
   protected readonly mainDocs = mainDocs;
@@ -150,33 +152,21 @@ export class Por2Page {
     },
   ];
 
-  constructor(private readonly router: Router) {}
+  constructor(private readonly view: ChangeDetectorRef) {}
 
-  protected syncStep(): void {
-    for (const section of this.menu) {
-      for (const item of section.items) {
-        if (item.state === 'onclick') {
-          this.show(item.label);
-          return;
-        }
-      }
-    }
+  protected openFilledUpload(): void {
+    this.uploadOpen = true;
   }
 
-  protected back(): void {
-    const labels = this.labels();
-    const index = labels.indexOf(this.step);
-    if (index <= 0) {
-      void this.router.navigate(['/requests']);
-      return;
-    }
-    this.show(labels[index - 1]);
+  protected open(label: string): void {
+    this.show(label);
+    this.view.detectChanges();
+    requestAnimationFrame(() => this.revealSection());
   }
 
-  protected next(): void {
+  protected filled(label: string): boolean {
     const labels = this.labels();
-    const index = labels.indexOf(this.step);
-    if (index < labels.length - 1) this.show(labels[index + 1]);
+    return labels.indexOf(label) <= labels.indexOf(this.step);
   }
 
   protected addApplicant(): void {
@@ -249,5 +239,14 @@ export class Por2Page {
       }
     }
     this.step = label;
+  }
+
+  private revealSection(): void {
+    const target = document.getElementById('por2-step') ?? document.querySelector('.form');
+    if (!(target instanceof HTMLElement)) return;
+    const pin = document.querySelector('.review-pin');
+    const offset = 65 + (pin instanceof HTMLElement ? pin.offsetHeight : 0);
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top) });
   }
 }

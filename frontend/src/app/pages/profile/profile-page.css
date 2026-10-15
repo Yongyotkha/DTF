@@ -168,6 +168,13 @@ table {
   border-collapse: collapse;
 }
 
+th:first-child,
+td:first-child {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
 th,
 td {
   box-sizing: border-box;
@@ -243,6 +250,22 @@ th {
   font-family: var(--font-sans-thai);
   font-size: 14px;
   line-height: 21px;
+}
+
+.forgot {
+  display: inline-block;
+  margin: 0 0 16px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 24px;
+  text-decoration: none;
+}
+
+.forgot:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
 }
 
 .password__actions {

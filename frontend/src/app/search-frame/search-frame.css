@@ -1,0 +1,142 @@
+/* Input Fields 115:474 and Buttons 115:475. The frame is the old case-search panel. */
+:host {
+  display: block;
+  width: 360px;
+  flex: none;
+}
+
+.search-frame,
+.sf-sort,
+.sf-field,
+.sf-control,
+.sf-control select,
+.sf-control input {
+  font-family: var(--font-sans-thai);
+}
+
+.sf-sort {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.sf-sort > span:first-child {
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: nowrap;
+}
+
+.sf-sort .sf-control {
+  width: 220px;
+}
+
+.sf-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  max-height: max(360px, calc(100vh - 380px));
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+}
+
+.sf-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.sf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.sf-field > span {
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.sf-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.sf-control:focus-within {
+  box-shadow: var(--state-focus-ring);
+}
+
+.sf-control select,
+.sf-control input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.sf-control select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.sf-control select.is-empty {
+  color: var(--color-text-muted);
+}
+
+.sf-control input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.sf-control input[readonly] {
+  cursor: default;
+}
+
+.sf-control svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.sf-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 1100px) {
+  :host {
+    width: 100%;
+  }
+}

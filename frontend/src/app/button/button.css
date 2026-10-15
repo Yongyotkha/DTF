@@ -55,6 +55,10 @@
   flex-direction: row-reverse;
 }
 
+:host(.soft-shadow) .btn {
+  box-shadow: var(--shadow-card);
+}
+
 /* เลือกประเภทการยื่นคำขอ, สอบถาม AI 3507:72747 */
 :host(.ask-ai) .btn {
   height: 35px;
@@ -150,6 +154,7 @@
 }
 
 .btn--pill {
+  border-radius: 50px;
   border-color: var(--color-border);
   color: var(--color-primary);
 }

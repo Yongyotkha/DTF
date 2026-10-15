@@ -1,13 +1,19 @@
 <div class="dropdown" role="menu">
   @for (item of items; track item.label) {
-    <button type="button" class="dropdown__item" role="menuitem" (click)="chosen.emit(item.label)">
-      @if (item.icon === 'edit') {
+    <button type="button" class="dropdown__item" role="menuitem" (click)="pick.emit(item.label)">
+      @if (item.icon === 'profile') {
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M11.5804 4.83917H5.68454C5.23777 4.83917 4.8093 5.01665 4.49339 5.33256C4.17748 5.64847 4 6.07694 4 6.52371V18.3155C4 18.7622 4.17748 19.1907 4.49339 19.5066C4.8093 19.8225 5.23777 20 5.68454 20H17.4763C17.9231 20 18.3515 19.8225 18.6674 19.5066C18.9834 19.1907 19.1608 18.7622 19.1608 18.3155V12.4196M16.9499 4.52332C17.285 4.18824 17.7394 4 18.2133 4C18.6871 4 19.1416 4.18824 19.4767 4.52332C19.8118 4.85839 20 5.31285 20 5.78672C20 6.26059 19.8118 6.71505 19.4767 7.05012L11.8853 14.6423C11.6853 14.8422 11.4382 14.9884 11.1669 15.0677L8.74702 15.7752C8.67455 15.7963 8.59772 15.7976 8.52459 15.7789C8.45146 15.7601 8.3847 15.7221 8.33132 15.6687C8.27794 15.6153 8.23989 15.5485 8.22115 15.4754C8.20241 15.4023 8.20368 15.3255 8.22482 15.253L8.93232 12.8331C9.01194 12.562 9.1585 12.3152 9.35851 12.1155L16.9499 4.52332Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 13C14.7614 13 17 10.7614 17 8C17 5.23858 14.7614 3 12 3C9.23858 3 7 5.23858 7 8C7 10.7614 9.23858 13 12 13Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M20 21C20 18.8783 19.1571 16.8434 17.6569 15.3431C16.1566 13.8429 14.1217 13 12 13C9.87827 13 7.84344 13.8429 6.34315 15.3431C4.84285 16.8434 4 18.8783 4 21" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      } @else if (item.icon === 'password') {
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="7.5" cy="15.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M21 2 11.4 11.6M15.5 7.5l2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       } @else {
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 10L12 16L18 10" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       }
       <span>{{ item.label }}</span>

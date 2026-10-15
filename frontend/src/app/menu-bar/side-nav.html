@@ -1,13 +1,34 @@
-<button type="button" class="side-nav__toggle" (click)="toggle()" [attr.aria-expanded]="!collapsed()" [attr.aria-label]="collapsed() ? 'ขยายเมนู' : 'ย่อเมนู'" [title]="collapsed() ? 'ขยายเมนู' : null">
-  <img [class.side-nav__mark--out]="collapsed()" src="assets/icons/menu-chevron.svg" width="24" height="24" alt="" />
-  @if (!collapsed()) {
-    <span>ย่อเมนู</span>
+@if (drawerOpen()) {
+  <button type="button" class="side-nav__backdrop" tabindex="-1" aria-label="ปิดเมนู" (click)="closeDrawer()"></button>
+}
+<header class="side-nav__head">
+  @if (!layoutCompact()) {
+    <p class="side-nav__title">เมนูหลัก</p>
   }
-</button>
-@if (kind === 'staff') {
-  <app-menu-item label="หน้าหลัก" icon="home" [compact]="collapsed()" [state]="active === 'หน้าหลัก' ? 'active' : 'default'" (click)="pick('หน้าหลัก')" />
-}
-@for (menu of menuList(); track menu.title) {
-  <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="isOpen(menu.title)" [active]="active" [compact]="collapsed()" (chosen)="pick($event)" (toggled)="toggleGroup(menu.title)" (opened)="expand()" />
-}
-<app-menu-item label="คู่มือการใช้งาน" icon="guide" [compact]="collapsed()" />
+  <button id="sidebar-collapse" type="button" class="side-nav__toggle" (click)="toggle()" [attr.aria-expanded]="toggleExpanded()" [attr.aria-label]="toggleLabel()">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+      @if (collapsed()) {
+        <path d="M13 9.5 16 12l-3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      } @else {
+        <path d="M16 9.5 13 12l3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      }
+    </svg>
+    @if (collapsed()) {
+      <span class="side-nav__tip" role="tooltip">ขยายเมนู</span>
+    }
+  </button>
+</header>
+<div class="side-nav__body" (scroll)="closeFlyouts()">
+  @if (kind === 'staff') {
+    <app-menu-item label="หน้าหลัก" icon="home" [compact]="layoutCompact()" [state]="active === 'หน้าหลัก' ? 'active' : 'default'" (click)="pick('หน้าหลัก')" />
+  }
+  @for (menu of menuList(); track menu.title) {
+    <app-menu-group [title]="menu.title" [items]="menu.items" [expanded]="isOpen(menu.title)" [flyout]="submenu() === menu.title" [active]="active" [compact]="layoutCompact()" (chosen)="pick($event)" (toggled)="toggleGroup(menu.title)" />
+  }
+  <app-menu-item label="คู่มือการใช้งาน" icon="guide" [compact]="layoutCompact()" />
+</div>
+<footer class="side-nav__foot">
+  <p class="side-nav__version">{{ layoutCompact() ? version : 'เวอร์ชัน ' + version }}</p>
+</footer>

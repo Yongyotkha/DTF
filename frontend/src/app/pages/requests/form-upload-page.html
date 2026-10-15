@@ -1,0 +1,126 @@
+<div class="upload-page">
+  <app-top-header class="fluid" />
+  <div class="upload-page__body">
+    <app-side-nav open="คำขอ" active="ยื่นคำขอ" (chosen)="openMenu($event)" />
+    <main>
+      <div class="review-pin">
+        <header class="head">
+          <div>
+            <div class="head__title">
+              <h1>อัปโหลดไฟล์</h1>
+              <app-status-tag tone="neutral" label="ร่าง" />
+            </div>
+            <p>{{ measureLabel }} · แนบไฟล์แบบฟอร์มที่จัดทำไว้แล้ว</p>
+          </div>
+          <div class="head__actions">
+            <button type="button" class="head__history" aria-label="ประวัติคำขอ" (click)="historyOpen = true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
+            </button>
+            <span class="head__split" aria-hidden="true"></span>
+            <app-button type="outline" label="บันทึกร่าง" (click)="saveDraft()" />
+            <app-button type="primary" label="ยื่นตรวจสอบ" [state]="canSubmit ? 'default' : 'disabled'" (click)="submit()" />
+          </div>
+        </header>
+      </div>
+      <section class="sheet">
+        <div class="sheet__split">
+          <nav class="toc" aria-label="แบบฟอร์มที่เลือก">
+            <p class="toc__group">แบบฟอร์มที่เลือก</p>
+            @for (form of forms; track form.code) {
+              <button type="button" class="toc__child" [class.toc__on]="current() === form.code" [attr.aria-current]="current() === form.code ? 'true' : null" (click)="open(form.code)">
+                <img [src]="filled(form.code) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                แบบฟอร์ม {{ form.code }}
+              </button>
+            }
+          </nav>
+          @if (active(); as form) {
+            <div class="form">
+              <h3>อัปโหลดแบบฟอร์ม {{ form.code }}</h3>
+              <div class="pane">
+                <p class="note">{{ purpose(form).label }}</p>
+                <p class="banner">ดาวน์โหลด <a class="tmpl" href="#" (click)="downloadBlank($event, form)">แบบฟอร์ม {{ form.code }}</a></p>
+                <label class="drop" [class.drop--over]="over() === form.code" (dragover)="allowDrop($event, form.code)" (dragleave)="over.set('')" (drop)="$event.preventDefault(); setFormFile(form.code, $event.dataTransfer?.files ?? null)">
+                  <img src="assets/icons/por1-drop.svg" width="24" height="24" alt="" />
+                  <span>ลากไฟล์มาวางที่นี่ หรือเลือกไฟล์ (PDF, DOCX ไม่เกิน 20 MB)</span>
+                  <span class="pick">เลือกไฟล์</span>
+                  <input type="file" accept=".pdf,.doc,.docx" (change)="setFormFile(form.code, $any($event.target).files)" />
+                </label>
+                @if (files()[form.code]) {
+                  <p class="picked">
+                    {{ files()[form.code] }}
+                    <button type="button" aria-label="ลบไฟล์" (click)="clearFormFile(form.code, $event)">✕</button>
+                  </p>
+                }
+              </div>
+              <h3>เอกสารประกอบเพิ่มเติม</h3>
+              <div class="pane">
+                <label class="extra">
+                  <span class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="14" height="15" alt="" />
+                    เลือกไฟล์
+                  </span>
+                  <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple (change)="addExtras(form.code, $any($event.target).files)" />
+                </label>
+                @for (name of extraNames(form.code); track name + $index) {
+                  <p class="picked">
+                    {{ name }}
+                    <button type="button" aria-label="ลบไฟล์" (click)="removeExtra(form.code, $index)">✕</button>
+                  </p>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+@if (historyOpen) {
+  <div class="history" [class.history--full]="historyFull" (click)="closeHistory()">
+    <aside role="dialog" aria-modal="true" aria-label="ประวัติคำขอ" (click)="$event.stopPropagation()">
+      <div class="history__bar">
+        <div>
+          <h2>ประวัติคำขอ</h2>
+          <p>ร่างอัปโหลดไฟล์</p>
+        </div>
+        <div class="history__tools">
+          <button type="button" class="history__tool" [attr.aria-pressed]="historyFull" [attr.aria-label]="historyFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" (click)="historyFull = !historyFull">
+            @if (historyFull) {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M20 15h-5v5M4 15h5v5" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /></svg>
+            }
+          </button>
+          <button type="button" class="history__tool" aria-label="ปิด" (click)="closeHistory()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+      </div>
+      <div class="history__tabs" role="tablist">
+        <button type="button" role="tab" [attr.aria-selected]="historyTab === 'activity'" [class.history__on]="historyTab === 'activity'" (click)="historyTab = 'activity'">การดำเนินการ</button>
+        <button type="button" role="tab" [attr.aria-selected]="historyTab === 'version'" [class.history__on]="historyTab === 'version'" (click)="historyTab = 'version'">เวอร์ชันการยื่น</button>
+      </div>
+      <ol class="history__list">
+        @for (item of historyItems; track item.title) {
+          @if ($first || historyItems[$index - 1].phase !== item.phase) {
+            <li class="history__phase">{{ item.phase }}</li>
+          }
+          <li>
+            <span>{{ $index + 1 }}</span>
+            <div>
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.when }}</small>
+              <p>{{ item.detail }}</p>
+            </div>
+            <app-status-tag [tone]="item.tone" [label]="item.label" />
+          </li>
+        }
+      </ol>
+    </aside>
+  </div>
+}
+@if (notice) {
+  <div class="notice" (click)="finishNotice()">
+    <app-modal kind="success" heading="บันทึกร่างแล้ว" [detail]="'คำขอเลขที่อ้างอิง ' + refId + ' อยู่ในสถานะร่าง'" (click)="$event.stopPropagation()" (choose)="finishNotice()" />
+  </div>
+}

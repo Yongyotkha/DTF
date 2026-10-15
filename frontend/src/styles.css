@@ -14,6 +14,59 @@ body {
   font-family: var(--font-family);
 }
 
+body.ask-docked main {
+  margin-right: var(--ask-width, 420px);
+}
+
+@media (max-width: 1100px) {
+  body.ask-docked main {
+    margin-right: 0;
+  }
+}
+
+body.nav-drawer {
+  overflow: hidden;
+}
+
+html:has(body.chooser-open),
+html:has(.sample--check),
+html:has(.fill-upload) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
+@media print {
+  body[data-print-doc] * {
+    visibility: hidden !important;
+  }
+
+  body[data-print-doc] .print-root,
+  body[data-print-doc] .print-root * {
+    visibility: visible !important;
+  }
+
+  body[data-print-doc] .print-root {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body[data-print-doc='letter'] .print-root [data-doc='pledge'],
+  body[data-print-doc='pledge'] .print-root [data-doc='letter'] {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-side-nav,
+  .ask-panel {
+    transition: none;
+  }
+}
+
 app-root {
   display: block;
 }

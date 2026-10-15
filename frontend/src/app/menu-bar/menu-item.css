@@ -21,9 +21,33 @@
 }
 
 .menu-item--compact {
+  position: relative;
   justify-content: center;
   padding-right: 0;
   padding-left: 0;
+}
+
+.menu-item__tip {
+  position: fixed;
+  z-index: 7;
+  display: none;
+  padding: 4px 8px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-size: 14px;
+  line-height: 19px;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.menu-item__tip--shown {
+  display: block;
+}
+
+.menu-item:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
 }
 
 .menu-item__icon {

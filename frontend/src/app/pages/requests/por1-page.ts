@@ -1,116 +1,454 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Accounts } from '../../accounts';
 import { DftButton } from '../../button/button';
+import { ThaiDateField } from '../../fields/thai-date-field';
+import { InputField } from '../../input-field/input-field';
+import { thaiDateOk } from '../../fields/field-rules';
 import { SideNav } from '../../menu-bar/side-nav';
+import { DftModal } from '../../modal/modal';
+import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
+import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
+import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
+import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseStatus, type ConsultNote, type ConsultPlan, type ConsultRequest, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { FilledUpload } from './filled-upload';
 
-type Section = { id: string; label: string; child: boolean };
+type TocLink = { id: string; label: string; anchor?: string };
+type TocGroup = { label: string; items: TocLink[] };
+type HistoryItem = { phase: string; title: string; when: string; detail: string; label: string; tone: 'neutral' | 'info' | 'warning' | 'success' };
 
 type GoodsRow = { producer: string; goods: string; made: string; sold: string; unit: string };
 type MakerRow = { name: string; address: string; phone: string; fax: string; web: string; email: string };
-type PartyBlock = { key: string; title: string; nameLabel: string; wrapped: boolean; rows: MakerRow[] };
+type PartyBlock = { key: string; title: string; nameLabel: string; addLabel: string; wrapped: boolean; rows: MakerRow[] };
+
+function field(label: string, value: string, long = false): WorkDraft['fields'][number] {
+  return { label, value, long };
+}
+
+function defaultWorkDrafts(): WorkDraft[] {
+  return [
+    {
+      title: 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง',
+      file: 'นส ถึง 4 หน่วยงาน (print).docx',
+      fields: [
+        field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+        field('วันที่', '20/05/2562'),
+        field('เรื่อง', 'ขอความอนุเคราะห์ข้อมูลผู้ผลิตสินค้าเหล็กแผ่นรีดร้อน'),
+        field('เรียน', 'ผู้อำนวยการศูนย์สารสนเทศโรงงานอุตสาหกรรม กรมโรงงานอุตสาหกรรม\nผู้อำนวยการสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nประธานกลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย\nผู้อำนวยการศูนย์สารสนเทศเศรษฐกิจอุตสาหกรรม สำนักงานเศรษฐกิจอุตสาหกรรม', true),
+        field('สิ่งที่ส่งมาด้วย', '1. แบบแสดงรายชื่อผู้ผลิต พร้อมสถานที่ตั้ง\n2. แบบแสดงกำลังการผลิตและปริมาณการผลิต\n3. แบบแสดงปริมาณความต้องการใช้ภายในประเทศ', true),
+        field('เนื้อความ', 'ด้วยกรมการค้าต่างประเทศได้รับคำขอเลขที่อ้างอิง REF256205150001 จากบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้พิจารณาตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอข้อมูลผู้ผลิตในประเทศ ได้แก่ รายชื่อและสถานที่ตั้ง กำลังการผลิตและปริมาณการผลิตช่วงปี 2561 ถึงต้นปี 2562 และปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน', true),
+        field('กำหนดส่งข้อมูล', '20/06/2562'),
+        field('ลงชื่อ', 'กองปกป้องและตอบโต้ทางการค้า'),
+      ],
+    },
+    {
+      title: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง',
+      file: 'Sum ข้อมูลจาก 4 หน่วยงาน_V2.xlsx',
+      fields: [
+        field('วัตถุประสงค์', 'รวมอุปสงค์และอุปทานให้สอดคล้องกับฐานะผู้ยื่นในคำขอ REF256205150001 และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
+        field('วิธีจัดทำ', '1. รวมรายชื่อผู้ผลิตจาก 4 หน่วยงาน\n2. ดูยอดรวมของแต่ละรายการ\n3. ใช้รายการที่ใหญ่ที่สุดเป็นรายชื่อหลัก\n4. ตรวจชื่อซ้ำจากการพิมพ์หรือบริษัทเดียวกันแต่คนละที่อยู่', true),
+        field('หน่วยงาน', 'กรมโรงงานอุตสาหกรรม\nสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nสภาอุตสาหกรรมแห่งประเทศไทย\nสำนักงานเศรษฐกิจอุตสาหกรรม', true),
+        field('จุดที่ข้อมูลยังไม่ครบ', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562\nปริมาณนำเข้าที่เชื่อมกับความเสียหาย\nรายชื่อผู้ผลิตที่ร่วมยื่นตามหนังสือมอบอำนาจ', true),
+      ],
+    },
+    {
+      title: 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง',
+      file: 'แบบสอบถามเบื้องต้น จาก Sum ข้อมูลจาก 4 หน่วยงาน',
+      fields: [
+        field('ชื่อแบบ', 'แบบสอบถามเบื้องต้น กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
+        field('คำขอ', 'REF256205150001 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
+        field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'เป็นผู้ผลิตในประเทศ ผู้ยื่นคำขอ หรือผู้ที่เกี่ยวข้องอย่างอื่น', true),
+        field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'กำลังการผลิตและปริมาณการผลิต ปี 2561 ถึงต้นปี 2562', true),
+        field('ส่วนที่ 3 ราคา', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 และช่วงเวลาที่ครอบคลุม', true),
+        field('ส่วนที่ 4 ความเสียหาย', 'ปริมาณนำเข้าเชื่อมกับตัวชี้วัดความเสียหายอย่างไร', true),
+        field('ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น', 'รายชื่อผู้ผลิตที่ร่วมยื่นครบตามหนังสือมอบอำนาจหรือไม่', true),
+        field('กำหนดส่งคำตอบ', '20/06/2562'),
+      ],
+    },
+  ];
+}
+
+function noticeLetterFields(action: DocAction, noticedOn: string, dueOn: string, signer: string): WorkDraft['fields'] {
+  const gaps = [
+    'หลักฐานราคายังไม่ครอบคลุมช่วงปลายปี 2561 ถึงต้นปี 2562',
+    'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย',
+    'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบตามหนังสือมอบอำนาจ',
+  ];
+  const subject = action === 'complete'
+    ? 'แจ้งผลการตรวจคำขอครบถ้วนถูกต้อง'
+    : action === 'late'
+      ? 'แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน'
+      : 'แจ้งให้ส่งข้อมูลเพิ่มเติมคำขอตอบโต้การทุ่มตลาด';
+  const body = action === 'complete'
+    ? 'ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด แล้ว เห็นว่าคำขอและเอกสารประกอบครบถ้วนถูกต้อง'
+    : action === 'late'
+      ? `ด้วยครบกำหนดแก้ไขเพิ่มเติมคำขอเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้องในเรื่องดังนี้\n1. ${gaps[0]}\n2. ${gaps[1]}\n3. ${gaps[2]}`
+      : `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 แล้ว ยังไม่ครบถ้วนในเรื่องดังนี้ จึงขอให้ส่งข้อมูลเพิ่มภายใน ${dueOn}\n1. ${gaps[0]}\n2. ${gaps[1]}\n3. ${gaps[2]}`;
+  return [
+    field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+    field('วันที่', noticedOn),
+    field('เรื่อง', subject),
+    field('เรียน', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
+    field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 ลงวันที่ 15/05/2562 เลขสารบรรณ สบ.1605/2562'),
+    field('สิ่งที่ส่งมาด้วย', '-'),
+    field('เนื้อความ', body, true),
+    field('กำหนดส่งข้อมูล', action === 'complete' ? '-' : dueOn),
+    field('ลงชื่อ', signer || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+  ];
+}
+
+function embassyLetterFields(on: string, signer: string): WorkDraft['fields'] {
+  return [
+    field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+    field('วันที่แจ้งเรื่อง', on),
+    field('เรื่อง', 'แจ้งการรับคำขอให้พิจารณาตอบโต้การทุ่มตลาด'),
+    field('เรียน', 'สถานเอกอัครราชทูตเวียดนามประจำประเทศไทย และสถานเอกอัครราชทูตอาหรับรีพับลิกแห่งอียิปต์ประจำประเทศไทย'),
+    field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 เลขสารบรรณ สบ.1605/2562'),
+    field('สิ่งที่ส่งมาด้วย', '-'),
+    field('เนื้อความ', 'ด้วยคณะกรรมการได้พิจารณารับคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้ไต่สวนการทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบ หนังสือนี้เก็บไว้ในระบบและไม่ส่งให้ผู้ยื่นคำขอ', true),
+    field('ลงชื่อ', signer || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+  ];
+}
+
+function agendaFieldList(): { label: string; value: string; long?: boolean }[] {
+  return [
+    field('ระเบียบวาระที่', '3.3'),
+    field('เรื่อง', 'การพิจารณาคำขอให้เปิดไต่สวนตอบโต้การทุ่มตลาด กรณีสินค้าเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากเวียดนามและอียิปต์'),
+    field('ผู้ยื่นคำขอ', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
+    field('สินค้าที่ถูกพิจารณา', 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน'),
+    field('ประเทศแหล่งกำเนิด', 'เวียดนาม และอียิปต์'),
+    field('วันที่ยื่นคำขอ', '15/05/2562'),
+    field('วันที่คำขอครบถ้วน', '28/05/2562'),
+    field('วันครบกำหนด 4 เดือน', '15/09/2562'),
+    field('สัดส่วนผู้ผลิตที่สนับสนุน', 'มากกว่าร้อยละ 25 ของปริมาณการผลิตสินค้าชนิดเดียวกันในประเทศ'),
+    field('ประเด็นพิจารณา', 'คำขอครบถ้วนภายใน 4 เดือน สถานะผู้ยื่นเข้าเงื่อนไขอุตสาหกรรมภายใน และมีหลักฐานการทุ่มตลาดกับความเสียหายเพียงพอให้เปิดไต่สวนตามมาตรา 39 หรือไม่', true),
+    field('ข้อเสนอต่อที่ประชุม', 'เห็นควรรับคำขอและเปิดไต่สวน', true),
+  ];
+}
+
+function defaultReplyFiles(): ReplyFile[] {
+  return [
+    { name: 'แบบปร1-ฉบับปกปิด-แก้ไข.pdf', title: 'แบบ ปร.1 ฉบับปกปิด (แก้ไข)', group: 'closed' },
+    { name: 'หลักฐานราคา-2561-2562.pdf', title: 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562', group: 'extra' },
+    { name: 'แบบปร1-ฉบับเปิดเผย-แก้ไข.pdf', title: 'แบบ ปร.1 ฉบับเปิดเผย (แก้ไข)', group: 'open' },
+    { name: 'หนังสือขอขยายเวลา.pdf', title: 'หนังสือขอขยายเวลา', group: 'extend' },
+  ];
+}
 
 function emptyParty(): MakerRow {
   return { name: '', address: '', phone: '', fax: '', web: '', email: '' };
 }
-type DocFile = { name: string; saved: string };
-type DocTarget = 'goods' | 'export' | 'margin' | 'subsidy' | 'explain' | 'import' | 'factor' | 'summary' | 'trend' | 'intent';
 
-function seedDoc(): DocFile[] {
-  return [{ name: 'file name.pdf', saved: '29/09/2569' }];
+function party(name: string, address = '', phone = '', fax = ''): MakerRow {
+  return { name, address, phone, fax, web: '', email: '' };
 }
+type DocFile = { name: string; saved: string };
+type DocTarget = 'goods' | 'export' | 'margin' | 'subsidy' | 'explain' | 'other' | 'import' | 'factor' | 'summary' | 'trend' | 'intent';
+
 type CostRow = { item: string; amount: string; percent: string };
 
 function emptyCost(): CostRow {
   return { item: '', amount: '', percent: '' };
 }
 
-const sections: Section[] = [
-  { id: '1', label: '1. ข้อมูลผู้ยื่นคำขอ', child: false },
-  { id: '2', label: '2. รายละเอียด', child: false },
-  { id: '3', label: '3. ข้อมูลเกี่ยวกับผู้ผลิตหรือผู้ส่งออก', child: false },
-  { id: '4', label: '4. มูลค่าปกติ', child: false },
-  { id: '5', label: '5. ราคาส่งออก', child: false },
-  { id: '6', label: '6. ส่วนเหลื่อมการทุ่มตลาด', child: false },
-  { id: '7', label: '7. การอุดหนุน', child: false },
-  { id: '7.1', label: '7.1 เอกสารเกี่ยวกับโครงการอุดหนุน', child: true },
-  { id: '7.2', label: '7.2 อธิบายการอุดหนุน', child: true },
-  { id: '7.3', label: '7.3 การอุดหนุนเจาะจง', child: true },
-  { id: '7.4', label: '7.4 ประโยชน์ที่ผู้ส่งออก', child: true },
-  { id: '8', label: '8. การประเมินความเสียหายของอุตสาหกรรมภายใน', child: false },
-  { id: '8.1', label: '8.1 ข้อมูลการนำเข้าสินค้าที่ถูกพิจารณา', child: true },
-  { id: '8.2', label: '8.2 ผลกระทบด้านราคา', child: true },
-  { id: '8.3', label: '8.3 สภาวะของผู้ยื่นคำขอ', child: true },
-  { id: '8.4', label: '8.4 ข้อมูลเกี่ยวกับปัจจัยอื่นๆ', child: true },
-  { id: '8.5', label: '8.5 สรุปสินค้าที่ถูกพิจารณา', child: true },
-  { id: '8.6', label: '8.6 ข้อมูลผู้ซื้อ', child: true },
-  { id: '8.7', label: '8.7 ข้อมูลแนวโน้มที่จะเกิดขึ้น', child: true },
-  { id: '8.8', label: '8.8 ประสงค์ให้พิจารณาไต่สวน', child: true },
-  { id: '9', label: '9. คำรับรองและลงนาม', child: false },
+const toc: TocGroup[] = [
+  {
+    label: 'ส่วนที่ 1 ข้อมูลทั่วไป',
+    items: [
+      { id: '1', label: '1.1 ผู้ยื่นคำขอ', anchor: 'part-1-1' },
+      { id: '1', label: '1.2 ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก', anchor: 'part-1-2' },
+      { id: '1', label: '1.3 คำขอมาตรการช่วยเหลือ', anchor: 'part-1-3' },
+    ],
+  },
+  {
+    label: 'ส่วนที่ 2 รายละเอียดของสินค้า',
+    items: [{ id: '2', label: 'เปรียบเทียบสินค้าที่ถูกพิจารณา', anchor: 'part-2' }],
+  },
+  {
+    label: 'ส่วนที่ 3 ข้อมูลเกี่ยวกับผู้ผลิตและ/หรือผู้ส่งออกและผู้นำเข้า',
+    items: [
+      { id: '3', label: '3.1 ผู้ผลิตสินค้าที่ถูกพิจารณา', anchor: 'part-producers' },
+      { id: '3', label: '3.2 ผู้ส่งออกสินค้าที่ถูกพิจารณา', anchor: 'part-exporters' },
+      { id: '3', label: '3.3 ผู้นำเข้าสินค้าที่ถูกพิจารณา', anchor: 'part-importers' },
+      { id: '3', label: '3.4 สมาคมหรือกลุ่มอุตสาหกรรมผู้ใช้', anchor: 'part-users' },
+    ],
+  },
+  {
+    label: 'ส่วนที่ 4 มูลค่าปกติ',
+    items: [
+      { id: '4', label: '4.1 ราคาจำหน่ายในประเทศผู้ส่งออก', anchor: 'part-4-1' },
+      { id: '4', label: '4.2 ราคาส่งออกไปประเทศที่สาม', anchor: 'part-4-2' },
+      { id: '4', label: '4.3.1 ต้นทุนในประเทศแหล่งกำเนิด', anchor: 'part-4-3-1' },
+      { id: '4', label: '4.3.2 ต้นทุนในประเทศไทย', anchor: 'part-4-3-2' },
+      { id: '4', label: '4.4 ตลาดมีลักษณะเฉพาะ', anchor: 'part-4-4' },
+      { id: '4', label: '4.5 ประเทศที่ไม่ใช้ระบบกลไกตลาด', anchor: 'part-4-5' },
+    ],
+  },
+  {
+    label: 'ส่วนที่ 5 ราคาส่งออก',
+    items: [{ id: '5', label: '5.1 ราคาส่งออก', anchor: 'part-5' }],
+  },
+  {
+    label: 'ส่วนที่ 6 ส่วนเหลื่อมการทุ่มตลาด',
+    items: [{ id: '6', label: 'เปรียบเทียบมูลค่าปกติและราคาส่งออก', anchor: 'part-6' }],
+  },
+  {
+    label: 'ส่วนที่ 7 การอุดหนุน',
+    items: [
+      { id: '7.1', label: '7.1 เอกสารเกี่ยวกับโครงการอุดหนุน' },
+      { id: '7.2', label: '7.2 อธิบายการอุดหนุน' },
+      { id: '7.3', label: '7.3 การอุดหนุนเจาะจง' },
+      { id: '7.4', label: '7.4 ประโยชน์ที่ผู้ส่งออกได้รับ' },
+    ],
+  },
+  {
+    label: 'ส่วนที่ 8 การประเมินความเสียหายของอุตสาหกรรมภายใน',
+    items: [
+      { id: '8.1', label: '8.1 ข้อมูลการนำเข้าสินค้าที่ถูกพิจารณา' },
+      { id: '8.2', label: '8.2 ผลกระทบด้านราคา' },
+      { id: '8.3', label: '8.3 สภาวะของผู้ยื่นคำขอ' },
+      { id: '8.4', label: '8.4 ปัจจัยอื่น ๆ' },
+      { id: '8.5', label: '8.5 สรุปความเสียหาย' },
+      { id: '8.6', label: '8.6 ข้อมูลผู้ซื้อ' },
+      { id: '8.7', label: '8.7 ความเสียหายที่อาจเกิดขึ้น' },
+      { id: '8.8', label: '8.8 อุปสรรคต่อการก่อตั้งหรือพัฒนา' },
+    ],
+  },
+  {
+    label: 'ส่วนที่ 9 คำรับรองและลงนาม',
+    items: [{ id: '9', label: 'คำรับรองและลงนาม' }],
+  },
+  {
+    label: 'เอกสารอื่น ๆ ที่แนบประกอบ',
+    items: [{ id: 'other', label: 'ภาคผนวก และเอกสารประกอบอื่น' }],
+  },
 ];
 
 @Component({
   selector: 'app-por1-page',
-  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet],
+  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FilledUpload],
   templateUrl: './por1-page.html',
   styleUrl: './por1-page.css',
 })
 export class Por1Page {
-  protected readonly sections = sections;
+  private readonly guide = inject(FilingAiContext);
+  private readonly accounts = inject(Accounts);
+  private readonly view = inject(ChangeDetectorRef);
+  private guideField = '';
+  protected readonly toc = toc;
+  protected readonly refId = filingRefId;
   protected section = '1';
-  protected measure = '';
-  protected filing: 'self' | 'all' | 'part' = 'self';
+  protected anchor = 'part-1-1';
+  protected measure = 'dumping';
+  protected filing: 'self' | 'all' | 'part' = 'part';
   protected nationality = 'ไทย';
   protected readonly nationalities = ['ไทย'];
-  protected company = '';
-  protected address = '';
-  protected phone = '';
-  protected fax = '';
+  protected readonly countries = ['เวียดนาม', 'อียิปต์'];
+  protected company = 'บมจ. สหวิริยาสตีลอินดัสตรี';
+  protected address = '28/1 อาคารประภาวิทย์ ชั้น 2-3 ถนนสุรวงศ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500';
+  protected phone = '(02) 238-3063-82';
+  protected fax = '(02) 236-8890, (02) 236-8892';
   protected email = '';
-  protected agent = '';
+  protected agent = 'นายประกิต กาญจนการไกร';
   protected agentPhone = '';
   protected agentFax = '';
   protected agentEmail = '';
+  protected relatedImport = 'ไม่มี';
+  protected priorAid = '5 มิถุนายน 2562 อุตสาหกรรมภายในผู้ผลิตเหล็กแผ่นรีดร้อนยื่นแบบคำขอให้กระทรวงพาณิชย์ขยายระยะเวลาการบังคับใช้มาตรการปกป้องการนำเข้าสินค้าเหล็กแผ่นรีดร้อนไม่เจือที่เพิ่มขึ้น และอยู่ในกระบวนการไต่สวน';
+  protected outsideProducer = 'บมจ. แอล พี เอ็น เพลทมิล 199/9 หมู่ 4 ถนนสุขสวัสดิ์ ตำบลปากคลองบางปลากด อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10900 โทรศัพท์ 02-815-6400-9 โทรสาร 02-815-6427-29';
+  protected goodsDetail = 'เหล็กแผ่นรีดร้อนชนิดม้วนและไม่เป็นม้วน (Flat Hot Rolled Steel) หนา 0.9–100.0 มม. กว้าง 100–3,200 มม. อัตราอากร 0–5% แหล่งกำเนิดและผู้ส่งออกคือเวียดนามและอียิปต์ สินค้าในประเทศเหมือนกัน';
+  protected channelDetail = 'จำหน่ายโดยตรงแก่ผู้ใช้และศูนย์บริการเหล็ก (Service Center) และจำหน่ายผ่าน Trading Company ผู้ใช้สุดท้ายคืออุตสาหกรรมท่อเหล็ก ตู้คอนเทนเนอร์ ถังแก๊ส ก่อสร้าง เฟอร์นิเจอร์ และต่อเรือ';
   protected goods: GoodsRow[] = [{ producer: '', goods: '', made: '', sold: '', unit: '' }];
-  protected makers: MakerRow[] = [emptyParty()];
+  protected makers: MakerRow[] = [
+    party('บมจ. จี สตีล', '88 ปาโซ่ ทาวเวอร์ ชั้น 18 ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500', '(02) 634-2222', '(02) 634-4114'),
+    party('บมจ. จี เจ สตีล', '88 ปาโซ่ ทาวเวอร์ ชั้น 24 ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500', '(02) 267-8222', '(02) 267-9048'),
+    party('บมจ. สหวิริยาเพลทมิลล์', '28/1 อาคารประภาวิทย์ ชั้น 4 ถนนสุรวงศ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', '(02) 630-0257-61', '(02) 630-0267'),
+  ];
   protected readonly parties: PartyBlock[] = [
-    { key: 'producers', title: 'รายชื่อผู้ผลิต', nameLabel: 'รายชื่อผู้ผลิต', wrapped: false, rows: [emptyParty()] },
-    { key: 'exporters', title: 'รายชื่อผู้ส่งออก', nameLabel: 'รายชื่อผู้ส่งออก', wrapped: false, rows: [emptyParty()] },
-    { key: 'importers', title: 'รายชื่อผู้นำเข้า', nameLabel: 'รายชื่อผู้นำเข้า', wrapped: false, rows: [emptyParty()] },
+    {
+      key: 'producers',
+      title: 'รายชื่อผู้ผลิต',
+      nameLabel: 'รายชื่อผู้ผลิต',
+      addLabel: 'เพิ่มผู้ผลิต',
+      wrapped: false,
+      rows: [
+        party('Formosa Ha Tinh Steel Corporation', 'Crescent Plaza, Unit 2 7F, 105 Ton Dat Tien, Tan Phu Ward, District 7, Ho Chi Minh City', '+84-2854 138 688', '+84-2854 138 689'),
+        party('Ezz El Dekheila Steel Company', 'Four Seasons Nile Plaza, 1089 Corniche El-Nil, Garden City, Cairo, Egypt', '+2 (02) 27989800', '+2 (02) 27931954'),
+      ],
+    },
+    { key: 'exporters', title: 'รายชื่อผู้ส่งออก', nameLabel: 'รายชื่อผู้ส่งออก', addLabel: 'เพิ่มผู้ส่งออก', wrapped: false, rows: [party('ไม่มี')] },
+    {
+      key: 'importers',
+      title: 'รายชื่อผู้นำเข้า',
+      nameLabel: 'รายชื่อผู้นำเข้า',
+      addLabel: 'เพิ่มผู้นำเข้า',
+      wrapped: false,
+      rows: [
+        party('บมจ. ค้าเหล็กไทย', '179 บางกอกซิตี้ ทาวเวอร์ ชั้น 22 ถนนสาทรใต้ แขวงทุ่งมหาเมฆ เขตสาทร กรุงเทพฯ', '02-6854000'),
+        party('บจก. สตาร์คอร์', '78 ถนนนราธิวาสราชนครินทร์ แขวงสีลม เขตบางรัก กรุงเทพฯ', '02-2353309'),
+        party('บจก. ซี.เอ็น. สตีล อิมปอร์ต', '109 หมู่ 5 ตำบลกระทุ่มล้ม อำเภอสามพราน จังหวัดนครปฐม', '02-8130690-2'),
+        party('บจก. เพนต้า ทิก อินดัสทรีส์ (ไทยแลนด์)', '86/1 หมู่ 3 ตำบลแสนภูดาษ อำเภอบ้านโพธิ์ จังหวัดฉะเชิงเทรา', '038-577624'),
+        party('บมจ. แปซิฟิกไพพ์', '298, 298/2 หมู่ 1 ซอยกลับเจริญ ถนนสุขสวัสดิ์ ตำบลปากคลองบางปลากด อำเภอพระสมุทรเจดีย์ จังหวัดสมุทรปราการ', '02-6799000'),
+        party('บจก. ศุภกิจ โปรดักส์', '601 หมู่ 2 ถนนสุขุมวิท ตำบลบางปูใหม่ อำเภอเมือง จังหวัดสมุทรปราการ', '02-3230924'),
+        party('บจก. บลูสโคป สตีล (ประเทศไทย)', '2 ซอยจี 9 ถนนปกรณ์สงเคราะห์ราษฎร์ ตำบลมาบตาพุด อำเภอเมือง จังหวัดระยอง', '038-918300'),
+        party('บจก. เหล็กสยามพาณิชย์', '68/45 หมู่ 8 ถนนบางขุนเทียน-ชายทะเล แขวงท่าข้าม เขตบางขุนเทียน กรุงเทพฯ', '02-8973731'),
+        party('บมจ. เหล็กแผ่นรีดเย็นไทย', '28/1 อาคารประภาวิทย์ ชั้น 5 ถนนสุรวงศ์ แขวงสีลม เขตบางรัก กรุงเทพฯ', '02-6300300'),
+        party('บมจ. สหไทยสตีลไพพ์', '78 หมู่ 3 ถนนปู่เจ้าสมิงพราย ตำบลบางหญ้าแพรก อำเภอพระประแดง จังหวัดสมุทรปราการ', '02-3859023'),
+        party('บจก. ไทยพรีเมียมไพพ์', '45 หมู่ 2 ตำบลชัยมงคล อำเภอเมือง จังหวัดสมุทรปราการ', '034-8454438'),
+        party('บจก. เอทีที เมทอล', '8/88 ซอยพหลโยธิน 54/1 แยก 6-6 แขวงคลองถนน เขตสายไหม กรุงเทพฯ', '02-0071188'),
+        party('บจก. นิปปอน สตีล แอนด์ ซูมิคิน กัลวาไนซิง (ประเทศไทย)', '12 ซอยจี 2 ถนนปกรณ์สงเคราะห์ราษฎร์ ตำบลมาบตาพุด อำเภอเมือง จังหวัดระยอง', '038-687079-80'),
+        party('บจก. โอเชียนไพพ์', '299 หมู่ 10 ถนนเศรษฐกิจ ตำบลคลองมะเดื่อ อำเภอกระทุ่มแบน จังหวัดสมุทรสาคร', '034-877261'),
+        party('บมจ. เพิ่มสินสตีลเวิคส์', '4, 95-96 หมู่ 6 ถนนพระราม 2 ตำบลโคกขาม อำเภอเมือง จังหวัดสมุทรสาคร', '034-825090'),
+        party('บจก. ตะวันออกรุ่งเรือง', '638 ซอยสุขสวัสดิ์ 35 ถนนสุขสวัสดิ์ แขวงราษฎร์บูรณะ เขตราษฎร์บูรณะ กรุงเทพฯ', '02-4630029'),
+        party('บจก. มิตรสตีล', '1/6 หมู่ 11 ตำบลบางโฉลง อำเภอบางพลี จังหวัดสมุทรปราการ', '02-3372594-5'),
+        party('บจก. ทีเอ็นที เอ็กซเพรส เวิลด์ไวด์ (ประเทศไทย)', '1768 ไทยซัมมิท ทาวเวอร์ ถนนเพชรบุรีตัดใหม่ แขวงบางกะปิ เขตห้วยขวาง กรุงเทพฯ', '02-257655'),
+        party('บจก. ดานีลี', '64/210 หมู่ 4 ตำบลปลวกแดง อำเภอปลวกแดง จังหวัดระยอง', '038-955888'),
+        party('บจก. ซัมซุง ซี แอนด์ ที (ประเทศไทย)', '193/90 เลครัชดา ชั้น 21 ถนนรัชดาภิเษก แขวงคลองเตย เขตคลองเตย กรุงเทพฯ', '02-5475994'),
+        party('บจก. โมโน่สตีล เทรด', '99/766 หมู่ 4 แขวงบางพลีใหญ่ เขตบางพลี', '084-3143798'),
+        party('บจก. ทวีโชค พาณิช', '55/5, 55/55 หมู่ 2 ซอยวัดหนามแดง ถนนศรีนครินทร์ ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ'),
+      ],
+    },
     {
       key: 'users',
       title: 'รายชื่อสมาคมหรือกลุ่มอุตสาหกรรมผู้ใช้',
       nameLabel: 'รายชื่อสมาคม/กลุ่มอุตสาหกรรมผู้ใช้',
+      addLabel: 'เพิ่มกลุ่ม',
       wrapped: true,
-      rows: [emptyParty()],
+      rows: [
+        party('กลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย', 'ชั้น 8 อาคารปฏิบัติการเทคโนโลยีเชิงสร้างสรรค์ เลขที่ 2 ถนนนางลิ้นจี่ แขวงทุ่งมหาเมฆ เขตสาทร กรุงเทพฯ 10120', '02-345-1000', '02-345-1295-9'),
+        party('สมาคมเหล็กแผ่นรีดร้อนไทย', '28/1 อาคารประภาวิทย์ ชั้น 3 ถนนสุรวงศ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', '02-238-3063', '02-236-8892'),
+        party('สมาคมผู้ผลิตท่อโลหะและแปรรูปเหล็กแผ่น', 'อาคารสำนักพัฒนาอุตสาหกรรมรายสาขา ชั้น 1 ซอยตรีมิตร ถนนพระราม 4 แขวงพระโขนง เขตคลองเตย กรุงเทพฯ 10110', '02-712-1179', '02-712-1179'),
+        party('สมาคมอุตสาหกรรมยานยนต์ไทย', 'อาคารปฏิบัติการเทคโนโลยีเชิงสร้างสรรค์ ถนนนางลิ้นจี่ แขวงทุ่งมหาเมฆ เขตสาทร กรุงเทพฯ', '02-712-1179', '02-712-1179'),
+        party('สมาคมต่อเรือและซ่อมเรือไทย', 'ถนนพระราม 2 แขวงบางมด เขตจอมทอง กรุงเทพฯ', '02-452-1266, 02-840-2110', '02-452-1267'),
+      ],
     },
   ];
-  protected readonly files: Record<string, string> = {};
+  protected readonly files: Record<string, string> = {
+    volume: 'AD VN-EG_Table 8.4-ALL_rev.01_15.05.20.xlsx',
+    unitCost: 'AD VN-EG_Table 8.3-ALL rev.01_15.05.20.xlsx',
+  };
+  protected groups: Record<string, string[]> = {
+    cert: [
+      'SSI หนังสือรับรอง.pdf',
+      'G steel หนังสือรับรอง.pdf',
+      'GJ หนังสือรับรอง.pdf',
+      'SPM หนังสือรับรอง.pdf',
+    ],
+    finance: [
+      'SSI-2562.pdf',
+      'SSI-2561.pdf',
+      'SSI-2560.pdf',
+      'SSI-2559.pdf',
+      'SSI-2558.pdf',
+      'GST-FS2019.pdf',
+      'GST-FS2018.pdf',
+      'GST-FS2017.pdf',
+      'GST-FS2016.pdf',
+      'GST-FS2015.pdf',
+      'GJS-2562.pdf',
+      'GJS-2561.pdf',
+      'GJS-2560.pdf',
+      'GJS-2559.pdf',
+      'GJS-2558.pdf',
+      'SPM FS 2562.pdf',
+      'SPM FS 2561.pdf',
+      'SPM FS 2560.pdf',
+      'SPM FS 2559.pdf',
+      'SPM FS 2558.pdf',
+    ],
+    power: [
+      'SSI มอบบุคคลธรรมดา.pdf',
+      'G steel มอบบุคคลธรรมดา.pdf',
+      'G steel มอบนิติบุคคล.pdf',
+      'G Steel มอบอำนาจช่วง.pdf',
+      'GJ มอบบุคคลธรรมดา.pdf',
+      'GJ มอบนิติบุคคล.pdf',
+      'SPM มอบบุคลลธรรมดา.pdf',
+      'SPM มอบนิติบุคคล.pdf',
+    ],
+    otherDoc: [
+      'สิ่งที่ส่งมาด้วย 7 ราคาจำหน่ายในประเทศเวียดนาม เม.ย. 62.pdf',
+      'สิ่งที่ส่งมาด้วย 8 ราคาจำหน่ายในประเทศอียิปต์ เม.ย. 62.pdf',
+    ],
+  };
+  protected readonly filedOn = '15/05/2562';
+  protected readonly amendUntil = addThaiMonths(this.filedOn, 4);
+  protected docKey = 'cert';
+  protected readonly supportDocs: { key: string; label: string; accept: string; hint: string; behalf: boolean }[] = [
+    { key: 'cert', label: 'หนังสือรับรองบริษัท', accept: '.png,.jpg,.jpeg,.pdf', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf', behalf: false },
+    { key: 'finance', label: 'งบการเงินที่ผู้สอบบัญชีรับอนุญาตรับรอง', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx', behalf: false },
+    { key: 'power', label: 'หนังสือมอบอำนาจ', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx', behalf: true },
+    { key: 'volume', label: 'รายการและปริมาณสินค้าที่ผลิตและ/หรือจำหน่ายของผู้ผลิตทุกราย', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx', behalf: true },
+  ];
+  protected editingKey = '';
   protected exampleOpen = false;
-  protected market = '';
-  protected trade = '';
-  protected special = '';
+  protected market = 'yes';
+  protected trade = 'other';
+  protected special = 'no';
   protected method = '';
-  protected exportCountry = 'ไทย';
+  protected exportCountry = 'เวียดนาม';
   protected compareCountry = 'ไทย';
-  protected currency = '';
-  protected factoryNote = '';
-  protected thirdReason = '';
-  protected originDetail = '';
-  protected thaiDetail = '';
-  protected specialDetail = '';
-  protected compareReason = '';
-  protected originPeriod = '';
-  protected thaiPeriod = '';
-  protected originCosts: CostRow[] = [emptyCost()];
-  protected thaiCosts: CostRow[] = [emptyCost()];
-  protected docs: DocFile[] = [{ name: 'file name.pdf', saved: '29/09/2569' }];
-  protected exportDetail = '';
-  protected exportDocs: DocFile[] = [{ name: 'file name.pdf', saved: '29/09/2569' }];
-  protected marginDocs: DocFile[] = [{ name: 'file name.pdf', saved: '29/09/2569' }];
-  protected subsidyDocs: DocFile[] = [{ name: 'file name.pdf', saved: '29/09/2569' }];
-  protected explainDetail = '';
-  protected explainDocs: DocFile[] = [{ name: 'file name.pdf', saved: '29/09/2569' }];
+  protected currency = 'บาท';
+  protected factoryNote = 'เวียดนาม CFR 566 ดอลลาร์/ตัน หักค่าเรือ 200 บาท ได้หน้าโรงงาน 17,514 บาท/ตัน อียิปต์ 601 ดอลลาร์ เป็น 19,418 บาท/ตัน อัตรา 31.8596 บาทต่อดอลลาร์ เม.ย. 2562';
+  protected thirdReason = 'ไม่มี';
+  protected originDetail = 'ไม่มี';
+  protected thaiDetail = 'ไม่มี';
+  protected specialDetail = 'ไม่มี';
+  protected compareReason = 'ไม่มี ประเทศผู้ส่งออกใช้ระบบเศรษฐกิจแบบกลไกตลาด จึงไม่ใช้ข้อ 4.5';
+  protected originPeriod = 'ไม่มี';
+  protected thaiPeriod = 'ไม่มี';
+  protected originCosts: CostRow[] = [{ item: 'ไม่มี', amount: '-', percent: '-' }];
+  protected thaiCosts: CostRow[] = [{ item: 'ไม่มี', amount: '-', percent: '-' }];
+  protected docs: DocFile[] = [
+    { name: 'สิ่งที่ส่งมาด้วย 1 พิกัดอัตราศุลกากรสินค้าที่ถูกพิจารณา.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 2.1 พระราชกำหนดพิกัดอัตราศุลกากร.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 2.2 ประกาศลดอัตราอากร ม.12.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 2.3 ประกาศลดอัตราอากร ASEAN FTA.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่สงมาด้วย 4 มาตรฐานและชั้นคุณภาพ.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 5 กระบวนการผลิต rev.01.pdf', saved: '15/05/2562' },
+    { name: 'แผนภาพกระบวนการผลิต.pdf', saved: '15/05/2562' },
+  ];
+  protected exportDetail = 'เวียดนามหน้าโรงงาน 16,761 บาท/ตัน CIF 17,238 ส่วนเหลื่อม 753 บาท (4.36%) อียิปต์หน้าโรงงาน 17,349 CIF 19,026 ส่วนเหลื่อม 2,069 บาท (10.87%) เม.ย. 2562';
+  protected exportDocs: DocFile[] = [
+    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562 เวียดนาม.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562 อียิปต์.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 11 ค่าขนส่งทางเรือระหว่างประเทศ.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 12 ค่าขนส่งในประเทศ บางสะพาน-กรุงเทพฯ.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 13 ค่าประกันภัยการเดินเรือ.pdf', saved: '15/05/2562' },
+  ];
+  protected marginDocs: DocFile[] = [{ name: 'สิ่งที่ส่งมาด้วย 10 อัตราแลกเปลี่ยนรายเดือน 2562.pdf', saved: '15/05/2562' }];
+  protected subsidyDocs: DocFile[] = [];
+  protected explainDetail = 'ไม่มีข้อมูลการอุดหนุน เคสนี้ขอให้ไต่สวนการทุ่มตลาด';
+  protected explainDocs: DocFile[] = [];
+  protected docView: 'letter' | 'pledge' | null = null;
+  protected signatureName = 'ลายเซ็น.png';
+  protected signatureUrl =
+    'data:image/svg+xml,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="72" viewBox="0 0 180 72"><path d="M12 46c16-30 22 6 34-2 10-6 4 20 16 14 14-8 2-28 18-22 18 6 6 26 22 14 12-8 8 10 20 4 14-8 22 2 36-12" fill="none" stroke="#0E2346" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    );
+  protected letterNo = '01/492-019/2562';
+  protected letterDate = '15/05/2562';
+  protected letterSubject = 'ขอให้พิจารณาดำเนินการใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อน ชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากสาธารณรัฐสังคมนิยมเวียดนามและสาธารณรัฐอาหรับอียิปต์';
+  protected letterTo = 'อธิบดีกรมการค้าต่างประเทศ';
+  protected letterRef = '-';
+  protected letterEnclosed = 'แบบ ปร.1 แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน จำนวน 1 ฉบับ';
+  protected letterBody = 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน) ในฐานะผู้ผลิตภายในประเทศ และผู้ยื่นคำขอแทนผู้ผลิตบางส่วนในอุตสาหกรรม สินค้าเหล็กแผ่นรีดร้อน ชนิดเป็นม้วนและไม่เป็นม้วน จึงขอนำส่งแบบคำขอพร้อมเอกสารประกอบต่อกรมการค้าต่างประเทศไว้เป็นหลักฐานในการพิจารณาใช้มาตรการตอบโต้การทุ่มตลาด';
+  protected letterPurpose = 'ขอให้พิจารณาใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์';
+  protected sealName = '';
+  protected sealUrl = '';
+  protected letterFileName = '';
+  protected readonly pledgeDefault = 'ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียวและขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ';
+  protected pledgeText = this.pledgeDefault;
+  protected pledgeSource: 'default' | 'draft' = 'default';
+  protected otherDocs: DocFile[] = [
+    { name: 'ภาคผนวก ก.pdf', saved: '15/05/2562' },
+    { name: 'เอกสารผนวก ข-2 (LPN).pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 6 รายชื่อผู้นำเข้า.pdf', saved: '15/05/2562' },
+  ];
   protected readonly conditions = [
     { key: 'sales', label: 'ยอดจำหน่ายภายในประเทศ' },
     { key: 'priceFactors', label: 'ปัจจัยที่มีผลกระทบต่อราคา' },
@@ -130,26 +468,2721 @@ export class Por1Page {
     { key: 'otherIndex', label: 'ปัจจัยและดัชนีทางเศรษฐกิจอื่น ๆ นอกจากที่ระบุมาข้างต้น' },
   ];
   protected sheets: Record<'import' | 'factor' | 'summary' | 'trend' | 'intent', DocFile[]> = {
-    import: seedDoc(),
-    factor: seedDoc(),
-    summary: seedDoc(),
-    trend: seedDoc(),
-    intent: seedDoc(),
+    import: [{ name: 'AD VN-EG_Table 8.1, 8.2, 8.7-ALL rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
+    factor: [
+      { name: 'AD VN-EG_Table 8.4-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2562' },
+      { name: 'สิ่งที่ส่งมาด้วย 14 SEAISI Pro.-Cap..pdf', saved: '15/05/2562' },
+    ],
+    summary: [{ name: 'AD VN-EG_Table 8.5-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
+    trend: [{ name: 'AD VN-EG_Table 8.8-ALL rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
+    intent: [{ name: 'AD VN-EG_Table 8.6-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
   };
-  protected notes: Record<string, string> = {};
+  protected notes: Record<string, string> = {
+    importDetail: 'ปี 2562 นำเข้าจากเวียดนามและอียิปต์ 115,737 ตัน จาก 17,257 ตันในปี 2561 เพิ่มร้อยละ 571',
+    priceEffect: 'เวียดนามตัดราคาปี 2559–2562 ที่ 991, 2,627, 448 และ 2,440 บาท/ตัน ปี 2562 สูงถึงร้อยละ 13 อียิปต์ตัดราคาปี 2559–2560 ที่ 1,701 และ 328 บาท/ตัน',
+    costEffect: 'ขายต่ำกว่าต้นทุนตั้งแต่ปี 2559 ปี 2562 ต่ำกว่าต้นทุน 2,357 บาท/ตัน ใกล้เคียงการตัดราคาของเวียดนามที่ 2,440 บาท/ตัน',
+    sales: 'ปริมาณขายในประเทศลดจาก 2.74 ล้านตันในปี 2561 เหลือ 2.12 ล้านตันในปี 2562 ลดลง 0.623 ล้านตัน',
+    priceFactors: 'สินค้านำเข้าตัดราคาและกดราคา ทำให้ราคาขายในประเทศต่ำกว่าต้นทุนตั้งแต่ปี 2559',
+    profit: 'อุตสาหกรรมภายในขาดทุนต่อเนื่องตั้งแต่ปี 2558 เพราะขายต่ำกว่าต้นทุน',
+    output: 'ปริมาณผลิตปี 2562 เท่ากับ 2.242 ล้านตัน ลดลง 0.752 ล้านตันจากปี 2561',
+    share: 'ปี 2560–2561 ส่วนแบ่งตลาดร้อยละ 80.68 และ 84.58 ปี 2562 เหลือร้อยละ 72.68 ลดลงร้อยละ 12.16',
+    productivity: 'ประสิทธิภาพการผลิตสูง แต่อัตราการใช้กำลังการผลิตต่ำกว่าร้อยละ 50 จึงไม่เกิดการประหยัดต่อขนาด',
+    capacity: 'กำลังการผลิต 7.95 ล้านตันทุกปี อัตราการใช้ปี 2562 ประมาณร้อยละ 29',
+    stock: 'สินค้าคงคลังสิ้นปี 2558–2562 เท่ากับ 94,629, 136,640, 177,878, 166,248 และ 126,290 ตัน',
+    employment: 'การนำเข้าทำให้ต้องหยุดผลิตเป็นระยะ ลดจำนวนแรงงานและชั่วโมงการผลิตเพื่อลดต้นทุน',
+    wages: 'มูลค่าจ้างงานปี 2558–2562 เท่ากับ 556.99, 649.91, 701.08, 759.66 และ 730.43 ล้านบาท',
+    growth: 'ปริมาณจำหน่ายและส่วนแบ่งตลาดลดลงในปี 2562 หลังจากเพิ่มขึ้นในช่วงปี 2558–2561',
+    return: 'ผลตอบแทนจากการลงทุนติดลบ เพราะขาดทุนต่อเนื่องตั้งแต่ปี 2558',
+    cash: 'ขาดทุนต่อเนื่องจนกระทบสภาพคล่อง และการลงทุนของอุตสาหกรรมภายใน',
+    funding: 'ความเสียหายด้านราคาทำให้ระดมทุนหรือลงทุนเพิ่มได้ยากขึ้น',
+    marginSize: 'ส่วนเหลื่อมการทุ่มตลาดเวียดนาม 4.36% และอียิปต์ 10.87%',
+    otherIndex: 'ปัจจัยอื่นไม่ได้ก่อให้เกิดความเสียหาย การบริโภคและเทคโนโลยีของสินค้าอุตสาหกรรมเปลี่ยนอย่างช้า',
+    factorDetail: 'การนำเข้าสินค้าที่ถูกพิจารณาเป็นปัจจัยหลักของความเสียหาย ปัจจัยอื่นไม่ได้ก่อให้เกิดความเสียหาย',
+    summaryDetail: 'ความเสียหายอยู่ที่การผลิตที่อัตราใช้กำลังการผลิตต่ำกว่าร้อยละ 50 การจำหน่ายที่ต่ำกว่าต้นทุน ราคาที่ถูกตัดและกด และการจ้างงาน',
+    buyerDetail: 'ไม่มีข้อมูลรายชื่อผู้ซื้อที่สูญเสียยอดขาย และไม่มีหลักฐานการลดราคาเพื่อรักษาตลาด',
+    trendCapacity: 'กำลังการผลิตต่างประเทศยังพร้อมส่งออกหากความต้องการในไทยฟื้น',
+    trendPrice: 'สินค้านำเข้ากดราคาและทำให้ขึ้นราคาตามต้นทุนไม่ได้',
+    trendSubsidy: 'ไม่มี เคสนี้ขอให้ไต่สวนการทุ่มตลาด',
+    trendOther: 'หากไม่ดำเนินมาตรการ อุตสาหกรรมภายในอาจถึงขั้นหยุดกิจการ',
+    intentDetail: 'ไม่มีข้อมูล',
+  };
   protected submitOpen = false;
-  protected ack = false;
-  protected signer = '';
-  protected roleTitle = '';
-  protected signedOn = '';
+  protected historyOpen = false;
+  protected historyFull = false;
+  protected historyTab: 'activity' | 'version' = 'activity';
+  protected notice: 'draft' | 'submitted' | 'saved' | 'etr' | 'docs' | 'assist' | 'check' | 'reply' | 'suggest' | null = null;
+  protected submitting = false;
+  private submitTimer = 0;
+  private reviewTimer = 0;
+  protected reviewLeft = 60;
+  protected approvalLeft = 60;
+  protected consultOpen = false;
+  protected consultFormal = false;
+  protected sideTalk = false;
+  protected readonly officerName = filingOfficer;
+
+  protected get consultOfficerName(): string {
+    return readWorkAssignment().hands.at(-1)?.name || this.officerName;
+  }
+  protected approvedBy = readApprovedBy();
+  protected readonly officerUnit = filingUnit;
+  protected officialOpen = false;
+  protected consult: ConsultRequest | null = readConsult();
+  protected consultTopic = 'ขอพบเจ้าหน้าที่เพื่อปรึกษาการแก้ไขคำขอ';
+  protected consultDetail = 'รายการที่ยังไม่ผ่านมีหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตในประเทศ ต้องการให้นัดหมายเพื่อชี้แจงก่อนส่งแบบคำร้องทางการ';
+  protected consultWhen = '16/05/2562 10:00';
+  protected consultNotes: ConsultNote[] = readConsultThread();
+  protected consultAssigned = readConsultAssigned();
+  protected consultPlan: ConsultPlan | null = readConsultPlan();
+
+  protected get channelText(): string {
+    return consultChannelLabel(this.consultPlan);
+  }
+
+  protected get consultByChat(): boolean {
+    const channels = this.consultPlan?.channels;
+    if (!channels?.length) return true;
+    return channels.includes('chat');
+  }
+  protected consultDraft = '';
+  protected pendingFiles: { name: string; image?: string }[] = [];
+  protected caseStatus: CaseStatus = readCaseStatus();
+  protected viewingForm = false;
+  protected revising = false;
+  protected openedRound: FilingRound | null = null;
+  protected rounds: FilingRound[] = readRounds();
+  private readonly revisionFindings: RoundFinding[] = [
+    { place: 'ส่วนที่ 2 รายละเอียดสินค้า', title: 'เอกสารเปรียบเทียบสินค้ายังไม่ครบ', detail: 'รายการเอกสารที่ใช้เปรียบเทียบสินค้ายังไม่ครบตามที่แบบเรียก ให้แนบไฟล์เพิ่มในรอบถัดไป', action: 'เพิ่มเอกสาร' },
+    { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ข้อมูลปริมาณยังไม่สอดคล้องกับเอกสารประกอบ', detail: 'ตัวเลขปริมาณในแบบยังไม่ตรงกับไฟล์ที่แนบไว้ ให้ปรับข้อมูลในแบบให้ตรงกับเอกสาร', action: 'ปรับข้อมูล' },
+    { place: 'ส่วนที่ 1 เอกสารมอบอำนาจ', title: 'หนังสือมอบอำนาจยังแนบไม่ครบ', detail: 'กรณียื่นแทนผู้ผลิต ต้องแนบหนังสือมอบอำนาจให้ครบก่อนยื่นรอบถัดไป', action: 'เพิ่มเอกสาร' },
+  ];
+  private readonly secondFindings: RoundFinding[] = [
+    { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคาส่งออกยังไม่ครอบคลุมช่วงเวลา', detail: 'เอกสารราคาที่แนบยังไม่ครอบคลุมช่วงที่ขอให้ไต่สวน ให้เพิ่มหลักฐานราคาหรือปรับช่วงข้อมูล', action: 'เพิ่มเอกสาร' },
+    { place: 'ส่วนที่ 6 ความเสียหาย', title: 'ตัวชี้วัดความเสียหายยังไม่สอดคล้องกับปริมาณนำเข้า', detail: 'ข้อมูลความเสียหายในแบบยังอธิบายไม่ครบว่าเชื่อมกับปริมาณนำเข้าอย่างไร', action: 'ปรับข้อมูล' },
+    { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'สัดส่วนผู้ผลิตในประเทศที่ร่วมยื่นยังขาดเอกสารยืนยัน', action: 'เพิ่มเอกสาร' },
+  ];
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly reviewRole = (this.route.snapshot.data['review'] as string) || '';
+  protected readonly staffGroups = staffGroups;
+  protected reviewTab: 'form' | 'assign' | 'talk' | 'link' | 'docs' | 'inquiry' = 'form';
+  protected workDocs: WorkDraft[] = defaultWorkDrafts();
+  protected madeDocs: MadeDoc[] = [];
+  protected editingId = '';
+  protected viewingMade: MadeDoc | null = null;
+  protected docGaps: DocGap[] = [
+    { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
+    { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
+    { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
+  ];
+  protected docAction: DocAction = 'amend';
+  protected docNoticedOn = '20/05/2562';
+  protected docDueOn = '20/06/2562';
+  protected docNote = 'ขอเพิ่มหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
+  protected noticeLetter = noticeLetterFields('amend', '20/05/2562', '20/06/2562', '');
+  protected replyKind: 'fix' | 'extend' = 'fix';
+  protected amendReason = 'ต้องรวบรวมหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 จากผู้ผลิตที่ร่วมยื่น';
+  protected replyNewDue = '20/07/2562';
+  protected replyLetterDate = '22/05/2562';
+  protected replyLetterNo = 'สห.2205/2562';
+  protected replyLetterTo = 'อธิบดีกรมการค้าต่างประเทศ';
+  protected replyLetterSubject = 'ส่งคำขอที่แก้ไขเพิ่มเติม เลขที่อ้างอิง REF256205150001';
+  protected replyLetterBody = 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด ขอส่งคำขอที่แก้ไขเพิ่มเติม ตามหนังสือแจ้งลงวันที่ 20/05/2562 ได้แก่ หลักฐานราคา ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
+  protected replyFiles: ReplyFile[] = defaultReplyFiles();
+  protected replySent = false;
+  protected replyAt = '';
+  protected viewingReply: ReplyFile | null = null;
+  protected noticePasses: NoticePass[] = [];
+  protected noticeSaraban = '';
+  protected committeeAt = '05/06/2562';
+  protected committeeResult: 'take' | 'reject' = 'take';
+  protected committeeFee: 'pay' | 'skip' | '' = 'pay';
+  protected committeeNote = '';
+  protected committeeEmbassyOn = '05/06/2562';
+  protected embassyFiles: { name: string; title: string; sentOn: string; docId: string }[] = [];
+  protected embassyLetter = embassyLetterFields('05/06/2562', '');
+  protected embassyNotice = false;
+  protected inquiryAgendaAt = '10/06/2562';
+  protected inquiryAgenda = '';
+  protected inquiryFields = agendaFieldList();
+  protected inquiryAgendaFiles: { name: string; title: string; sentOn: string; docId: string }[] = [];
+  protected inquiryDecide: 'take' | 'return' | '' = '';
+  protected inquiryFeeAmount = '10,000';
+  protected inquiryFeeDue = '24/06/2562';
+  protected inquiryFeeSent = false;
+  protected inquiryPayFiles: InquiryPayFile[] = [];
+  protected inquiryPaySent = false;
+  protected inquiryPayAck = false;
+  protected inquiryOpen: 'open' | 'close' | '' = '';
+  protected inquiryOpenAt = '10/06/2562';
+  protected inquiryCaseId = '';
+  protected inquiryCloseNote = '';
+  protected inquiryAgendaDone = false;
+  protected inquiryReturned = false;
+  protected inquirySentBy = '';
+  protected inquiryPart: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote' = 'agenda';
+  protected inquiryDecideDraft: 'take' | 'return' | '' = '';
+  protected committeeSent = false;
+  protected committeeSentBy = '';
+  protected docFiles: NoticeFile[] = [{ name: 'หนังสือแจ้งแก้ไข.pdf', title: 'หนังสือแจ้งขอข้อมูลเพิ่ม', sentOn: '20/05/2562' }];
+  protected docSent = false;
+  protected docSentBy = '';
+  protected links: SystemLink[] = readSystemLinks();
+  protected linkLog: SystemLink | null = null;
+  protected linkLogError = false;
+  protected readonly filingSaraban = 'สบ.1605/2562';
+  protected readonly etrRefNo = 'ETR256205170001';
+  protected assignMode: 'group' | 'person' = 'group';
+  protected assignOpen = false;
+  protected bureau = 'กองปกป้องและตอบโต้ทางการค้า';
+  protected pickedPeople: string[] = [];
+  protected pickedGroups: string[] = [];
+  protected draftPeople: string[] = [];
+  protected draftGroups: string[] = [];
+  protected personQuery = '';
+  protected assignNote = '';
+  protected assignOrder = '';
+  protected assignedOn = '';
+  protected dueOn = '';
+  protected assignReply: AssignReply = 'pending';
+  protected replyDraft: '' | 'accept' | 'return' = '';
+  protected replyReason = '';
+  protected groupTasks: GroupTask[] = [];
+  protected groupReturning = '';
+  protected groupReason = '';
+  protected hands: PersonHand[] = [];
+  protected slips: AssignSlip[] = [];
+  protected slipReceipt: 'accept' | 'return' = 'accept';
+  protected slipKind: 'report' | 'forward' = 'forward';
+  protected slipAssignedOn = '';
+  protected slipDueOn = '';
+  protected slipDueTime = '';
+  protected slipRemind = true;
+  protected slipOrder = '';
+  protected slipFiles: AssignFile[] = [];
+  protected slipPeople: string[] = [];
+  protected forwardPick: string[] = [];
+  protected handReturning = '';
+  protected handReason = '';
+  protected receipt: ReceiptRecord | null = readReceipt();
+  protected officeLink: OfficeLink | null = null;
+  protected ack = true;
+  protected signer = 'นายประกิต กาญจนการไกร';
+  protected roleTitle = 'ผู้จัดการสำนักรัฐกิจสัมพันธ์ ผู้รับมอบอำนาจ';
+  protected signedOn = '15/05/2562';
+
+  protected closeHistory(): void {
+    this.historyOpen = false;
+    this.historyFull = false;
+  }
+
+  protected get historyItems(): HistoryItem[] {
+    const base = this.historyTab === 'activity' ? this.historyActivity : this.historyVersions;
+    if (this.historyTab !== 'activity') return base;
+    const items = [...base];
+    if (this.receipt) {
+      const received: HistoryItem = {
+        phase: 'การลงรับ',
+        title: 'ลงรับจากระบบสารบรรณ',
+        when: `${this.receipt.sarabanDate} · ${this.receipt.sarabanTime} น.`,
+        detail: `เลขที่ลงรับ ${this.receipt.sarabanNo} เรื่อง${this.receipt.subject} เลขที่หนังสือ ${this.receipt.letterNo} วันที่หนังสือ ${this.receipt.letterDate}`,
+        label: 'ลงรับ',
+        tone: 'info',
+      };
+      const filed = items.findIndex((item) => item.title === 'ยื่นครั้งแรก');
+      items.splice(filed + 1, 0, received);
+    }
+    return this.withWorkHistory(items);
+  }
+
+  private withWorkHistory(items: HistoryItem[]): HistoryItem[] {
+    const work = this.slips.map((slip) => ({
+      phase: 'การมอบหมาย',
+      title: `${slip.from} มอบหมายให้ ${slip.to}`,
+      when: slip.assignedOn || '16/05/2562',
+      detail: `${this.receiptText(slip.receipt)} · ${this.kindText(slip.kind)} · กำหนดส่ง ${slip.dueOn}${slip.dueTime ? ` ${slip.dueTime} น.` : ''} · ${slip.order}`,
+      label: slip.receipt === 'return' ? 'ส่งคืน' : 'มอบหมาย',
+      tone: slip.receipt === 'return' ? 'warning' as const : 'info' as const,
+    }));
+    const linked = this.links.find((row) => row.system === 'eTR' && row.state === 'success');
+    const sent = linked
+      ? [{
+          phase: 'การเชื่อมโยงระบบ',
+          title: 'ได้รับ Ref Case ID (eTR)',
+          when: linked.at,
+          detail: linked.detail,
+          label: 'เชื่อมแล้ว',
+          tone: 'success' as const,
+        }]
+      : [];
+    const checked = this.docSent
+      ? [{
+          phase: 'การตรวจสอบเอกสาร',
+          title: this.docActionLabel(this.docAction),
+          when: this.docNoticedOn,
+          detail: `${this.docNote} ครบกำหนด ${this.docDueOn} ส่งทางอีเมลและ e-Office แล้ว${this.replySent ? ` · ผู้ยื่น${this.replyKind === 'extend' ? 'ขอขยายเวลาถึง ' + this.replyNewDue : 'ส่งคำขอที่แก้ไขแล้ว'} เมื่อ ${this.replyAt}` : ''}`,
+          label: this.docAction === 'amend' ? 'ขอเพิ่ม' : 'ตรวจแล้ว',
+          tone: this.docAction === 'amend' ? 'warning' as const : 'success' as const,
+        }]
+      : [];
+    return [...items, ...work, ...sent, ...checked];
+  }
+
+  private readonly historyActivity: HistoryItem[] = [
+    { phase: 'การจัดทำคำขอ', title: 'สร้างคำขอ', when: '15/05/2562 · 09:30 น.', detail: 'ผู้ยื่นสร้างคำขอและเริ่มกรอกข้อมูล', label: 'ร่าง', tone: 'neutral' },
+    { phase: 'การจัดทำคำขอ', title: 'บันทึกข้อมูล', when: '15/05/2562 · 10:15 น.', detail: 'ปรับปรุงข้อมูลผู้ยื่นและรายละเอียดสินค้า', label: 'ร่าง', tone: 'neutral' },
+    { phase: 'การจัดทำคำขอ', title: 'แนบเอกสาร', when: '15/05/2562 · 11:00 น.', detail: 'แนบเอกสารประกอบคำขอ', label: 'ร่าง', tone: 'neutral' },
+    { phase: 'การจัดทำคำขอ', title: 'ยื่นครั้งแรก', when: '15/05/2562 · 16:00 น.', detail: 'นำส่งแบบ ปร.1 พร้อมหนังสือนำส่ง', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'รอบแก้ไขแบบคำขอ', title: 'แก้ไขครั้งที่ 1', when: '22/07/2562', detail: 'ส่งแบบคำขอที่แก้ไขรอบที่ 1', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'รอบแก้ไขแบบคำขอ', title: 'แก้ไขครั้งที่ 2', when: '28/08/2562', detail: 'ส่งแบบคำขอที่แก้ไขรอบที่ 2', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'รอบแก้ไขแบบคำขอ', title: 'แก้ไขครั้งที่ 3', when: '09/10/2562', detail: 'ส่งแบบคำขอที่แก้ไขรอบที่ 3', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'รอบแก้ไขแบบคำขอ', title: 'แก้ไขครั้งที่ 4', when: '16/10/2562', detail: 'ส่งแบบคำขอที่แก้ไขรอบที่ 4', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'รอบแก้ไขแบบคำขอ', title: 'ส่งเอกสารเพิ่ม', when: '22/10/2562', detail: 'ส่งเอกสารเพิ่มเติมทางไปรษณีย์อิเล็กทรอนิกส์', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'รอบแก้ไขแบบคำขอ', title: 'ฉบับไม่เปิดเผย', when: '05/12/2562', detail: 'จัดทำคำขอฉบับไม่เปิดเผย แยกจากฉบับที่เปิดเผย', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'เอกสารที่ยื่นเพิ่ม', title: 'ฉบับเปิดเผย', when: '12/12/2562', detail: 'แบบคำขอฉบับที่เปิดเผยได้', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'เอกสารที่ยื่นเพิ่ม', title: 'ไฟล์จากแผ่นบันทึก', when: '16/10/2562', detail: 'ไฟล์ประกอบที่ส่งมาพร้อมรอบแก้ไข', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'เอกสารที่ยื่นเพิ่ม', title: 'ไฟล์จากแผ่นบันทึก รอบถัดไป', when: '27/11/2562', detail: 'ไฟล์ประกอบอีกชุดหลังรอบแก้ไข', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'เปิดไต่สวน', title: 'วาระเปิดไต่สวน', when: '20/01/2563', detail: 'จัดวาระพิจารณาเปิดไต่สวน', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'เปิดไต่สวน', title: 'ความเห็นต่อการเปิดไต่สวน', when: '10/02/2563', detail: 'ความเห็นประกอบการพิจารณาเปิดไต่สวน', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'แบบสอบถาม', title: 'จัดส่งแบบสอบถาม', when: '03/03/2563', detail: 'ส่งแบบสอบถามให้ผู้มีส่วนได้เสีย', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'แบบสอบถาม', title: 'รับคำตอบแบบสอบถาม', when: '28/04/2563', detail: 'รับคำตอบแบบสอบถามกลับเข้าเคส', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ตรวจสอบข้อเท็จจริง', title: 'เอกสารตรวจสอบข้อเท็จจริง', when: '15/06/2563', detail: 'ชุดเอกสารที่ใช้ตรวจสอบข้อเท็จจริง', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ผลการพิจารณา', title: 'ร่างผลขั้นที่สุด', when: '20/08/2563', detail: 'ร่างผลการพิจารณาขั้นที่สุด', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ผลการพิจารณา', title: 'ความเห็นต่อร่างผล', when: '25/09/2563', detail: 'ความเห็นต่อร่างผลการพิจารณา', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ผลการพิจารณา', title: 'ผลขั้นที่สุด', when: '30/10/2563', detail: 'ผลการพิจารณาขั้นที่สุด', label: 'เสร็จสิ้น', tone: 'success' },
+    { phase: 'หลังจากผลขั้นที่สุด', title: 'เอกสารตามมาตรา 19 (2)', when: '15/01/2564', detail: 'เอกสารในขั้นหลังจากผลพิจารณา', label: 'ดำเนินการ', tone: 'info' },
+  ];
+
+  private readonly historyVersions: HistoryItem[] = [
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 1 ยื่นครั้งแรก', when: '15/05/2562', detail: 'แบบ ปร.1 พร้อมหนังสือนำส่งและเอกสารประกอบ', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 2 แก้ไขครั้งที่ 1', when: '22/07/2562', detail: 'แบบคำขอที่แก้ไขรอบที่ 1', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 3 แก้ไขครั้งที่ 2', when: '28/08/2562', detail: 'แบบคำขอที่แก้ไขรอบที่ 2', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 4 แก้ไขครั้งที่ 3', when: '09/10/2562', detail: 'แบบคำขอที่แก้ไขรอบที่ 3', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 5 แก้ไขครั้งที่ 4', when: '16/10/2562', detail: 'แบบคำขอที่แก้ไขรอบที่ 4', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 6 ส่งทางไปรษณีย์อิเล็กทรอนิกส์', when: '22/10/2562', detail: 'เอกสารเพิ่มเติมที่ส่งทางไปรษณีย์อิเล็กทรอนิกส์', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 7 ฉบับไม่เปิดเผย', when: '05/12/2562', detail: 'คำขอฉบับไม่เปิดเผยต่อสาธารณะ', label: 'แก้ไข', tone: 'warning' },
+    { phase: 'เอกสารที่ยื่นเพิ่ม', title: 'เวอร์ชัน 8 ฉบับเปิดเผย', when: '12/12/2562', detail: 'แบบคำขอฉบับที่เปิดเผยได้', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'เอกสารที่ยื่นเพิ่ม', title: 'เวอร์ชัน 9 ไฟล์จากแผ่นบันทึก', when: '16/10/2562', detail: 'ไฟล์ประกอบที่ส่งมาพร้อมรอบแก้ไข', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'เอกสารที่ยื่นเพิ่ม', title: 'เวอร์ชัน 10 ไฟล์จากแผ่นบันทึก รอบถัดไป', when: '27/11/2562', detail: 'ไฟล์ประกอบอีกชุดหลังรอบแก้ไข', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'เปิดไต่สวน', title: 'เวอร์ชัน 11 วาระเปิดไต่สวน', when: '20/01/2563', detail: 'เอกสารวาระพิจารณาเปิดไต่สวน', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'เปิดไต่สวน', title: 'เวอร์ชัน 12 ความเห็นต่อการเปิดไต่สวน', when: '10/02/2563', detail: 'ความเห็นประกอบการพิจารณาเปิดไต่สวน', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'แบบสอบถาม', title: 'เวอร์ชัน 13 แบบสอบถาม', when: '03/03/2563', detail: 'แบบสอบถามที่จัดส่งในเคสนี้', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'แบบสอบถาม', title: 'เวอร์ชัน 14 คำตอบแบบสอบถาม', when: '28/04/2563', detail: 'คำตอบแบบสอบถามที่รับกลับเข้าเคส', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ตรวจสอบข้อเท็จจริง', title: 'เวอร์ชัน 15 เอกสารตรวจสอบข้อเท็จจริง', when: '15/06/2563', detail: 'ชุดเอกสารที่ใช้ตรวจสอบข้อเท็จจริง', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ผลการพิจารณา', title: 'เวอร์ชัน 16 ร่างผลขั้นที่สุด', when: '20/08/2563', detail: 'ร่างผลการพิจารณาขั้นที่สุด', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ผลการพิจารณา', title: 'เวอร์ชัน 17 ความเห็นต่อร่างผล', when: '25/09/2563', detail: 'ความเห็นต่อร่างผลการพิจารณา', label: 'ดำเนินการ', tone: 'info' },
+    { phase: 'ผลการพิจารณา', title: 'เวอร์ชัน 18 ผลขั้นที่สุด', when: '30/10/2563', detail: 'ผลการพิจารณาขั้นที่สุด', label: 'เสร็จสิ้น', tone: 'success' },
+    { phase: 'หลังจากผลขั้นที่สุด', title: 'เวอร์ชัน 19 เอกสารตามมาตรา 19 (2)', when: '15/01/2564', detail: 'เอกสารในขั้นหลังจากผลพิจารณา', label: 'ดำเนินการ', tone: 'info' },
+  ];
+
+  protected get letterWhen(): string {
+    return this.thaiDate(this.letterDate);
+  }
+
+  protected get signedWhen(): string {
+    return this.thaiDate(this.signedOn);
+  }
+
+  private thaiDate(value: string): string {
+    const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    const [day, month, year] = value.split('/');
+    const index = Number(month) - 1;
+    if (!day || index < 0 || index > 11 || !year) return value || this.filedOn;
+    return `${Number(day)} ${months[index]} ${year}`;
+  }
+
+  protected get consultDate(): string {
+    return this.thaiDate((this.consult?.when || '').split(' ')[0] || '');
+  }
+
+  protected noteClock(at: string): string {
+    const time = at.split(' ')[1];
+    return time ? `${time} น.` : at;
+  }
+
+  protected get measureName(): string {
+    return this.measure === 'subsidy' ? 'ตอบโต้การอุดหนุน' : 'ตอบโต้การทุ่มตลาด';
+  }
+
+  protected resetPledge(): void {
+    this.pledgeText = this.pledgeDefault;
+    this.pledgeSource = 'default';
+    this.publishGuide();
+  }
+
+  protected draftPledge(): void {
+    const who = this.signer.trim() || 'ผู้ลงนาม';
+    const role = this.roleTitle.trim();
+    const roleLine = role ? ` ตำแหน่ง${role}` : '';
+    const behalf = this.onBehalf
+      ? 'และขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นในฐานะผู้ยื่นคำขอ'
+      : 'และขอยื่นคำขอนี้ในนามของผู้ยื่นเอง';
+    this.pledgeText = `ข้าพเจ้า ${who}${roleLine} ของ${this.company} ขอรับรองว่าข้อความในแบบ ปร.1 เลขที่อ้างอิง ${filingRefId} เรื่องมาตรการ${this.measureName} ตลอดจนเอกสารผนวกและเอกสารหลักฐานที่นำมาประกอบคำขอ เป็นความจริงและถูกต้องทุกประการ หากข้อมูลและเอกสารหลักฐานเป็นเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียว ${behalf}`;
+    this.pledgeSource = 'draft';
+    this.publishGuide();
+  }
+
+  protected setSignature(event: Event): void {
+    this.readImage(event, (url, name) => {
+      this.signatureUrl = url;
+      this.signatureName = name;
+    });
+  }
+
+  protected setSeal(event: Event): void {
+    this.readImage(event, (url, name) => {
+      this.sealUrl = url;
+      this.sealName = name;
+    });
+  }
+
+  protected setLetterFile(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.letterFileName = file.name;
+  }
+
+  private readImage(event: Event, apply: (url: string, name: string) => void): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      apply(typeof reader.result === 'string' ? reader.result : '', file.name);
+      this.view.detectChanges();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  protected printDocument(kind: 'letter' | 'pledge'): void {
+    document.body.dataset['printDoc'] = kind;
+    const done = () => {
+      delete document.body.dataset['printDoc'];
+      window.removeEventListener('afterprint', done);
+    };
+    window.addEventListener('afterprint', done);
+    window.print();
+  }
+
+  protected downloadDocument(kind: 'letter' | 'pledge'): void {
+    const node = document.querySelector(`.print-root [data-doc="${kind}"]`);
+    if (!(node instanceof HTMLElement)) return;
+    const title = kind === 'letter' ? 'หนังสือนำส่ง' : 'คำรับรองและลงนาม';
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${title} ${filingRefId}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h3{margin:0 0 16px;text-align:center;font-size:18px;font-weight:500}.letter__top{display:flex;justify-content:space-between;gap:24px}.letter__date{margin-left:auto;text-align:right;white-space:nowrap}.letter__body{margin:20px 0;text-indent:48px}.letter__sign{margin-top:28px;text-align:center}img{display:block;max-height:88px;margin:0 auto}p{margin:0 0 8px}</style></head><body>${node.innerHTML}</body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title}-${filingRefId}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected get formLocked(): boolean {
+    return !!this.reviewRole || this.caseStatus === 'review' || this.caseStatus === 'approval' || this.caseStatus === 'official' || ((this.caseStatus === 'consult' || this.caseStatus === 'revision') && !this.revising);
+  }
+
+  protected get showForm(): boolean {
+    return !!this.reviewRole || this.caseStatus === 'draft' || this.caseStatus === 'cancelled' || this.viewingForm || this.revising;
+  }
+
+  protected get tracking(): boolean {
+    return this.caseStatus === 'review' || this.caseStatus === 'revision' || this.caseStatus === 'consult' || this.caseStatus === 'approval' || this.caseStatus === 'official';
+  }
+
+  protected get showStatus(): boolean {
+    return !this.reviewRole && this.tracking && !this.viewingForm && !this.revising && !this.openedRound;
+  }
+
+  protected get bureauGroups() {
+    const text = this.personQuery.trim();
+    return workGroups.filter((group) => !text || `${group.name} ${group.detail}`.includes(text));
+  }
+
+  protected groupHeadName(group: string): string {
+    return groupHead(group);
+  }
+
+  protected get bureauPeople() {
+    const text = this.personQuery.trim();
+    return staffPeople.filter((person) => person.unit === this.bureau && (!text || `${person.name} ${person.title}`.includes(text)));
+  }
+
+  protected get chosenGroups() {
+    return this.pickedGroups.map((name) => {
+      const found = workGroups.find((group) => group.name === name);
+      if (found) return found;
+      return { name, detail: '', unit: '', count: peopleInGroup(name).length };
+    });
+  }
+
+  protected get assignFoot(): string {
+    const parts: string[] = [];
+    if (this.pickedGroups.length) {
+      if (this.reviewRole === 'director') parts.push(`${this.pickedGroups.length} กลุ่ม`);
+      else {
+        const heads = this.chosenGroups.reduce((sum, group) => sum + group.count, 0);
+        parts.push(`${this.pickedGroups.length} กลุ่ม (${heads} คน)`);
+      }
+    }
+    if (this.pickedPeople.length) parts.push(`${this.pickedPeople.length} คน`);
+    return parts.length ? parts.join(' · ') : 'ยังไม่ได้เลือก';
+  }
+
+  protected setAssignMode(mode: 'group' | 'person'): void {
+    if (this.assignMode === mode) return;
+    this.assignMode = mode;
+    this.personQuery = '';
+  }
+
+  protected setBureau(group: string): void {
+    this.bureau = group;
+    this.personQuery = '';
+  }
+
+  protected openAssign(): void {
+    if (this.reviewRole !== 'director') return;
+    this.draftGroups = [...this.pickedGroups];
+    this.draftPeople = [...this.pickedPeople];
+    this.personQuery = '';
+    this.assignOpen = true;
+  }
+
+  protected closeAssign(): void {
+    this.assignOpen = false;
+    this.personQuery = '';
+  }
+
+  protected applyAssign(): void {
+    if (!this.draftGroups.length) return;
+    this.pickedGroups = [...this.draftGroups];
+    this.groupTasks = this.tasksFor(this.pickedGroups, false);
+    this.hands = this.hands.filter((hand) => this.pickedGroups.includes(hand.group));
+    this.syncSlipPeople(true);
+    this.closeAssign();
+  }
+
+  protected toggleDraftGroup(group: string): void {
+    this.draftGroups = this.draftGroups.includes(group) ? this.draftGroups.filter((item) => item !== group) : [...this.draftGroups, group];
+  }
+
+  protected toggleDraftPerson(name: string): void {
+    this.draftPeople = this.draftPeople.includes(name) ? this.draftPeople.filter((item) => item !== name) : [...this.draftPeople, name];
+  }
+
+  protected toggleGroup(group: string): void {
+    if (this.reviewRole !== 'director') return;
+    this.pickedGroups = this.pickedGroups.filter((item) => item !== group);
+    this.groupTasks = this.groupTasks.filter((task) => task.group !== group);
+    this.hands = this.hands.filter((hand) => hand.group !== group);
+    this.syncSlipPeople(true);
+  }
+
+  protected togglePerson(name: string): void {
+    if (this.reviewRole !== 'director') return;
+    this.pickedPeople = this.pickedPeople.filter((item) => item !== name);
+  }
+
+  protected clearAssign(): void {
+    if (this.reviewRole !== 'director') return;
+    this.pickedGroups = [];
+    this.pickedPeople = [];
+  }
+
+  protected saveAssignment(): void {
+    this.saveSlip();
+  }
+
+  protected get actorName(): string {
+    if (this.signedPerson) return this.signedPerson;
+    if (this.reviewRole === 'director') return this.directorName;
+    return '';
+  }
+
+  protected get directorName(): string {
+    return this.accounts.namedPeople().find((person) => person.role === 'director')?.name ?? '';
+  }
+
+  protected get slipPlace(): string {
+    if (this.reviewRole === 'director' && this.shownTasks.length) return 'director';
+    const task = this.shownTasks.find((item) => item.head === this.signedPerson && item.reply !== 'return');
+    if (task) return task.group;
+    const hand = this.hands.find((item) => item.name === this.signedPerson && item.reply !== 'return');
+    return hand?.name ?? '';
+  }
+
+  protected get slipHint(): string {
+    if (this.slipPlace === 'director') return 'ผู้อำนวยการมอบหมายได้เฉพาะกลุ่มงาน หัวหน้ากลุ่มจะเลือกเจ้าหน้าที่ในกลุ่มต่อ';
+    if (this.shownTasks.some((task) => task.head === this.signedPerson)) return 'หัวหน้ากลุ่มส่งต่อรายบุคคลในกลุ่ม หรือรายงานผลและส่งคืนให้ผู้อำนวยการ';
+    return 'รายงานผลหรือส่งคืนให้หัวหน้ากลุ่มของตนเอง';
+  }
+
+  protected get slipTargets(): { name: string; detail: string }[] {
+    const named = new Set(this.accounts.namedPeople().map((person) => person.name));
+    if (this.reviewRole === 'director') {
+      return this.shownTasks.map((task) => ({ name: task.group, detail: 'กลุ่มงาน' }));
+    }
+    const task = this.shownTasks.find((item) => item.head === this.signedPerson);
+    if (task) {
+      if (this.slipReceipt === 'return' || this.slipKind === 'report') {
+        const boss = this.slips.find((slip) => slip.to === this.signedPerson)?.from || this.directorName;
+        return boss && named.has(boss) ? [{ name: boss, detail: 'ผู้อำนวยการ' }] : [];
+      }
+      return this.membersOf(task.group).filter((person) => named.has(person.name)).map((person) => ({ name: person.name, detail: person.title }));
+    }
+    const hand = this.hands.find((item) => item.name === this.signedPerson);
+    if (!hand || (this.slipReceipt === 'accept' && this.slipKind === 'forward')) return [];
+    const head = this.shownTasks.find((item) => item.group === hand.group)?.head ?? '';
+    return head && named.has(head) ? [{ name: head, detail: 'หัวหน้ากลุ่ม' }] : [];
+  }
+
+  protected setSlipReceipt(value: 'accept' | 'return'): void {
+    this.slipReceipt = value;
+    this.syncSlipPeople(true);
+  }
+
+  protected setSlipKind(value: 'report' | 'forward'): void {
+    this.slipKind = value;
+    this.syncSlipPeople(true);
+  }
+
+  protected removeSlipPerson(name: string): void {
+    if (name === this.directorName || this.slipPeople.length < 2) return;
+    this.slipPeople = this.slipPeople.filter((item) => item !== name);
+    if (this.reviewRole !== 'director') return;
+    const task = this.shownTasks.find((item) => item.group === name || item.head === name);
+    if (task) this.toggleGroup(task.group);
+  }
+
+  protected slipsTo(name: string): AssignSlip[] {
+    return this.slips.filter((slip) => slip.to === name);
+  }
+
+  protected receiptText(value: 'accept' | 'return'): string {
+    return value === 'return' ? 'ส่งคืน' : 'รับ';
+  }
+
+  protected kindText(value: 'report' | 'forward'): string {
+    return value === 'report' ? 'รายงานผล' : 'ส่งต่อ';
+  }
+
+  protected addSlipFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const next = [...this.slipFiles];
+    for (const file of input.files ?? []) next.push({ name: file.name, title: file.name });
+    this.slipFiles = next;
+    input.value = '';
+  }
+
+  protected renameSlipFile(index: number, title: string): void {
+    this.slipFiles = this.slipFiles.map((file, item) => (item === index ? { ...file, title } : file));
+  }
+
+  protected removeSlipFile(index: number): void {
+    this.slipFiles = this.slipFiles.filter((_, item) => item !== index);
+  }
+
+  protected get slipReady(): boolean {
+    return !!this.actorName && this.slipPeople.length > 0 && !!this.slipOrder.trim() && thaiDateOk(this.slipAssignedOn, 'any') && thaiDateOk(this.slipDueOn, 'any') && this.timeOk(this.slipDueTime);
+  }
+
+  protected saveSlip(): void {
+    if (!this.slipReady) return;
+    const from = this.actorName;
+    const files = this.slipFiles.map((file) => ({ name: file.name, title: file.title.trim() || file.name }));
+    const made: AssignSlip[] = this.slipPeople.map((name) => ({
+      at: `${Date.now()}-${name}`,
+      from,
+      to: name,
+      group: this.groupOfTarget(name),
+      receipt: this.slipReceipt,
+      kind: this.slipKind,
+      assignedOn: this.slipAssignedOn.trim(),
+      dueOn: this.slipDueOn.trim(),
+      dueTime: this.slipDueTime.trim(),
+      remind: this.slipRemind,
+      order: this.slipOrder.trim(),
+      files,
+    }));
+    const keys = new Set(made.map((slip) => `${slip.from}\0${slip.to}`));
+    this.slips = [...this.slips.filter((slip) => !keys.has(`${slip.from}\0${slip.to}`)), ...made];
+    if (this.reviewRole === 'director') {
+      this.slipReceipt = 'accept';
+      this.slipKind = 'forward';
+      this.assignOrder = this.slipOrder.trim();
+      this.assignedOn = this.slipAssignedOn.trim();
+      this.dueOn = this.slipDueOn.trim();
+      this.assignNote = this.assignNote.trim();
+      this.groupTasks = this.tasksFor(this.pickedGroups, true);
+      this.hands = [];
+      this.assignReply = 'pending';
+      this.replyReason = '';
+      if (readCaseStatus() === 'consult' && readConsult()) {
+        const group = this.pickedGroups[0] || this.groupOfTarget(this.slipPeople[0] || '');
+        if (group) {
+          writeConsultGroup(group);
+          writeConsultStep('group');
+        }
+        writeConsultAssigned(false);
+        this.consultAssigned = false;
+      }
+    } else {
+      const task = this.shownTasks.find((item) => item.head === from);
+      if (task) {
+        if (this.slipReceipt === 'return') {
+          this.groupTasks = this.groupTasks.map((item) => (item.group === task.group ? { ...item, reply: 'return', reason: this.slipOrder.trim() } : item));
+          this.hands = this.hands.filter((hand) => hand.group !== task.group);
+        } else if (this.slipKind === 'forward') {
+          this.groupTasks = this.groupTasks.map((item) => (item.group === task.group ? { ...item, reply: 'accept', reason: '' } : item));
+          const rest = this.hands.filter((hand) => hand.group !== task.group);
+          this.hands = [...rest, ...this.slipPeople.map((name) => ({ name, group: task.group, reply: 'pending' as const, reason: '' }))];
+          this.pickedPeople = this.hands.map((hand) => hand.name);
+          if (readCaseStatus() === 'consult' && readConsult()) {
+            writeConsultGroup(task.group);
+            writeConsultStep('member');
+            writeConsultPlan({ channels: ['chat'], phone: '', email: '', other: '' });
+            writeConsultAssigned(true);
+            this.consultAssigned = true;
+          }
+        } else {
+          this.groupTasks = this.groupTasks.map((item) => (item.group === task.group ? { ...item, reply: 'accept', reason: '' } : item));
+        }
+      } else {
+        const reply: AssignReply = this.slipReceipt === 'return' ? 'return' : 'accept';
+        this.hands = this.hands.map((hand) => (hand.name === from ? { ...hand, reply, reason: reply === 'return' ? this.slipOrder.trim() : '' } : hand));
+      }
+      this.syncReply();
+    }
+    this.forwardPick = [];
+    writeWorkAssignment(this.assignmentPayload());
+    this.notice = 'saved';
+  }
+
+  protected get signedPerson(): string {
+    return this.accounts.personName;
+  }
+
+  protected get stepLabel(): string {
+    return assignmentStepLabel(this.assignmentPayload());
+  }
+
+  protected get stepTone() {
+    return assignmentStepTone(this.assignmentPayload());
+  }
+
+  protected get shownTasks(): GroupTask[] {
+    return this.pickedGroups.flatMap((group) => {
+      const head = groupHead(group);
+      if (!head) return [];
+      return [this.groupTasks.find((task) => task.group === group) ?? { group, head, reply: 'pending' as const, reason: '' }];
+    });
+  }
+
+  protected groupAct(task: GroupTask): boolean {
+    return this.signedPerson === task.head && task.reply === 'pending';
+  }
+
+  protected handOf(name: string): PersonHand | undefined {
+    return this.hands.find((hand) => hand.name === name);
+  }
+
+  protected handsIn(group: string): PersonHand[] {
+    return this.hands.filter((hand) => hand.group === group);
+  }
+
+  protected handAct(name: string): boolean {
+    const hand = this.handOf(name);
+    const task = this.groupTasks.find((item) => item.group === hand?.group);
+    return !!hand && hand.reply === 'pending' && this.signedPerson === name && task?.reply === 'accept';
+  }
+
+  protected handLabel(name: string): string {
+    return assignmentReplyLabel(this.handOf(name)?.reply ?? 'pending');
+  }
+
+  protected handTone(name: string) {
+    return assignmentReplyTone(this.handOf(name)?.reply ?? 'pending');
+  }
+
+  protected membersOf(group: string) {
+    return groupMembers(group);
+  }
+
+  protected showForward(task: GroupTask): boolean {
+    if (this.signedPerson !== task.head || task.reply !== 'accept') return false;
+    if (!this.membersOf(task.group).length) return false;
+    const mine = this.handsIn(task.group);
+    return !mine.length || mine.some((hand) => hand.reply === 'return');
+  }
+
+  protected slipsForTask(task: GroupTask): AssignSlip[] {
+    return this.slips.filter((slip) => slip.to !== this.directorName && (slip.to === task.group || slip.to === task.head || slip.group === task.group));
+  }
+
+  protected get handoffSteps(): { title: string; detail: string; state: 'done' | 'now' | 'back' | '' }[] {
+    const tasks = this.shownTasks;
+    const headDone = tasks.length > 0 && tasks.every((task) => task.reply === 'accept');
+    const headBack = tasks.some((task) => task.reply === 'return') && tasks.every((task) => task.reply !== 'pending');
+    const peopleDone = this.hands.length > 0 && this.hands.every((hand) => hand.reply === 'accept') && headDone;
+    const peopleNow = headDone && (!this.hands.length || this.hands.some((hand) => hand.reply !== 'accept'));
+    const intakeDone = this.reviewRole !== 'staff' || this.directorAssigned || tasks.length > 0;
+    return [
+      { title: '1. เจ้าหน้าที่รับเรื่อง', detail: this.directorName ? `มอบหมายให้ ${this.directorName}` : 'มอบหมายให้ผู้อำนวยการ', state: intakeDone ? 'done' : 'now' },
+      { title: '2. ผู้อำนวยการ', detail: tasks.length ? `มอบหมาย ${tasks.length} กลุ่ม` : 'มอบหมายให้กลุ่ม', state: tasks.length ? 'done' : intakeDone ? 'now' : '' },
+      {
+        title: '3. กลุ่ม',
+        detail: tasks.map((task) => task.head).join(' · ') || 'รอผู้อำนวยการมอบหมาย',
+        state: headBack ? 'back' : headDone ? 'done' : tasks.length ? 'now' : '',
+      },
+      {
+        title: '4. เจ้าหน้าที่ในกลุ่ม',
+        detail: this.hands.map((hand) => hand.name).join(' · ') || 'รอหัวหน้ากลุ่มมอบหมาย',
+        state: peopleDone ? 'done' : peopleNow ? 'now' : '',
+      },
+    ];
+  }
+
+  protected acceptGroup(group: string): void {
+    const task = this.groupTasks.find((item) => item.group === group);
+    if (!task || !this.groupAct(task)) return;
+    this.groupTasks = this.groupTasks.map((item) => (item.group === group ? { ...item, reply: 'accept', reason: '' } : item));
+    this.groupReturning = '';
+    this.forwardPick = this.membersOf(group).map((person) => person.name);
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected confirmGroupReturn(group: string): void {
+    const task = this.groupTasks.find((item) => item.group === group);
+    if (!task || !this.groupAct(task) || !this.groupReason.trim()) return;
+    this.groupTasks = this.groupTasks.map((item) => (item.group === group ? { ...item, reply: 'return', reason: this.groupReason.trim() } : item));
+    this.hands = this.hands.filter((hand) => hand.group !== group);
+    this.groupReturning = '';
+    this.groupReason = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected toggleForward(name: string): void {
+    this.forwardPick = this.forwardPick.includes(name) ? this.forwardPick.filter((item) => item !== name) : [...this.forwardPick, name];
+  }
+
+  protected sendForward(group: string): void {
+    const task = this.groupTasks.find((item) => item.group === group);
+    if (!task || this.signedPerson !== task.head || task.reply !== 'accept') return;
+    const picked = this.forwardPick.filter((name) => this.membersOf(group).some((person) => person.name === name));
+    if (!picked.length) return;
+    const rest = this.hands.filter((hand) => hand.group !== group);
+    this.hands = [...rest, ...picked.map((name) => ({ name, group, reply: 'pending' as const, reason: '' }))];
+    this.pickedPeople = this.hands.map((hand) => hand.name);
+    this.handReturning = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected acceptHand(name: string): void {
+    if (!this.handAct(name)) return;
+    this.hands = this.hands.map((hand) => (hand.name === name ? { ...hand, reply: 'accept', reason: '' } : hand));
+    this.handReturning = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected confirmHandReturn(name: string): void {
+    if (!this.handAct(name) || !this.handReason.trim()) return;
+    this.hands = this.hands.map((hand) => (hand.name === name ? { ...hand, reply: 'return', reason: this.handReason.trim() } : hand));
+    this.handReturning = '';
+    this.handReason = '';
+    this.syncReply();
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  private syncReply(): void {
+    const step = assignmentStepLabel(this.assignmentPayload());
+    this.assignReply = step === 'รับเรื่องแล้ว' ? 'accept' : step.includes('ส่งคืน') || step === 'มีการส่งคืน' ? 'return' : 'pending';
+    this.replyReason = this.groupTasks.find((task) => task.reply === 'return')?.reason || this.hands.find((hand) => hand.reply === 'return')?.reason || '';
+  }
+
+  private tasksFor(groups: string[], reset: boolean): GroupTask[] {
+    return groups.flatMap((group) => {
+      const head = groupHead(group);
+      if (!head) return [];
+      if (!reset) {
+        const current = this.groupTasks.find((task) => task.group === group);
+        if (current) return [current];
+      }
+      return [{ group, head, reply: 'pending' as const, reason: '' }];
+    });
+  }
+
+  protected saveReply(): void {
+    if (this.reviewRole === 'director' || !this.replyReady || this.replyDraft === '') return;
+    this.assignReply = this.replyDraft;
+    if (this.assignReply !== 'return') this.replyReason = '';
+    writeWorkAssignment(this.assignmentPayload());
+  }
+
+  protected get replyReady(): boolean {
+    if (this.replyDraft === 'accept') return true;
+    return this.replyDraft === 'return' && this.replyReason.trim().length > 0;
+  }
+
+  protected get replyLabel(): string {
+    return assignmentReplyLabel(this.assignReply);
+  }
+
+  protected get replyTone() {
+    return assignmentReplyTone(this.assignReply);
+  }
+
+  protected get assignComplete(): boolean {
+    return this.peopleReady && !!this.assignOrder.trim() && thaiDateOk(this.assignedOn, 'any') && thaiDateOk(this.dueOn, 'any');
+  }
+
+  private groupOfTarget(name: string): string {
+    if (this.shownTasks.some((item) => item.group === name)) return name;
+    const task = this.shownTasks.find((item) => item.head === name);
+    if (task) return task.group;
+    const person = staffPeople.find((item) => item.name === name);
+    if (person?.work) return person.work;
+    return this.hands.find((hand) => hand.name === name)?.group || this.shownTasks.find((item) => item.head === this.signedPerson)?.group || '';
+  }
+
+  private timeOk(value: string): boolean {
+    const text = value.trim();
+    if (!text) return true;
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(text);
+  }
+
+  private syncSlipPeople(force = false): void {
+    const names = this.slipTargets.map((person) => person.name);
+    if (force || !this.slipPeople.length) {
+      this.slipPeople = names;
+      return;
+    }
+    this.slipPeople = this.slipPeople.filter((name) => names.includes(name));
+    if (!this.slipPeople.length) this.slipPeople = names;
+  }
+
+  private assignmentPayload(): WorkAssignment {
+    return {
+      people: this.pickedPeople,
+      groups: this.pickedGroups,
+      note: this.assignNote.trim(),
+      order: this.assignOrder.trim(),
+      assignedOn: this.assignedOn.trim(),
+      dueOn: this.dueOn.trim(),
+      reply: this.assignReply,
+      reason: this.replyReason.trim(),
+      groupTasks: this.groupTasks,
+      hands: this.hands,
+      slips: this.slips,
+    };
+  }
+
+  protected assignPart: 'people' | 'receipt' = 'people';
+  protected docPart = 0;
+
+  protected get peopleReady(): boolean {
+    return this.pickedGroups.length > 0 || this.pickedPeople.length > 0;
+  }
+
+  protected get showTalkTab(): boolean {
+    return this.reviewRole === 'officer' && this.peopleReady;
+  }
+
+  protected pickReviewTab(tab: 'form' | 'assign' | 'talk' | 'link' | 'docs' | 'inquiry'): void {
+    if (tab === 'talk' && !this.showTalkTab) return;
+    this.reviewTab = tab;
+    if (tab === 'talk') this.openTalk();
+    if (tab === 'inquiry') this.placeInquiry();
+  }
+
+  protected get etrAccepted(): boolean {
+    return this.approverNames().length > 0;
+  }
+
+  protected get etrDone(): boolean {
+    return this.links.some((row) => row.system === 'eTR' && row.state === 'success');
+  }
+
+  protected linkMode(mode: SystemLink['mode']): string {
+    if (mode === 'retry') return 'ส่งซ้ำอัตโนมัติ';
+    if (mode === 'manual') return 'ผู้ใช้งานส่งใหม่';
+    return 'อัตโนมัติ';
+  }
+
+  /** รายการที่ไม่สำเร็จและยังไม่มีการส่งใหม่สำเร็จตามมา */
+  protected linkPending(row: SystemLink): boolean {
+    if (row.state !== 'error') return false;
+    const at = this.officeStamp(row.at);
+    return !this.links.some((item) => item.system === row.system && item.state === 'success' && this.officeStamp(item.at) >= at);
+  }
+
+  protected get linkFailCount(): number {
+    return this.links.filter((row) => this.linkPending(row)).length;
+  }
+
+  protected get linkSystems(): { name: string; ok: boolean; at: string }[] {
+    const names = ['ระบบสารบรรณ', ...new Set(this.links.map((row) => row.system))];
+    return names.map((name) => {
+      const rows = this.linkRows.filter((row) => row.system === name);
+      const latest = rows[0];
+      return { name, ok: !rows.some((row) => this.linkPending(row)), at: latest?.at || '' };
+    });
+  }
+
+  protected openLinkLog(row: SystemLink, focusError = false): void {
+    this.linkLog = {
+      ...row,
+      log: [...row.log].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at)),
+    };
+    this.linkLogError = focusError;
+  }
+
+  protected linkState(state: SystemLink['state']): string {
+    if (state === 'error') return 'ไม่สำเร็จ';
+    if (state === 'wait') return 'รอส่ง';
+    return 'สำเร็จ';
+  }
+
+  protected get linkRows(): SystemLink[] {
+    const office = this.officeLinks.map((item): SystemLink => ({
+      id: item.no,
+      at: item.at,
+      system: 'ระบบสารบรรณ',
+      title: item.events[0]?.text || 'รับเลขที่ลงรับ',
+      detail: `เลข ${item.no}${item.events[1] ? ` · ${item.events[1].text}` : ''}`,
+      state: 'success' as const,
+      mode: 'auto' as const,
+      refNo: item.no,
+      error: '',
+      log: item.events,
+    }));
+    return [...this.links, ...office].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at));
+  }
+
+  private sampleLinks(): SystemLink[] {
+    return [
+      {
+        id: 'etr-auto-error',
+        at: '17/05/2562 09:10',
+        system: 'eTR',
+        title: 'ส่งข้อมูลคำขออัตโนมัติ',
+        detail: 'ระบบ eTR ไม่ตอบกลับ จึงยังไม่ได้ Ref Case ID (eTR)',
+        state: 'error',
+        mode: 'auto',
+        refNo: '',
+        error: 'ETR-504 Gateway Timeout · ระบบ eTR ไม่ตอบกลับภายใน 30 วินาที หลังส่งซ้ำอัตโนมัติครบ 3 ครั้ง',
+        log: [
+          { at: '17/05/2562 09:10', text: `เตรียมข้อมูลคำขอ ${this.refId} พร้อมเลขสารบรรณ ${this.filingSaraban}` },
+          { at: '17/05/2562 09:10', text: 'ส่งข้อมูลไประบบ eTR ครั้งที่ 1 · ไม่ตอบกลับภายใน 30 วินาที' },
+          { at: '17/05/2562 09:11', text: 'ส่งซ้ำอัตโนมัติครั้งที่ 2 · ไม่ตอบกลับภายใน 30 วินาที' },
+          { at: '17/05/2562 09:12', text: 'ส่งซ้ำอัตโนมัติครั้งที่ 3 · ไม่ตอบกลับ หยุดส่งและรอผู้ใช้งานส่งใหม่' },
+        ],
+      },
+    ];
+  }
+
+  private ensureLinks(): void {
+    let saved = readSystemLinks().filter((row) => row.system !== 'ระบบ e-Office' && row.system !== 'ไปรษณีย์อิเล็กทรอนิกส์');
+    const old = readEtrLink();
+    if (old && !saved.some((row) => row.system === 'eTR' && row.state === 'success')) {
+      saved = [...saved, {
+        id: 'etr-migrated',
+        at: old.backAt || old.sentAt,
+        system: 'eTR',
+        title: 'ได้รับ Ref Case ID (eTR)',
+        detail: `Ref Case ID (eTR) ${old.caseId} จากเลขสารบรรณ ${old.saraban}`,
+        state: 'success',
+        mode: 'auto',
+        refNo: old.caseId,
+        error: '',
+        log: [{ at: old.backAt || old.sentAt, text: `ได้รับ Ref Case ID (eTR) ${old.caseId}` }],
+      }];
+      writeEtrLink(null);
+    }
+    for (const sample of this.sampleLinks()) {
+      const found = saved.find((row) => row.id === sample.id);
+      if (!found) saved = [...saved, sample];
+      else if (!found.log.length) saved = saved.map((row) => (row.id === sample.id ? { ...row, error: sample.error, log: sample.log } : row));
+    }
+    writeSystemLinks(saved);
+    this.links = saved;
+  }
+
+  protected resendLink(failed: SystemLink): void {
+    if (!this.linkPending(failed)) return;
+    const at = '17/05/2562 09:25';
+    const by = this.signedPerson || 'ผู้ใช้งาน';
+    const etr = failed.system === 'eTR';
+    const row: SystemLink = {
+      id: `${failed.id}-resend-${this.links.length}`,
+      at,
+      system: failed.system,
+      title: `ส่งใหม่อีกครั้ง · ${failed.title}`,
+      detail: etr
+        ? `ได้ Ref Case ID (eTR) ${this.etrRefNo} จากเลขสารบรรณ ${this.filingSaraban} เชื่อมกับคำขอ ${this.refId} แล้ว`
+        : `ระบบ ${failed.system} ตอบรับแล้ว`,
+      state: 'success',
+      mode: 'manual',
+      refNo: etr ? this.etrRefNo : '',
+      error: '',
+      log: [
+        { at, text: `${by} กดส่งใหม่อีกครั้งจากรายการที่ไม่สำเร็จเมื่อ ${failed.at} น.` },
+        { at, text: `ส่งข้อมูลคำขอ ${this.refId} ไป${failed.system}` },
+        { at, text: etr ? `ระบบ eTR ตอบกลับ Ref Case ID (eTR) ${this.etrRefNo}` : `ระบบ ${failed.system} ตอบรับแล้ว` },
+      ],
+    };
+    this.links = [...this.links, row];
+    writeSystemLinks(this.links);
+    this.linkLog = null;
+    this.notice = etr ? 'etr' : 'saved';
+  }
+
+  protected docActionLabel(action: DocAction): string {
+    if (action === 'complete') return 'แจ้งคำขอครบถ้วนถูกต้อง';
+    if (action === 'late') return 'แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
+    return 'แจ้งแก้ไขเพิ่มเติม';
+  }
+
+  protected get noticeLead(): string {
+    const base = this.docAction === 'complete'
+      ? 'ตรวจร่างทั้ง 3 รายการแล้ว คำขอครบถ้วนถูกต้อง พร้อมแจ้งผลให้ผู้ยื่น'
+      : this.docAction === 'late'
+        ? `ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil || '15/09/2562'} แล้วยังไม่ครบถ้วนถูกต้อง`
+        : `ตรวจร่างทั้ง 3 รายการแล้ว ข้อมูลยังไม่ครบ จึงแจ้งผู้ยื่นให้ส่งเพิ่มภายใน ${this.docDueOn}`;
+    return this.noticeSaraban ? `${base} เลขรับสารบรรณ ${this.noticeSaraban}` : base;
+  }
+
+  protected get noticeTag(): string {
+    if (this.docAction === 'complete') return 'ครบถ้วนถูกต้อง';
+    if (this.docAction === 'late') return 'ไม่ครบภายใน 4 เดือน';
+    return 'ข้อมูลไม่ครบถ้วน';
+  }
+
+  protected get noticeTone(): 'success' | 'warning' | 'danger' {
+    if (this.docAction === 'complete') return 'success';
+    if (this.docAction === 'late') return 'danger';
+    return 'warning';
+  }
+
+  protected viewingNotice = '';
+
+  protected openNoticeFile(name: string): void {
+    this.viewingNotice = name;
+  }
+
+  protected downloadNoticeFile(name: string): void {
+    const file = this.docFiles.find((item) => item.name === name);
+    const title = file?.title || name;
+    const body = this.noticeLetter.map((item) => `<p><strong>${this.escapeHtml(item.label)}</strong><br>${this.escapeHtml(item.value).replaceAll('\n', '<br>')}</p>`).join('');
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p>${body}</body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name.replace(/\.[^.]+$/, '') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected get canReviewDocs(): boolean {
+    if (this.docSent) return false;
+    if (!this.etrAccepted) return false;
+    if (this.reviewRole === 'director') return true;
+    return this.approverNames().includes(this.signedPerson);
+  }
+
+  protected get docCanSend(): boolean {
+    const dueOk = this.docAction === 'complete' || thaiDateOk(this.docDueOn, 'any');
+    const letterOk = this.noticeLetter.every((item) => item.value.trim());
+    const gapsOk = this.docAction !== 'amend' || (this.docGaps.length > 0 && this.docGaps.every((gap) => gap.title.trim()));
+    return this.canReviewDocs && !!this.docNote.trim() && letterOk && gapsOk && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
+  }
+
+  protected suggestGaps(): void {
+    if (this.docSent) return;
+    const suggested: DocGap[] = this.noticePasses.length
+      ? [{ place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' }]
+      : [
+          { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
+          { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
+          { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
+        ];
+    this.docGaps = suggested.map((gap) => ({ ...gap }));
+    this.docNote = this.docGaps.map((gap) => gap.title).join(' ');
+    const body = this.docGaps.map((gap, index) => `${index + 1}. ${gap.title} ${gap.detail}`).join('\n');
+    this.noticeLetter = this.noticeLetter.map((field) => field.label === 'เนื้อความ'
+      ? { ...field, value: `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง ${this.refId} แล้ว ยังไม่ครบถ้วนดังนี้ จึงขอให้ส่งเพิ่มภายใน ${this.docDueOn}\n${body}` }
+      : field);
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'suggest';
+  }
+
+  protected addGap(): void {
+    if (this.docSent) return;
+    this.docGaps = [...this.docGaps, { place: '', title: '', detail: '' }];
+  }
+
+  protected setGap(index: number, key: keyof DocGap, value: string): void {
+    this.docGaps = this.docGaps.map((gap, item) => item === index ? { ...gap, [key]: value } : gap);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  protected removeGap(index: number): void {
+    this.docGaps = this.docGaps.filter((_, item) => item !== index);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  protected assistNotice(): void {
+    if (this.docSent) return;
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.docNote = this.docAction === 'complete'
+      ? 'ตรวจแล้วคำขอและเอกสารประกอบครบถ้วนถูกต้อง'
+      : this.docAction === 'late'
+        ? 'ครบกำหนด 4 เดือนเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้อง'
+        : 'ขอเพิ่มหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'check';
+  }
+
+  protected setNoticeField(index: number, value: string): void {
+    this.noticeLetter = this.noticeLetter.map((item, itemIndex) => itemIndex === index ? { ...item, value } : item);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  protected madeOf(title: string): MadeDoc[] {
+    return this.madeDocs.filter((item) => item.kind === title);
+  }
+
+  protected extraFiles: { kind: string; name: string; title: string; sentOn: string }[] = this.readExtraFiles();
+
+  protected extrasOf(kind: string): { kind: string; name: string; title: string; sentOn: string }[] {
+    return this.extraFiles.filter((file) => file.kind === kind);
+  }
+
+  protected addExtraFiles(event: Event): void {
+    const kind = this.workDocs[this.docPart]?.title;
+    const input = event.target as HTMLInputElement;
+    if (!kind) return;
+    const files = [...(input.files ?? [])].map((file) => ({ kind, name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: '20/05/2562' }));
+    this.extraFiles = [...this.extraFiles, ...files];
+    this.writeExtraFiles();
+    input.value = '';
+  }
+
+  protected renameExtraFile(kind: string, index: number, title: string): void {
+    let seen = -1;
+    this.extraFiles = this.extraFiles.map((file) => {
+      if (file.kind !== kind) return file;
+      seen += 1;
+      return seen === index ? { ...file, title } : file;
+    });
+    this.writeExtraFiles();
+  }
+
+  protected removeExtraFile(kind: string, index: number): void {
+    let seen = -1;
+    this.extraFiles = this.extraFiles.filter((file) => {
+      if (file.kind !== kind) return true;
+      seen += 1;
+      return seen !== index;
+    });
+    this.writeExtraFiles();
+  }
+
+  protected downloadExtraFile(file: { name: string; title: string; sentOn: string }): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(file.title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(file.title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p><p>ไฟล์แนบ ${this.escapeHtml(file.name)}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name.replace(/\.[^.]+$/, '') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private readExtraFiles(): { kind: string; name: string; title: string; sentOn: string }[] {
+    try {
+      const value = JSON.parse(sessionStorage.getItem('dft-por1-extra-files') || '[]') as { kind?: string; name?: string; title?: string; sentOn?: string }[];
+      if (!Array.isArray(value)) return [];
+      return value.flatMap((file) => file?.kind && file.name ? [{ kind: file.kind, name: file.name, title: file.title || file.name, sentOn: file.sentOn || '20/05/2562' }] : []);
+    } catch {
+      return [];
+    }
+  }
+
+  private writeExtraFiles(): void {
+    sessionStorage.setItem('dft-por1-extra-files', JSON.stringify(this.extraFiles));
+  }
+
+  protected pickDoc(index: number): void {
+    this.docPart = index;
+    this.editingId = '';
+  }
+
+  protected assistDraft(): void {
+    const fresh = defaultWorkDrafts()[this.docPart];
+    if (!fresh) return;
+    this.workDocs = this.workDocs.map((item, index) => index === this.docPart ? { ...fresh, fields: fresh.fields.map((field) => ({ ...field })) } : item);
+    writeWorkDrafts(this.workDocs);
+    this.notice = 'assist';
+  }
+
+  protected freshMade(): void {
+    const fresh = defaultWorkDrafts()[this.docPart];
+    if (!fresh) return;
+    this.editingId = '';
+    this.workDocs = this.workDocs.map((item, index) => index === this.docPart ? { ...fresh, fields: fresh.fields.map((field) => ({ ...field })) } : item);
+    writeWorkDrafts(this.workDocs);
+  }
+
+  protected editMade(id: string): void {
+    const found = this.madeDocs.find((item) => item.id === id);
+    if (!found) return;
+    const index = this.workDocs.findIndex((item) => item.title === found.kind);
+    if (index < 0) return;
+    this.docPart = index;
+    this.editingId = id;
+    this.workDocs = this.workDocs.map((item, itemIndex) => itemIndex === index ? { ...item, fields: found.fields.map((field) => ({ ...field })) } : item);
+  }
+
+  protected downloadMade(item: MadeDoc): void {
+    const body = item.fields.map((field) => `<p><strong>${this.escapeHtml(field.label)}</strong><br>${this.escapeHtml(field.value).replaceAll('\n', '<br>')}</p>`).join('');
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(item.kind)} ${filingRefId}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(item.kind)}</h1><p>เลขที่อ้างอิง ${filingRefId} · บันทึกเมื่อ ${this.escapeHtml(item.at)}</p>${body}</body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${item.kind}-${filingRefId}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+
+  protected saveMade(asNew: boolean): void {
+    const current = this.workDocs[this.docPart];
+    if (!current) return;
+    const fields = current.fields.map((field) => ({ ...field }));
+    if (!asNew && this.editingId) {
+      this.madeDocs = this.madeDocs.map((item) => item.id === this.editingId ? { ...item, fields, at: '20/05/2562' } : item);
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `doc-${Date.now()}`, kind: current.title, at: '20/05/2562', fields }];
+      this.editingId = '';
+    }
+    writeMadeDocs(this.madeDocs);
+    this.notice = 'saved';
+  }
+
+  private loadMadeDocs(): void {
+    const saved = readMadeDocs();
+    if (saved.length) {
+      this.madeDocs = saved;
+      return;
+    }
+    this.madeDocs = defaultWorkDrafts().map((doc, index) => ({
+      id: `seed-${index}`,
+      kind: doc.title,
+      at: '20/05/2562',
+      fields: doc.fields.map((field) => ({ ...field })),
+    }));
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected setDraft(doc: number, index: number, value: string): void {
+    this.workDocs = this.workDocs.map((item, itemIndex) => itemIndex === doc
+      ? { ...item, fields: item.fields.map((field, fieldIndex) => fieldIndex === index ? { ...field, value } : field) }
+      : item);
+    writeWorkDrafts(this.workDocs);
+  }
+
+  private loadWorkDrafts(): void {
+    const saved = readWorkDrafts();
+    if (saved.length !== this.workDocs.length) return;
+    this.workDocs = this.workDocs.map((item, index) => {
+      const current = saved[index];
+      if (!current || current.title !== item.title || current.fields.length !== item.fields.length) return item;
+      return { ...item, fields: item.fields.map((field, fieldIndex) => ({ ...field, value: current.fields[fieldIndex]?.value ?? field.value })) };
+    });
+  }
+
+  private loadDocNotice(): void {
+    const saved = readDocNotice();
+    if (!saved) return;
+    this.docAction = saved.action;
+    this.docNoticedOn = saved.noticedOn || this.docNoticedOn;
+    this.docDueOn = saved.dueOn || this.docDueOn;
+    this.docNote = saved.note || this.docNote;
+    if (saved.letter.length === this.noticeLetter.length && saved.letter.every((item, index) => item.label === this.noticeLetter[index]?.label)) {
+      this.noticeLetter = saved.letter.map((item) => ({ ...item }));
+    }
+    if (saved.files.length) this.docFiles = saved.files;
+    if (saved.gaps.length) this.docGaps = saved.gaps.map((gap) => ({ ...gap }));
+    this.noticeSaraban = saved.sarabanNo;
+    if (saved.committee) this.applyCommittee(saved.committee);
+    if (saved.inquiry) this.applyInquiry(saved.inquiry);
+    this.docSent = saved.sent;
+    this.docSentBy = saved.sentBy;
+    this.noticePasses = saved.passes.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null }));
+    if (saved.reply) this.applyReply(saved.reply);
+    else if (saved.action === 'complete') {
+      const kept = [...saved.passes].reverse().find((pass) => pass.reply);
+      if (kept?.reply) this.applyReply(kept.reply);
+    }
+  }
+
+  private applyCommittee(record: CommitteeRecord): void {
+    this.committeeAt = record.at || this.committeeAt;
+    this.committeeResult = record.result;
+    this.committeeFee = record.fee;
+    this.committeeNote = record.note;
+    this.committeeEmbassyOn = record.embassyOn;
+    this.embassyFiles = record.embassyFiles.length
+      ? record.embassyFiles.map((file) => ({ name: file.name, title: file.title, sentOn: file.sentOn, docId: file.docId }))
+      : (record.embassyFile ? [{ name: record.embassyFile, title: record.embassyFile, sentOn: record.embassyOn, docId: '' }] : []);
+    if (record.embassyLetter.length === this.embassyLetter.length) {
+      this.embassyLetter = record.embassyLetter.map((field) => ({ ...field }));
+    }
+    this.embassyNotice = record.embassyNotice;
+    this.committeeSent = record.sent;
+    this.committeeSentBy = record.sentBy;
+  }
+
+  private committeePayload(): CommitteeRecord {
+    return {
+      at: this.committeeAt.trim(),
+      result: this.committeeResult,
+      fee: this.committeeResult === 'take' ? this.committeeFee : '',
+      note: this.committeeNote.trim(),
+      embassyOn: this.committeeEmbassyOn.trim(),
+      embassyFile: this.embassyFiles[0]?.name || '',
+      embassyFiles: this.embassyFiles.map((file) => ({ ...file })),
+      embassyLetter: this.embassyLetter.map((field) => ({ ...field })),
+      embassyNotice: this.embassyNotice,
+      sent: true,
+      sentBy: this.signedPerson || this.directorName,
+    };
+  }
+
+  protected get keptReply(): ApplicantReply | null {
+    if (this.replySent) return this.currentReply();
+    return [...this.noticePasses].reverse().find((pass) => pass.reply)?.reply ?? null;
+  }
+
+  protected get canRecordCommittee(): boolean {
+    if (!(this.docSent && this.docAction === 'complete') || this.committeeSent) return false;
+    if (this.reviewRole === 'director') return true;
+    return this.approverNames().includes(this.signedPerson);
+  }
+
+  protected get committeeReady(): boolean {
+    if (!thaiDateOk(this.committeeAt, 'any')) return false;
+    if (this.committeeResult === 'reject') return !!this.committeeNote.trim();
+    if (this.embassyNotice && !this.embassyFiles.length) return false;
+    if (this.committeeFee === 'skip') return !!this.committeeNote.trim();
+    return this.committeeFee === 'pay';
+  }
+
+  protected addEmbassyFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const sentOn = this.committeeAt.trim() || '05/06/2562';
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn, docId: '' }));
+    this.embassyFiles = [...this.embassyFiles, ...files];
+    input.value = '';
+  }
+
+  protected removeEmbassyFile(index: number): void {
+    const file = this.embassyFiles[index];
+    if (!file || this.committeeSent) return;
+    this.embassyFiles = this.embassyFiles.filter((_, item) => item !== index);
+    if (!file.docId) return;
+    this.madeDocs = this.madeDocs.filter((item) => item.id !== file.docId);
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected openEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string }): void {
+    const made = this.madeDocs.find((item) => item.id === file.docId);
+    this.viewingMade = made ?? { id: file.name, kind: file.title, at: file.sentOn, fields: [{ label: 'ไฟล์แนบ', value: file.name }, { label: 'ชื่อเอกสาร', value: file.title }] };
+  }
+
+  protected downloadEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string }): void {
+    const made = this.madeDocs.find((item) => item.id === file.docId);
+    if (made) {
+      this.downloadMade(made);
+      return;
+    }
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(file.title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(file.title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p><p>ไฟล์แนบ ${this.escapeHtml(file.name)}</p><p>วันที่ส่ง ${this.escapeHtml(file.sentOn)}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name.replace(/\.[^.]+$/, '') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected setEmbassyField(index: number, value: string): void {
+    this.embassyLetter = this.embassyLetter.map((field, item) => item === index ? { ...field, value } : field);
+    if (this.embassyLetter[index]?.label === 'วันที่แจ้งเรื่อง') this.committeeEmbassyOn = value;
+  }
+
+  protected fillEmbassyLetter(): void {
+    this.embassyLetter = embassyLetterFields(this.committeeEmbassyOn || '05/06/2562', this.signedPerson);
+    this.notice = 'assist';
+  }
+
+  protected saveEmbassyDoc(): void {
+    if (!this.embassyLetter.every((field) => field.value.trim())) return;
+    const dated = this.embassyLetter.find((field) => field.label === 'วันที่แจ้งเรื่อง')?.value || this.committeeEmbassyOn;
+    this.committeeEmbassyOn = dated;
+    const fields = this.embassyLetter.map((field) => ({ ...field }));
+    const id = `embassy-${Date.now()}`;
+    const doc = { id, kind: 'หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก', at: dated, fields };
+    this.madeDocs = [...this.madeDocs, doc];
+    writeMadeDocs(this.madeDocs);
+    const base = `หนังสือแจ้งรัฐบาล-${dated.replaceAll('/', '')}.pdf`;
+    const name = this.embassyFiles.some((file) => file.name === base) ? `หนังสือแจ้งรัฐบาล-${dated.replaceAll('/', '')}-${this.embassyFiles.length + 1}.pdf` : base;
+    this.embassyFiles = [...this.embassyFiles, { name, title: 'หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก', sentOn: dated, docId: id }];
+    this.notice = 'saved';
+  }
+
+  private applyInquiry(record: InquiryRecord): void {
+    this.inquiryAgendaAt = record.agendaAt || this.inquiryAgendaAt;
+    this.inquiryAgenda = record.agenda;
+    if (record.agendaFields.length === this.inquiryFields.length && record.agendaFields.every((item, index) => item.label === this.inquiryFields[index]?.label)) {
+      this.inquiryFields = record.agendaFields.map((item) => ({ ...item }));
+    }
+    this.inquiryAgendaFiles = record.agendaFiles.map((file) => ({ ...file }));
+    this.inquiryDecide = record.decide;
+    this.inquiryFeeAmount = record.feeAmount || this.inquiryFeeAmount;
+    this.inquiryFeeDue = record.feeDue || this.inquiryFeeDue;
+    this.inquiryFeeSent = record.feeSent;
+    this.inquiryPayFiles = record.payFiles.map((file) => ({ ...file }));
+    this.inquiryPaySent = record.paySent;
+    this.inquiryPayAck = record.payAck;
+    this.inquiryOpen = record.open;
+    this.inquiryOpenAt = record.openAt || this.inquiryOpenAt;
+    this.inquiryCaseId = record.caseId;
+    this.inquiryCloseNote = record.closeNote;
+    this.inquiryAgendaDone = record.agendaDone;
+    this.inquiryReturned = record.returned;
+    this.inquirySentBy = record.sentBy;
+    this.inquiryDecideDraft = record.decide;
+    this.placeInquiry();
+  }
+
+  private inquiryPayload(): InquiryRecord | null {
+    const agenda = this.inquiryFields.map((item) => `${item.label}: ${item.value.trim()}`).join('\n');
+    if (!agenda.trim() && !this.inquiryDecide && !this.inquiryFeeSent && !this.inquiryOpen && !this.inquiryPayFiles.length) return null;
+    return {
+      agendaAt: this.inquiryAgendaAt.trim(),
+      agenda,
+      decide: this.inquiryDecide,
+      feeAmount: this.inquiryFeeAmount.trim(),
+      feeDue: this.inquiryFeeDue.trim(),
+      feeSent: this.inquiryFeeSent,
+      payFiles: this.inquiryPayFiles.map((file) => ({ ...file })),
+      paySent: this.inquiryPaySent,
+      payAck: this.inquiryPayAck,
+      open: this.inquiryOpen,
+      openAt: this.inquiryOpenAt.trim(),
+      caseId: this.inquiryCaseId,
+      closeNote: this.inquiryCloseNote.trim(),
+      agendaDone: this.inquiryAgendaDone,
+      agendaFields: this.inquiryFields.map((item) => ({ ...item })),
+      agendaFiles: this.inquiryAgendaFiles.map((file) => ({ ...file })),
+      returned: this.inquiryReturned,
+      sentBy: this.inquirySentBy || this.signedPerson || this.directorName,
+    };
+  }
+
+  private writeInquiry(): void {
+    this.inquirySentBy = this.signedPerson || this.directorName;
+    writeDocNotice(this.docPayload(this.docSent));
+    this.notice = 'saved';
+  }
+
+  protected get inquiryReached(): boolean {
+    if (this.committeeSent && this.committeeResult === 'reject') return false;
+    if (this.committeeSent && this.committeeResult === 'take') return true;
+    return this.caseStatus === 'official';
+  }
+
+  protected fillInquiryAgenda(): void {
+    this.inquiryFields = agendaFieldList();
+    this.notice = 'assist';
+  }
+
+  protected setInquiryField(index: number, value: string): void {
+    this.inquiryFields = this.inquiryFields.map((item, itemIndex) => itemIndex === index ? { ...item, value } : item);
+  }
+
+  private placeInquiry(): void {
+    if (!this.inquiryAgendaDone) this.inquiryPart = 'agenda';
+    else if (!this.inquiryDecide) this.inquiryPart = 'decide';
+    else if (this.inquiryDecide === 'return') this.inquiryPart = 'letter';
+    else if (!this.inquiryFeeSent) this.inquiryPart = 'fee';
+    else if (!this.inquiryPayAck) this.inquiryPart = 'proof';
+    else this.inquiryPart = 'vote';
+  }
+
+  protected get inquiryNav(): { id: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote'; label: string; done: boolean }[] {
+    const steps: { id: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote'; label: string; done: boolean }[] = [
+      { id: 'agenda', label: 'วาระพิจารณา', done: this.inquiryAgendaDone },
+      { id: 'decide', label: 'พิจารณาคำขอ', done: this.inquiryDecide !== '' },
+    ];
+    if (this.inquiryDecide === 'return') steps.push({ id: 'letter', label: 'หนังสือคืนคำขอ', done: this.inquiryReturned });
+    if (this.inquiryDecide === 'take') {
+      steps.push(
+        { id: 'fee', label: 'แจ้งชำระค่าธรรมเนียม', done: this.inquiryFeeSent },
+        { id: 'proof', label: 'หลักฐานการชำระ', done: this.inquiryPayAck },
+        { id: 'vote', label: 'มติเปิดไต่สวน', done: this.inquiryOpen !== '' },
+      );
+    }
+    return steps;
+  }
+
+  protected openInquiryStep(id: 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote'): void {
+    const steps = this.inquiryNav;
+    const index = steps.findIndex((step) => step.id === id);
+    const pending = steps.findIndex((step) => !step.done);
+    if (index < 0 || (pending !== -1 && index > pending)) return;
+    this.inquiryPart = id;
+  }
+
+  protected saveInquiryAgenda(): void {
+    if (!this.inquiryReached || this.inquiryFields.some((item) => !item.value.trim()) || !thaiDateOk(this.inquiryAgendaAt, 'any')) return;
+    const id = `agenda-${Date.now()}`;
+    const fields = this.inquiryFields.map((item) => ({ ...item }));
+    this.madeDocs = [...this.madeDocs, { id, kind: 'วาระพิจารณาคำขอ', at: this.inquiryAgendaAt, fields }];
+    writeMadeDocs(this.madeDocs);
+    const base = `วาระพิจารณาคำขอ-${this.inquiryAgendaAt.replaceAll('/', '')}.pdf`;
+    const name = this.inquiryAgendaFiles.some((file) => file.name === base) ? `วาระพิจารณาคำขอ-${this.inquiryAgendaAt.replaceAll('/', '')}-${this.inquiryAgendaFiles.length + 1}.pdf` : base;
+    this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, { name, title: 'วาระพิจารณาคำขอ', sentOn: this.inquiryAgendaAt, docId: id }];
+    this.inquiryAgendaDone = true;
+    this.writeInquiry();
+  }
+
+  protected addAgendaFiles(event: Event): void {
+    if (this.inquiryDecide) return;
+    const input = event.target as HTMLInputElement;
+    const sentOn = this.inquiryAgendaAt.trim() || '10/06/2562';
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn, docId: '' }));
+    this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, ...files];
+    this.inquiryAgendaDone = this.inquiryAgendaFiles.length > 0;
+    input.value = '';
+    this.writeInquiry();
+  }
+
+  protected removeAgendaFile(index: number): void {
+    const file = this.inquiryAgendaFiles[index];
+    if (!file || this.inquiryDecide) return;
+    this.inquiryAgendaFiles = this.inquiryAgendaFiles.filter((_, item) => item !== index);
+    if (file.docId) {
+      this.madeDocs = this.madeDocs.filter((item) => item.id !== file.docId);
+      writeMadeDocs(this.madeDocs);
+    }
+    this.inquiryAgendaDone = this.inquiryAgendaFiles.length > 0;
+    this.writeInquiry();
+  }
+
+  protected continueInquiryDecide(): void {
+    if (!this.inquiryAgendaDone || this.inquiryFeeSent || this.inquiryReturned) return;
+    if (this.inquiryDecideDraft !== 'take' && this.inquiryDecideDraft !== 'return') return;
+    if (this.inquiryDecide) return;
+    this.inquiryDecide = this.inquiryDecideDraft;
+    this.writeInquiry();
+    this.inquiryPart = this.inquiryDecide === 'take' ? 'fee' : 'letter';
+  }
+
+  protected saveInquiryReturn(): void {
+    if (!this.inquiryReached || this.inquiryFeeSent || this.inquiryDecide !== 'return' || !this.inquiryCloseNote.trim()) return;
+    if (this.madeDocs.some((item) => item.kind === 'หนังสือคืนคำขอ')) return;
+    const doc = {
+      id: `return-${Date.now()}`,
+      kind: 'หนังสือคืนคำขอ',
+      at: this.inquiryAgendaAt,
+      fields: [
+        { label: 'เรื่อง', value: 'คืนคำขอให้พิจารณาตอบโต้การทุ่มตลาด' },
+        { label: 'เนื้อความ', value: this.inquiryCloseNote.trim() },
+      ],
+    };
+    this.madeDocs = [...this.madeDocs, doc];
+    writeMadeDocs(this.madeDocs);
+    this.inquiryReturned = true;
+    this.writeInquiry();
+    this.inquiryPart = 'letter';
+  }
+
+  protected notifyInquiryFee(): void {
+    if (!this.inquiryReached || this.inquiryDecide !== 'take' || this.inquiryFeeSent || !this.inquiryFeeAmount.trim() || !thaiDateOk(this.inquiryFeeDue, 'any')) return;
+    this.inquiryFeeSent = true;
+    this.writeInquiry();
+    this.inquiryPart = 'proof';
+  }
+
+  protected addInquiryPayFiles(event: Event): void {
+    if (this.inquiryPayAck) return;
+    const input = event.target as HTMLInputElement;
+    const sentOn = '12/06/2562';
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn }));
+    this.inquiryPayFiles = [...this.inquiryPayFiles, ...files];
+    input.value = '';
+  }
+
+  protected removeInquiryPayFile(index: number): void {
+    if (this.inquiryPaySent || this.inquiryPayAck) return;
+    this.inquiryPayFiles = this.inquiryPayFiles.filter((_, item) => item !== index);
+  }
+
+  protected sendInquiryPay(): void {
+    if (!this.inquiryFeeSent || this.inquiryPayAck || !this.inquiryPayFiles.length) return;
+    this.inquiryPaySent = true;
+    this.writeInquiry();
+  }
+
+  protected ackInquiryPay(): void {
+    if (!this.inquiryPaySent || this.inquiryPayAck || !this.inquiryPayFiles.length) return;
+    this.inquiryPayAck = true;
+    this.writeInquiry();
+    this.inquiryPart = 'vote';
+  }
+
+  protected saveInquiryOpen(): void {
+    if (!this.inquiryPayAck || this.inquiryOpen) return;
+    if (this.inquiryDecide !== 'take') return;
+    const choice = this.inquiryOpenDraft;
+    if (choice === 'close' && !this.inquiryCloseNote.trim()) return;
+    if (choice !== 'open' && choice !== 'close') return;
+    this.inquiryOpen = choice;
+    if (choice === 'open') {
+      const [day, month, year] = this.inquiryOpenAt.split('/');
+      this.inquiryCaseId = day && month && year ? `AD${year}${month}${day}0001` : 'AD256206100001';
+    }
+    this.writeInquiry();
+    this.inquiryPart = 'vote';
+  }
+
+  protected inquiryOpenDraft: 'open' | 'close' | '' = '';
+
+  protected saveCommittee(): void {
+    if (!this.canRecordCommittee || !this.committeeReady) return;
+    this.committeeSent = true;
+    this.committeeSentBy = this.signedPerson || this.directorName;
+    writeDocNotice(this.docPayload(true));
+    if (this.committeeResult === 'take') this.pickReviewTab('inquiry');
+    this.notice = 'saved';
+  }
+
+  private applyReply(reply: ApplicantReply): void {
+    this.replyKind = reply.kind;
+    this.replyAt = reply.at;
+    this.amendReason = reply.reason;
+    this.replyNewDue = reply.newDue;
+    this.replyLetterDate = reply.letterDate;
+    this.replyLetterNo = reply.letterNo;
+    this.replyLetterTo = reply.letterTo;
+    this.replyLetterSubject = reply.letterSubject;
+    this.replyLetterBody = reply.letterBody;
+    if (reply.files.length) this.replyFiles = reply.files;
+    this.replySent = true;
+  }
+
+  private currentReply(): ApplicantReply {
+    return {
+      kind: this.replyKind,
+      at: this.replyAt || (this.noticePasses.length ? '05/06/2562' : '22/05/2562'),
+      reason: this.amendReason.trim(),
+      newDue: this.replyNewDue.trim(),
+      letterDate: this.replyLetterDate.trim(),
+      letterNo: this.replyLetterNo.trim(),
+      letterTo: this.replyLetterTo.trim(),
+      letterSubject: this.replyLetterSubject.trim(),
+      letterBody: this.replyLetterBody.trim(),
+      files: this.replyFiles
+        .filter((file) => this.replyKind === 'extend' ? file.group === 'extend' : file.group !== 'extend')
+        .map((file) => ({ ...file })),
+    };
+  }
+
+  private docPayload(sent: boolean) {
+    return {
+      action: this.docAction,
+      noticedOn: this.docNoticedOn.trim(),
+      dueOn: this.docDueOn.trim(),
+      note: this.docNote.trim(),
+      files: this.docFiles,
+      letter: this.noticeLetter.map((item) => ({ ...item })),
+      gaps: this.docGaps.map((gap) => ({ ...gap })),
+      sarabanNo: this.noticeSaraban,
+      reply: this.replySent ? this.currentReply() : null,
+      committee: this.committeeSent ? this.committeePayload() : null,
+      inquiry: this.inquiryPayload(),
+      passes: this.noticePasses.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null })),
+      sent,
+      sentBy: sent ? (this.signedPerson || this.directorName) : this.docSentBy,
+    };
+  }
+
+  protected saveDocs(send: boolean): void {
+    if (send ? !this.docCanSend : this.docSent || !this.canReviewDocs) return;
+    if (!send && this.noticeLetter.every((item) => item.value.trim())) this.placeNoticeFile();
+    if (send) {
+      this.replySent = false;
+      this.issueNotice();
+    }
+    const payload = this.docPayload(send);
+    writeDocNotice(payload);
+    this.docSent = send;
+    this.docSentBy = payload.sentBy;
+    if (send && this.docAction === 'amend') {
+      writeCaseStatus('revision');
+      this.caseStatus = 'revision';
+    }
+    this.notice = send ? 'docs' : 'saved';
+  }
+
+  private issueNotice(): void {
+    const numbers = ['สบ.2005/2562', 'สบ.2805/2562', 'สบ.0506/2562', 'สบ.1006/2562'];
+    const no = numbers[this.noticePasses.length] || `สบ.${this.noticePasses.length + 1}/2562`;
+    this.noticeSaraban = no;
+    const title = this.noticeFileTitle();
+    const at = `${this.docNoticedOn} 10:30`;
+    this.placeNoticeFile(no);
+    this.madeDocs = [...this.madeDocs, {
+      id: `notice-${no}`,
+      kind: title,
+      at: this.docNoticedOn,
+      fields: [{ label: 'เลขรับสารบรรณ', value: no }, ...this.noticeLetter.map((field) => ({ ...field }))],
+    }];
+    writeMadeDocs(this.madeDocs);
+    this.ensureReceipt();
+    if (!this.receipt) return;
+    const link = {
+      no,
+      at,
+      events: [
+        { at, text: `ส่ง${title}เข้าระบบสารบรรณ` },
+        { at, text: `ได้รับเลขรับ ${no}` },
+      ],
+    };
+    this.receipt = { ...this.receipt, links: [link, ...this.receipt.links.filter((item) => item.no !== no)] };
+    writeReceipt(this.receipt);
+  }
+
+  private noticeFileTitle(): string {
+    if (this.docAction === 'complete') return 'หนังสือแจ้งคำขอครบถ้วนถูกต้อง';
+    if (this.docAction === 'late') return 'หนังสือแจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
+    return `หนังสือแจ้งขอข้อมูลเพิ่ม ครั้งที่ ${this.noticePasses.length + 1}`;
+  }
+
+  private placeNoticeFile(saraban = ''): void {
+    const name = saraban ? `หนังสือแจ้ง-${saraban.replaceAll('/', '-')}.pdf` : 'หนังสือแจ้งแก้ไข.pdf';
+    const row = { name, title: this.noticeFileTitle(), sentOn: this.docNoticedOn };
+    const kept = this.docFiles.filter((file) => file.name !== name && file.name !== 'หนังสือแจ้งแก้ไข.pdf' && !/^หนังสือแจ้ง-สบ\./.test(file.name));
+    this.docFiles = [row, ...kept];
+  }
+
+  protected get shownGaps() {
+    return this.docGaps;
+  }
+
+  protected get canDecideReply(): boolean {
+    if (!this.docSent || !this.replySent || this.docAction !== 'amend') return false;
+    if (this.reviewRole === 'director') return true;
+    return this.approverNames().includes(this.signedPerson);
+  }
+
+  private passNow(): NoticePass {
+    return {
+      action: this.docAction,
+      noticedOn: this.docNoticedOn,
+      dueOn: this.docDueOn,
+      note: this.docNote,
+      sentBy: this.docSentBy,
+      sarabanNo: this.noticeSaraban,
+      reply: this.replySent ? this.currentReply() : null,
+    };
+  }
+
+  protected askAgain(): void {
+    if (!this.canDecideReply) return;
+    this.noticePasses = [...this.noticePasses, this.passNow()];
+    this.replySent = false;
+    this.docSent = false;
+    this.docAction = 'amend';
+    this.docNoticedOn = '28/05/2562';
+    this.docDueOn = '20/06/2562';
+    this.docFiles = [];
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.suggestGaps();
+    writeCaseStatus('revision');
+    this.caseStatus = 'revision';
+    this.notice = 'suggest';
+  }
+
+  protected markComplete(): void {
+    if (!this.canDecideReply) return;
+    this.noticePasses = [...this.noticePasses, this.passNow()];
+    this.docAction = 'complete';
+    this.docNoticedOn = '28/05/2562';
+    this.docNote = 'ตรวจคำขอที่แก้ไขแล้ว ครบถ้วนถูกต้อง';
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.issueNotice();
+    this.docSent = true;
+    this.docSentBy = this.signedPerson || this.directorName;
+    writeDocNotice(this.docPayload(true));
+    writeCaseStatus('official');
+    this.caseStatus = 'official';
+    this.reviewTab = 'docs';
+    this.docPart = this.workDocs.length + 1;
+    this.notice = 'docs';
+  }
+
+  protected get replyGroups(): { id: ReplyFile['group']; label: string; required: boolean }[] {
+    if (this.replyKind === 'extend') return [{ id: 'extend', label: 'แนบไฟล์ประกอบการขอขยายเวลา', required: true }];
+    return [
+      { id: 'closed', label: 'แนบไฟล์คำขอฉบับปกปิด', required: true },
+      { id: 'extra', label: 'แนบเอกสารประกอบ (ถ้ามี)', required: false },
+      { id: 'open', label: 'แนบไฟล์คำขอฉบับเปิดเผย', required: true },
+    ];
+  }
+
+  protected replyFilesOf(group: ReplyFile['group']): ReplyFile[] {
+    return this.replyFiles.filter((file) => file.group === group);
+  }
+
+  protected get canSendReply(): boolean {
+    const letterOk = !!this.replyLetterDate.trim() && !!this.replyLetterNo.trim() && !!this.replyLetterTo.trim() && !!this.replyLetterSubject.trim() && !!this.replyLetterBody.trim();
+    if (!letterOk || this.replySent) return false;
+    if (this.replyKind === 'extend') return !!this.amendReason.trim() && thaiDateOk(this.replyNewDue, 'any') && this.replyFilesOf('extend').length > 0;
+    return this.replyFilesOf('closed').length > 0 && this.replyFilesOf('open').length > 0;
+  }
+
+  protected addReplyFiles(group: ReplyFile['group'], event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), group }));
+    this.replyFiles = [...this.replyFiles, ...files];
+    input.value = '';
+  }
+
+  protected removeReplyFile(name: string): void {
+    this.replyFiles = this.replyFiles.filter((file) => file.name !== name);
+  }
+
+  protected sendApplicantReply(): void {
+    if (!this.canSendReply) return;
+    this.replyAt = this.noticePasses.length ? '05/06/2562' : '22/05/2562';
+    this.replySent = true;
+    const payload = this.docPayload(this.docSent);
+    payload.sentBy = this.docSentBy;
+    writeDocNotice(payload);
+    this.notice = 'reply';
+  }
+
+  protected downloadReplyFile(file: ReplyFile): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(file.title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(file.title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p><p>${this.escapeHtml(this.replyLetterSubject)}</p><p>${this.escapeHtml(this.replyLetterBody)}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name.replace(/\.[^.]+$/, '') + '.html';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected addDocFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: this.docNoticedOn || '20/05/2562' }));
+    this.docFiles = [...this.docFiles, ...files];
+    input.value = '';
+  }
+
+  protected renameDocFile(index: number, title: string): void {
+    this.docFiles = this.docFiles.map((file, item) => (item === index ? { ...file, title } : file));
+  }
+
+  protected removeDocFile(index: number): void {
+    this.docFiles = this.docFiles.filter((_, item) => item !== index);
+  }
+
+  protected get officeLinks(): OfficeLink[] {
+    return [...(this.receipt?.links ?? [])].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at));
+  }
+
+  protected openOffice(link: OfficeLink): void {
+    this.officeLink = {
+      ...link,
+      events: [...link.events].sort((a, b) => this.officeStamp(b.at) - this.officeStamp(a.at)),
+    };
+  }
+
+  private officeStamp(at: string): number {
+    const [date, time = '00:00'] = at.split(' ');
+    const [day, month, year] = date.split('/').map(Number);
+    const [hour, minute] = time.split(':').map(Number);
+    return new Date(year || 0, (month || 1) - 1, day || 1, hour || 0, minute || 0).getTime();
+  }
+
+  private seedOfficeLinks(): OfficeLink[] {
+    const ref = filingRefId;
+    return [
+      {
+        no: 'สบ.1820/2562',
+        at: '02/06/2562 11:05',
+        events: [
+          { at: '02/06/2562 11:05', text: 'ระบบสารบรรณส่งเลขที่ลงรับ' },
+          { at: '02/06/2562 11:06', text: `เชื่อมกับคำขอ ${ref}` },
+        ],
+      },
+      {
+        no: 'สบ.1694/2562',
+        at: '20/05/2562 13:20',
+        events: [
+          { at: '20/05/2562 13:20', text: 'ระบบสารบรรณส่งเลขที่ลงรับ' },
+          { at: '20/05/2562 13:21', text: `เชื่อมกับคำขอ ${ref}` },
+        ],
+      },
+      {
+        no: 'สบ.1605/2562',
+        at: '16/05/2562 10:00',
+        events: [
+          { at: '16/05/2562 10:00', text: 'ลงรับคำขอจากระบบสารบรรณ เรื่องยื่นคำขอ' },
+          { at: '16/05/2562 10:01', text: `เชื่อมกับคำขอ ${ref}` },
+        ],
+      },
+    ];
+  }
+
+  private ensureAssignment(): void {
+    const saved = readWorkAssignment();
+    if (this.reviewRole === 'staff') {
+      const work = saved.groups.filter((group) => groupHead(group));
+      this.pickedPeople = saved.people;
+      this.pickedGroups = work;
+      this.groupTasks = this.tasksFor(work, false);
+      this.hands = saved.hands.filter((hand) => work.includes(hand.group));
+      this.slips = saved.slips;
+      this.assignOrder = saved.order;
+      this.assignedOn = saved.assignedOn;
+      this.dueOn = saved.dueOn;
+      this.prepareSlip();
+      return;
+    }
+    if (saved.people.length || saved.groups.length) {
+      this.pickedPeople = saved.people;
+      this.pickedGroups = saved.groups;
+      this.assignNote = saved.note;
+      this.assignOrder = saved.order;
+      this.assignedOn = saved.assignedOn;
+      this.dueOn = saved.dueOn;
+      this.assignReply = saved.reply;
+      this.replyReason = saved.reason;
+      this.replyDraft = saved.reply === 'pending' ? '' : saved.reply;
+      const work = saved.groups.filter((group) => groupHead(group));
+      if (work.length < 2) {
+        this.pickedGroups = work;
+        this.groupTasks = this.tasksFor(work, false);
+        this.hands = saved.hands.filter((hand) => work.includes(hand.group));
+      } else {
+        this.pickedGroups = work;
+        this.groupTasks = saved.groupTasks.filter((task) => work.includes(task.group));
+        if (this.groupTasks.length < 2) this.groupTasks = this.tasksFor(work, true);
+        this.hands = saved.hands;
+      }
+      this.slips = saved.slips;
+      this.forwardPick = [];
+      if (saved.people.length && !saved.groups.length) this.assignMode = 'person';
+      this.prepareSlip();
+      return;
+    }
+    this.pickedGroups = ['กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)'];
+    this.pickedPeople = [];
+    this.groupTasks = this.tasksFor(this.pickedGroups, true);
+    this.hands = [];
+    this.forwardPick = [];
+    this.assignOrder = 'รับผิดชอบคำขอทุ่มตลาดเหล็กแผ่นรีดร้อน';
+    this.assignedOn = '16/05/2562';
+    this.dueOn = '30/05/2562';
+    this.slips = [];
+    writeWorkAssignment(this.assignmentPayload());
+    this.prepareSlip();
+  }
+
+  private prepareSlip(): void {
+    if (this.reviewRole === 'director') {
+      this.slipReceipt = 'accept';
+      this.slipKind = 'forward';
+    } else if (this.hands.some((hand) => hand.name === this.signedPerson)) {
+      this.slipKind = 'report';
+    }
+    if (!this.slipOrder) this.slipOrder = this.assignOrder || 'รับผิดชอบคำขอทุ่มตลาดเหล็กแผ่นรีดร้อน';
+    if (!this.slipAssignedOn) this.slipAssignedOn = this.assignedOn || '16/05/2562';
+    if (!this.slipDueOn) this.slipDueOn = this.dueOn || '30/05/2562';
+    if (!this.slipDueTime) this.slipDueTime = '14:28';
+    this.syncSlipPeople(true);
+  }
+
+  protected personTitle(name: string): string {
+    return staffPeople.find((person) => person.name === name)?.title || 'เจ้าหน้าที่รายบุคคล';
+  }
+
+  private ensureReceipt(): void {
+    const links = this.seedOfficeLinks();
+    if (!this.receipt) {
+      this.receipt = {
+        deptNo: '',
+        deptDate: '',
+        deptTime: '',
+        sarabanNo: 'สบ.1605/2562',
+        sarabanDate: '16/05/2562',
+        sarabanTime: '10:00',
+        letterNo: 'B1/2562',
+        letterDate: '16/05/2562',
+        subject: 'ยื่นคำขอ',
+        links,
+      };
+      writeReceipt(this.receipt);
+      return;
+    }
+    if (!this.receipt.links.length) {
+      this.receipt = { ...this.receipt, links };
+      writeReceipt(this.receipt);
+    }
+  }
+
+  protected leaveReview(): void {
+    if (this.reviewRole === 'staff') {
+      void this.router.navigateByUrl('/cases');
+      return;
+    }
+    void this.router.navigateByUrl(this.reviewRole === 'officer' ? '/officer' : '/director');
+  }
+
+  protected get directorAssigned(): boolean {
+    return !!this.directorName && this.pickedPeople.includes(this.directorName);
+  }
+
+  protected assignToDirector(): void {
+    if (this.reviewRole !== 'staff' || !this.directorName || this.directorAssigned) return;
+    const saved = readWorkAssignment();
+    const people = saved.people.includes(this.directorName) ? saved.people : [...saved.people, this.directorName];
+    writeWorkAssignment({ ...saved, people, groups: saved.groups.filter((group) => groupHead(group)) });
+    this.pickedPeople = people;
+    if (readCaseStatus() === 'consult' && readConsult()) {
+      writeConsultGroup('');
+      writeConsultStep('director');
+    }
+    this.notice = 'saved';
+  }
+
+  protected get laterRound(): boolean {
+    return this.rounds.length >= 2;
+  }
+
+  protected get reviewClock(): string {
+    return this.clock(this.reviewLeft);
+  }
+
+  protected get approvalClock(): string {
+    return this.clock(this.approvalLeft);
+  }
+
+  private clock(total: number): string {
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  protected get filingRound(): number {
+    if (this.revising) return this.rounds.length + 1;
+    return this.rounds.at(-1)?.round ?? 1;
+  }
+
+  protected get roundGroups(): string[] {
+    return [...new Set((this.openedRound?.files ?? []).map((file) => file.group))];
+  }
+
+  protected filesIn(group: string): RoundFile[] {
+    return this.openedRound?.files.filter((file) => file.group === group) ?? [];
+  }
+
+  protected closeRoundView(): void {
+    this.viewingForm = false;
+    this.openedRound = null;
+  }
+
+  protected flowStep: 'edit' | 'consult' = 'edit';
+
+  protected get revisionCount(): number {
+    return this.rounds.filter((round) => round.state === 'revision').length;
+  }
+
+  protected get uploadPercent(): number {
+    const keys = ['cert', 'finance', 'power', 'volume', 'goods', 'export', 'margin', 'import', 'summary'];
+    const filled = keys.filter((key) => this.hasDoc(key)).length;
+    return Math.round((filled / keys.length) * 100);
+  }
+
+  protected get consultGate(): boolean {
+    return this.revisionCount > 3 && this.uploadPercent > 80;
+  }
+
+  protected chooseEdit(): void {
+    if (this.consultGate) {
+      this.flowStep = 'consult';
+      return;
+    }
+    this.startRevise();
+  }
+
+  private hasDoc(key: string): boolean {
+    if ((this.groups[key] ?? []).length || this.files[key]) return true;
+    const packs: Record<string, { name: string }[]> = {
+      goods: this.docs,
+      export: this.exportDocs,
+      margin: this.marginDocs,
+      import: this.sheets.import,
+      summary: this.sheets.summary,
+    };
+    return (packs[key] ?? []).length > 0;
+  }
+
+  protected startRevise(): void {
+    this.flowStep = 'edit';
+    this.revising = true;
+    this.viewingForm = false;
+    this.openedRound = null;
+  }
+
+  protected openStored(round: FilingRound): void {
+    this.openedRound = round;
+    this.viewingForm = false;
+    this.revising = false;
+  }
+
+  protected get caseLabel(): string {
+    if (this.inquiryOpen === 'open') return 'เปิดการไต่สวน';
+    if (this.inquiryOpen === 'close') return 'ปิดการไต่สวน';
+    if (this.inquiryDecide === 'return') return 'คืนคำขอ';
+    if (this.inquiryFeeSent && !this.inquiryPayAck) return this.inquiryPaySent ? 'รอรับทราบการชำระ' : 'รอชำระค่าธรรมเนียม';
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent && this.committeeResult === 'take') return 'รับคำขอ';
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent) return 'ไม่รับคำขอ';
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete') return 'รอคณะกรรมการพิจารณา';
+    if (!this.reviewRole && this.docSent && this.docAction === 'late') return 'ไม่ครบภายใน 4 เดือน';
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend' && this.replySent) return 'ส่งข้อมูลเพิ่มแล้ว';
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend') return 'ขอข้อมูลเพิ่ม';
+    return caseStatusLabel(this.caseStatus);
+  }
+
+  protected get caseTone() {
+    if (this.inquiryOpen === 'close' || this.inquiryDecide === 'return') return 'danger' as const;
+    if (this.inquiryOpen === 'open') return 'success' as const;
+    if (this.inquiryFeeSent && !this.inquiryPayAck) return 'warning' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && this.committeeSent && this.committeeResult === 'reject') return 'danger' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete' && !this.committeeSent) return 'info' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'complete') return 'success' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'late') return 'danger' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend' && !this.replySent) return 'warning' as const;
+    if (!this.reviewRole && this.docSent && this.docAction === 'amend') return 'info' as const;
+    return caseStatusTone(this.caseStatus);
+  }
+
+  private captureRound(round: number): FilingRound {
+    const packs: [string, { name: string; saved: string }[]][] = [
+      ['เอกสารประกอบสินค้า', this.docs],
+      ['ราคาส่งออก', this.exportDocs],
+      ['ส่วนเหลื่อมการทุ่มตลาด', this.marginDocs],
+      ['การนำเข้า', this.sheets.import],
+      ['ปัจจัยอื่น', this.sheets.factor],
+      ['สรุปความเสียหาย', this.sheets.summary],
+      ['ปริมาณการนำเข้า', this.sheets.trend],
+      ['อุปสรรคอุตสาหกรรม', this.sheets.intent],
+      ['เอกสารอื่น', this.otherDocs],
+      ['ลายเซ็น', [{ name: this.signatureName, saved: this.signedOn }]],
+    ];
+    if (this.sealName) packs.push(['ตราประทับบริษัท', [{ name: this.sealName, saved: this.letterDate }]]);
+    if (this.letterFileName) packs.push(['หนังสือนำส่งฉบับจริง', [{ name: this.letterFileName, saved: this.letterDate }]]);
+    return {
+      round,
+      submittedOn: this.filedOn,
+      state: 'review',
+      company: this.company,
+      measure: this.measureName,
+      signer: this.signer,
+      files: packs.flatMap(([group, files]) => files.map((file) => ({ group, name: file.name, saved: file.saved }))),
+      findings: [],
+    };
+  }
+
+  protected saveDraft(): void {
+    if (this.caseStatus === 'cancelled' || this.caseStatus === 'review' || this.caseStatus === 'approval' || this.caseStatus === 'official') return;
+    if (this.caseStatus === 'consult' && !this.revising) return;
+    if (!this.revising) {
+      writeCaseStatus('draft');
+      this.caseStatus = 'draft';
+    }
+    this.submitOpen = false;
+    this.notice = 'draft';
+    this.publishGuide();
+  }
+
+  protected submitAck = false;
+
+  protected get requestReady(): boolean {
+    return !!(this.company.trim() && this.letterNo.trim() && this.letterDate.trim());
+  }
+
+  protected get signReady(): boolean {
+    return !!(this.signer.trim() && this.signedOn.trim() && this.signatureUrl);
+  }
+
+  protected get pledgeReady(): boolean {
+    return this.ack;
+  }
+
+  protected get submitReady(): boolean {
+    return this.sectionsReady && this.requestReady && this.signReady && this.pledgeReady;
+  }
+
+  protected get canConfirm(): boolean {
+    return this.submitReady && this.submitAck;
+  }
+
+  protected uploadOpen = false;
+
+  protected openFilledUpload(): void {
+    this.uploadOpen = true;
+  }
+
+  protected openSubmit(): void {
+    this.submitAck = false;
+    this.submitOpen = true;
+  }
+
+  protected confirmSubmit(): void {
+    const canSend = this.caseStatus === 'draft' || ((this.caseStatus === 'revision' || this.caseStatus === 'consult') && this.revising);
+    if (!canSend || !this.canConfirm || this.submitting) return;
+    this.submitting = true;
+    this.submitOpen = false;
+    window.clearTimeout(this.submitTimer);
+    this.submitTimer = window.setTimeout(() => {
+      const round = this.captureRound(this.rounds.length + 1);
+      this.rounds = [...this.rounds, round];
+      writeRounds(this.rounds);
+      writeCaseStatus('review');
+      this.caseStatus = 'review';
+      this.revising = false;
+      this.viewingForm = false;
+      this.openedRound = null;
+      this.submitting = false;
+      this.notice = null;
+      writeReviewUntil(Date.now() + reviewWaitMs);
+      this.armReview();
+      this.publishGuide();
+      this.view.markForCheck();
+    }, 1400);
+  }
+
+  protected sendConsult(): void {
+    const topic = this.consultTopic.trim();
+    const detail = this.consultDetail.trim();
+    const when = this.consultWhen.trim();
+    if (!topic || !detail || !when) return;
+    const request = { topic, detail, when };
+    writeConsult(request);
+    this.consult = request;
+    this.consultNotes = [];
+    this.consultPlan = null;
+    writeConsultThread([]);
+    writeConsultPlan(null);
+    const sideOnly = !this.consultFormal && (this.caseStatus === 'official' || this.caseStatus === 'revision');
+    if (sideOnly && this.approverNames().length) {
+      writeConsultAssigned(true);
+      this.consultAssigned = true;
+      this.sideTalk = true;
+    } else if (sideOnly) {
+      writeConsultAssigned(false);
+      this.consultAssigned = false;
+      this.sideTalk = true;
+    } else {
+      writeConsultAssigned(false);
+      this.consultAssigned = false;
+      writeCaseStatus('consult');
+      this.caseStatus = 'consult';
+      this.revising = false;
+      this.viewingForm = false;
+      this.sideTalk = false;
+      writeConsultStep('receive');
+      writeConsultGroup('');
+      this.watchAssign();
+    }
+    this.consultOpen = false;
+    this.consultFormal = false;
+    if (this.consultAssigned && this.consultByChat) this.openTalk();
+    this.publishGuide();
+  }
+
+  protected get consultWaitText(): string {
+    const step = readConsultStep();
+    if (step === 'receive' || step === 'forward') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
+    if (step === 'director') return 'รอผู้อำนวยการมอบหมายกลุ่ม';
+    if (step === 'group') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่ในกลุ่ม';
+    return 'รอผู้ดูแล';
+  }
+
+  protected openConsult(): void {
+    this.consultFormal = true;
+    this.consultOpen = true;
+  }
+
+  protected openApplicantMenu(label: string): void {
+    if (label === 'ยื่นคำร้องขอพบเจ้าหน้าที่' || label === 'รายการยื่นคำร้องขอพบเจ้าหน้าที่') this.openConsult();
+  }
+
+  protected openSideTalk(): void {
+    if (!this.consult) {
+      this.consultFormal = false;
+      this.consultTopic = this.caseStatus === 'revision' ? 'สอบถามการส่งข้อมูลเพิ่ม' : 'สอบถามระหว่างยื่นคำขอ';
+      this.consultDetail = `คำขอเลขที่อ้างอิง ${this.refId}`;
+      this.consultWhen = '20/05/2562 10:00';
+      this.consultOpen = true;
+      return;
+    }
+    this.sideTalk = true;
+    if (this.approverNames().length && !this.consultAssigned) {
+      writeConsultAssigned(true);
+      this.consultAssigned = true;
+    }
+    if (this.consultAssigned && this.consultByChat) this.openTalk();
+  }
+
+  protected talkReady = false;
+  protected talkLoading = false;
+  protected shownCount = 0;
+  private talkTimer = 0;
+
+  protected get shownNotes(): ConsultNote[] {
+    return this.consultNotes.slice(Math.max(0, this.consultNotes.length - this.shownCount));
+  }
+
+  protected get talkHasMore(): boolean {
+    return this.shownCount < this.consultNotes.length;
+  }
+
+  protected noteDay(at: string): string {
+    return this.thaiDate(at.split(' ')[0] || '');
+  }
+
+  protected showDay(index: number): boolean {
+    const notes = this.shownNotes;
+    if (index === 0) return true;
+    return this.noteDay(notes[index].at) !== this.noteDay(notes[index - 1].at);
+  }
+
+  protected onTalkScroll(event: Event): void {
+    const node = event.target as HTMLElement;
+    if (!this.talkReady || this.talkLoading || !this.talkHasMore || node.scrollTop > 24) return;
+    this.talkLoading = true;
+    const previous = node.scrollHeight;
+    window.clearTimeout(this.talkTimer);
+    this.talkTimer = window.setTimeout(() => {
+      this.shownCount = Math.min(this.consultNotes.length, this.shownCount + 6);
+      this.talkLoading = false;
+      this.view.detectChanges();
+      node.scrollTop = Math.max(40, node.scrollHeight - previous);
+    }, 700);
+  }
+
+  private openTalk(): void {
+    const sample = this.sampleTalk();
+    const known = new Set(sample.map((note) => note.text));
+    const seed = `รับเรื่องแล้ว ${filingUnit} จะติดต่อกลับตามเวลาที่แจ้ง`;
+    const extra = this.consultNotes.filter((note) => note.text && !known.has(note.text) && note.text !== seed && note.text !== this.consult?.detail);
+    if (!this.consultNotes.some((note) => known.has(note.text))) {
+      this.consultNotes = [...sample, ...extra];
+      writeConsultThread(this.consultNotes);
+    }
+    this.talkReady = false;
+    this.shownCount = 0;
+    window.clearTimeout(this.talkTimer);
+    this.talkTimer = window.setTimeout(() => {
+      this.shownCount = Math.min(6, this.consultNotes.length);
+      this.talkReady = true;
+      this.view.detectChanges();
+      this.scrollTalkEnd();
+    }, 700);
+  }
+
+  private scrollTalkEnd(): void {
+    const node = document.querySelector('.talk-scroll');
+    if (node) node.scrollTop = node.scrollHeight;
+  }
+
+  private sampleTalk(): ConsultNote[] {
+    const unit = filingUnit;
+    return [
+      { from: 'applicant', text: 'ขอพบเพื่อชี้แจงหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น', at: '15/05/2562 10:05' },
+      { from: 'officer', text: `รับเรื่องแล้ว ${unit} จะนัดตามเวลาที่สะดวก`, at: '15/05/2562 10:18' },
+      { from: 'applicant', text: 'สะดวกวันที่ 16 พฤษภาคม 2562 เวลา 10:00 น.', at: '15/05/2562 10:22' },
+      { from: 'officer', text: 'รับทราบ จะนัดที่กรมการค้าต่างประเทศ ห้องประชุมของหน่วยงานผู้รับผิดชอบ', at: '15/05/2562 10:40' },
+      { from: 'applicant', text: 'ขอส่งตารางเปรียบเทียบราคาเพิ่มในวันนัดได้หรือไม่', at: '15/05/2562 11:05' },
+      { from: 'officer', text: 'ได้ นำมาในวันนัด หรือแนบในช่องนี้ก่อนเวลานัด', at: '15/05/2562 11:20' },
+      { from: 'applicant', text: 'แนบตารางเปรียบเทียบราคาช่วงที่ขอให้ไต่สวน', at: '15/05/2562 14:10', files: [{ name: 'ตารางเปรียบเทียบราคา.pdf' }] },
+      { from: 'officer', text: 'ได้รับไฟล์แล้ว จะตรวจความครบของช่วงเวลาก่อนวันนัด', at: '15/05/2562 14:32' },
+      { from: 'applicant', text: 'ช่วงที่ยังขาดคือปลายปี 2561 ถึงต้นปี 2562', at: '15/05/2562 16:00' },
+      { from: 'officer', text: 'ช่วยเพิ่มหลักฐานช่วงนั้น และตัวเลขปริมาณนำเข้าที่เชื่อมกับความเสียหาย', at: '15/05/2562 16:15' },
+      { from: 'officer', text: 'วันนี้พบกันเวลา 10:00 น. ตามที่นัดไว้', at: '16/05/2562 09:10' },
+      { from: 'applicant', text: 'รับทราบ จะนำรายชื่อผู้ผลิตที่ร่วมยื่นไปด้วย', at: '16/05/2562 09:20' },
+      { from: 'officer', text: 'เริ่มการปรึกษาแล้ว ขอให้ชี้แจงหลักฐานราคาที่ไม่ครอบคลุมช่วงเวลา', at: '16/05/2562 10:05' },
+      { from: 'applicant', text: 'ราคาที่แนบยังไม่ครบช่วงปลายปี 2561 จะส่งเพิ่มภายในวันนี้', at: '16/05/2562 10:18' },
+      { from: 'officer', text: 'ตัวชี้วัดความเสียหายยังอธิบายไม่ครบว่าเชื่อมกับปริมาณนำเข้าอย่างไร', at: '16/05/2562 10:40' },
+      { from: 'applicant', text: 'จะปรับคำอธิบายในแบบส่วนที่ 6 ให้ตรงกับตารางปริมาณ', at: '16/05/2562 10:55' },
+      { from: 'officer', text: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบตามหนังสือมอบอำนาจ', at: '16/05/2562 11:10' },
+      { from: 'applicant', text: 'จะตรวจรายชื่อและแนบหนังสือที่ขาดก่อนส่งรอบถัดไป', at: '16/05/2562 11:25' },
+      { from: 'officer', text: 'หากไม่แก้ไขเพิ่ม สามารถยืนยันส่งแบบยื่นทางการได้ ระบบจะส่งให้ผู้ดูแลอนุมัติก่อน', at: '16/05/2562 11:40' },
+    ];
+  }
+
+  protected sendConsultNote(): void {
+    const text = this.consultDraft.trim();
+    const staff = this.reviewRole === 'officer';
+    if ((!text && !this.pendingFiles.length) || (!staff && this.caseStatus !== 'consult')) return;
+    this.consultNotes = [...this.consultNotes, { from: staff ? 'officer' : 'applicant', text, at: '16/05/2562 11:55', files: this.pendingFiles }];
+    writeConsultThread(this.consultNotes);
+    this.shownCount = Math.min(this.consultNotes.length, this.shownCount + 1);
+    this.consultDraft = '';
+    this.pendingFiles = [];
+    this.view.detectChanges();
+    this.scrollTalkEnd();
+  }
+
+  protected addTalkFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const next = [...(input.files ?? [])].map((file) => ({ name: file.name }));
+    this.pendingFiles = [...this.pendingFiles, ...next];
+    input.value = '';
+  }
+
+  protected async captureTalk(): Promise<void> {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      await video.play();
+      const width = video.videoWidth || 960;
+      const height = video.videoHeight || 540;
+      const scale = Math.min(1, 960 / width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      stream.getTracks().forEach((track) => track.stop());
+      this.pendingFiles = [...this.pendingFiles, { name: 'ภาพหน้าจอ.jpg', image: canvas.toDataURL('image/jpeg', 0.7) }];
+      this.view.markForCheck();
+    } catch {
+      /* ผู้ใช้ปิดตัวเลือกจับภาพ */
+    }
+  }
+
+  protected dropPending(index: number): void {
+    this.pendingFiles = this.pendingFiles.filter((_, item) => item !== index);
+  }
+
+  protected approverNames(): string[] {
+    return acceptedAssignees(readWorkAssignment());
+  }
+
+  protected get canApproveFiling(): boolean {
+    return !!this.reviewRole && this.caseStatus === 'approval' && this.approverNames().includes(this.signedPerson);
+  }
+
+  protected approveOfficial(): void {
+    if (!this.canApproveFiling) return;
+    writeApprovedBy(this.signedPerson);
+    this.approvedBy = this.signedPerson;
+    writeApprovalUntil(0);
+    window.clearInterval(this.approvalTimer);
+    writeCaseStatus('official');
+    this.caseStatus = 'official';
+    this.notice = 'saved';
+    this.publishGuide();
+  }
+
+  protected confirmOfficial(): void {
+    const fromConsult = this.caseStatus === 'consult';
+    const next = fromConsult ? 'approval' : 'official';
+    if (fromConsult) this.readyApprovers();
+    writeCaseStatus(next);
+    this.caseStatus = next;
+    this.officialOpen = false;
+    this.consultOpen = false;
+    this.revising = false;
+    this.viewingForm = false;
+    this.openedRound = null;
+    if (fromConsult) {
+      writeApprovalUntil(0);
+      const note: ConsultNote = {
+        from: 'applicant',
+        text: 'ไม่แก้ไขแบบเพิ่ม และยืนยันส่งแบบยื่นทางการ รอผู้รับมอบหมายที่รับเรื่องแล้วอนุมัติ',
+        at: '16/05/2562 11:55',
+      };
+      this.consultNotes = [...readConsultThread(), note];
+      writeConsultThread(this.consultNotes);
+      this.watchApproval();
+    }
+    this.publishGuide();
+  }
+
+  private readyApprovers(): void {
+    const saved = readWorkAssignment();
+    if (acceptedAssignees(saved).length) return;
+    const ad = 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)';
+    const cvd = 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)';
+    const groups = saved.groups.filter((group) => groupHead(group));
+    const useGroups = groups.length >= 2 ? groups : [ad, cvd];
+    let tasks = saved.groupTasks.filter((task) => useGroups.includes(task.group) && task.head);
+    if (tasks.length < useGroups.length) {
+      tasks = useGroups.map((group) => tasks.find((task) => task.group === group) || { group, head: groupHead(group), reply: 'pending' as const, reason: '' });
+    }
+    const first = tasks.find((task) => task.reply !== 'return') ?? tasks[0];
+    if (!first?.head) return;
+    tasks = tasks.map((task) => task.group === first.group ? { ...task, reply: 'accept' as const, reason: '' } : task);
+    const member = groupMembers(first.group).find((person) => !saved.hands.some((hand) => hand.name === person.name && hand.reply === 'return'));
+    const hands = member
+      ? [{ name: member.name, group: first.group, reply: 'accept' as const, reason: '' }, ...saved.hands.filter((hand) => hand.name !== member.name)]
+      : saved.hands;
+    const slips = [...saved.slips];
+    const order = saved.order || 'รับผิดชอบคำขอทุ่มตลาดเหล็กแผ่นรีดร้อน';
+    if (!slips.some((slip) => slip.from === this.directorName && slip.to === first.head)) {
+      slips.push({
+        at: '16/05/2562 14:28',
+        from: this.directorName,
+        to: first.head,
+        group: first.group,
+        receipt: 'accept',
+        kind: 'forward',
+        assignedOn: saved.assignedOn || '16/05/2562',
+        dueOn: saved.dueOn || '30/05/2562',
+        dueTime: '14:28',
+        remind: true,
+        order,
+        files: [{ name: 'คำสั่งมอบหมาย.pdf', title: 'คำสั่งมอบหมาย' }],
+      });
+    }
+    if (member && !slips.some((slip) => slip.from === first.head && slip.to === member.name)) {
+      slips.push({
+        at: '16/05/2562 14:28',
+        from: first.head,
+        to: member.name,
+        group: first.group,
+        receipt: 'accept',
+        kind: 'forward',
+        assignedOn: '16/05/2562',
+        dueOn: '30/05/2562',
+        dueTime: '14:28',
+        remind: true,
+        order,
+        files: [{ name: 'คำสั่งมอบหมาย.pdf', title: 'คำสั่งมอบหมาย' }],
+      });
+    }
+    writeWorkAssignment({
+      ...saved,
+      groups: useGroups,
+      groupTasks: tasks,
+      hands,
+      slips,
+      order,
+      assignedOn: saved.assignedOn || '16/05/2562',
+      dueOn: saved.dueOn || '30/05/2562',
+    });
+    writeConsultAssigned(true);
+  }
+
+  private armReview(): void {
+    window.clearInterval(this.reviewTimer);
+    if (this.caseStatus !== 'review') return;
+    let until = readReviewUntil();
+    if (!until) {
+      until = Date.now() + reviewWaitMs;
+      writeReviewUntil(until);
+    }
+    const tick = () => {
+      const left = until - Date.now();
+      this.reviewLeft = Math.max(0, Math.ceil(left / 1000));
+      if (left <= 0) this.finishReview();
+      else this.view.markForCheck();
+    };
+    tick();
+    if (this.caseStatus === 'review') this.reviewTimer = window.setInterval(tick, 250);
+  }
+
+  private finishReview(): void {
+    window.clearInterval(this.reviewTimer);
+    this.reviewTimer = 0;
+    writeReviewUntil(0);
+    if (this.caseStatus !== 'review' || !this.rounds.length) return;
+    const last = this.rounds.length - 1;
+    this.rounds = this.rounds.map((round, index) => {
+      if (index !== last || round.state === 'revision') return round;
+      return { ...round, state: 'revision', findings: round.round <= 1 ? this.revisionFindings : this.secondFindings };
+    });
+    writeRounds(this.rounds);
+    writeCaseStatus('revision');
+    this.caseStatus = 'revision';
+    this.reviewLeft = 0;
+    this.publishGuide();
+    this.view.markForCheck();
+  }
+
+  protected get noticeHeading(): string {
+    if (this.notice === 'draft') return 'บันทึกร่างแล้ว';
+    if (this.notice === 'assist') return 'สร้างข้อมูลให้แล้ว';
+    if (this.notice === 'check') return 'ตรวจให้แล้ว';
+    if (this.notice === 'suggest') return 'แนะนำรายการแล้ว';
+    if (this.notice === 'reply') return this.replyKind === 'extend' ? 'ส่งคำขอขยายเวลาแล้ว' : 'ส่งคำขอที่แก้ไขแล้ว';
+    if (this.notice === 'docs') return this.docAction === 'amend' ? 'ส่งแจ้งขอข้อมูลเพิ่มแล้ว' : 'ส่งผลการตรวจแล้ว';
+    if (this.notice === 'etr') return 'ได้รับ Ref Case ID (eTR) แล้ว';
+    if (this.notice === 'saved') return 'ดำเนินการสำเร็จ';
+    return 'ทำรายการสำเร็จ';
+  }
+
+  protected get noticeDetail(): string {
+    if (this.notice === 'assist') return 'ระบบใส่ข้อมูลตั้งต้นของเอกสารนี้ให้แล้ว แก้ไขต่อได้ก่อนกดบันทึก';
+    if (this.notice === 'check') return 'ระบบใส่ข้อมูลตั้งต้นของหนังสือแจ้งแก้ไขให้แล้ว แก้ไขต่อได้ก่อนกดบันทึก';
+    if (this.notice === 'suggest') return 'ระบบใส่รายการที่ควรขอเพิ่มให้แล้ว แก้ไขหรือเพิ่มรายการได้ก่อนกดส่ง';
+    if (this.notice === 'reply') return this.replyKind === 'extend' ? `ขอขยายเวลาส่งถึง ${this.replyNewDue} เจ้าหน้าที่จะพิจารณาคำขอขยายเวลาต่อ` : 'ส่งไฟล์คำขอที่แก้ไขและหนังสือนำส่งให้เจ้าหน้าที่แล้ว';
+    if (this.notice === 'docs') return this.docAction === 'amend' ? `ส่งหนังสือแจ้งขอข้อมูลเพิ่มเข้าระบบสารบรรณแล้ว ได้เลขรับ ${this.noticeSaraban}` : `ส่งผลการตรวจเข้าระบบสารบรรณแล้ว ได้เลขรับ ${this.noticeSaraban}`;
+    if (this.notice === 'etr') return `ระบบ eTR ส่ง Ref Case ID (eTR) ${this.etrRefNo} กลับมา และเชื่อมกับคำขอนี้แล้ว`;
+    if (this.notice === 'saved') return 'ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว';
+    if (this.notice === 'draft') return `คำขอเลขที่อ้างอิง ${this.refId} อยู่ในสถานะร่าง`;
+    return `ระบบได้รับคำขอเลขที่อ้างอิง ${this.refId} แล้ว ผลการตรวจสอบจะแจ้งภายใน 1 นาที`;
+  }
+
+  protected finishNotice(): void {
+    const draft = this.notice === 'draft';
+    const stay = this.revising;
+    this.notice = null;
+    if (draft && !stay) void this.router.navigate(['/requests'], { queryParams: { tab: 'draft' } });
+  }
 
   protected get onBehalf(): boolean {
     return this.filing !== 'self';
   }
 
+  protected get visibleDocs(): { key: string; label: string; accept: string; hint: string; behalf: boolean }[] {
+    return this.supportDocs.filter((item) => !item.behalf || this.onBehalf);
+  }
+
+  protected get activeDoc(): { key: string; label: string; accept: string; hint: string; behalf: boolean } {
+    return this.visibleDocs.find((item) => item.key === this.docKey) ?? this.visibleDocs[0];
+  }
+
+  protected openDoc(key: string): void {
+    this.docKey = key;
+  }
+
   protected addRow(): void {
     if (this.onBehalf) {
       this.makers = [...this.makers, emptyParty()];
+      this.editingKey = `maker:${this.makers.length - 1}`;
       return;
     }
     this.goods = [...this.goods, { producer: '', goods: '', made: '', sold: '', unit: '' }];
@@ -157,22 +3190,11 @@ export class Por1Page {
 
   protected addParty(block: PartyBlock): void {
     block.rows = [...block.rows, emptyParty()];
+    this.editingKey = `${block.key}:${block.rows.length - 1}`;
   }
 
-  protected get showDomestic(): boolean {
-    return this.market === 'yes' || (this.market === 'no' && this.method === '451');
-  }
-
-  protected get showThird(): boolean {
-    return this.market === 'yes';
-  }
-
-  protected get showOrigin(): boolean {
-    return this.market === 'yes' || (this.market === 'no' && this.method === '452');
-  }
-
-  protected get showThaiCost(): boolean {
-    return this.market === 'yes' || (this.market === 'no' && this.method === '453');
+  protected toggleEdit(key: string): void {
+    this.editingKey = this.editingKey === key ? '' : key;
   }
 
   protected addCost(target: 'origin' | 'thai'): void {
@@ -183,23 +3205,232 @@ export class Por1Page {
     this.thaiCosts = [...this.thaiCosts, emptyCost()];
   }
 
+  protected removeMaker(index: number): void {
+    this.makers = this.makers.filter((_, item) => item !== index);
+    if (!this.makers.length) this.makers = [emptyParty()];
+    this.editingKey = '';
+  }
+
+  protected removeGood(index: number): void {
+    this.goods = this.goods.filter((_, item) => item !== index);
+    if (!this.goods.length) this.goods = [{ producer: '', goods: '', made: '', sold: '', unit: '' }];
+  }
+
+  protected removeParty(block: PartyBlock, index: number): void {
+    block.rows = block.rows.filter((_, item) => item !== index);
+    if (!block.rows.length) block.rows = [emptyParty()];
+    this.editingKey = '';
+  }
+
+  protected removeCost(target: 'origin' | 'thai', index: number): void {
+    if (target === 'origin') {
+      this.originCosts = this.originCosts.filter((_, item) => item !== index);
+      if (!this.originCosts.length) this.originCosts = [emptyCost()];
+      return;
+    }
+    this.thaiCosts = this.thaiCosts.filter((_, item) => item !== index);
+    if (!this.thaiCosts.length) this.thaiCosts = [emptyCost()];
+  }
+
+  private readonly previews = new Map<string, string>();
+
+  protected isPdf(name: string): boolean {
+    return name.toLowerCase().endsWith('.pdf');
+  }
+
+  protected preview(name: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const url = this.previews.get(name);
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+
+  protected namesOf(key: string): string[] {
+    return this.groups[key] ?? (this.files[key] ? [this.files[key]] : []);
+  }
+
   protected pick(key: string, event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.files[key] = input.files?.[0]?.name ?? '';
-  }
-
-  protected passed(item: Section): boolean {
-    if (item.id === '7' || item.id === '8') return false;
-    const current = this.sections.findIndex((entry) => entry.id === this.section);
-    const index = this.sections.findIndex((entry) => entry.id === item.id);
-    return index < current;
-  }
-
-  protected sheetFiles(key: string): DocFile[] {
-    if (key === 'import' || key === 'factor' || key === 'summary' || key === 'trend' || key === 'intent') {
-      return this.sheets[key];
+    const file = input.files?.[0];
+    if (!file) return;
+    this.keepPreview(file);
+    const grouped = this.groups[key];
+    if (grouped) {
+      if (!grouped.includes(file.name)) this.groups = { ...this.groups, [key]: [...grouped, file.name] };
+      return;
     }
-    return [];
+    this.files[key] = file.name;
+  }
+
+  protected removeListed(key: string, name: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const grouped = this.groups[key];
+    if (grouped) {
+      this.groups = { ...this.groups, [key]: grouped.filter((item) => item !== name) };
+      return;
+    }
+    this.clearFile(key, event);
+  }
+
+  protected clearFile(key: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    delete this.files[key];
+    const input = (event.currentTarget as HTMLElement).closest('label')?.querySelector('input[type="file"]');
+    if (input instanceof HTMLInputElement) input.value = '';
+  }
+
+  protected open(item: TocLink): void {
+    this.section = item.id;
+    this.anchor = item.anchor ?? '';
+    this.guideField = '';
+    this.publishGuide();
+    this.view.detectChanges();
+    requestAnimationFrame(() => this.revealSection(item.anchor ?? ''));
+  }
+
+  private revealSection(anchor: string): void {
+    const target = (anchor && document.getElementById(anchor)) || document.querySelector('.form');
+    if (!(target instanceof HTMLElement)) return;
+    const pin = document.querySelector('.review-pin');
+    const offset = 65 + (pin instanceof HTMLElement ? pin.offsetHeight : 0);
+    const top = target.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top) });
+  }
+
+  protected current(item: TocLink): boolean {
+    return this.section === item.id && this.anchor === (item.anchor ?? '');
+  }
+
+  protected filled(item: TocLink): boolean {
+    return item.id !== '7.3' && item.id !== '7.4' && item.anchor !== 'part-4-5';
+  }
+
+  protected failed(item: TocLink): boolean {
+    return this.issueFor(item) !== '';
+  }
+
+  protected groupFailed(group: TocGroup): boolean {
+    return group.items.some((item) => this.failed(item));
+  }
+
+  protected get checkForms(): { code: string; groups: TocGroup[] }[] {
+    const groups = this.measure === 'subsidy'
+      ? this.toc
+      : this.toc.filter((group) => !group.items.some((item) => item.id.startsWith('7')));
+    return [{ code: 'ปร. 1', groups }];
+  }
+
+  protected groupComplete(group: TocGroup): boolean {
+    return group.items.every((item) => this.itemComplete(item));
+  }
+
+  protected get sectionsReady(): boolean {
+    return this.toc.every((group) => this.groupComplete(group));
+  }
+
+  protected itemComplete(item: TocLink): boolean {
+    if (this.failed(item)) return false;
+    const id = item.id;
+    const anchor = item.anchor ?? '';
+    if (id.startsWith('7') && this.measure !== 'subsidy') return true;
+    if (id === 'other') return true;
+    if (id === '1' && anchor === 'part-1-1') {
+      if (!this.hasText(this.company) || !this.hasText(this.nationality) || !this.hasText(this.address) || !this.hasText(this.phone)) return false;
+      return !this.onBehalf || (this.hasText(this.agent) && this.makers.every((row) => this.hasText(row.name)));
+    }
+    if (id === '1' && anchor === 'part-1-2') return this.hasText(this.relatedImport);
+    if (id === '1' && anchor === 'part-1-3') return this.hasText(this.priorAid);
+    if (id === '2') return this.hasText(this.goodsDetail) && this.hasText(this.channelDetail);
+    if (id === '3') {
+      const block = this.parties.find((entry) => anchor === `part-${entry.key}`);
+      return !!block && block.rows.some((row) => this.hasText(row.name));
+    }
+    if (id === '4' && anchor === 'part-4-1') return this.hasText(this.exportCountry) && this.hasText(this.factoryNote) && this.hasText(this.currency);
+    if (id === '4' && anchor === 'part-4-2') return this.hasText(this.thirdReason);
+    if (id === '4' && anchor === 'part-4-3-1') return this.hasText(this.originPeriod) && this.hasText(this.originDetail);
+    if (id === '4' && anchor === 'part-4-3-2') return this.hasText(this.thaiPeriod) && this.hasText(this.thaiDetail);
+    if (id === '4' && anchor === 'part-4-4') return this.hasText(this.specialDetail);
+    if (id === '4' && anchor === 'part-4-5') return this.hasText(this.compareReason) && (this.market === 'yes' || this.hasText(this.method));
+    if (id === '5') return this.hasText(this.exportDetail);
+    if (id === '6') return this.docsOf('margin').length > 0;
+    if (id === '7.1') return this.docsOf('subsidy').length > 0;
+    if (id === '7.2') return this.hasText(this.explainDetail);
+    if (id === '7.3' || id === '7.4') return false;
+    if (id === '8.1') return this.hasText(this.note('importDetail'));
+    if (id === '8.2') return this.hasText(this.note('priceEffect')) && this.hasText(this.note('costEffect'));
+    if (id === '8.3') return this.conditions.every((entry) => this.hasText(this.note(entry.key)));
+    if (id === '8.4') return this.hasText(this.note('factorDetail'));
+    if (id === '8.5') return this.hasText(this.note('summaryDetail'));
+    if (id === '8.6') return this.hasText(this.note('buyerDetail'));
+    if (id === '8.7') return this.hasText(this.note('trendCapacity')) && this.hasText(this.note('trendPrice')) && this.hasText(this.note('trendOther'));
+    if (id === '8.8') return this.hasText(this.note('intentDetail'));
+    if (id === '9') return this.pledgeReady && this.signReady;
+    return this.filled(item);
+  }
+
+  private hasText(value: string): boolean {
+    return !!value.trim();
+  }
+
+  protected issueFor(item: TocLink): string {
+    return this.failSpots().find((spot) => this.spotHits(spot, item))?.reason ?? '';
+  }
+
+  protected get sectionIssue(): string {
+    const item = this.toc.flatMap((group) => group.items).find((entry) => this.current(entry));
+    return item ? this.issueFor(item) : '';
+  }
+
+  protected docIssue(key: string): string {
+    return this.failSpots().find((spot) => spot.docs.includes(key))?.reason ?? '';
+  }
+
+  private get activeFindings(): RoundFinding[] {
+    if (this.caseStatus === 'draft' || this.caseStatus === 'review' || this.caseStatus === 'cancelled' || this.caseStatus === 'official') return [];
+    return this.rounds.at(-1)?.findings ?? [];
+  }
+
+  private failSpots(): { ids: string[]; anchors: string[]; docs: string[]; reason: string }[] {
+    return this.activeFindings.map((finding) => ({ ...this.spotOf(finding), reason: finding.detail }));
+  }
+
+  private spotOf(finding: RoundFinding): { ids: string[]; anchors: string[]; docs: string[] } {
+    if (finding.place.includes('ส่วนที่ 1')) return { ids: ['1'], anchors: ['part-1-1'], docs: ['power'] };
+    if (finding.place.includes('ส่วนที่ 2')) return { ids: ['2'], anchors: ['part-2'], docs: ['goods'] };
+    if (finding.place.includes('ส่วนที่ 5')) return { ids: ['5', '8.1'], anchors: ['part-5'], docs: ['export', 'import'] };
+    if (finding.place.includes('ส่วนที่ 4')) return { ids: ['4', '5'], anchors: ['part-4-1', 'part-4-2', 'part-5'], docs: ['export'] };
+    if (finding.place.includes('ส่วนที่ 6')) return { ids: ['6', '8.1', '8.5'], anchors: ['part-6'], docs: ['margin', 'summary', 'import'] };
+    if (finding.place.includes('ส่วนที่ 3')) return { ids: ['3'], anchors: ['part-producers'], docs: [] };
+    return { ids: [], anchors: [], docs: [] };
+  }
+
+  private spotHits(spot: { ids: string[]; anchors: string[] }, item: TocLink): boolean {
+    if (item.anchor) return spot.anchors.includes(item.anchor);
+    return spot.ids.includes(item.id);
+  }
+
+  protected heading(id: string): string {
+    for (const group of this.toc) {
+      const item = group.items.find((entry) => entry.id === id);
+      if (item) return item.label;
+    }
+    return '';
+  }
+
+  protected docsOf(target: DocTarget): DocFile[] {
+    if (target === 'import' || target === 'factor' || target === 'summary' || target === 'trend' || target === 'intent') {
+      return this.sheets[target];
+    }
+    return {
+      goods: this.docs,
+      export: this.exportDocs,
+      margin: this.marginDocs,
+      subsidy: this.subsidyDocs,
+      explain: this.explainDocs,
+      other: this.otherDocs,
+    }[target];
   }
 
   protected note(key: string): string {
@@ -213,7 +3444,10 @@ export class Por1Page {
   protected addDocs(list: FileList | null, target: DocTarget = 'goods'): void {
     if (!list?.length) return;
     const saved = this.today();
-    const next = [...list].map((file) => ({ name: file.name, saved }));
+    const next = [...list].map((file) => {
+      this.keepPreview(file);
+      return { name: file.name, saved };
+    });
     if (target === 'import' || target === 'factor' || target === 'summary' || target === 'trend' || target === 'intent') {
       this.sheets = { ...this.sheets, [target]: [...this.sheets[target], ...next] };
       return;
@@ -224,12 +3458,14 @@ export class Por1Page {
       margin: this.marginDocs,
       subsidy: this.subsidyDocs,
       explain: this.explainDocs,
+      other: this.otherDocs,
     };
     const updated = [...lists[target], ...next];
     if (target === 'export') this.exportDocs = updated;
     else if (target === 'margin') this.marginDocs = updated;
     else if (target === 'subsidy') this.subsidyDocs = updated;
     else if (target === 'explain') this.explainDocs = updated;
+    else if (target === 'other') this.otherDocs = updated;
     else this.docs = updated;
   }
 
@@ -249,12 +3485,370 @@ export class Por1Page {
       margin: this.marginDocs,
       subsidy: this.subsidyDocs,
       explain: this.explainDocs,
+      other: this.otherDocs,
     }[target].filter((_, item) => item !== index);
     if (target === 'export') this.exportDocs = current;
     else if (target === 'margin') this.marginDocs = current;
     else if (target === 'subsidy') this.subsidyDocs = current;
     else if (target === 'explain') this.explainDocs = current;
+    else if (target === 'other') this.otherDocs = current;
     else this.docs = current;
+  }
+
+  private keepPreview(file: File): void {
+    const current = this.previews.get(file.name);
+    if (current) URL.revokeObjectURL(current);
+    this.previews.set(file.name, URL.createObjectURL(file));
+  }
+
+  ngOnInit(): void {
+    this.caseStatus = readCaseStatus();
+    this.loadDocNotice();
+    this.loadWorkDrafts();
+    this.loadMadeDocs();
+    this.rounds = readRounds();
+    this.consult = readConsult();
+    this.consultNotes = readConsultThread();
+    this.consultAssigned = readConsultAssigned();
+    this.consultPlan = readConsultPlan();
+    if (this.reviewRole) {
+      this.viewingForm = true;
+      this.ensureAssignment();
+      if (this.reviewRole === 'staff' || (this.reviewRole === 'director' && !this.consultAssigned)) this.reviewTab = 'assign';
+      if (this.slipPlace || this.shownTasks.some((task) => this.groupAct(task)) || this.hands.some((hand) => this.handAct(hand.name))) this.pickReviewTab('assign');
+      else if (this.showTalkTab) this.pickReviewTab('talk');
+      this.ensureReceipt();
+    }
+    if (this.caseStatus === 'approval' && !this.consult) {
+      writeCaseStatus('official');
+      this.caseStatus = 'official';
+    }
+    if (this.reviewRole) this.ensureLinks();
+    if (this.caseStatus === 'review' && this.rounds.length === 0) {
+      this.rounds = [this.captureRound(1)];
+      writeRounds(this.rounds);
+    }
+    if (this.caseStatus === 'review') this.armReview();
+    if (!this.reviewRole && this.route.snapshot.queryParamMap.get('consult') === '1') this.openConsult();
+    if (this.caseStatus === 'consult' && this.consultAssigned && this.consultByChat) this.openTalk();
+    if (this.caseStatus === 'consult' && !this.consultAssigned) this.watchAssign();
+    this.watchApproval();
+    this.publishGuide();
+  }
+
+  private approvalTimer = 0;
+  private assignTimer = 0;
+
+  private watchAssign(): void {
+    window.clearInterval(this.assignTimer);
+    if (this.caseStatus !== 'consult' || this.consultAssigned) return;
+    let step = readConsultStep();
+    this.assignTimer = window.setInterval(() => {
+      const next = readConsultStep();
+      if (next !== step) {
+        step = next;
+        this.view.markForCheck();
+      }
+      if (!readConsultAssigned()) return;
+      this.consultAssigned = true;
+      this.consultPlan = readConsultPlan();
+      this.consultNotes = readConsultThread();
+      window.clearInterval(this.assignTimer);
+      if (this.consultByChat) this.openTalk();
+      this.publishGuide();
+      this.view.markForCheck();
+    }, 1000);
+  }
+
+  private watchApproval(): void {
+    window.clearInterval(this.approvalTimer);
+    if (this.caseStatus !== 'approval') return;
+    if (this.consult) {
+      this.approvalTimer = window.setInterval(() => {
+        const stored = readCaseStatus();
+        if (stored === 'approval') return;
+        this.caseStatus = stored;
+        this.approvedBy = readApprovedBy();
+        window.clearInterval(this.approvalTimer);
+        this.publishGuide();
+        this.view.markForCheck();
+      }, 1000);
+      return;
+    }
+    let until = readApprovalUntil();
+    if (!until) {
+      until = Date.now() + reviewWaitMs;
+      writeApprovalUntil(until);
+    }
+    const tick = () => {
+      const stored = readCaseStatus();
+      if (stored !== 'approval') {
+        this.caseStatus = stored;
+        this.approvedBy = readApprovedBy();
+        window.clearInterval(this.approvalTimer);
+        writeApprovalUntil(0);
+        this.view.markForCheck();
+        return;
+      }
+      const left = until - Date.now();
+      this.approvalLeft = Math.max(0, Math.ceil(left / 1000));
+      if (left <= 0) this.finishApproval();
+      else this.view.markForCheck();
+    };
+    tick();
+    if (this.caseStatus === 'approval') this.approvalTimer = window.setInterval(tick, 250);
+  }
+
+  private finishApproval(): void {
+    window.clearInterval(this.approvalTimer);
+    this.approvalTimer = 0;
+    writeApprovalUntil(0);
+    if (this.caseStatus !== 'approval') return;
+    writeCaseStatus('official');
+    this.caseStatus = 'official';
+    this.publishGuide();
+    this.view.markForCheck();
+  }
+
+  ngOnDestroy(): void {
+    window.clearTimeout(this.submitTimer);
+    window.clearTimeout(this.talkTimer);
+    window.clearInterval(this.reviewTimer);
+    window.clearInterval(this.approvalTimer);
+    window.clearInterval(this.assignTimer);
+    this.guide.clear();
+  }
+
+  protected publishGuide(): void {
+    this.guide.set(this.guideSnapshot(), (id) => this.jumpGuide(id));
+  }
+
+  protected noteField(event: FocusEvent): void {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.tagName === 'BUTTON') return;
+    const host = target.closest('label, fieldset');
+    const raw = host?.querySelector('legend')?.textContent || host?.childNodes[0]?.textContent || target.getAttribute('aria-label') || '';
+    const name = raw.replace(/\*/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!name || name === this.guideField) return;
+    this.guideField = name;
+    this.publishGuide();
+  }
+
+  private jumpGuide(id: string): void {
+    const [nav, label = ''] = id.split('::');
+    if (nav.startsWith('nav:')) {
+      const [section, anchor = ''] = nav.slice(4).split('|');
+      const item = this.toc.flatMap((group) => group.items).find((entry) => entry.id === section && (entry.anchor ?? '') === anchor);
+      if (item) this.open(item);
+    }
+    const name = label.replace(/\s+/g, '');
+    if (!name) return;
+    setTimeout(() => {
+      const nodes = document.querySelectorAll('.form label, .form fieldset, .form h3, .form h4, .form .table-head p');
+      const hit = [...nodes].find((node) => (node.textContent ?? '').replace(/\s+/g, '').includes(name));
+      hit?.scrollIntoView({ block: 'center' });
+    }, 120);
+  }
+
+  private guideTitle(): string {
+    if (this.section === '2') return 'ส่วนที่ 2 รายละเอียดสินค้า';
+    if (this.section === '1' && this.anchor === 'part-1-1') return 'ส่วนที่ 1 ข้อมูลผู้ยื่น';
+    const current = this.toc.flatMap((group) => group.items.map((item) => ({ group: group.label, item }))).find((entry) => entry.item.id === this.section && (entry.item.anchor ?? '') === this.anchor);
+    if (!current) return 'แบบคำขอ';
+    return current.item.label === current.group ? current.group : `${current.group} · ${current.item.label}`;
+  }
+
+  private guideFocus(): string {
+    if (this.section === '2') return 'รายละเอียดสินค้า';
+    if (this.section === '1') return 'ข้อมูลผู้ยื่น';
+    if (this.section === '5') return 'ราคาส่งออก';
+    if (this.section === '9') return 'คำรับรองและหนังสือนำส่ง';
+    return 'ส่วนนี้';
+  }
+
+  private fileMeta(label: string, required: boolean, files: { name: string }[] | string[]): GuideAttachment {
+    const names = files.map((file) => (typeof file === 'string' ? file : file.name));
+    return { label, required, count: names.length, names: names.slice(0, 6) };
+  }
+
+  private watch(checked: string[], missing: GuideField[], label: string, value: string): void {
+    checked.push(label);
+    if (!value.trim()) missing.push({ id: `nav:${this.section}|${this.anchor}::${label}`, label });
+  }
+
+  private guideSnapshot(): FilingSnapshot {
+    const checked: string[] = [];
+    const missing: GuideField[] = [];
+    const errors: GuideField[] = [];
+    const attachments: GuideAttachment[] = [];
+    let fieldsChecked = false;
+    let sectionRequired = true;
+    const section = this.section;
+    const anchor = this.anchor;
+    const see = (label: string, value: string) => this.watch(checked, missing, label, value);
+
+    if (section === '1' && anchor === 'part-1-1') {
+      fieldsChecked = true;
+      see('ชื่อบริษัท', this.company);
+      see('สัญชาติ', this.nationality);
+      see('ที่อยู่', this.address);
+      see('โทรศัพท์', this.phone);
+      if (this.onBehalf) {
+        see('ผู้รับมอบอำนาจ', this.agent);
+        see('ผู้ผลิตที่มิได้ขอให้กระทำการแทน', this.outsideProducer);
+        see('รายชื่อผู้ผลิตที่ไม่ใช่บริษัทเดียวกัน', this.makers.some((row) => !row.name.trim()) ? '' : 'มี');
+      } else {
+        see('รายการสินค้าที่ผลิตและ/หรือจำหน่าย', this.goods.some((row) => !row.producer.trim()) ? '' : 'มี');
+      }
+      for (const doc of this.visibleDocs) attachments.push(this.fileMeta(doc.label, true, this.namesOf(doc.key)));
+      if (this.email.trim() && !this.email.includes('@')) errors.push({ id: `nav:${section}|${anchor}::อีเมล`, label: 'อีเมล', hint: 'รูปแบบอีเมลยังไม่ครบ' });
+    } else if (section === '1' && anchor === 'part-1-2') {
+      fieldsChecked = true;
+      see('ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก', this.relatedImport);
+    } else if (section === '1' && anchor === 'part-1-3') {
+      fieldsChecked = true;
+      see('คำขอมาตรการช่วยเหลือ', this.priorAid);
+    } else if (section === '2') {
+      fieldsChecked = true;
+      see('ชื่อและลักษณะสินค้า', this.goodsDetail);
+      see('ช่องทางจำหน่ายและผู้ใช้สินค้า', this.channelDetail);
+      attachments.push(this.fileMeta('เอกสารรายละเอียดสินค้าที่ถูกพิจารณา', true, this.docsOf('goods')));
+    } else if (section === '3') {
+      fieldsChecked = true;
+      const block = this.parties.find((item) => anchor === `part-${item.key}`);
+      if (block) see(block.nameLabel, block.rows.some((row) => !row.name.trim()) ? '' : 'มี');
+    } else if (section === '4' && anchor === 'part-4-1') {
+      fieldsChecked = true;
+      see('ประเทศผู้ส่งออก', this.exportCountry);
+      see('ราคาหน้าโรงงาน', this.factoryNote);
+      see('สกุลเงิน', this.currency);
+    } else if (section === '4' && anchor === 'part-4-2') {
+      fieldsChecked = true;
+      see('เหตุผลที่ใช้ราคาส่งออกไปประเทศที่สาม', this.thirdReason);
+    } else if (section === '4' && anchor === 'part-4-3-1') {
+      fieldsChecked = true;
+      see('ช่วงเวลาต้นทุนในประเทศแหล่งกำเนิด', this.originPeriod);
+      see('รายละเอียดต้นทุนในประเทศแหล่งกำเนิด', this.originDetail);
+      see('รายการต้นทุนในประเทศแหล่งกำเนิด', this.originCosts.some((row) => !row.item.trim()) ? '' : 'มี');
+    } else if (section === '4' && anchor === 'part-4-3-2') {
+      fieldsChecked = true;
+      see('ช่วงเวลาต้นทุนในประเทศไทย', this.thaiPeriod);
+      see('รายละเอียดต้นทุนในประเทศไทย', this.thaiDetail);
+      see('รายการต้นทุนในประเทศไทย', this.thaiCosts.some((row) => !row.item.trim()) ? '' : 'มี');
+    } else if (section === '4' && anchor === 'part-4-4') {
+      fieldsChecked = true;
+      see('ตลาดมีลักษณะเฉพาะ', this.specialDetail);
+    } else if (section === '4' && anchor === 'part-4-5') {
+      fieldsChecked = true;
+      see('เหตุผลข้อ 4.5', this.compareReason);
+      if (this.market !== 'yes') see('วิธีคำนวณมูลค่าปกติ', this.method);
+    } else if (section === '5') {
+      fieldsChecked = true;
+      see('รายละเอียดราคาส่งออก', this.exportDetail);
+      attachments.push(this.fileMeta('เอกสารราคาส่งออก', true, this.docsOf('export')));
+    } else if (section === '6') {
+      fieldsChecked = true;
+      attachments.push(this.fileMeta('เอกสารส่วนเหลื่อมการทุ่มตลาด', true, this.docsOf('margin')));
+    } else if (section.startsWith('7')) {
+      sectionRequired = this.measure === 'subsidy';
+      fieldsChecked = section === '7.1' || section === '7.2';
+      if (section === '7.2') see('รายละเอียดการอุดหนุน', this.explainDetail);
+      const key = section === '7.2' ? 'explain' : 'subsidy';
+      if (section === '7.1' || section === '7.2') attachments.push(this.fileMeta(section === '7.1' ? 'เอกสารโครงการอุดหนุน' : 'เอกสารอธิบายการอุดหนุน', sectionRequired, this.docsOf(key)));
+    } else if (section === '8.1') {
+      fieldsChecked = true;
+      see('รายละเอียดการนำเข้า', this.note('importDetail'));
+      attachments.push(this.fileMeta('ข้อมูลการนำเข้าสินค้าที่ถูกพิจารณา', true, this.docsOf('import')));
+    } else if (section === '8.2') {
+      fieldsChecked = true;
+      see('ผลกระทบด้านราคา', this.note('priceEffect'));
+      see('ผลกระทบต่อต้นทุน', this.note('costEffect'));
+      attachments.push(this.fileMeta('หลักฐานเปรียบเทียบราคา', false, this.namesOf('priceCompare')));
+      attachments.push(this.fileMeta('ต้นทุนสินค้าชนิดเดียวกันต่อหน่วย', false, this.namesOf('unitCost')));
+    } else if (section === '8.3') {
+      fieldsChecked = true;
+      for (const item of this.conditions) see(item.label, this.note(item.key));
+      attachments.push(this.fileMeta('ข้อมูลสินค้าชนิดเดียวกันรายปี', false, this.namesOf('yearly')));
+      for (const item of this.conditions) attachments.push(this.fileMeta(item.label, false, this.namesOf(item.key)));
+    } else if (section === '8.4') {
+      fieldsChecked = true;
+      see('ปัจจัยอื่น', this.note('factorDetail'));
+      attachments.push(this.fileMeta('เอกสารปัจจัยอื่น', false, this.docsOf('factor')));
+    } else if (section === '8.5') {
+      fieldsChecked = true;
+      see('สรุปความเสียหาย', this.note('summaryDetail'));
+      attachments.push(this.fileMeta('เอกสารสรุปความเสียหาย', false, this.docsOf('summary')));
+    } else if (section === '8.6') {
+      fieldsChecked = true;
+      see('ข้อมูลผู้ซื้อ', this.note('buyerDetail'));
+      attachments.push(this.fileMeta('หลักฐานผู้ซื้อ', false, this.namesOf('buyerProof')));
+      attachments.push(this.fileMeta('จดหมายหรือรายงานจากลูกค้า', false, this.namesOf('buyerLetter')));
+    } else if (section === '8.7') {
+      fieldsChecked = true;
+      see('ขีดความสามารถของผู้ส่งออก', this.note('trendCapacity'));
+      see('ผลของราคาสินค้าที่ถูกพิจารณา', this.note('trendPrice'));
+      see('ปัจจัยอื่น', this.note('trendOther'));
+      attachments.push(this.fileMeta('ข้อมูลปริมาณการนำเข้า', false, this.docsOf('trend')));
+    } else if (section === '8.8') {
+      fieldsChecked = true;
+      see('อุปสรรคต่อการก่อตั้งหรือพัฒนา', this.note('intentDetail'));
+      attachments.push(this.fileMeta('หลักฐานอุปสรรคอุตสาหกรรม', false, this.docsOf('intent')));
+    } else if (section === '9') {
+      fieldsChecked = true;
+      see('ข้อความคำรับรอง', this.pledgeText);
+      see('คำรับรอง', this.ack ? 'รับรอง' : '');
+      see('ผู้ลงนาม', this.signer);
+      see('ตำแหน่ง', this.roleTitle);
+      see('วันที่ลงนาม', this.signedOn);
+      see('รูปลายเซ็น', this.signatureUrl);
+      see('วันที่หนังสือ', this.letterDate);
+      see('เลขที่หนังสือ', this.letterNo);
+      see('เรื่อง', this.letterSubject);
+      see('เรียน', this.letterTo);
+      see('อ้างถึง', this.letterRef);
+      see('สิ่งที่แนบมาด้วย', this.letterEnclosed);
+      see('รายละเอียดหนังสือนำส่ง', this.letterBody);
+      see('ความประสงค์ให้พิจารณา', this.letterPurpose);
+      if (this.letterDate.trim() && !/^\d{2}\/\d{2}\/\d{4}$/.test(this.letterDate.trim())) {
+        errors.push({ id: 'nav:9|::วันที่หนังสือ', label: 'วันที่หนังสือ', hint: 'ใช้รูปแบบ วัน/เดือน/ปี' });
+      }
+      if (this.signedOn.trim() && !/^\d{2}\/\d{2}\/\d{4}$/.test(this.signedOn.trim())) {
+        errors.push({ id: 'nav:9|::วันที่ลงนาม', label: 'วันที่ลงนาม', hint: 'ใช้รูปแบบ วัน/เดือน/ปี' });
+      }
+      checked.push('หนังสือนำส่ง');
+    } else if (section === 'other') {
+      fieldsChecked = true;
+      attachments.push(this.fileMeta('เอกสารอื่นที่แนบประกอบ', false, this.docsOf('other')));
+    }
+
+    const flat = this.toc.flatMap((group) => group.items.map((item) => ({ group: group.label, item })));
+    const index = flat.findIndex((entry) => entry.item.id === section && (entry.item.anchor ?? '') === anchor);
+    const upcoming = flat[index + 1];
+    const formData: Record<string, string> = { publicCase: `${filingRefId} เหล็กแผ่นรีดร้อน` };
+    if (section === '1') formData['filingMode'] = this.onBehalf ? 'ยื่นแทนผู้ผลิตรายอื่น' : 'ยื่นในนามตนเอง';
+    if (section === '4' && anchor === 'part-4-5' && this.market === 'yes') formData['marketEconomy'] = 'ใช้กลไกตลาด';
+
+    return {
+      measureType: this.measure === 'subsidy' ? 'CVD' : 'AD',
+      formType: 'ปร.1',
+      requestId: filingRefId,
+      currentSection: section,
+      anchor,
+      promptKey: anchor ? `${section}:${anchor}` : section,
+      currentField: this.guideField,
+      currentSectionTitle: this.guideTitle(),
+      focus: this.guideFocus(),
+      nextSectionTitle: upcoming ? `${upcoming.group} · ${upcoming.item.label}` : '',
+      nextJump: upcoming ? `nav:${upcoming.item.id}|${upcoming.item.anchor ?? ''}` : '',
+      formData,
+      validationErrors: errors,
+      missingRequiredFields: sectionRequired ? missing : [],
+      checkedFields: checked,
+      fieldsChecked,
+      sectionRequired,
+      attachmentMetadata: attachments,
+      completionStatus: caseStatusLabel(this.caseStatus),
+    };
   }
 
   private today(): string {

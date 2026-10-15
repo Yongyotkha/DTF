@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output } from '@angular/core';
 import { MenuItem } from './menu-item';
 
 @Component({
@@ -11,11 +11,15 @@ export class MenuGroup {
   @Input() title = '';
   @Input() items: string[] = [];
   @Input() expanded = false;
+  @Input() flyout = false;
   @Input() active = '';
   @Input() compact = false;
   @Output() readonly chosen = new EventEmitter<string>();
   @Output() readonly toggled = new EventEmitter<void>();
-  @Output() readonly opened = new EventEmitter<void>();
+
+  protected flyoutTop = 8;
+
+  constructor(private readonly host: ElementRef<HTMLElement>) {}
 
   protected get icon(): 'request' | 'investigate' | 'petition' | 'tasks' | 'archive' | 'settings' | '' {
     if (this.title === 'คำขอ') return 'request';
@@ -27,8 +31,18 @@ export class MenuGroup {
     return '';
   }
 
+  protected get flyoutId(): string {
+    return `menu-flyout-${this.title}`;
+  }
+
+  protected get groupActive(): boolean {
+    return this.flyout || (!this.compact && this.expanded) || this.items.includes(this.active);
+  }
+
   protected activate(): void {
+    const top = this.host.nativeElement.getBoundingClientRect().top;
+    const limit = Math.max(8, window.innerHeight - 160);
+    this.flyoutTop = Math.max(8, Math.min(top, limit));
     this.toggled.emit();
-    if (this.compact) this.opened.emit();
   }
 }

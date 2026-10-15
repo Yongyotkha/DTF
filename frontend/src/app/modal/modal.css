@@ -167,9 +167,72 @@
   justify-content: center;
 }
 
+.modal--alert .modal__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  min-width: 120px;
+  padding: 10px 16px;
+}
+
 .modal--form .modal__actions {
   gap: 8px;
   margin-top: 8px;
+}
+
+.modal--otp app-otp-field {
+  display: block;
+  margin-top: 16px;
+}
+
+.modal--otp .modal__actions {
+  margin-top: 16px;
+}
+
+.modal__timer,
+.modal__sent {
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.modal__timer b {
+  color: var(--color-primary);
+  font-weight: 400;
+}
+
+.modal__timer--expired {
+  color: var(--color-error-red);
+}
+
+.modal__sent {
+  margin-top: 4px;
+  color: var(--color-success);
+}
+
+.modal__resend {
+  display: inline-flex;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  cursor: pointer;
+}
+
+.modal__resend:hover {
+  color: var(--color-link-hover);
+}
+
+.modal__resend:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
 }
 
 .modal__button {
@@ -186,6 +249,14 @@
   font-weight: 400;
   line-height: 21px;
   cursor: pointer;
+}
+
+.modal__button:disabled,
+.modal--alert .modal__button:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  box-shadow: none;
+  cursor: default;
 }
 
 .modal__button--outline {

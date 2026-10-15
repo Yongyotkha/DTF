@@ -1,7 +1,7 @@
 <div class="staff">
   <app-top-header class="fluid" />
   <div class="staff__body">
-    <app-side-nav kind="staff" open="ระบบ Task Management" (chosen)="openMenu($event)" />
+    <app-side-nav kind="staff" open="คำขอ" (chosen)="openMenu($event)" />
     <main>
       <p class="crumb">ระบบ Task Management <span>›</span> {{ roleName }}</p>
       <div class="tools">
@@ -41,26 +41,15 @@
               <p class="block"><span>รายชื่อบริษัทที่มอบอำนาจให้</span>-</p>
               <p class="block"><span>มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา<span class="req">*</span></span>ขอความอนุเคราะห์พิจารณาการลงทะเบียนผู้มีส่วนได้เสียและรับรองเอกสารแนบ</p>
               <h3>แนบไฟล์ตราประทับบริษัท</h3>
-              <p class="file"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ตราประทับบริษัท.png</p>
+              <ng-container *ngTemplateOutlet="filePane; context: { key: 'seal', drop: false }" />
               <h3>แนบไฟล์หนังสือนำส่งฉบับจริง</h3>
+              <ng-container *ngTemplateOutlet="filePane; context: { key: 'cover', drop: false }" />
               <h3>แนบไฟล์คำขอฉบับปกปิด<span class="req">*</span></h3>
-              <table>
-                <thead><tr><th>ลำดับ</th><th>ประเภทคำขอ</th><th>แบบไฟล์</th><th>ชื่อไฟล์</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td>1</td>
-                    <td>แบบ ปร.1</td>
-                    <td><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ไฟล์คำขอฉบับปกปิด.pdf</td>
-                    <td>ไฟล์คำขอฉบับปกปิด</td>
-                  </tr>
-                </tbody>
-              </table>
+              <ng-container *ngTemplateOutlet="filePane; context: { key: 'closedForm', titled: true, drop: false }" />
               <h3>แนบเอกสารประกอบ</h3>
+              <ng-container *ngTemplateOutlet="filePane; context: { key: 'extra', drop: false }" />
               <h3>แนบไฟล์คำขอฉบับเปิดเผย<span class="req">*</span></h3>
-              <table>
-                <thead><tr><th>ลำดับ</th><th>ประเภทคำขอ</th><th>แบบไฟล์</th><th>ชื่อไฟล์</th></tr></thead>
-                <tbody></tbody>
-              </table>
+              <ng-container *ngTemplateOutlet="filePane; context: { key: 'openForm', drop: false }" />
               <p class="block"><span>หมายเหตุ</span>-</p>
               <p class="block"><span>ประสงค์ยื่นเอกสารฉบับจริง<span class="req">*</span></span>ไม่ใช่<small>การยื่นหรือไม่ยื่นเอกสารฉบับจริงไม่ส่งผลต่อกระบวนการใดๆ</small></p>
               @if (!director && !head && !officer) {
@@ -201,11 +190,7 @@
             </label>
             <div>
               <p class="field-label">แนบไฟล์เอกสาร</p>
-              <label class="drop">
-                <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                <span>{{ attachment || 'วางไฟล์ที่นี่เพื่ออัพโหลด' }}</span>
-                <input type="file" (change)="pickFile($event)" />
-              </label>
+              <ng-container *ngTemplateOutlet="filePane; context: { key: 'assign' }" />
             </div>
             <footer class="assign-card__foot">
               <app-button type="primary" label="ส่ง" (click)="back()" />
@@ -251,7 +236,7 @@
                   <p class="block"><span>การดำเนินการ<span class="req">*</span></span>แจ้งแก้ไข</p>
                   <p class="block"><span>เหตุผลความจำเป็นในการขอขยายเวลา<span class="req">*</span></span>เหตุผลความจำเป็นในการขอขยายเวลา</p>
                   <p class="block"><span>วันที่ครบกำหนดส่ง<span class="req">*</span></span>24/09/2569</p>
-                  <p class="block"><span>แนบเอกสารประกอบ</span><a class="pdf" href="#">ขอขยายเวลา - 24/09/2569.pdf</a></p>
+                  <div class="block"><span>แนบเอกสารประกอบ</span><ng-container *ngTemplateOutlet="shownFile; context: { name: 'ขอขยายเวลา - 24/09/2569.pdf', saved: '24/09/2569' }" /></div>
                   <div class="chip-row">
                     <span class="chip">ข้อมูลหนังสือนำส่งบริษัท</span>
                     <app-button type="primary" label="ใบนำส่ง" />
@@ -268,8 +253,8 @@
                   <p class="block"><span>รายชื่อบริษัทที่มอบอำนาจให้</span>-</p>
                   <p class="block"><span>มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา<span class="req">*</span></span>มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา</p>
                   <div class="grid">
-                    <p><span>แนบไฟล์ตราประทับบริษัท</span><a class="pdf" href="#">ตราประทับบริษัท.png</a></p>
-                    <p><span>แนบไฟล์หนังสือนำส่งฉบับจริง</span><a class="pdf" href="#">หน้าหนังสือนำส่งฉบับจริง.png</a></p>
+                    <div class="block"><span>แนบไฟล์ตราประทับบริษัท</span><ng-container *ngTemplateOutlet="shownFile; context: { name: 'ตราประทับบริษัท.png', saved: '24/09/2569' }" /></div>
+                    <div class="block"><span>แนบไฟล์หนังสือนำส่งฉบับจริง</span><ng-container *ngTemplateOutlet="shownFile; context: { name: 'หน้าหนังสือนำส่งฉบับจริง.png', saved: '24/09/2569' }" /></div>
                   </div>
                   <p class="block"><span>หมายเหตุ<span class="req">*</span></span>สามารถ Preview ตัวอย่างใบนำส่งนี้เพื่อกรอกข้อมูลตรงส่วน</p>
                 </div>
@@ -292,7 +277,7 @@
                     <p><span>การดำเนินการ<span class="req">*</span></span>แจ้งคำขอครบถ้วนถูกต้อง</p>
                     <p><span>หมายเหตุ<span class="req">*</span></span>แจ้งคำขอครบถ้วนถูกต้องภายใน 4 เดือน</p>
                   </div>
-                  <p class="block"><span>ไฟล์แจ้งการพิจารณา</span><a class="pdf" href="#">แก้ไข.pdf</a></p>
+                  <div class="block"><span>ไฟล์แจ้งการพิจารณา</span><ng-container *ngTemplateOutlet="shownFile; context: { name: 'แก้ไข.pdf', saved: '22/01/2569' }" /></div>
                 </div>
               }
             </section>
@@ -392,7 +377,7 @@
               }
               @case (1) {
                 <div class="pair">
-                  <label>วันที่ยื่นคำขออย่างเป็นทางการ (อิเล็กทรอนิกส์)
+                  <label>วันที่ยื่นคำขอ
                     <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
                   </label>
                   <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
@@ -415,11 +400,7 @@
                 </div>
                 <div>
                   <p class="field-label">แนบไฟล์</p>
-                  <label class="file-btn">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />เลือกไฟล์
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
+                  <ng-container *ngTemplateOutlet="filePane; context: { key: 'paper' }" />
                 </div>
                 <label class="wide">หมายเหตุ<input type="text" placeholder="ระบุ" /></label>
                 <div>
@@ -464,26 +445,7 @@
                   }
                 </div>
                 <p class="field-label">แนบไฟล์หนังสือแจ้งแก้ไข<span class="req">*</span></p>
-                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
-                <div class="file-row">
-                  <label class="drop">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                    <span>{{ attachment || 'วางไฟล์ที่นี่เพื่ออัพโหลด' }}</span>
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <table class="files">
-                    <thead><tr><th>ลำดับ</th><th>วันที่ส่ง</th><th>ไฟล์แนบ</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
-                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หนังสือแจ้งแก้ไข.pdf</a></td>
-                        <td><input type="text" placeholder="ระบุ" /></td>
-                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'notice', titled: true, sent: true }" />
               }
               @case (3) {
                 <div class="pair">
@@ -515,26 +477,7 @@
                   }
                 </div>
                 <p class="field-label">แนบไฟล์หนังสือแจ้งแก้ไข<span class="req">*</span></p>
-                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
-                <div class="file-row">
-                  <label class="drop">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                    <span>{{ attachment || 'วางไฟล์ที่นี่เพื่ออัพโหลด' }}</span>
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <table class="files">
-                    <thead><tr><th>ลำดับ</th><th>วันที่ส่ง</th><th>ไฟล์แนบ</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
-                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หนังสือแจ้งแก้ไข.pdf</a></td>
-                        <td><input type="text" placeholder="ระบุ" /></td>
-                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'noticeAgain', titled: true, sent: true }" />
               }
               @case (4) {
                 <div class="pair">
@@ -546,7 +489,7 @@
                   </label>
                 </div>
                 <label class="wide">เหตุผลความจำเป็นในการขอขยายเวลา<input type="text" placeholder="เหตุผลความจำเป็นในการขอขยายเวลา" /></label>
-                <a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ขอขยายเวลา.pdf</a>
+                <ng-container *ngTemplateOutlet="shownFile; context: { name: 'ขอขยายเวลา.pdf', saved: '22/09/2569' }" />
                 <p class="field-label">ผลการพิจารณา<span class="req">*</span></p>
                 <div class="choice">
                   <button type="button" (click)="choice = 'allow'"><img [src]="choice === 'allow' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />อนุญาต</button>
@@ -557,10 +500,7 @@
                 </label>
                 <div>
                   <p class="field-label">แนบไฟล์ผลการพิจารณาการขยายเวลา<span class="req">*</span></p>
-                  <label class="file-btn">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />เลือกไฟล์
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
+                  <ng-container *ngTemplateOutlet="filePane; context: { key: 'extend' }" />
                 </div>
               }
               @case (5) {
@@ -605,32 +545,14 @@
                   <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
                 </label>
                 <p class="field-label">แนบไฟล์แจ้งสถานทูต (กรณีรับคำขอ)</p>
-                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
-                <div class="file-row">
-                  <label class="drop">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <table class="files">
-                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />ไฟล์แจ้งสถานทูต.pdf</a></td>
-                        <td><input type="text" value="แจ้งสถานทูต" /></td>
-                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'embassy', titled: true }" />
               }
               @case (7) {
                 <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)<span class="req">*</span>
                   <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
                 </label>
                 <div class="chip-row"><span class="chip">แจ้งชำระค่าธรรมเนียม</span></div>
-                <a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หนังสือชำระค่าธรรมเนียม.pdf</a>
+                <ng-container *ngTemplateOutlet="shownFile; context: { name: 'หนังสือชำระค่าธรรมเนียม.pdf', saved: '22/09/2569' }" />
                 <label>ภายในวันที่
                   <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
                 </label>
@@ -645,25 +567,7 @@
                   <label>จำนวนเงิน<input type="text" placeholder="ระบุ" /></label>
                 </div>
                 <p class="field-label">แนบไฟล์หลักฐานการชำระค่าธรรมเนียม<span class="req">*</span></p>
-                <small class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</small>
-                <div class="file-row">
-                  <label class="drop">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <table class="files">
-                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td><a class="pdf" href="#"><img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />หลักฐานการชำระค่าธรรมเนียม.pdf</a></td>
-                        <td><input type="text" value="หลักฐานการชำระค่าธรรมเนียม" /></td>
-                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'feeProof', titled: true }" />
               }
               @case (8) {
                 <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
@@ -691,83 +595,21 @@
                 </div>
                 <div class="head-row">
                   <p class="field-label">แนบไฟล์หนังสือแจ้งไต่สวน<span class="req">*</span></p>
-                  <button type="button" class="add-btn"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
+                  <button type="button" class="add-btn" (click)="addBlank('inquiry')"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
                 </div>
-                <table class="files">
-                  <thead><tr><th>ประเภทผู้มีส่วนได้เสีย</th><th>แนบไฟล์</th><th>กระทำ</th></tr></thead>
-                  <tbody>
-                    <tr><td>ผู้ผลิตภายในประเทศ</td><td><a class="pdf" href="#">ไฟล์ 1.pdf</a></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
-                    <tr><td>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้ผลิตในประเทศ)</td><td><a class="pdf" href="#">ไฟล์ 2.pdf</a></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
-                    <tr><td>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้นำเข้า/ผู้ใช้)</td><td><a class="pdf" href="#">ไฟล์ 3.pdf</a></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
-                  </tbody>
-                </table>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'inquiry', titled: true, drop: false }" />
                 <label>ชื่อประกาศการไต่สวน/ทบทวน<span class="req">*</span>
                   <input type="text" value="ประกาศการไต่สวน/ทบทวน" />
                 </label>
                 <p class="field-label">แนบไฟล์ประกาศกรมฯ เปิดไต่สวน/ทบทวน</p>
-                <p class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</p>
-                <div class="file-row">
-                  <label class="drop">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <table class="files">
-                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td><a class="pdf" href="#">ไฟล์.pdf</a></td>
-                        <td><input type="text" value="ประกาศกรมฯ เปิดไต่สวน/ทบทวน" /></td>
-                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'gazette', titled: true }" />
                 <p class="field-label">แนบไฟล์ประกาศคณะกรรมการฯ</p>
-                <p class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</p>
-                <div class="file-row">
-                  <label class="drop">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <table class="files">
-                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
-                    <tbody>
-                      <tr><td>1</td><td><a class="pdf" href="#">ไฟล์ 1.pdf</a></td><td><input type="text" value="ผู้ผลิตภายในประเทศ" /></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
-                      <tr><td>2</td><td><a class="pdf" href="#">ไฟล์ 2.pdf</a></td><td><input type="text" value="กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้ผลิตในประเทศ)" /></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
-                      <tr><td>3</td><td><a class="pdf" href="#">ไฟล์ 3.pdf</a></td><td><input type="text" value="ผู้ผลิตภายในประเทศกลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง (ผู้นำเข้า/" /></td><td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td></tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'committee', titled: true }" />
                 <div class="head-row">
                   <p class="field-label">แนบไฟล์แบบสอบถาม</p>
-                  <button type="button" class="add-btn"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
+                  <button type="button" class="add-btn" (click)="addBlank('survey')"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
                 </div>
-                <table class="files">
-                  <thead><tr><th>ประเภทผู้มีส่วนได้เสีย</th><th>แนบไฟล์</th><th>วันครบกำหนดส่งแบบสอบถาม</th><th>กระทำ</th></tr></thead>
-                  <tbody>
-                    <tr>
-                      <td><select><option>ผู้ผลิตภายในประเทศ</option></select></td>
-                      <td class="file"><button type="button" class="pick">เลือกไฟล์</button><a class="pdf" href="#">file name.png</a></td>
-                      <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
-                      <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                    </tr>
-                    <tr>
-                      <td><select><option>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง</option></select></td>
-                      <td class="file"><button type="button" class="pick">เลือกไฟล์</button><a class="pdf" href="#">file name.png</a></td>
-                      <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
-                      <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                    </tr>
-                    <tr>
-                      <td><select><option>กลุ่มอุตสาหกรรมและสมาคมที่เกี่ยวข้อง</option></select></td>
-                      <td class="file"><button type="button" class="pick">เลือกไฟล์</button><a class="pdf" href="#">file name.png</a></td>
-                      <td><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></td>
-                      <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                    </tr>
-                  </tbody>
-                </table>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'survey', stake: true, due: true, drop: false }" />
                 <div class="head-row">
                   <p class="field-label">เพิ่มเติม Ref No. ในสินค้าเดียวกัน</p>
                   <button type="button" class="add-btn"><img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />เพิ่มข้อมูล</button>
@@ -799,25 +641,7 @@
                   <label>แจ้งชำระค่าธรรมเนียมภายในวันที่<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
                 </div>
                 <p class="field-label">แนบไฟล์หนังสือชำระค่าธรรมเนียม<span class="req">*</span></p>
-                <p class="hint hint--muted">เฉพาะนามสกุล doc,docx,xls,xlsx,ppt,pptx,pdf,jpg,jpeg,png,tiff</p>
-                <div class="file-row">
-                  <label class="drop">
-                    <img src="assets/icons/task-upload.svg" width="13.8" height="14.8" alt="" />
-                    <span>วางไฟล์ที่นี่เพื่ออัพโหลด</span>
-                    <input type="file" (change)="pickFile($event)" />
-                  </label>
-                  <table class="files">
-                    <thead><tr><th>ลำดับ</th><th>ชื่อเอกสาร</th><th>ชื่อเอกสาร</th><th>กระทำ</th></tr></thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td><a class="pdf" href="#">ไฟล์.pdf</a></td>
-                        <td><input type="text" value="หนังสือชำระค่าธรรมเนียม" /></td>
-                        <td><img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" /></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <ng-container *ngTemplateOutlet="filePane; context: { key: 'feeLetter', titled: true }" />
               }
             }
 
@@ -832,3 +656,98 @@
     </main>
   </div>
 </div>
+<ng-template #filePane let-key="key" let-titled="titled" let-stake="stake" let-due="due" let-sent="sent" let-drop="drop">
+  @if (drop !== false) {
+    <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropFiles(key, $event)">
+      <svg class="drop__mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.4-8 5 5 0 0 1 9.5-1.6A3.5 3.5 0 0 1 18 18" /><path d="M12 16V8M9 11l3-3 3 3" /></svg>
+      <strong>ลากไฟล์มาวางที่นี่ หรือเลือกไฟล์จากเครื่อง</strong>
+      <span>รองรับ DOC, DOCX, XLS, XLSX, PPT, PPTX, PDF, JPG, JPEG, PNG, TIFF</span>
+      <span class="drop__choose">+ เลือกไฟล์</span>
+      <input type="file" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpg,.jpeg,.png,.tif,.tiff" multiple (change)="addFiles(key, $event)" />
+    </label>
+  }
+  <div class="file-list-head">
+    <h4>รายการเอกสาร</h4>
+    <span>{{ filesOf(key).length }} ไฟล์</span>
+  </div>
+  <div class="file-cards">
+    @for (file of filesOf(key); track $index) {
+      <article class="file-card">
+        <span class="file-card__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+        </span>
+        <div class="file-card__body">
+          <p>{{ file.name || 'ยังไม่ได้เลือกไฟล์' }}</p>
+          <div class="file-card__meta">
+            @if (sent) {
+              <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" [value]="file.saved" (input)="file.saved = $any($event.target).value" aria-label="วันที่ส่ง" /></span>
+            } @else if (file.saved) {
+              <time>{{ file.saved }}</time>
+            }
+          </div>
+          @if (titled || stake || due || !file.name) {
+            <div class="file-card__extra">
+              @if (stake) {
+                <select [value]="file.kind" (change)="file.kind = $any($event.target).value" aria-label="ประเภทผู้มีส่วนได้เสีย">
+                  @for (option of stakeOptions; track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              }
+              @if (titled) {
+                <input type="text" [value]="file.title" (input)="file.title = $any($event.target).value" placeholder="ชื่อเอกสาร" aria-label="ชื่อเอกสาร" />
+              }
+              @if (due) {
+                <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" [value]="file.due" (input)="file.due = $any($event.target).value" aria-label="วันครบกำหนดส่งแบบสอบถาม" /></span>
+              }
+              @if (!file.name) {
+                <label class="card-pick">
+                  เลือกไฟล์
+                  <input type="file" (change)="nameFile(key, $index, $event)" />
+                </label>
+              }
+            </div>
+          }
+        </div>
+        <div class="manage">
+          @if (isPdf(file.name)) {
+            <button type="button" class="icon-btn" aria-label="ดู" (click)="preview(file.name, $event)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+            </button>
+          }
+          <button type="button" class="icon-btn" aria-label="ดาวน์โหลด">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+          </button>
+          <button type="button" class="trash" aria-label="ลบ" (click)="removeFile(key, $index)">
+            <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+</ng-template>
+<ng-template #shownFile let-name="name" let-saved="saved">
+  <article class="file-card">
+    <span class="file-card__mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+    </span>
+    <div class="file-card__body">
+      <p>{{ name }}</p>
+      @if (saved) {
+        <div class="file-card__meta">
+          <time>{{ saved }}</time>
+        </div>
+      }
+    </div>
+    <div class="manage">
+      @if (isPdf(name)) {
+        <button type="button" class="icon-btn" aria-label="ดู" (click)="preview(name, $event)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+        </button>
+      }
+      <button type="button" class="icon-btn" aria-label="ดาวน์โหลด">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+      </button>
+    </div>
+  </article>
+</ng-template>

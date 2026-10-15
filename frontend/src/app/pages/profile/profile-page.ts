@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { InputField } from '../../input-field/input-field';
 import { SideNav } from '../../menu-bar/side-nav';
@@ -8,14 +8,14 @@ import { TopHeader } from '../../top-header/top-header';
 
 @Component({
   selector: 'app-profile-page',
-  imports: [TopHeader, SideNav, InputField, DftButton, DftModal],
+  imports: [TopHeader, SideNav, InputField, DftButton, DftModal, RouterLink],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css',
 })
 export class ProfilePage {
+  protected readonly authority = 'นายสุรช ล่ำซำ ลงลายมือชื่อและประทับตราสำคัญของบริษัท';
   protected readonly directors = [
-    ['1', 'กิตติภณ', 'วรโชติเมธี'],
-    ['2', 'ณัฏฐ์ธนัน', 'ศิริวัฒนากุล'],
+    ['1', 'สุรช', 'ล่ำซำ', 'กรรมการผู้จัดการ ลงลายมือชื่อและประทับตราสำคัญของบริษัท'],
   ];
 
   protected country = 'ประเทศไทย';
@@ -29,7 +29,9 @@ export class ProfilePage {
   protected confirmPassword = '';
 
   constructor(route: ActivatedRoute) {
-    if (route.snapshot.queryParamMap.get('password') === '1') this.passwordOpen = true;
+    route.queryParamMap.subscribe((params) => {
+      if (params.get('password') === '1') this.openPassword();
+    });
   }
 
   protected openPassword(): void {
