@@ -69,6 +69,7 @@ export class Accounts {
   ]);
   private signedIn: AccountRole | '' = '';
   private person = '';
+  private userId = '';
 
   constructor() {
     const saved = sessionStorage.getItem(storageKey);
@@ -81,9 +82,10 @@ export class Accounts {
     }
     const session = sessionStorage.getItem(sessionKey);
     if (!session) return;
-    const current = JSON.parse(session) as { role?: string; person?: string };
+    const current = JSON.parse(session) as { username?: string; role?: string; person?: string };
     if (current.role && roles.includes(current.role as AccountRole)) this.signedIn = current.role as AccountRole;
     this.person = typeof current.person === 'string' ? current.person : '';
+    this.userId = typeof current.username === 'string' ? current.username : '';
   }
 
   save(username: string, password: string, role: AccountRole, email = ''): void {
@@ -140,7 +142,8 @@ export class Accounts {
     if (!account || account.password !== password) return null;
     this.signedIn = account.role;
     this.person = account.person ?? '';
-    sessionStorage.setItem(sessionKey, JSON.stringify({ username: username.trim(), role: account.role, person: this.person }));
+    this.userId = username.trim();
+    sessionStorage.setItem(sessionKey, JSON.stringify({ username: this.userId, role: account.role, person: this.person }));
     return account.role;
   }
 
@@ -156,6 +159,7 @@ export class Accounts {
   signOut(): void {
     this.signedIn = '';
     this.person = '';
+    this.userId = '';
     sessionStorage.removeItem(sessionKey);
   }
 
@@ -165,6 +169,10 @@ export class Accounts {
 
   get personName(): string {
     return this.person;
+  }
+
+  get username(): string {
+    return this.userId;
   }
 
   get displayName(): string {
