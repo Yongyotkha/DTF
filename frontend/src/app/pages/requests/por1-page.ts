@@ -13,7 +13,9 @@ import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
 import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseStatus, type ConsultNote, type ConsultPlan, type ConsultRequest, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
+import { filingMeasureTitle } from './filing-intent';
 
 type TocLink = { id: string; label: string; anchor?: string };
 type TocGroup = { label: string; items: TocLink[] };
@@ -228,11 +230,12 @@ const toc: TocGroup[] = [
 
 @Component({
   selector: 'app-por1-page',
-  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FilledUpload],
+  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FilledUpload, FilingTabs],
   templateUrl: './por1-page.html',
   styleUrl: './por1-page.css',
 })
 export class Por1Page {
+  protected readonly filingTitle = filingMeasureTitle();
   private readonly guide = inject(FilingAiContext);
   private readonly accounts = inject(Accounts);
   private readonly view = inject(ChangeDetectorRef);
@@ -2747,6 +2750,7 @@ export class Por1Page {
   }
 
   protected uploadOpen = false;
+  protected filledName = '';
 
   protected openFilledUpload(): void {
     this.uploadOpen = true;

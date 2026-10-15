@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { booleanAttribute, Component, EventEmitter, Input, Output } from '@angular/core';
 
 @Component({
   selector: 'app-tabs',
@@ -8,6 +8,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 export class Tabs {
   @Input() labels: string[] = ['Button'];
   @Input() marks: number[] = [];
+  @Input({ transform: booleanAttribute }) line = false;
   @Output() activeChange = new EventEmitter<number>();
   protected active = 0;
 

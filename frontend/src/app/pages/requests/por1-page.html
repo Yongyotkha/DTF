@@ -11,11 +11,11 @@
       <header class="head">
         <div>
           @if (reviewRole) {
-            <h1>ยื่นคำขอแบบ ปร. 1 (มาตรการ AD)</h1>
+            <h1>{{ filingTitle }}</h1>
             <p>รายละเอียดคำขอและการมอบหมายงาน</p>
           } @else {
             <div class="head__title">
-              <h1>ยื่นคำขอแบบ ปร. 1 (มาตราการ AD)</h1>
+              <h1>{{ filingTitle }}</h1>
               @if (!tracking) {
                 <app-status-tag [tone]="caseTone" [label]="caseLabel" />
               }
@@ -1859,6 +1859,7 @@
       }
       @if (showForm) {
       <section class="sheet" [class.sheet--view]="formLocked">
+        <app-filing-tabs />
         <div class="sheet__bar">
           <h2>รายละเอียดเอกสาร</h2>
           @if (!formLocked) {
@@ -1873,6 +1874,14 @@
           <p class="sheet__view">กำลังจัดทำครั้งที่ {{ filingRound }} ข้อมูลและไฟล์ของรอบก่อนถูกเก็บไว้แล้ว</p>
         } @else if (formLocked) {
           <p class="sheet__view">ข้อมูลที่ยื่นแล้ว เปิดดูได้อย่างเดียว</p>
+        }
+        @if (filledName) {
+          <article class="file-card sheet__filled">
+            <span class="file-card__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+            </span>
+            <div class="file-card__body"><p>{{ filledName }}</p></div>
+          </article>
         }
         <div class="sheet__split">
           <nav class="toc" aria-label="ส่วนของแบบ ปร. 1">
@@ -3042,7 +3051,7 @@
   </div>
 </div>
 @if (uploadOpen) {
-  <app-filled-upload code="ปร. 1" (closed)="uploadOpen = false" />
+  <app-filled-upload code="ปร. 1" (filled)="filledName = $event" (closed)="uploadOpen = false" />
 }
 @if (docView) {
   <div class="sample sample--submit sample--letter" (click)="docView = null">

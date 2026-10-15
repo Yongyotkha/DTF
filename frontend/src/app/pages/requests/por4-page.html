@@ -7,7 +7,7 @@
         <header class="head">
           <div>
             <div class="head__title">
-              <h1>ยื่นคำขอแบบ ปร. 4 (มาตราการ AD)</h1>
+              <h1>{{ filingTitle }}</h1>
               <app-status-tag tone="neutral" label="ร่าง" />
             </div>
             <p>แบบคำขอให้พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน สำหรับผู้ส่งออกหรือผู้ผลิตรายใหม่ ตามมาตรา 58 และมาตรา 70</p>
@@ -23,6 +23,7 @@
         </header>
       </div>
       <section class="sheet">
+        <app-filing-tabs />
         <div class="sheet__bar">
           <h2>รายละเอียดเอกสาร</h2>
           <div class="sheet__upload">
@@ -31,6 +32,14 @@
             </app-button>
           </div>
         </div>
+        @if (filledName) {
+          <article class="file-card sheet__filled">
+            <span class="file-card__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+            </span>
+            <div class="file-card__body"><p>{{ filledName }}</p></div>
+          </article>
+        }
         <div class="sheet__split">
           <nav class="toc" aria-label="ส่วนของแบบ ปร. 4">
             @for (group of toc; track group.label) {
@@ -325,7 +334,7 @@
   </div>
 </div>
 @if (uploadOpen) {
-  <app-filled-upload code="ปร. 4" (closed)="uploadOpen = false" />
+  <app-filled-upload code="ปร. 4" (filled)="filledName = $event" (closed)="uploadOpen = false" />
 }
 @if (reviewOpen) {
   <div class="sample sample--submit" (click)="reviewOpen = false">

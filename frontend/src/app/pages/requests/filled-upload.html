@@ -1,4 +1,32 @@
 <div class="fill-upload" (click)="close()">
+  @if (processing) {
+    <section role="dialog" aria-modal="true" aria-labelledby="fill-upload-title" (click)="$event.stopPropagation()">
+      <h2 id="fill-upload-title">กำลังประมวลผลไฟล์...</h2>
+      <div class="fill-upload__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="progress" aria-labelledby="fill-upload-title">
+        <span class="fill-upload__bar" [style.width.%]="progress"></span>
+      </div>
+      <ol class="fill-steps">
+        @for (label of steps; track label; let i = $index) {
+          <li class="fill-step" [class.fill-step--done]="i < active" [class.fill-step--on]="i === active">
+            <span class="fill-step__mark" aria-hidden="true">
+              @if (i < active) {
+                <svg viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7" /></svg>
+              } @else if (i === active) {
+                <svg viewBox="0 0 24 24"><path d="M7 4h10M7 20h10M8 4c0 4.2 4 5.2 4 8s-4 3.8-4 8M16 4c0 4.2-4 5.2-4 8s4 3.8 4 8" /></svg>
+              } @else {
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" /></svg>
+              }
+            </span>
+            {{ label }}
+          </li>
+        }
+      </ol>
+      <p class="fill-upload__hint">ระบบไม่บันทึกข้อมูลจริงจนกว่าคุณจะกดบันทึกร่าง</p>
+      <div class="fill-upload__cancel">
+        <app-button type="outline" label="ยกเลิก" (click)="cancel()" />
+      </div>
+    </section>
+  } @else {
   <section role="dialog" aria-modal="true" aria-labelledby="fill-upload-title" (click)="$event.stopPropagation()">
     <header>
       <div>
@@ -22,4 +50,5 @@
     <input #pick class="fill-upload__file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" (change)="take($any($event.target).files)" />
     <p class="fill-upload__note">ข้อมูลที่ระบบกรอกให้ยังเป็นร่าง คุณแก้ไขได้ทุกช่องก่อนยื่น</p>
   </section>
+  }
 </div>

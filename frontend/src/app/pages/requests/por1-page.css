@@ -500,6 +500,7 @@ main {
 }
 
 .sheet {
+  min-width: 0;
   margin: 10px 20px 24px;
   padding: 20px;
   border: 0;
@@ -570,6 +571,11 @@ main {
   gap: 12px;
 }
 
+.sheet__filled {
+  margin: 0 20px 16px;
+  max-width: 420px;
+}
+
 .sheet__upload svg {
   width: 18px;
   height: 18px;
@@ -636,6 +642,8 @@ main {
 .sheet__split {
   display: flex;
   align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .toc {

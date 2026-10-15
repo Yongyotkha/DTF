@@ -150,3 +150,87 @@
   line-height: 21px;
   text-align: center;
 }
+
+.fill-upload__track {
+  height: 8px;
+  margin: 18px 0 0;
+  overflow: hidden;
+  border-radius: 50px;
+  background: var(--color-disabled-bg);
+}
+
+.fill-upload__bar {
+  display: block;
+  height: 100%;
+  border-radius: 50px;
+  background: var(--color-secondary);
+  transition: width var(--motion-state);
+}
+
+.fill-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fill-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.fill-step--done {
+  color: var(--color-success);
+}
+
+.fill-step--on {
+  color: var(--color-primary);
+}
+
+.fill-step__mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--color-disabled-text);
+}
+
+.fill-step--done .fill-step__mark {
+  color: var(--color-success);
+}
+
+.fill-step--on .fill-step__mark {
+  color: var(--color-warning);
+}
+
+.fill-step__mark svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fill-upload__hint {
+  margin: 22px 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.fill-upload__cancel {
+  display: flex;
+  margin-top: 16px;
+}

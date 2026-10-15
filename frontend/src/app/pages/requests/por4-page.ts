@@ -1,9 +1,11 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
+import { filingMeasureTitle } from './filing-intent';
 
 type TocItem = { id: string; label: string };
 type TocGroup = { label: string; items: TocItem[] };
@@ -12,11 +14,12 @@ type ShipRow = { period: string; qty: string; value: string };
 
 @Component({
   selector: 'app-por4-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por4-page.html',
   styleUrl: './por1-page.css',
 })
 export class Por4Page {
+  protected readonly filingTitle = filingMeasureTitle();
   protected measure: 'dumping' | 'subsidy' = 'dumping';
   protected stake = '';
   protected filing: 'self' | 'behalf' = 'self';
@@ -45,6 +48,7 @@ export class Por4Page {
   protected signedDate = '';
   protected reviewOpen = false;
   protected uploadOpen = false;
+  protected filledName = '';
   protected docKey = 'cert';
   protected section = '1.1';
   protected files: Record<string, string[]> = {};

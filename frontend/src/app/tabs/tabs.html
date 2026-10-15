@@ -1,4 +1,4 @@
-<div class="tabs" role="tablist">
+<div class="tabs" role="tablist" [class.tabs--line]="line">
   @for (label of labels; track $index) {
     <button type="button" class="tab" role="tab" [class.tab--active]="active === $index" [attr.aria-selected]="active === $index" (click)="select($index)">
       {{ label }}

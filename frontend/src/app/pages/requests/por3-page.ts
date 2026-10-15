@@ -1,22 +1,26 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
+import { filingMeasureTitle } from './filing-intent';
 @Component({
   selector: 'app-por3-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por3-page.html',
-  styleUrl: './por3-page.css',
+  styleUrl: './por1-page.css',
 })
 export class Por3Page {
+  protected readonly filingTitle = filingMeasureTitle();
   protected measure: 'dumping' | 'subsidy' = 'dumping';
   protected filing: 'self' | 'all' | 'part' = 'self';
   protected step = '1.1 ประเภทของการยื่นคำขอ';
   protected reviewOpen = false;
   protected uploadOpen = false;
+  protected filledName = '';
   protected goods = '';
   protected notice = '';
   protected stopReason = '';

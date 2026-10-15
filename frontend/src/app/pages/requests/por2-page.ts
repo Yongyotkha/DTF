@@ -1,10 +1,12 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
+import { filingMeasureTitle } from './filing-intent';
 
 type DocItem = { key: string; title: string; hint?: string; required?: boolean; excel?: boolean };
 
@@ -78,11 +80,12 @@ function blankApplicant(open = true): Applicant {
 
 @Component({
   selector: 'app-por2-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por2-page.html',
-  styleUrl: './por2-page.css',
+  styleUrl: './por1-page.css',
 })
 export class Por2Page {
+  protected readonly filingTitle = filingMeasureTitle();
   protected measure = '';
   protected role = '';
   protected step = 'มาตรการและประเภทการยื่น';
@@ -107,6 +110,7 @@ export class Por2Page {
   protected signedOn = '';
   protected reviewOpen = false;
   protected uploadOpen = false;
+  protected filledName = '';
   protected readonly behalfLeft = behalfLeft;
   protected readonly behalfRight = behalfRight;
   protected readonly mainDocs = mainDocs;
