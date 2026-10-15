@@ -8,13 +8,27 @@
     }
     <main>
       <div [class.review-pin]="!!reviewRole">
-      <header class="head">
+      <header class="head" [class.head--review]="!!reviewRole">
         <div>
           @if (reviewRole) {
-            <h1>ยื่นคำขอแบบ ปร. 1 (มาตรการ AD)</h1>
-            <p>รายละเอียดคำขอและการมอบหมายงาน</p>
+            <p class="crumb">คำขอ <span aria-hidden="true">›</span> รายละเอียดคำขอ</p>
+            <div class="case-title">
+              <h1>ยื่นคำขอ</h1>
+              <ul>
+                @for (form of caseForms; track form.code + form.measure) {
+                  <li>แบบ {{ form.code }} ({{ form.measure }})</li>
+                }
+              </ul>
+            </div>
           } @else {
-            <h1>ยื่นคำขอแบบ ปร. 1 (มาตราการ AD)</h1>
+            <div class="case-title">
+              <h1>ยื่นคำขอ</h1>
+              <ul>
+                @for (form of caseForms; track form.code + form.measure) {
+                  <li>แบบ {{ form.code }} ({{ form.measure }})</li>
+                }
+              </ul>
+            </div>
             @if (tracking) {
               <p>เลขที่อ้างอิง {{ refId }}</p>
             } @else {
@@ -24,6 +38,11 @@
           }
         </div>
         <div class="head__actions">
+          @if (reviewRole) {
+            <button type="button" class="head__history" [class.head__history--alert]="unreadNoteCount > 0" [attr.aria-label]="unreadNoteCount ? 'บันทึกข้อความ มีรายการที่ยังไม่ได้อ่าน ' + unreadNoteCount + ' รายการ' : 'บันทึกข้อความ'" (click)="openNotes()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2z" /><path d="M9 9h6M9 13h4" /></svg>
+            </button>
+          }
           <button type="button" class="head__history" aria-label="ประวัติคำขอ" (click)="historyOpen = true">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
           </button>
@@ -43,38 +62,19 @@
             <app-button type="primary" label="ยื่นคำขอ" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="openSubmit()" />
           }
         </div>
+        @if (reviewRole) {
+          <div class="case-line">
+            <strong>{{ refId }}</strong>
+            @for (measure of caseMeasures; track measure) {
+              <app-status-tag tone="warning" [label]="measure" />
+            }
+            <app-status-tag [tone]="caseTone" [label]="caseLabel" />
+            <span class="case-line__goods">{{ caseGoods }}</span>
+            <span class="case-line__who">ผู้ยื่นคำขอ: <strong>{{ company }}</strong></span>
+          </div>
+        }
       </header>
       @if (reviewRole) {
-        <article class="case-brief">
-          <span class="case-brief__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg>
-          </span>
-          <div class="case-brief__main">
-            <div class="case-brief__line">
-              <strong>{{ refId }}</strong>
-              <app-status-tag tone="warning" label="มาตรการ AD" />
-              <app-status-tag [tone]="caseTone" [label]="caseLabel" />
-            </div>
-            <p>เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน</p>
-            <p class="case-brief__who">ผู้ยื่นคำขอ: <strong>บริษัท สหวิริยาสตีลอินดัสตรี จำกัด</strong></p>
-          </div>
-          <div class="case-brief__meta">
-            <span class="case-brief__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></svg></span>
-            <div><span>วันที่ยื่นคำขอ</span><strong>16/05/2562</strong></div>
-          </div>
-          <div class="case-brief__meta">
-            <span class="case-brief__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></svg></span>
-            <div>
-              <span>วันครบกำหนดแก้ไขเพิ่มเติม (4 เดือน)</span>
-              <strong>{{ amendUntil }}</strong>
-              <small>นับจากวันที่ยื่นครั้งแรก {{ filedOn }}</small>
-            </div>
-          </div>
-          <div class="case-brief__meta">
-            <span class="case-brief__icon" [attr.data-tone]="caseTone" aria-hidden="true"></span>
-            <div><span>สถานะปัจจุบัน</span><app-status-tag [tone]="caseTone" [label]="caseLabel" /></div>
-          </div>
-        </article>
         @if (caseStatus === 'approval') {
           <section class="approve-band" aria-label="รออนุมัติการยื่นแบบ">
             <h2>รออนุมัติการยื่นแบบ</h2>
@@ -85,6 +85,24 @@
             }
           </section>
         }
+        <nav class="step-tabs" aria-label="ส่วนงาน">
+          @for (tab of reviewTabs(); track tab.id) {
+            <button type="button" [class.on]="reviewTab === tab.id" [class.is-done]="reviewMark(tab.id) === 'done'" [class.is-lock]="reviewMark(tab.id) === 'lock'" [class.is-link]="tab.id === 'link'" [disabled]="reviewLocked(tab.id)" (click)="pickReviewTab(tab.id)">
+              <span class="step-tabs__mark">
+                @if (tab.id === 'link') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1.5l1.4-1.4a5 5 0 0 0-7-7L10 6.6" /><path d="M14 11a5 5 0 0 0-7.1-.5l-1.4 1.4a5 5 0 0 0 7 7L14 17.4" /></svg>
+                } @else if (reviewMark(tab.id) === 'lock') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                } @else if (reviewMark(tab.id) === 'done') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7" /></svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+                }
+              </span>
+              <span class="step-tabs__copy"><strong>{{ tab.label }}</strong>@if (reviewHint(tab.id)) { <small>{{ reviewHint(tab.id) }}</small> }</span>
+            </button>
+          }
+        </nav>
       }
       </div>
       @if (showStatus) {
@@ -102,8 +120,17 @@
                   <p>ขั้นตอนต่อไปคือการพิจารณาของคณะกรรมการ เอกสารที่ส่งไว้ยังเปิดดูได้</p>
                 } @else if (committeeResult === 'take' && inquiryFeeSent && !inquiryPayAck) {
                   <p>คณะกรรมการรับคำขอแล้ว กรุณาชำระค่าธรรมเนียมคำขอ {{ inquiryFeeAmount }} บาท ภายใน {{ inquiryFeeDue }} ค่าธรรมเนียมนี้ไม่ใช่อากร AD</p>
+                } @else if (committeeResult === 'take' && inquiryOpen === 'open' && inquiryNoticeSent) {
+                  <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }} ประกาศเมื่อ {{ inquiryNoticeOn }}</p>
+                  <p>แจ้งสถานทูต ผู้ส่งออก สำนักงานส่งเสริมการค้า กรมศุลกากร ผู้นำเข้า อุตสาหกรรมภายใน สมาคม และหนังสือพิมพ์ไทยกับอังกฤษแล้ว</p>
+                  <p>ลิงก์สำหรับผู้มีส่วนได้เสีย {{ inquiryReferral }}</p>
+                  @if (inquiryHearing === 'hold') {
+                    <p>จัดแถลงการณ์วันที่ {{ inquiryHearingOn }} {{ inquiryHearingPlace }}</p>
+                  } @else if (inquiryHearing === 'skip') {
+                    <p>ไม่จัดแถลงการณ์ และเข้าสู่การส่งแบบสอบถาม</p>
+                  }
                 } @else if (committeeResult === 'take' && inquiryOpen === 'open') {
-                  <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }}</p>
+                  <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }} ขั้นต่อไปคือประกาศและแจ้งผู้เกี่ยวข้อง</p>
                 } @else if (committeeResult === 'take' && inquiryOpen === 'close') {
                   <p>คณะกรรมการมีมติไม่เปิดไต่สวน สถานะปิดการไต่สวน</p>
                 } @else if (committeeResult === 'take' && inquiryDecide === 'return') {
@@ -686,36 +713,6 @@
       }
       @if (reviewRole) {
         <section class="desk-wrap" aria-label="มอบหมายงาน">
-          <nav class="assign-steps" aria-label="ส่วนงาน">
-            <button type="button" [class.on]="reviewTab === 'form'" (click)="pickReviewTab('form')">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
-              แบบคำขอ
-            </button>
-            <button type="button" [class.on]="reviewTab === 'assign'" (click)="pickReviewTab('assign')">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 20v-1a3 3 0 0 0-2.2-2.9M16 5.1a3 3 0 0 1 0 5.8" /></svg>
-              มอบหมายงาน
-            </button>
-            @if (showTalkTab) {
-              <button type="button" [class.on]="reviewTab === 'talk'" (click)="pickReviewTab('talk')">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3z" /></svg>
-                ให้คำปรึกษา/สนทนา
-              </button>
-            }
-            @if (reviewRole !== 'staff') {
-            <button type="button" [class.on]="reviewTab === 'docs'" (click)="pickReviewTab('docs')">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M8 13l2 2 4-4" /></svg>
-              ตรวจสอบเอกสาร
-            </button>
-            <button type="button" [class.on]="reviewTab === 'inquiry'" (click)="pickReviewTab('inquiry')">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16" /><path d="M5 4h10l-2 4 2 4H5" /></svg>
-              เปิดไต่สวน
-            </button>
-            <button type="button" [class.on]="reviewTab === 'link'" (click)="pickReviewTab('link')">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.2 1.2" /><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.2-1.2" /></svg>
-              เชื่อมโยงระบบ
-            </button>
-            }
-          </nav>
           @if (reviewTab === 'assign') {
             <div class="assign-card">
               <div class="sheet__split">
@@ -730,7 +727,7 @@
                     <header class="assign-head">
                       <div>
                         <h2>กลุ่ม/รายชื่อมอบหมาย</h2>
-                        <p>{{ reviewRole === 'staff' ? 'ขั้นนี้มอบหมายให้ผู้อำนวยการเท่านั้น จากนั้นผู้อำนวยการเลือกกลุ่ม และหัวหน้ากลุ่มเลือกเจ้าหน้าที่ในกลุ่ม' : reviewRole === 'director' ? 'ลำดับมอบหมาย เจ้าหน้าที่รับเรื่อง ผู้อำนวยการ กลุ่ม และเจ้าหน้าที่ในกลุ่ม ขั้นนี้ผู้อำนวยการมอบหมายได้เฉพาะกลุ่ม' : 'กรอกการมอบหมายของขั้นนี้ ชื่อคนตามสิทธิ์ที่เข้าใช้งาน' }}</p>
+                        <p>{{ reviewRole === 'staff' ? 'ขั้นของเจ้าหน้าที่รับเรื่อง มอบหมายให้ผู้อำนวยการเท่านั้น' : reviewRole === 'director' ? 'ขั้นของผู้อำนวยการ มอบหมายได้เฉพาะกลุ่มงาน' : 'ขั้นของหัวหน้ากลุ่ม มอบหมายเจ้าหน้าที่ในกลุ่มของตน' }}</p>
                       </div>
                       @if (reviewRole === 'director') {
                         <button type="button" class="assign-add" (click)="openAssign()">
@@ -931,38 +928,66 @@
             </div>
           }
           @if (reviewTab === 'docs') {
-            <div class="assign-card">
+            <div class="assign-card assign-card--workspace">
+              <div class="desk-shelf" role="tablist" aria-label="กลุ่มเอกสาร">
+                <button type="button" [class.on]="docShelf === 'files'" (click)="openDocShelf('files')">รายการเอกสาร</button>
+                <button type="button" [class.on]="docShelf === 'committee'" (click)="openDocShelf('committee')">คณะกรรมการ</button>
+              </div>
               <div class="sheet__split">
-                <nav class="toc" aria-label="ส่วนตรวจสอบเอกสาร">
+                <nav class="toc desk-docs" aria-label="ส่วนตรวจสอบเอกสาร">
+                  <div class="desk-docs__bar">
+                    <h2>รายการเอกสาร</h2>
+                    <button type="button" class="desk-docs__find" [class.on]="docSearchOpen" aria-label="ค้นหาเอกสาร" [attr.aria-expanded]="docSearchOpen" (click)="toggleDocSearch()">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                    </button>
+                  </div>
+                  @if (docSearchOpen) {
+                    <label class="assign-search">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                      <input type="search" placeholder="ค้นหาเอกสาร" aria-label="ค้นหาเอกสาร" [value]="docQuery" (input)="docQuery = $any($event.target).value" />
+                    </label>
+                  }
+                  <div class="desk-docs__list">
                   @for (doc of workDocs; track doc.title; let i = $index) {
-                    <button type="button" class="toc__child" [class.toc__on]="docPart === i" [attr.aria-current]="docPart === i ? 'true' : null" (click)="pickDoc(i)">
-                      <img [src]="madeOf(doc.title).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                      {{ doc.title }}
+                    @if (docMatches(doc.title)) {
+                      <button type="button" class="toc__child" [class.toc__on]="docPart === i" [attr.aria-current]="docPart === i ? 'true' : null" (click)="pickDoc(i)">
+                        <img [src]="madeOf(doc.title).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                        <span><strong>{{ doc.title }}</strong></span>
+                      </button>
+                    }
+                  }
+                  @if (docMatches('แจ้งผลการตรวจ')) {
+                    <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length" [attr.aria-current]="docPart === workDocs.length ? 'true' : null" (click)="pickDoc(workDocs.length)">
+                      <img [src]="docSent ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      <span><strong>แจ้งผลการตรวจ</strong></span>
                     </button>
                   }
-                  <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length" [attr.aria-current]="docPart === workDocs.length ? 'true' : null" (click)="docPart = workDocs.length">
-                    <img [src]="docSent ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                    แจ้งผลการตรวจ
-                  </button>
-                  <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length + 1" [attr.aria-current]="docPart === workDocs.length + 1 ? 'true' : null" (click)="docPart = workDocs.length + 1">
-                    <img [src]="committeeSent ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                    พิจารณาของคณะกรรมการฯ
-                  </button>
+                  @if (docMatches('พิจารณาของคณะกรรมการ')) {
+                    <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length + 1" [attr.aria-current]="docPart === workDocs.length + 1 ? 'true' : null" (click)="pickDoc(workDocs.length + 1)">
+                      <img [src]="committeeSent ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      <span><strong>พิจารณาของคณะกรรมการฯ</strong></span>
+                    </button>
+                  }
+                  </div>
                 </nav>
                 <div class="receipt__view">
                   @if (docPart < workDocs.length) {
                     <header class="assign-head">
                       <div>
-                        <h2>{{ workDocs[docPart].title }}</h2>
-                        @if (editingId) {
-                          <p>กำลังแก้ไขเอกสารที่บันทึกไว้</p>
-                        }
+                        <div class="doc-title">
+                          <h2>{{ workDocs[docPart].title }}</h2>
+                        </div>
+                        <p>{{ editingId ? 'กำลังแก้ไขเอกสารที่บันทึกไว้' : 'ตรวจสอบรายละเอียดเอกสารก่อนบันทึก' }}</p>
                       </div>
                       <div class="doc-tools">
+                        @if (madeOf(workDocs[docPart].title)[0]; as made) {
+                          <app-button type="outline" label="ตัวอย่างเอกสาร" (click)="viewingMade = made" />
+                          <app-button type="outline" label="ดาวน์โหลด" (click)="downloadMade(made)" />
+                          <app-button type="primary" label="แก้ไขเอกสาร" (click)="editMade(made.id)" />
+                        }
                         <app-button class="ask-ai icon-before" type="primary" label="ช่วยสร้าง" (click)="assistDraft()">
                           <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
                         </app-button>
-                        <app-status-tag [tone]="editingId ? 'warning' : 'success'" [label]="editingId ? 'กำลังแก้ไข' : 'สร้างเอกสาร'" />
                       </div>
                     </header>
                     <div class="draft-form">
@@ -1370,7 +1395,7 @@
                             <div class="reply-bar">
                               <div>
                                 <h3>หนังสือแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบการรับคำขอ</h3>
-                                <p class="link-detail">กดบันทึกเพื่อสร้างหนังสือจากแบบด้านล่าง หรือแนบไฟล์ที่มีอยู่แล้ว เก็บในระบบ ไม่ส่งให้ผู้ยื่น</p>
+                                <p class="link-detail">กดบันทึกแล้วระบบสร้างหนังสือจากแบบด้านล่าง เก็บในระบบ ไม่ส่งให้ผู้ยื่น</p>
                               </div>
                               <app-button class="ask-ai icon-before" type="primary" label="ช่วยสร้าง" (click)="fillEmbassyLetter()">
                                 <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
@@ -1384,17 +1409,7 @@
                             <footer class="doc-foot">
                               <app-button type="primary" label="บันทึก" [state]="embassyLetter.every((item) => item.value.trim()) ? 'default' : 'disabled'" (click)="saveEmbassyDoc()" />
                             </footer>
-                            <div class="reply-bar">
-                              <div>
-                                <p class="slip-file-label">ไฟล์หนังสือแจ้งรัฐบาลประเทศผู้ส่งออก</p>
-                                <p class="link-detail">สร้างจากปุ่มบันทึก หรือแนบไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
-                              </div>
-                              <label class="pick">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
-                                เพิ่ม
-                                <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addEmbassyFiles($event)" />
-                              </label>
-                            </div>
+                            <p class="slip-file-label">หนังสือที่ระบบสร้าง</p>
                             <div class="table-wrap slip-files">
                                 <table>
                                   <thead>
@@ -1471,7 +1486,10 @@
               } @else {
                 <div class="sheet__split">
                   <nav class="toc" aria-label="กระบวนการเปิดไต่สวน">
-                    @for (step of inquiryNav; track step.id) {
+                    @for (step of inquiryNav; track step.id; let i = $index) {
+                      @if (step.group && inquiryNav[i - 1]?.group !== step.group) {
+                        <p class="toc__group">{{ step.group }}</p>
+                      }
                       <button type="button" class="toc__child" [class.toc__on]="inquiryPart === step.id" [attr.aria-current]="inquiryPart === step.id ? 'true' : null" (click)="openInquiryStep(step.id)">
                         <img [src]="step.done ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
                         {{ step.label }}
@@ -1484,37 +1502,48 @@
                         <div class="reply-bar">
                           <div>
                             <h3>วาระพิจารณาคำขอ</h3>
-                            <p class="link-detail">AI ร่างวาระให้เจ้าหน้าที่ก่อนเข้าที่ประชุม</p>
+                            <p class="link-detail">เลือกส่วนวาระทีละรายการ กรอกให้ครบแล้วบันทึก ระบบสร้างวาระทั้งฉบับ</p>
                           </div>
                           <app-button class="ask-ai icon-before" type="primary" label="ช่วยร่างวาระ" [state]="inquiryDecide ? 'disabled' : 'default'" (click)="fillInquiryAgenda()">
                             <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
                           </app-button>
                         </div>
-                        <div class="notice-date">
-                          <app-thai-date-field label="วันที่ประชุม" [required]="true" [value]="inquiryAgendaAt" [state]="inquiryDecide ? 'readonly' : 'default'" (valueChange)="inquiryAgendaAt = $event" />
+                        <div class="sheet__split">
+                          <nav class="toc" aria-label="ส่วนของวาระ">
+                            @for (section of agendaSections; track section.id; let i = $index) {
+                              <button type="button" class="toc__child" [class.toc__on]="agendaPart === i" [attr.aria-current]="agendaPart === i ? 'true' : null" (click)="agendaPart = i">
+                                <img [src]="agendaSectionDone(i) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                                {{ section.label }}
+                              </button>
+                            }
+                          </nav>
+                          <div class="receipt__view">
+                            <h3>{{ agendaSections[agendaPart].label }}</h3>
+                            @if (agendaPart === 0) {
+                              <div class="notice-date">
+                                <app-thai-date-field label="วันที่ประชุม" [required]="true" [value]="inquiryAgendaAt" [state]="inquiryDecide ? 'readonly' : 'default'" (valueChange)="inquiryAgendaAt = $event" />
+                              </div>
+                            }
+                            @if (agendaPart === 5) {
+                              <p class="link-detail">มติบันทึกหลังที่ประชุม หากยังไม่ประชุม ให้เว้นว่างได้</p>
+                            }
+                            <div class="draft-form">
+                              @for (row of agendaFieldsOf(); track row.item.label) {
+                                <app-input-field class="block" [class.wide]="row.item.long" [kind]="row.item.long ? 'textarea' : 'text'" [label]="row.item.label" [required]="row.item.label !== 'มติที่ประชุม'" [editable]="!inquiryDecide" [state]="inquiryDecide ? 'readonly' : 'default'" [value]="row.item.value" (valueChange)="setInquiryField(row.index, $event)" />
+                              }
+                            </div>
+                            @if (!inquiryDecide) {
+                              <footer class="doc-foot">
+                                <app-button type="primary" label="บันทึกวาระ" [state]="agendaReady ? 'default' : 'disabled'" (click)="saveInquiryAgenda()" />
+                              </footer>
+                            }
+                          </div>
                         </div>
-                        <div class="draft-form">
-                          @for (item of inquiryFields; track item.label; let i = $index) {
-                            <app-input-field class="block" [class.wide]="item.long" [kind]="item.long ? 'textarea' : 'text'" [label]="item.label" [required]="true" [editable]="!inquiryDecide" [state]="inquiryDecide ? 'readonly' : 'default'" [value]="item.value" (valueChange)="setInquiryField(i, $event)" />
-                          }
-                        </div>
-                        @if (!inquiryDecide) {
-                          <footer class="doc-foot">
-                            <app-button type="primary" label="บันทึก" [state]="inquiryFields.every((item) => item.value.trim()) ? 'default' : 'disabled'" (click)="saveInquiryAgenda()" />
-                          </footer>
-                        }
                         <div class="reply-bar">
                           <div>
                             <p class="slip-file-label">ไฟล์วาระพิจารณาคำขอ</p>
-                            <p class="link-detail">กดบันทึกเพื่อสร้างจากแบบด้านบน หรือแนบไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
+                            <p class="link-detail">กดบันทึกแล้วระบบสร้างไฟล์วาระจากแบบด้านบน</p>
                           </div>
-                          @if (!inquiryDecide) {
-                            <label class="pick">
-                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
-                              เพิ่ม
-                              <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addAgendaFiles($event)" />
-                            </label>
-                          }
                         </div>
                         <div class="table-wrap slip-files">
                           <table>
@@ -1591,6 +1620,12 @@
                           </footer>
                         } @else {
                           <p>ทำหนังสือคืนคำขอแล้ว โดย {{ inquirySentBy }} และแจ้งผู้ยื่นแล้ว</p>
+                          @if (issuedByKind('หนังสือคืนคำขอ'); as file) {
+                            <div class="made-actions">
+                              <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
+                              <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
+                            </div>
+                          }
                         }
                       </section>
                     } @else if (inquiryPart === 'fee') {
@@ -1603,10 +1638,16 @@
                         </div>
                         @if (!inquiryFeeSent) {
                           <footer class="doc-foot">
-                            <app-button type="primary" label="แจ้งชำระค่าธรรมเนียม" (click)="notifyInquiryFee()" />
+                            <app-button type="primary" label="สร้างหนังสือแจ้งชำระ" (click)="notifyInquiryFee()" />
                           </footer>
                         } @else {
-                          <p>แจ้งอีเมลให้ผู้ยื่นแล้ว ยอด {{ inquiryFeeAmount }} บาท ภายใน {{ inquiryFeeDue }}</p>
+                          <p>ระบบสร้างหนังสือแจ้งชำระและส่งอีเมลให้ผู้ยื่นแล้ว ยอด {{ inquiryFeeAmount }} บาท ภายใน {{ inquiryFeeDue }}</p>
+                          @if (issuedByKind('หนังสือแจ้งชำระค่าธรรมเนียมคำขอ'); as file) {
+                            <div class="made-actions">
+                              <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
+                              <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
+                            </div>
+                          }
                         }
                       </section>
                     } @else if (inquiryPart === 'proof') {
@@ -1653,10 +1694,16 @@
                             <app-button type="primary" label="รับทราบหลักฐาน" [state]="inquiryPaySent ? 'default' : 'disabled'" (click)="ackInquiryPay()" />
                           </footer>
                         } @else {
-                          <p>เจ้าหน้าที่รับทราบหลักฐานแล้ว ขั้นต่อไปคือมติเปิดไต่สวน</p>
+                          <p>เจ้าหน้าที่รับทราบหลักฐานแล้ว ระบบสร้างบันทึกรับทราบ ขั้นต่อไปคือมติเปิดไต่สวน</p>
+                          @if (issuedByKind('บันทึกรับทราบหลักฐานการชำระค่าธรรมเนียม'); as file) {
+                            <div class="made-actions">
+                              <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
+                              <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
+                            </div>
+                          }
                         }
                       </section>
-                    } @else {
+                    } @else if (inquiryPart === 'vote') {
                       <section class="notice-form" aria-label="มติเปิดไต่สวน">
                         <h3>คณะกรรมการเปิดไต่สวน</h3>
                         @if (!inquiryOpen) {
@@ -1682,11 +1729,201 @@
                         } @else if (inquiryOpen === 'open') {
                           <p>เปิดการไต่สวนแล้ว ส่งเข้า e-TR</p>
                           <p>Case ID {{ inquiryCaseId }}</p>
-                          <p>สถานะเปิดการไต่สวน แจ้งค่าธรรมเนียมและผู้มีส่วนได้เสียแล้ว</p>
+                          <p>สถานะเปิดการไต่สวน ขั้นต่อไปคือประกาศกรม แจ้งผู้เกี่ยวข้อง และออกข่าวหนังสือพิมพ์</p>
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="ไปประกาศและแจ้งผู้เกี่ยวข้อง" (click)="openInquiryStep('notice')" />
+                          </footer>
                         } @else {
                           <p>มีมติไม่เปิดไต่สวน แจ้งอีเมลผู้ยื่น บันทึกผล และปิดคำขอแล้ว</p>
                           <p>สถานะปิดการไต่สวน</p>
                           @if (inquiryCloseNote) { <p>{{ inquiryCloseNote }}</p> }
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'notice') {
+                      <section class="notice-form" aria-label="ประกาศและแจ้งผู้เกี่ยวข้อง">
+                        <h3>ประกาศและแจ้งผู้เกี่ยวข้อง</h3>
+                        <p class="link-detail">ระบบสร้างประกาศ หนังสือแจ้ง และข่าวหนังสือพิมพ์จากข้อมูลเคส แล้วให้ดาวน์โหลดออกจากระบบ</p>
+                        <div class="notice-date">
+                          <app-thai-date-field label="วันที่ประกาศ" [required]="true" [value]="inquiryNoticeOn" [state]="inquiryNoticeSent ? 'readonly' : 'default'" (valueChange)="inquiryNoticeOn = $event" />
+                        </div>
+                        @if (inquiryReferral) {
+                          <p>ลิงก์สำหรับผู้มีส่วนได้เสีย {{ inquiryReferral }}</p>
+                        }
+                        <div class="table-wrap slip-files">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>ผู้รับแจ้ง</th>
+                                <th>ช่องทาง</th>
+                                <th>สถานะ</th>
+                                <th>เอกสารจากระบบ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of inquiryNotices; track row.name) {
+                                <tr>
+                                  <td>{{ row.name }}</td>
+                                  <td>{{ row.channel }}</td>
+                                  <td><app-status-tag variant="soft" [tone]="noticeFile(row.name) ? 'success' : 'warning'" [label]="noticeFile(row.name) ? 'สร้างแล้ว' : 'รอสร้าง'" /></td>
+                                  <td>
+                                    @if (noticeFile(row.name); as file) {
+                                      <div class="made-actions">
+                                        <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
+                                        <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
+                                      </div>
+                                    }
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                        @if (!inquiryNoticeSent) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="สร้างเอกสารและแจ้งประกาศ" (click)="saveInquiryNotice()" />
+                          </footer>
+                        } @else {
+                          <p>สร้างเอกสารครบเมื่อ {{ inquiryNoticeOn }} แล้ว ขั้นต่อไปคือพิจารณาจัดแถลงการณ์ภายใน 30 วัน</p>
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'hearing') {
+                      <section class="notice-form" aria-label="แถลงการณ์">
+                        <h3>แถลงการณ์เปิดไต่สวน</h3>
+                        <p class="link-detail">ผู้มีส่วนได้เสียขอจัดแถลงการณ์ได้ภายใน 30 วันนับจากวันประกาศ ระบบสร้างหนังสือแจ้งหรือบันทึกไม่จัดจากข้อมูลนี้</p>
+                        @if (!inquiryHearing) {
+                          <div class="slip-line">
+                            <span>การจัดแถลงการณ์<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="inquiryHearingDraft = 'hold'"><img [src]="inquiryHearingDraft === 'hold' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />จัด</button>
+                              <button type="button" (click)="inquiryHearingDraft = 'skip'"><img [src]="inquiryHearingDraft === 'skip' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่จัด</button>
+                            </div>
+                          </div>
+                          @if (inquiryHearingDraft === 'hold') {
+                            <div class="draft-form">
+                              <app-thai-date-field label="วันที่แถลงการณ์" [required]="true" [value]="inquiryHearingOn" (valueChange)="inquiryHearingOn = $event" />
+                              <app-input-field class="block" kind="text" label="สถานที่หรือช่องทาง" [required]="true" [value]="inquiryHearingPlace" (valueChange)="inquiryHearingPlace = $event" />
+                            </div>
+                          }
+                          <footer class="doc-foot">
+                            <app-button type="primary" [label]="inquiryHearingDraft === 'skip' ? 'สร้างบันทึกว่าไม่จัด' : 'สร้างหนังสือแจ้งผู้เข้าร่วม'" [state]="inquiryHearingDraft === 'skip' || (inquiryHearingDraft === 'hold' && inquiryHearingPlace.trim()) ? 'default' : 'disabled'" (click)="saveInquiryHearing()" />
+                          </footer>
+                        } @else if (inquiryHearing === 'hold') {
+                          <p>จัดแถลงการณ์วันที่ {{ inquiryHearingOn }} {{ inquiryHearingPlace }} ระบบสร้างหนังสือแจ้งผู้เข้าร่วมแล้ว</p>
+                        } @else {
+                          <p>ไม่จัดแถลงการณ์ ระบบสร้างบันทึกแล้ว ขั้นต่อไปคือแบบสอบถาม</p>
+                        }
+                        @if (issuedDoc(inquiryHearingDocId); as file) {
+                          <div class="made-actions">
+                            <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
+                            <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
+                          </div>
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'questions') {
+                      <section class="notice-form" aria-label="แบบสอบถาม">
+                        <div class="reply-bar">
+                          <div>
+                            <h3>แบบสอบถาม</h3>
+                            <p class="link-detail">เลือกกลุ่มผู้ตอบ แล้วเลือกเอกสารทีละรายการ บันทึกซ้ำได้จนกว่ากลุ่มนั้นจะผ่าน</p>
+                          </div>
+                          @if (activeQuestion; as party) {
+                            <app-status-tag variant="soft" [tone]="inquiryQuestionTone(party)" [label]="inquiryQuestionState(party)" />
+                          }
+                        </div>
+                        <nav class="assign-steps" aria-label="กลุ่มผู้ตอบแบบสอบถาม">
+                          @for (row of inquiryQuestions; track row.id) {
+                            <button type="button" [class.on]="activeQuestion?.id === row.id" (click)="pickInquiryParty(row.id)">{{ inquiryQuestionLabel(row.id) }}</button>
+                          }
+                        </nav>
+                        @if (activeQuestion; as row) {
+                          <div class="sheet__split">
+                            <nav class="toc" aria-label="เอกสารของกลุ่มนี้">
+                              @for (kind of inquiryLoops; track kind) {
+                                <button type="button" class="toc__child" [class.toc__on]="inquiryLoop === kind" [attr.aria-current]="inquiryLoop === kind ? 'true' : null" (click)="inquiryLoop = kind">
+                                  <img [src]="papersOf(row, kind).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                                  {{ inquiryLoopLabel(kind) }}
+                                </button>
+                              }
+                            </nav>
+                            <div class="receipt__view">
+                              <h3>{{ inquiryLoopLabel(inquiryLoop) }}</h3>
+                              <p class="link-detail">{{ inquiryLoopHint(inquiryLoop) }}</p>
+                              @if (inquiryLoop === 'form') {
+                                @for (part of questionnaireParts(row.id); track part) {
+                                  <p class="link-detail">{{ part }}</p>
+                                }
+                              }
+                              @if (!row.passed) {
+                                <div class="draft-form">
+                                  <app-thai-date-field label="วันที่" [required]="true" [value]="inquiryPaperOn" (valueChange)="inquiryPaperOn = $event" />
+                                  @if (inquiryLoop === 'extend-reply') {
+                                    <app-thai-date-field label="วันครบกำหนดใหม่" [required]="true" [value]="inquiryPaperDue" (valueChange)="inquiryPaperDue = $event" />
+                                  }
+                                  <app-input-field class="block wide" kind="textarea" [label]="inquiryLoop === 'form' ? 'คำนำส่ง' : 'เนื้อความ'" [required]="true" [value]="inquiryPaperNote" (valueChange)="inquiryPaperNote = $event" />
+                                </div>
+                                <footer class="doc-foot">
+                                  <app-button type="primary" label="บันทึก" [state]="inquiryPaperNote.trim() ? 'default' : 'disabled'" (click)="saveInquiryLoop()" />
+                                  <app-button type="outline" label="ผ่านขั้นนี้" [state]="questionCanPass(row) ? 'default' : 'disabled'" (click)="passInquiryQuestion(row.id)" />
+                                </footer>
+                              } @else {
+                                <p>กลุ่มนี้ผ่านแล้ว เปิดดูเอกสารที่บันทึกไว้ได้จากรายการด้านล่าง</p>
+                              }
+                              <p class="slip-file-label">ไฟล์เอกสาร</p>
+                              <div class="table-wrap slip-files">
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th>ชื่อเอกสาร</th>
+                                      <th>วันที่บันทึก</th>
+                                      <th>การจัดการ</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    @for (paper of papersOf(row, inquiryLoop); track paper.docId) {
+                                      <tr>
+                                        <td>{{ inquiryLoopLabel(paper.kind) }} ครั้งที่ {{ paper.round }}</td>
+                                        <td>{{ paper.at }}</td>
+                                        <td>
+                                          @if (issuedDoc(paper.docId); as file) {
+                                            <div class="made-actions">
+                                              <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
+                                              <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
+                                            </div>
+                                          }
+                                        </td>
+                                      </tr>
+                                    } @empty {
+                                      <tr>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td></td>
+                                      </tr>
+                                    }
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        }
+                        @if (inquiryQuestionsDone) {
+                          <p>แบบสอบถามทั้งสามกลุ่มผ่านแล้ว ขั้นต่อไปในกลุ่มนี้คือตรวจสถานประกอบการ</p>
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'visit') {
+                      <section class="notice-form" aria-label="ตรวจสถานประกอบการ">
+                        <h3>ตรวจสถานประกอบการ</h3>
+                        <p class="link-detail">อยู่ในกลุ่มเปิดไต่สวน ทำหลังข้อมูลไต่สวนครบ</p>
+                        <ul class="note-phase">
+                          @for (item of phaseDocs(); track item) {
+                            <li>{{ item }}</li>
+                          }
+                        </ul>
+                        @if (!laterPhase.visit) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="ผ่านขั้นนี้" (click)="passVisit()" />
+                          </footer>
+                        } @else {
+                          <p>ตรวจสถานประกอบการเสร็จแล้ว ขั้นถัดไปคือลงมติขั้นต้น</p>
                         }
                       </section>
                     }
@@ -1775,80 +2012,27 @@
               </div>
             </div>
           }
-          @if (reviewTab === 'talk' && showTalkTab) {
+          @if (reviewTab === 'prelim' || reviewTab === 'draftFinal' || reviewTab === 'finalResult') {
             <div class="assign-card">
-              <header class="consult__bar">
+              <header class="assign-head">
                 <div>
-                  <h2>ให้คำปรึกษา/สนทนา</h2>
-                  <p>เลขอ้างอิง {{ refId }}</p>
+                  <h2>{{ reviewTabs().find((tab) => tab.id === reviewTab)?.label }}</h2>
+                  <p>เอกสารของขั้นนี้ตามขั้นตอนการไต่สวน</p>
                 </div>
-                <app-status-tag tone="success" label="รับเรื่องแล้ว" />
+                @if (reviewMark(reviewTab) === 'done') {
+                  <app-status-tag tone="success" label="เสร็จสิ้น" />
+                }
               </header>
-              <div class="talk-scroll" (scroll)="onTalkScroll($event)">
-                @if (!talkReady || talkLoading) {
-                  <p class="talk__loading"><i aria-hidden="true"></i>กำลังโหลดข้อความ</p>
+              <ul class="note-phase">
+                @for (item of phaseDocs(); track item) {
+                  <li>{{ item }}</li>
                 }
-                <ol class="talk">
-                  @for (note of shownNotes; track note.at + note.text) {
-                    @if (showDay($index)) {
-                      <li class="talk__day">{{ noteDay(note.at) }}</li>
-                    }
-                    <li [class.talk__mine]="note.from === 'officer'" [class.talk__officer]="note.from === 'applicant'">
-                      @if (note.from === 'applicant') {
-                        <span class="talk__avatar" aria-hidden="true">
-                          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3" /><path d="M6 19c1.4-2.6 3.4-4 6-4s4.6 1.4 6 4" /></svg>
-                        </span>
-                      }
-                      <div>
-                        <strong>{{ note.from === 'officer' ? 'เจ้าหน้าที่ผู้รับผิดชอบคำขอ' : 'ผู้ยื่นคำขอ' }}</strong>
-                        @if (note.text) {
-                          <p>{{ note.text }}</p>
-                        }
-                        @if (note.files?.length) {
-                          <ul class="talk__files">
-                            @for (file of note.files; track file.name) {
-                              <li>
-                                @if (file.image) {
-                                  <img [src]="file.image" alt="" />
-                                }
-                                <span>{{ file.name }}</span>
-                              </li>
-                            }
-                          </ul>
-                        }
-                        <small>{{ noteClock(note.at) }}</small>
-                      </div>
-                    </li>
-                  }
-                </ol>
-              </div>
-              <div class="talk__send">
-                <textarea rows="3" aria-label="ข้อความถึงผู้ยื่นคำขอ" placeholder="พิมพ์ข้อความถึงผู้ยื่นคำขอ..." [value]="consultDraft" (input)="consultDraft = $any($event.target).value"></textarea>
-                @if (pendingFiles.length) {
-                  <ul class="talk__pending">
-                    @for (file of pendingFiles; track $index) {
-                      <li>
-                        <span>{{ file.name }}</span>
-                        <button type="button" aria-label="เอาไฟล์ออก" (click)="dropPending($index)">×</button>
-                      </li>
-                    }
-                  </ul>
-                }
-                <div class="talk__bar">
-                  <div class="talk__tools">
-                    <label class="talk__tool" aria-label="แนบไฟล์">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12.5 14.5 6a3 3 0 0 1 4 4L10 18.5a4 4 0 0 1-5.5-5.5L12 6" /></svg>
-                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx" multiple (change)="addTalkFiles($event)" />
-                    </label>
-                    <button type="button" class="talk__tool" aria-label="ภาพหน้าจอ" (click)="captureTalk()">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v10H4z" /><circle cx="12" cy="13" r="3" /></svg>
-                    </button>
-                  </div>
-                  <app-button type="primary" label="ส่งข้อความ" (click)="sendConsultNote()">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                  </app-button>
-                </div>
-              </div>
+              </ul>
+              @if (reviewMark(reviewTab) !== 'done') {
+                <footer class="doc-foot">
+                  <app-button type="primary" label="ผ่านขั้นนี้" (click)="passLaterPhase()" />
+                </footer>
+              }
             </div>
           }
         </section>
@@ -3457,6 +3641,80 @@
           <app-button type="primary" label="ส่งให้ผู้รับมอบหมายอนุมัติ" (click)="confirmOfficial()" />
         } @else {
           <app-button type="primary" label="ยืนยันส่งแบบยื่นทางการ" (click)="confirmOfficial()" />
+        }
+      </div>
+    </section>
+  </div>
+}
+
+@if (notesOpen) {
+  <div class="assign-pop" (click)="closeNotes()">
+    <section class="assign-dialog note-dialog" role="dialog" aria-modal="true" aria-labelledby="note-title" (click)="$event.stopPropagation()">
+      <header>
+        <div>
+          <h2 id="note-title">บันทึกข้อความ</h2>
+          <p>บันทึกข้อมูลประกอบคำขอ {{ refId }}</p>
+        </div>
+        <button type="button" aria-label="ปิด" (click)="closeNotes()">✕</button>
+      </header>
+      <label class="assign-remark">
+        <span>ข้อความ<span class="req">*</span></span>
+        <textarea rows="4" maxlength="1000" placeholder="ระบุรายละเอียดที่ต้องการบันทึก..." [value]="noteText" (input)="noteText = $any($event.target).value"></textarea>
+      </label>
+      <p class="note-count">{{ noteText.length }}/1000 ตัวอักษร</p>
+      @for (file of noteFiles; track file.name; let n = $index) {
+        <article class="note-file">
+          <span class="note-file__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /></svg></span>
+          <span><strong>{{ file.name }}</strong><small>{{ noteFileKind(file.name) }}</small></span>
+          <button type="button" class="trash" aria-label="นำไฟล์ออก" (click)="removeNoteFile(n)"><img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" /></button>
+        </article>
+      }
+      <footer>
+        <label class="head__history" aria-label="แนบไฟล์">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 11.1 12.2 20.3a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></svg>
+          <input class="note-file-input" type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx" multiple (change)="addNoteFiles($event)" />
+        </label>
+        <app-button class="icon-before" type="primary" label="บันทึกข้อความ" [state]="noteText.trim() ? 'default' : 'disabled'" (click)="saveCaseNote()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6z" /><path d="M8 3v6h8V3M8 21v-6h8v6" /></svg>
+        </app-button>
+      </footer>
+      <div class="note-history">
+        <div class="note-files-head">
+          <h3>ประวัติการบันทึก</h3>
+          <span>{{ visibleNotes.length }} รายการ</span>
+        </div>
+        @for (note of visibleNotes; track note.id) {
+          <article class="note-card" [class.note-card--new]="noteFresh.includes(note.id)">
+            <span class="note-card__avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2z" /></svg></span>
+            <div>
+              <span class="note-card__meta">
+                <small>{{ note.at }}</small>
+                @if (noteFresh.includes(note.id)) {
+                  <app-status-tag variant="soft" tone="warning" label="ยังไม่ได้อ่าน" />
+                }
+              </span>
+              <p>{{ note.text }}</p>
+              @for (file of note.files; track file.name) {
+                <p class="link-detail">{{ file.title }}</p>
+              }
+              @if (noteDeleteId === note.id) {
+                <div class="note-confirm">
+                  <p class="note-hint">ลบบันทึกนี้หรือไม่</p>
+                  <app-button class="icon-before" size="sm" type="outline" label="ยกเลิก" (click)="noteDeleteId = ''">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                  </app-button>
+                  <app-button class="icon-before" size="sm" type="danger" label="ยืนยันลบ" (click)="removeCaseNote(note.id)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 7V5h4v2M6 7l1 13h10l1-13M10 11v6M14 11v6" /></svg>
+                  </app-button>
+                </div>
+              }
+            </div>
+            @if (noteMine(note) && noteDeleteId !== note.id) {
+              <button type="button" class="trash" aria-label="ลบบันทึกนี้" (click)="askDeleteNote(note.id)"><img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" /></button>
+            }
+          </article>
+        } @empty {
+          <p class="note-hint">ยังไม่มีบันทึก</p>
         }
       </div>
     </section>
