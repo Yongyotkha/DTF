@@ -1,8 +1,8 @@
 import { ApplicationRef, ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
 import { DftButton } from '../../button/button';
 
-const maxBytes = 20 * 1024 * 1024;
-const accept = /\.(pdf|docx?|png|jpe?g)$/i;
+const maxBytes = 50 * 1024 * 1024;
+const accept = /\.docx$/i;
 
 @Component({
   selector: 'app-filled-upload',
@@ -40,13 +40,6 @@ export class FilledUpload implements OnDestroy {
     this.closed.emit();
   }
 
-  protected cancel(): void {
-    this.clearTimer();
-    this.processing = false;
-    this.active = 0;
-    this.picked = '';
-  }
-
   protected allowDrop(event: DragEvent): void {
     event.preventDefault();
     this.over = true;
@@ -57,7 +50,7 @@ export class FilledUpload implements OnDestroy {
     const file = list?.[0];
     if (!file || this.processing) return;
     if (!accept.test(file.name) || file.size > maxBytes) {
-      this.error = 'รองรับ PDF, DOCX, JPG/PNG ไม่เกิน 20 MB';
+      this.error = 'รองรับไฟล์ DOCX ไม่เกิน 50 MB';
       return;
     }
     this.error = '';

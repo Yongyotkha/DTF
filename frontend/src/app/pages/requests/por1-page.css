@@ -717,7 +717,7 @@ main {
 .toc button.toc__on {
   border-bottom-color: transparent;
   border-left-color: var(--color-secondary);
-  background: var(--color-disabled-bg);
+  background: var(--color-info-bg);
 }
 
 .toc__dot {
@@ -1321,6 +1321,21 @@ fieldset legend {
 .note textarea:focus {
   outline: none;
   box-shadow: var(--state-focus-ring);
+}
+
+.field--bad > input,
+.field--bad > textarea,
+.field--bad > .select select,
+.note--bad > textarea {
+  border: 1.5px solid var(--color-error-red);
+  background: var(--color-error-bg);
+}
+
+.field--bad > .field__error,
+.note--bad > .field__error {
+  color: var(--color-error-red);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .note--doc textarea {
@@ -2911,6 +2926,14 @@ table:has(.col-no) {
   display: flex;
 }
 
+.sample--check > section.check > .check__agree {
+  flex: none;
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-white);
+}
+
 .sample--check > section.check > .check__body {
   display: flex;
   flex: 1 1 auto;
@@ -2975,8 +2998,7 @@ table:has(.col-no) {
 }
 
 .check__foot app-button svg,
-.check__mark svg,
-.check__lock svg {
+.check__mark svg {
   width: 18px;
   height: 18px;
   fill: none;
@@ -3030,7 +3052,8 @@ table:has(.col-no) {
   border-top: 1px solid var(--color-border);
 }
 
-.check__row:first-child {
+.check__row--plain {
+  grid-template-columns: minmax(0, 1fr) auto;
   border-top: 0;
 }
 
@@ -3066,7 +3089,6 @@ table:has(.col-no) {
 
 .check__row > div span,
 .check__facts dt,
-.check__lock,
 .check__agree {
   color: var(--color-text-muted);
   font-family: var(--font-sans-thai);
@@ -3077,7 +3099,7 @@ table:has(.col-no) {
 
 .check__facts {
   margin: 0;
-  padding: 0 0 4px 34px;
+  padding: 0 0 4px;
 }
 
 .check__facts div {
@@ -3090,18 +3112,6 @@ table:has(.col-no) {
 
 .check__facts dd {
   margin: 0;
-}
-
-.check__lock {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  margin: 8px 0 0;
-}
-
-.check__lock svg {
-  flex: none;
-  margin-top: 2px;
 }
 
 .check__agree {

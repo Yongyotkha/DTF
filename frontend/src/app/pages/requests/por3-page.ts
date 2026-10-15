@@ -2,11 +2,13 @@ import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
+import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extract';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
 import { filingMeasureTitle } from './filing-intent';
+import { scrollFormToTop } from './form-scroll';
 @Component({
   selector: 'app-por3-page',
   imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
@@ -20,7 +22,7 @@ export class Por3Page {
   protected step = '1.1 ประเภทของการยื่นคำขอ';
   protected reviewOpen = false;
   protected uploadOpen = false;
-  protected filledName = '';
+  protected readOn = false;
   protected goods = '';
   protected notice = '';
   protected stopReason = '';
@@ -68,10 +70,55 @@ export class Por3Page {
   protected openFilledUpload(): void {
     this.uploadOpen = true;
   }
+  protected readSpots: { contact: string[]; body: string[] } = { contact: ['1.2 ข้อมูลและเอกสารประกอบ', '1.3 ผู้ยื่นคำขอ'], body: ['พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน', 'ยุติการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน'] };
+
+  protected applyRead(): void {
+    const host = this as unknown as { applicants?: object[] };
+    if (host.applicants?.length) {
+      fillApplicant(host.applicants[0]);
+      host.applicants = [...host.applicants];
+    }
+    fillKnown(this);
+    const bag = this as unknown as Record<string, unknown>;
+    if (typeof bag['goods'] === 'string' && typeof bag['notice'] !== 'string') bag['goods'] = 'เหล็กแผ่น';
+    if (bag['measure'] === '') bag['measure'] = 'dumping';
+    if (bag['filing'] === '') bag['filing'] = 'self';
+    this.readOn = true;
+    this.view.detectChanges();
+  }
+
+  protected bad(key: string): boolean {
+    if (!this.readOn) return false;
+    const people = (this as unknown as { applicants?: Record<string, string>[] }).applicants;
+    const person = people?.[0];
+    const picked = person && Object.prototype.hasOwnProperty.call(person, key) ? person[key] : (this as unknown as Record<string, unknown>)[key];
+    return valueIsWrong(key, String(picked ?? ''));
+  }
+
+  protected readHint(key: string): string {
+    return this.bad(key) ? wrongHint(key) : '';
+  }
+
+  protected badSection(id: string): boolean {
+    const contact = this.bad('phone') || this.bad('email') || this.bad('agentPhone');
+    const body = this.bad('notice') || this.bad('stopReason') || this.bad('tradeName') || this.bad('goods');
+    if (this.readSpots.contact.includes(id)) return contact;
+    if (this.readSpots.body.includes(id)) return body;
+    return false;
+  }
+
+  protected get sectionIssue(): string {
+    const bag = this as unknown as { section?: string; step?: string };
+    const id = bag.section ?? bag.step ?? '';
+    if (!this.badSection(id)) return '';
+    if (this.readSpots.contact.includes(id)) return 'อ่านเบอร์โทรและอีเมลจากไฟล์ได้ไม่ถูกต้อง';
+    return 'ข้อมูลส่วนนี้ไม่ตรงกับไฟล์ต้นฉบับ';
+  }
+
   private blank(open = true) {
     return { open, name: '', nation: '', address: '', province: '', district: '', subdistrict: '', phone: '', fax: '', email: '', foreign: false, files: {} as Record<string, string> };
   }
-  protected open(label: string): void {
+  protected open(label: string, event?: Event): void {
     const labels = this.labels();
     const index = labels.indexOf(label);
     let n = 0;
@@ -83,13 +130,7 @@ export class Por3Page {
     }
     this.step = label;
     this.view.detectChanges();
-    requestAnimationFrame(() => {
-      const el = document.getElementById('por3-step') ?? document.querySelector('.form');
-      if (!(el instanceof HTMLElement)) return;
-      const pin = document.querySelector('.review-pin');
-      const offset = 65 + (pin instanceof HTMLElement ? pin.offsetHeight : 0);
-      window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset) });
-    });
+    scrollFormToTop(event);
   }
   protected filled(label: string): boolean {
     const labels = this.labels();

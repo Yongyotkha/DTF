@@ -32,21 +32,17 @@
             </app-button>
           </div>
         </div>
-        @if (filledName) {
-          <article class="file-card sheet__filled">
-            <span class="file-card__mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
-            </span>
-            <div class="file-card__body"><p>{{ filledName }}</p></div>
-          </article>
-        }
         <div class="sheet__split">
           <nav class="toc" aria-label="ส่วนของแบบคำขอมาตรการปกป้อง">
             @for (group of toc; track group.label) {
               <p class="toc__group">{{ group.label }}</p>
               @for (item of group.items; track item.id) {
-                <button type="button" class="toc__child" [class.toc__on]="current(item)" [attr.aria-current]="current(item) ? 'true' : null" (click)="open(item)">
-                  <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="badSection(item.id)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">
+                  @if (badSection(item.id)) {
+                    <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
+                  } @else {
+                    <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                  }
                   {{ item.label }}
                 </button>
               }
@@ -69,7 +65,7 @@
                   ที่อยู่<span class="req">*</span>
                   <textarea rows="2" placeholder="ระบุ" [value]="address" (input)="address = $any($event.target).value"></textarea>
                 </label>
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('phone')">
                   โทรศัพท์<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="phone" (input)="phone = $any($event.target).value" />
                 </label>
@@ -155,7 +151,7 @@
               <h3>รายละเอียดของสินค้า</h3>
               <p>เปรียบเทียบสินค้าที่ถูกพิจารณากับสินค้าชนิดเดียวกันที่ผู้ยื่นคำขอผลิตได้ในประเทศ</p>
               <div class="grid">
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('tradeName')">
                   2.1 ชื่อทางการค้า<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="tradeName" (input)="tradeName = $any($event.target).value" />
                 </label>
@@ -454,7 +450,7 @@
   </div>
 </div>
 @if (uploadOpen) {
-  <app-filled-upload [code]="formCode" (filled)="filledName = $event" (closed)="uploadOpen = false" />
+  <app-filled-upload [code]="formCode" (filled)="applyRead()" (closed)="uploadOpen = false" />
 }
 @if (reviewOpen) {
   <div class="sample sample--submit" (click)="reviewOpen = false">

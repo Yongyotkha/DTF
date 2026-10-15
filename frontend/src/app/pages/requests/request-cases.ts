@@ -39,13 +39,13 @@ export const archiveCases: ListedCase[] = [
     code: 'AD1039',
     goods: 'หลอดหรือท่อทำด้วยเหล็ก จากเวียดนาม',
     kind: 'แบบ ปร.1',
-    status: 'ยื่นคำขอ',
+    status: 'ตรวจสอบข้อมูล',
     tone: 'info',
     created: '',
     round: 1,
     waiting: false,
     draft: false,
-    steps: steps(investigation, 0),
+    steps: steps(investigation, 1),
     documents: ['แบบ ปร.1 คำขอสินค้าหลอดหรือท่อทำด้วยเหล็ก จากเวียดนาม'],
   },
   {
@@ -139,4 +139,10 @@ export const draftCases: ListedCase[] = [
 
 export function findListedCase(code: string): ListedCase | undefined {
   return [...archiveCases, ...draftCases].find((item) => item.code === code || item.id === code);
+}
+
+export function stepLabel(name: string): string {
+  if (name === 'ผลการไต่สวนชั้นต้น') return 'ผลการไต่สวนขั้นต้น';
+  if (name === 'ประกาศผลชั้นที่สุด') return 'ประกาศผลฉบับที่สุด';
+  return name;
 }

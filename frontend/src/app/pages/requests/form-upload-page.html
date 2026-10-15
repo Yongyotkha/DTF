@@ -27,7 +27,7 @@
           <nav class="toc" aria-label="แบบฟอร์มที่เลือก">
             <p class="toc__group">แบบฟอร์มที่เลือก</p>
             @for (form of forms; track form.code) {
-              <button type="button" class="toc__child" [class.toc__on]="current() === form.code" [attr.aria-current]="current() === form.code ? 'true' : null" (click)="open(form.code)">
+              <button type="button" class="toc__child" [class.toc__on]="current() === form.code" [attr.aria-current]="current() === form.code ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(form.code, $event)">
                 <img [src]="filled(form.code) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
                 แบบฟอร์ม {{ form.code }}
               </button>

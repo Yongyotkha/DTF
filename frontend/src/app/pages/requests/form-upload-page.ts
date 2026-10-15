@@ -7,6 +7,7 @@ import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { filingRefId, startFilingCase, writeCaseStatus } from './case-status';
 import { clearFilingIntent, readFilingIntent, saveFilingIntent } from './filing-intent';
+import { scrollFormToTop } from './form-scroll';
 import { RequestForm, formOf, measureOf, purposeOf } from './form-catalog';
 
 const maxBytes = 20 * 1024 * 1024;
@@ -51,8 +52,9 @@ export class FormUploadPage {
     return this.forms.find((item) => item.code === this.current()) ?? this.forms[0] ?? null;
   }
 
-  protected open(code: string): void {
+  protected open(code: string, event?: Event): void {
     this.current.set(code);
+    scrollFormToTop(event);
   }
 
   protected filled(code: string): boolean {

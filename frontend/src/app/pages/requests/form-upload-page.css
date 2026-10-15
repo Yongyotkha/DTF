@@ -199,7 +199,7 @@ main {
 .toc button.toc__on {
   border-bottom-color: transparent;
   border-left-color: var(--color-secondary);
-  background: var(--color-disabled-bg);
+  background: var(--color-info-bg);
 }
 
 .toc button:focus-visible {
