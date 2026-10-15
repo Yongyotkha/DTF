@@ -43,6 +43,7 @@ export const routes: Routes = [
   { path: 'director/filing', component: Por1Page, data: { review: 'director' } },
   { path: 'director/tasks/:code', component: StaffTaskPage, data: { role: 'director' } },
   { path: 'head', component: StaffHomePage, data: { role: 'head' } },
+  { path: 'head/filing', component: Por1Page, data: { review: 'head' } },
   { path: 'head/tasks/:code', component: StaffTaskPage, data: { role: 'head' } },
   { path: 'officer', component: StaffHomePage, data: { role: 'officer' } },
   { path: 'officer/filing', component: Por1Page, data: { review: 'officer' } },

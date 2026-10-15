@@ -539,7 +539,7 @@ export class StaffHomePage implements OnDestroy {
     if (group) this.consultGroup = group;
     if (!this.consultMember) this.consultMember = this.consultMembers[0]?.name ?? '';
     this.consultTopic = request?.topic ?? '';
-    this.consultWhen = request?.when ?? '';
+    this.consultWhen = request?.channel === 'phone' ? 'โทรศัพท์' : request?.channel === 'online' ? 'Online' : request?.channel === 'onsite' ? 'OnSite' : (request?.when ?? '');
     this.awaitingApproval = readCaseStatus() === 'approval';
     if (!this.awaitingConsult) this.assignOpen = false;
   }
@@ -553,7 +553,8 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected openFiling(): void {
-    void this.router.navigate([this.role === 'director' ? '/director/filing' : '/officer/filing']);
+    const filing = this.role === 'director' ? '/director/filing' : this.role === 'head' ? '/head/filing' : this.role === 'staff' ? '/staff/filing' : '/officer/filing';
+    void this.router.navigate([filing]);
   }
 
   private assignedConsultJob(group: string): TaskCase {
@@ -577,7 +578,7 @@ export class StaffHomePage implements OnDestroy {
     if (code === this.filingRef) {
       if (this.role === 'staff' && this.consultIntakeOpen) return;
       if (this.role === 'head' && this.consultStep === 'group') return;
-      if (this.role === 'head') void this.router.navigateByUrl('/officer/filing');
+      if (this.role === 'head') void this.router.navigateByUrl('/head/filing');
       return;
     }
     const base = this.role === 'staff' ? '/staff/tasks' : `/${this.role}/tasks`;

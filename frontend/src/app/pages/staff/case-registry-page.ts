@@ -273,7 +273,11 @@ export class CaseRegistryPage {
       void this.router.navigateByUrl('/staff/filing');
       return;
     }
-    if (role === 'head' || role === 'officer') {
+    if (role === 'head') {
+      void this.router.navigateByUrl('/head/filing');
+      return;
+    }
+    if (role === 'officer') {
       void this.router.navigateByUrl('/officer/filing');
       return;
     }
