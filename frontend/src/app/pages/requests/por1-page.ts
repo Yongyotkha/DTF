@@ -20,6 +20,11 @@ type ReviewTab = 'form' | 'assign' | 'docs' | 'inquiry' | 'prelim' | 'draftFinal
 type TocLink = { id: string; label: string; anchor?: string };
 type TocGroup = { label: string; items: TocLink[] };
 type HistoryItem = { phase: string; title: string; when: string; detail: string; label: string; tone: 'neutral' | 'info' | 'warning' | 'success' };
+type DutyState = 'new' | 'accepted' | 'returned' | 'working';
+type DutyMove = '' | 'report' | 'forward';
+type ConsultSlip = { assignedOn: string; dueOn: string; dueTime: string; remind: boolean; order: string; files: AssignFile[] };
+type ConsultOfficerJob = { name: string; reply: 'pending' | 'accept' | 'return'; move: DutyMove; form?: ConsultSlip };
+type ConsultGroupJob = { group: string; reply: 'pending' | 'accept' | 'return'; officers: ConsultOfficerJob[]; form?: ConsultSlip };
 
 type GoodsRow = { producer: string; goods: string; made: string; sold: string; unit: string };
 type MakerRow = { name: string; address: string; phone: string; fax: string; web: string; email: string };
@@ -532,8 +537,8 @@ export class Por1Page {
   protected submitting = false;
   private submitTimer = 0;
   private reviewTimer = 0;
-  protected reviewLeft = 60;
-  protected approvalLeft = 60;
+  protected reviewLeft = 10;
+  protected approvalLeft = 10;
   protected consultOpen = false;
   protected consultFormal = false;
   protected sideTalk = false;
@@ -546,11 +551,24 @@ export class Por1Page {
   protected readonly officerUnit = filingUnit;
   protected officialOpen = false;
   protected consult: ConsultRequest | null = readConsult();
-  protected consultTopic = 'ขอพบเจ้าหน้าที่เพื่อปรึกษาการแก้ไขคำขอ';
+  protected consultTopic = 'ขอปรึกษาการแก้ไขคำขอ';
   protected consultDetail = 'รายการที่ยังไม่ผ่านมีหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตในประเทศ ต้องการให้นัดหมายเพื่อชี้แจงก่อนส่งแบบคำร้องทางการ';
   protected consultWhen = '16/05/2562 10:00';
+  protected consultChannel: 'phone' | 'online' | 'onsite' | '' = '';
   protected consultNotes: ConsultNote[] = readConsultThread();
   protected consultAssigned = readConsultAssigned();
+  private readonly consultJobKey = 'dft-por1-consult-jobs';
+  protected consultJobs: ConsultGroupJob[] = this.readConsultJobs();
+  protected consultPickGroups: string[] = [];
+  protected consultPickOfficers: string[] = [];
+  protected consultReceipt: 'accept' | 'return' = 'accept';
+  protected consultMove: DutyMove = 'report';
+  protected consultOrder = '';
+  protected consultAssignedOn = '16/05/2562';
+  protected consultDueOn = '30/05/2562';
+  protected consultDueTime = '14:28';
+  protected consultRemind = false;
+  protected consultFiles: AssignFile[] = [];
   protected consultPlan: ConsultPlan | null = readConsultPlan();
 
   protected get channelText(): string {
@@ -985,6 +1003,32 @@ export class Por1Page {
     this.personQuery = '';
   }
 
+  protected get canAssignWork(): boolean {
+    return this.reviewRole === 'staff' || this.reviewRole === 'director' || this.reviewRole === 'head';
+  }
+
+  protected get assignmentWaiting(): boolean {
+    if (this.reviewRole === 'staff') return !this.directorAssigned;
+    if (this.reviewRole === 'director') return this.consultWaiting();
+    if (this.reviewRole === 'head') {
+      if (this.consultWaiting()) return true;
+      const mine = this.shownTasks.find((task) => task.head === this.signedPerson);
+      return !!mine && (this.groupAct(mine) || this.showForward(mine));
+    }
+    if (this.reviewRole === 'officer') return this.consultWaiting() || this.handAct(this.signedPerson) || this.dutyMatters.some((item) => item.tasks.some((task) => task.state === 'new'));
+    return false;
+  }
+
+  protected get workButtonLabel(): string {
+    if (this.canAssignWork) return this.assignmentWaiting ? 'มอบหมายงาน มีงานที่ต้องทำ' : 'มอบหมายงาน';
+    return this.assignmentWaiting ? 'งาน มีงานที่ต้องรับ' : 'งาน';
+  }
+
+  protected showAssignment(): void {
+    if (!this.reviewRole) return;
+    this.reviewTab = 'assign';
+  }
+
   protected openAssign(): void {
     if (this.reviewRole !== 'director') return;
     this.draftGroups = [...this.pickedGroups];
@@ -1235,6 +1279,289 @@ export class Por1Page {
     return this.hands.filter((hand) => hand.group === group);
   }
 
+  protected visibleHands(group: string): PersonHand[] {
+    const rows = this.handsIn(group);
+    return this.canAssignWork ? rows : rows.filter((hand) => hand.name === this.signedPerson);
+  }
+
+  protected get visibleTasks(): GroupTask[] {
+    if (this.canAssignWork) return this.shownTasks;
+    return this.shownTasks.filter((task) => this.visibleHands(task.group).length > 0);
+  }
+
+  private dutyState: Record<string, { state: DutyState; move: DutyMove }> = {};
+
+  protected dutyStatus(title: string, work: string, fallback: DutyState): DutyState {
+    return this.dutyState[`${title}\0${work}`]?.state ?? fallback;
+  }
+
+  protected dutyMove(title: string, work: string, fallback: DutyMove): DutyMove {
+    return this.dutyState[`${title}\0${work}`]?.move ?? fallback;
+  }
+
+  protected setDutyStatus(title: string, work: string, state: DutyState, move: DutyMove = ''): void {
+    this.dutyState = { ...this.dutyState, [`${title}\0${work}`]: { state, move } };
+  }
+
+  protected dutyLabel(state: 'new' | 'accepted' | 'returned' | 'working'): string {
+    if (state === 'new') return 'งานเข้าใหม่';
+    if (state === 'accepted') return 'งานที่รับ';
+    if (state === 'returned') return 'คืน';
+    return 'งานกำลังดำเนินงาน';
+  }
+
+  protected dutyTone(state: 'new' | 'accepted' | 'returned' | 'working'): 'warning' | 'info' | 'danger' | 'success' {
+    if (state === 'new') return 'warning';
+    if (state === 'accepted') return 'info';
+    if (state === 'returned') return 'danger';
+    return 'success';
+  }
+
+  /** ตัวอย่างงานที่มอบแยกเรื่อง คนที่ไม่มีสิทธิ์มอบหมายเห็นเฉพาะงานของตน */
+  protected get dutyMatters(): { title: string; status: string; tone: 'success' | 'warning' | 'neutral'; people: string[]; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] }[] {
+    const jareena = 'นางสาวจรีณา กิจส่งเสริมกุล';
+    const kuljira = 'นางสาวกุลจิรา ปานทอง';
+    const patchara = 'นางสาวพัชราวรรณ ไทยอาจ';
+    const samples: { title: string; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] }[] = [
+      { title: 'ตรวจสอบเอกสาร', tasks: [{ work: 'ตรวจแบบคำขอ', person: jareena, state: 'working', move: 'report' }, { work: 'ตรวจหลักฐานราคาและปริมาณนำเข้า', person: kuljira, state: 'new', move: '' }, { work: 'จัดหนังสือแจ้งผล', person: patchara, state: 'returned', move: '' }] },
+      { title: 'ร่างวาระประชุม', tasks: [{ work: 'ร่างข้อเท็จจริง', person: jareena, state: 'working', move: 'forward' }, { work: 'ตรวจความครบก่อนส่งคณะกรรมการ', person: patchara, state: 'accepted', move: '' }] },
+      { title: 'แบบสอบถาม', tasks: [{ work: 'ผู้นำเข้า', person: jareena, state: 'new', move: '' }, { work: 'ผู้ผลิตในประเทศ', person: kuljira, state: 'working', move: 'report' }, { work: 'ผู้ส่งออก', person: patchara, state: 'working', move: 'forward' }] },
+      { title: 'ตรวจสถานประกอบการ', tasks: [{ work: 'จัดหนังสือแจ้งและนัดตรวจ', person: kuljira, state: 'accepted', move: '' }, { work: 'เขียนรายงานผล', person: jareena, state: 'working', move: 'report' }] },
+      { title: 'ผลขั้นต้น', tasks: [{ work: 'จัดวาระและประกาศ', person: patchara, state: 'new', move: '' }, { work: 'หนังสือแจ้งผู้มีส่วนได้เสีย', person: jareena, state: 'accepted', move: '' }] },
+    ];
+    const consult = this.consultCanSee() ? [{
+      title: 'ขอคำปรึกษา',
+      status: this.consultWaiting() ? 'มีงานเข้าใหม่' : 'กำลังดำเนินงาน',
+      tone: this.consultWaiting() ? 'warning' as const : 'success' as const,
+      people: [] as string[],
+      tasks: [] as { work: string; person: string; state: DutyState; move: DutyMove }[],
+    }] : [];
+    return [...consult, ...samples.flatMap((item) => {
+      const tasks = item.tasks.map((task) => ({ ...task, state: this.dutyStatus(item.title, task.work, task.state), move: this.dutyMove(item.title, task.work, task.move) }));
+      const mine = tasks.filter((task) => task.person === this.signedPerson);
+      if (!this.canAssignWork && !mine.length) return [];
+      const shown = this.canAssignWork ? tasks : mine;
+      const pending = shown.some((task) => task.state === 'new');
+      return [{
+        title: item.title,
+        status: pending ? 'มีงานเข้าใหม่' : 'กำลังดำเนินงาน',
+        tone: pending ? 'warning' as const : 'success' as const,
+        people: this.canAssignWork ? [...new Set(shown.map((task) => task.person))] : [],
+        tasks: shown,
+      }];
+    })];
+  }
+
+  protected get activeDuty(): { title: string; status: string; tone: 'success' | 'warning' | 'neutral'; people: string[]; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] } | null {
+    const rows = this.dutyMatters;
+    return rows.find((row) => row.title === this.dutyPick) ?? rows[0] ?? null;
+  }
+
+  private readConsultJobs(): ConsultGroupJob[] {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(this.consultJobKey) || '[]') as ConsultGroupJob[];
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeConsultJobs(): void {
+    sessionStorage.setItem(this.consultJobKey, JSON.stringify(this.consultJobs));
+  }
+
+  protected readonly assignableGroups = workGroups;
+
+  protected jobHead(group: string): string {
+    return groupHead(group);
+  }
+
+  protected isMyGroupHead(): boolean {
+    return staffPeople.some((person) => person.name === this.signedPerson && person.lead && person.work === this.myWorkGroup());
+  }
+
+  protected myConsultOfficer(): ConsultOfficerJob | undefined {
+    return this.consultGroupJob()?.officers.find((officer) => officer.name === this.signedPerson);
+  }
+
+  protected myWorkGroup(): string {
+    return staffPeople.find((person) => person.name === this.signedPerson)?.work ?? '';
+  }
+
+  protected consultGroupJob(): ConsultGroupJob | undefined {
+    return this.consultJobs.find((job) => job.group === this.myWorkGroup());
+  }
+
+  protected consultCanSee(): boolean {
+    if (this.reviewRole === 'director' || this.reviewRole === 'staff') return true;
+    const group = this.myWorkGroup();
+    if (!group) return false;
+    const job = this.consultJobs.find((item) => item.group === group);
+    const head = staffPeople.some((person) => person.name === this.signedPerson && person.lead);
+    if (!this.consultJobs.length) return head;
+    if (!job) return false;
+    if (head) return true;
+    if (!job.officers.length) return true;
+    return job.officers.some((officer) => officer.name === this.signedPerson);
+  }
+
+  protected consultWaiting(): boolean {
+    if (this.reviewRole === 'director') return this.consultJobs.length === 0;
+    const job = this.consultGroupJob();
+    if (!job) return false;
+    if (staffPeople.some((person) => person.name === this.signedPerson && person.lead)) return job.reply === 'pending';
+    return job.officers.some((officer) => officer.name === this.signedPerson && officer.reply === 'pending');
+  }
+
+  protected consultDocs(): { title: string; place: string; detail: string }[] {
+    return [
+      { title: this.consultTopic, place: 'คำขอคำปรึกษา', detail: this.consultDetail },
+      ...this.revisionFindings.map((item) => ({ title: item.title, place: item.place, detail: item.detail })),
+    ];
+  }
+
+  protected openConsultDoc(doc: { title: string; place: string; detail: string }): void {
+    this.viewingMade = this.consultMade(doc);
+  }
+
+  protected downloadConsultDoc(doc: { title: string; place: string; detail: string }): void {
+    this.downloadMade(this.consultMade(doc));
+  }
+
+  private consultMade(doc: { title: string; place: string; detail: string }): MadeDoc {
+    return {
+      id: doc.title,
+      kind: doc.title,
+      at: this.consultWhen,
+      fields: [
+        { label: 'ส่วน', value: doc.place },
+        { label: 'รายละเอียด', value: doc.detail },
+        { label: 'เวลานัด', value: this.consultWhen },
+      ],
+    };
+  }
+
+  protected toggleConsultGroup(group: string): void {
+    this.consultPickGroups = this.consultPickGroups.includes(group) ? this.consultPickGroups.filter((item) => item !== group) : [...this.consultPickGroups, group];
+  }
+
+  protected toggleConsultOfficer(name: string): void {
+    this.consultPickOfficers = this.consultPickOfficers.includes(name) ? this.consultPickOfficers.filter((item) => item !== name) : [...this.consultPickOfficers, name];
+  }
+
+  protected get consultFormReady(): boolean {
+    return !!this.consultOrder.trim() && thaiDateOk(this.consultAssignedOn, 'any') && thaiDateOk(this.consultDueOn, 'any') && this.timeOk(this.consultDueTime);
+  }
+
+  protected addConsultFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const next = [...this.consultFiles];
+    for (const file of input.files ?? []) next.push({ name: file.name, title: file.name });
+    this.consultFiles = next;
+    input.value = '';
+  }
+
+  protected renameConsultFile(index: number, title: string): void {
+    this.consultFiles = this.consultFiles.map((file, item) => (item === index ? { ...file, title } : file));
+  }
+
+  protected removeConsultFile(index: number): void {
+    this.consultFiles = this.consultFiles.filter((_, item) => item !== index);
+  }
+
+  private consultSlip(): ConsultSlip {
+    return {
+      assignedOn: this.consultAssignedOn.trim(),
+      dueOn: this.consultDueOn.trim(),
+      dueTime: this.consultDueTime.trim(),
+      remind: this.consultRemind,
+      order: this.consultOrder.trim(),
+      files: this.consultFiles.map((file) => ({ name: file.name, title: file.title.trim() || file.name })),
+    };
+  }
+
+  private clearConsultDraft(): void {
+    this.consultOrder = '';
+    this.consultFiles = [];
+    this.consultPickGroups = [];
+    this.consultPickOfficers = [];
+    this.consultReceipt = 'accept';
+    this.consultMove = 'report';
+  }
+
+  protected assignConsultGroups(): void {
+    if (this.reviewRole !== 'director' || !this.consultPickGroups.length || !this.consultFormReady) return;
+    const form = this.consultSlip();
+    const next = [...this.consultJobs];
+    for (const group of this.consultPickGroups) {
+      const found = next.find((job) => job.group === group);
+      if (found) {
+        found.form = form;
+        if (found.reply === 'return') found.reply = 'pending';
+      } else {
+        next.push({ group, reply: 'pending', officers: [], form });
+      }
+    }
+    this.consultJobs = next;
+    this.clearConsultDraft();
+    this.writeConsultJobs();
+  }
+
+  protected removeConsultGroup(group: string): void {
+    if (this.reviewRole !== 'director') return;
+    this.consultJobs = this.consultJobs.filter((job) => job.group !== group);
+    this.writeConsultJobs();
+  }
+
+  protected replyConsultGroup(reply: 'accept' | 'return'): void {
+    if (!this.isMyGroupHead() || !this.consultFormReady) return;
+    const group = this.myWorkGroup();
+    this.consultJobs = this.consultJobs.map((job) => job.group === group && job.reply === 'pending' ? { ...job, reply, officers: reply === 'return' ? [] : job.officers } : job);
+    this.clearConsultDraft();
+    this.writeConsultJobs();
+  }
+
+  protected assignConsultOfficers(): void {
+    if (!this.isMyGroupHead() || !this.consultPickOfficers.length || !this.consultFormReady) return;
+    const group = this.myWorkGroup();
+    const form = this.consultSlip();
+    this.consultJobs = this.consultJobs.map((job) => {
+      if (job.group !== group || job.reply !== 'accept') return job;
+      const officers = [...job.officers];
+      for (const name of this.consultPickOfficers) {
+        const found = officers.find((officer) => officer.name === name);
+        if (found) {
+          found.form = form;
+          if (found.reply === 'return') {
+            found.reply = 'pending';
+            found.move = '';
+          }
+        } else {
+          officers.push({ name, reply: 'pending', move: '', form });
+        }
+      }
+      return { ...job, officers };
+    });
+    this.clearConsultDraft();
+    this.writeConsultJobs();
+  }
+
+  protected removeConsultOfficer(name: string): void {
+    const group = this.myWorkGroup();
+    this.consultJobs = this.consultJobs.map((job) => job.group === group ? { ...job, officers: job.officers.filter((officer) => officer.name !== name) } : job);
+    this.writeConsultJobs();
+  }
+
+  protected replyConsultOfficer(reply: 'accept' | 'return'): void {
+    if (!this.myConsultOfficer() || !this.consultFormReady) return;
+    this.consultJobs = this.consultJobs.map((job) => ({
+      ...job,
+      officers: job.officers.map((officer) => officer.name === this.signedPerson && officer.reply === 'pending' ? { ...officer, reply, move: reply === 'accept' ? this.consultMove : '' } : officer),
+    }));
+    this.clearConsultDraft();
+    this.writeConsultJobs();
+  }
+
   protected handAct(name: string): boolean {
     const hand = this.handOf(name);
     const task = this.groupTasks.find((item) => item.group === hand?.group);
@@ -1426,6 +1753,7 @@ export class Por1Page {
   }
 
   protected assignPart: 'people' | 'receipt' = 'people';
+  protected dutyPick = '';
   protected docPart = 0;
 
   protected get peopleReady(): boolean {
@@ -3197,6 +3525,28 @@ export class Por1Page {
     this.openedRound = null;
   }
 
+  protected get fixItems(): RoundFinding[] {
+    if (this.rounds.length) return this.rounds[this.rounds.length - 1].findings ?? [];
+    if (this.docSent && this.docAction === 'amend') return this.docGaps.map((item) => ({ ...item, action: 'เพิ่มเอกสาร' as const }));
+    return [];
+  }
+
+  protected get amendSpan(): number {
+    const read = (value: string) => {
+      const [day, month, year] = value.split('/').map(Number);
+      if (!day || !month || !year) return 0;
+      return new Date(year - 543, month - 1, day).getTime();
+    };
+    const from = read(this.filedOn);
+    const to = read(this.amendUntil);
+    if (!from || !to || to < from) return 0;
+    return Math.round((to - from) / 86400000);
+  }
+
+  protected leaveFiling(): void {
+    void this.router.navigateByUrl('/requests');
+  }
+
   protected openStored(round: FilingRound): void {
     this.openedRound = round;
     this.viewingForm = false;
@@ -3344,12 +3694,22 @@ export class Por1Page {
     }, 1400);
   }
 
+  protected consultWayText(channel?: string): string {
+    if (channel === 'phone') return 'โทรศัพท์';
+    if (channel === 'online') return 'Online';
+    if (channel === 'onsite') return 'OnSite';
+    return '';
+  }
+
+  protected get consultReady(): boolean {
+    return !!this.consultTopic.trim() && !!this.consultDetail.trim() && !!this.consultChannel;
+  }
+
   protected sendConsult(): void {
     const topic = this.consultTopic.trim();
     const detail = this.consultDetail.trim();
-    const when = this.consultWhen.trim();
-    if (!topic || !detail || !when) return;
-    const request = { topic, detail, when };
+    if (!topic || !detail || !this.consultChannel) return;
+    const request = { topic, detail, when: '', channel: this.consultChannel };
     writeConsult(request);
     this.consult = request;
     this.consultNotes = [];
@@ -3389,6 +3749,13 @@ export class Por1Page {
     if (step === 'director') return 'รอผู้อำนวยการมอบหมายกลุ่ม';
     if (step === 'group') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่ในกลุ่ม';
     return 'รอผู้ดูแล';
+  }
+
+  protected get consultWaitTag(): string {
+    const step = readConsultStep();
+    if (step === 'director') return 'รอผู้อำนวยการ';
+    if (step === 'group') return 'รอหัวหน้ากลุ่ม';
+    return 'รอเจ้าหน้าที่รับเรื่อง';
   }
 
   protected openConsult(): void {
@@ -3663,8 +4030,9 @@ export class Por1Page {
     window.clearInterval(this.reviewTimer);
     if (this.caseStatus !== 'review') return;
     let until = readReviewUntil();
-    if (!until) {
-      until = Date.now() + reviewWaitMs;
+    const cap = Date.now() + reviewWaitMs;
+    if (!until || until > cap) {
+      until = cap;
       writeReviewUntil(until);
     }
     const tick = () => {
@@ -3716,7 +4084,7 @@ export class Por1Page {
     if (this.notice === 'etr') return `ระบบ eTR ส่ง Ref Case ID (eTR) ${this.etrRefNo} กลับมา และเชื่อมกับคำขอนี้แล้ว`;
     if (this.notice === 'saved') return 'ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว';
     if (this.notice === 'draft') return `คำขอเลขที่อ้างอิง ${this.refId} อยู่ในสถานะร่าง`;
-    return `ระบบได้รับคำขอเลขที่อ้างอิง ${this.refId} แล้ว ผลการตรวจสอบจะแจ้งภายใน 1 นาที`;
+    return `ระบบได้รับคำขอเลขที่อ้างอิง ${this.refId} แล้ว ผลการตรวจสอบจะแจ้งภายใน 10 วินาที`;
   }
 
   protected finishNotice(): void {
@@ -4141,8 +4509,9 @@ export class Por1Page {
       return;
     }
     let until = readApprovalUntil();
-    if (!until) {
-      until = Date.now() + reviewWaitMs;
+    const cap = Date.now() + reviewWaitMs;
+    if (!until || until > cap) {
+      until = cap;
       writeApprovalUntil(until);
     }
     const tick = () => {

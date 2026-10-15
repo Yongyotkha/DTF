@@ -539,7 +539,7 @@ export class StaffHomePage implements OnDestroy {
     if (group) this.consultGroup = group;
     if (!this.consultMember) this.consultMember = this.consultMembers[0]?.name ?? '';
     this.consultTopic = request?.topic ?? '';
-    this.consultWhen = request?.when ?? '';
+    this.consultWhen = request?.channel === 'phone' ? 'โทรศัพท์' : request?.channel === 'online' ? 'Online' : request?.channel === 'onsite' ? 'OnSite' : (request?.when ?? '');
     this.awaitingApproval = readCaseStatus() === 'approval';
     if (!this.awaitingConsult) this.assignOpen = false;
   }

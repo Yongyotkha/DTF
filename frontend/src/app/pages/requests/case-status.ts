@@ -10,7 +10,8 @@ const approvalUntilKey = 'dft-por1-approval-until';
 const approvedByKey = 'dft-por1-approved-by';
 const consultKey = 'dft-por1-consult';
 
-export type ConsultRequest = { topic: string; detail: string; when: string };
+export type ConsultWay = 'phone' | 'online' | 'onsite';
+export type ConsultRequest = { topic: string; detail: string; when: string; channel?: ConsultWay };
 export type ConsultNote = {
   from: 'applicant' | 'officer';
   text: string;
@@ -120,7 +121,7 @@ export type ConsultPlan = {
 };
 
 /** ระยะรอผลตรวจสอบหลังยื่นแต่ละครั้ง */
-export const reviewWaitMs = 60_000;
+export const reviewWaitMs = 10_000;
 
 export type RoundState = 'review' | 'revision';
 export type RoundFinding = { place: string; title: string; detail: string; action: 'เพิ่มเอกสาร' | 'ปรับข้อมูล' };
