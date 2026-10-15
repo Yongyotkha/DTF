@@ -1859,7 +1859,16 @@
       }
       @if (showForm) {
       <section class="sheet" [class.sheet--view]="formLocked">
-        <h2>รายละเอียดเอกสาร</h2>
+        <div class="sheet__bar">
+          <h2>รายละเอียดเอกสาร</h2>
+          @if (!formLocked) {
+            <div class="sheet__upload">
+              <app-button class="icon-before" type="pill" label="อัปโหลดไฟล์" (click)="openFilledUpload()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+              </app-button>
+            </div>
+          }
+        </div>
         @if (revising) {
           <p class="sheet__view">กำลังจัดทำครั้งที่ {{ filingRound }} ข้อมูลและไฟล์ของรอบก่อนถูกเก็บไว้แล้ว</p>
         } @else if (formLocked) {
@@ -3032,6 +3041,9 @@
     </main>
   </div>
 </div>
+@if (uploadOpen) {
+  <app-filled-upload code="ปร. 1" (closed)="uploadOpen = false" />
+}
 @if (docView) {
   <div class="sample sample--submit sample--letter" (click)="docView = null">
     <section role="dialog" aria-modal="true" [attr.aria-label]="docView === 'letter' ? 'หนังสือนำส่ง' : 'คำรับรองและลงนาม'" (click)="$event.stopPropagation()">

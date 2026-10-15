@@ -548,6 +548,38 @@ main {
   line-height: 30px;
 }
 
+.sheet__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  padding: 0 20px;
+}
+
+.sheet__bar h2 {
+  margin: 0;
+  padding: 0;
+}
+
+.sheet__upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.sheet__upload svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .review p {
   margin: 0;
   color: var(--color-text-muted);
@@ -2875,10 +2907,15 @@ table:has(.col-no) {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   min-height: 0;
   max-height: calc(100vh - 220px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
 }
 
 .check__bar,
@@ -2951,12 +2988,29 @@ table:has(.col-no) {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   gap: 0;
   min-height: 0;
   max-height: calc(100vh - 220px);
   padding: 4px 20px 16px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
+.check__body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.check__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.check__body::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
 }
 
 .check__row {

@@ -23,7 +23,14 @@
         </header>
       </div>
       <section class="sheet">
-        <h2>รายละเอียดเอกสาร</h2>
+        <div class="sheet__bar">
+          <h2>รายละเอียดเอกสาร</h2>
+          <div class="sheet__upload">
+            <app-button class="icon-before" type="pill" label="อัปโหลดไฟล์" (click)="openFilledUpload()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+            </app-button>
+          </div>
+        </div>
         <div class="sheet__split">
           <nav class="toc" aria-label="ส่วนของแบบ ปร. 5">
             @for (group of toc; track group.label) {
@@ -310,6 +317,9 @@
     </main>
   </div>
 </div>
+@if (uploadOpen) {
+  <app-filled-upload code="ปร. 5" (closed)="uploadOpen = false" />
+}
 @if (reviewOpen) {
   <div class="sample sample--submit" (click)="reviewOpen = false">
     <section role="dialog" aria-modal="true" aria-label="ตรวจสอบเอกสาร แบบ ปร. 5" (click)="$event.stopPropagation()">

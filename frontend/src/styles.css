@@ -28,7 +28,9 @@ body.nav-drawer {
   overflow: hidden;
 }
 
-html:has(body.chooser-open) {
+html:has(body.chooser-open),
+html:has(.sample--check),
+html:has(.fill-upload) {
   overflow: hidden;
   scrollbar-gutter: stable;
 }

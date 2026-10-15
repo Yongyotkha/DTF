@@ -1,12 +1,13 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
 @Component({
   selector: 'app-por3-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
   templateUrl: './por3-page.html',
   styleUrl: './por3-page.css',
 })
@@ -15,6 +16,7 @@ export class Por3Page {
   protected filing: 'self' | 'all' | 'part' = 'self';
   protected step = '1.1 ประเภทของการยื่นคำขอ';
   protected reviewOpen = false;
+  protected uploadOpen = false;
   protected goods = '';
   protected notice = '';
   protected stopReason = '';
@@ -58,6 +60,10 @@ export class Por3Page {
     ]},
   ];
   constructor(private readonly view: ChangeDetectorRef) {}
+
+  protected openFilledUpload(): void {
+    this.uploadOpen = true;
+  }
   private blank(open = true) {
     return { open, name: '', nation: '', address: '', province: '', district: '', subdistrict: '', phone: '', fax: '', email: '', foreign: false, files: {} as Record<string, string> };
   }

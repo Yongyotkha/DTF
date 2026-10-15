@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
@@ -10,7 +11,7 @@ type DocItem = { key: string; label: string; accept: string; hint: string; when:
 
 @Component({
   selector: 'app-por2a-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
   templateUrl: './por2a-page.html',
   styleUrl: './por1-page.css',
 })
@@ -43,6 +44,7 @@ export class Por2aPage {
   protected roleTitle = '';
   protected signedDate = '';
   protected reviewOpen = false;
+  protected uploadOpen = false;
   protected docKey = 'cert';
   protected section = '1.1';
   protected files: Record<string, string[]> = {};
@@ -100,6 +102,10 @@ export class Por2aPage {
   ];
 
   constructor(private readonly view: ChangeDetectorRef) {}
+
+  protected openFilledUpload(): void {
+    this.uploadOpen = true;
+  }
 
   protected get visibleDocs(): DocItem[] {
     const group = this.section === '3' ? 'evidence' : this.section === 'other' ? 'other' : 'support';

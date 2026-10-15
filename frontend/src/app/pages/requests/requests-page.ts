@@ -6,22 +6,12 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 import { RequestForm, formOf, purposeOf, requestForms, requestMeasures } from './form-catalog';
-import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus, readRounds, startFilingCase } from './case-status';
+import { startFilingCase } from './case-status';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
-import { archiveCases, draftCases, ListedCase, RequestStep } from './request-cases';
+import { archiveCases, draftCases, ListedCase } from './request-cases';
 import { StatusTag } from '../../status-tag/status-tag';
 
 type RequestRow = ListedCase & { ready: boolean; filing: boolean };
-
-const filingSteps = ['ยื่นคำขอ', 'ตรวจสอบข้อมูล', 'เปิดการไต่สวน', 'ผลการไต่สวนชั้นต้น', 'รับฟังความคิดเห็น', 'ร่างผลการไต่สวน', 'ประกาศผลชั้นที่สุด'];
-
-function filingProgress(current: number): RequestStep[] {
-  return filingSteps.map((name, index) => ({
-    name,
-    state: index < current ? 'done' : index === current ? 'current' : 'todo',
-    date: index === 0 && current > 0 ? '15/05/2562 10:00' : undefined,
-  }));
-}
 
 @Component({
   selector: 'app-requests-page',
@@ -78,15 +68,11 @@ export class RequestsPage implements OnDestroy {
   }
 
   protected get filedRows(): RequestRow[] {
-    const status = readCaseStatus();
-    const archive = archiveCases.map((item) => this.asRow(item));
-    if (status === 'draft') return archive;
-    return [this.filingRow(status), ...archive];
+    return archiveCases.map((item) => this.asRow(item));
   }
 
   protected get draftRows(): RequestRow[] {
-    const drafts = draftCases.map((item) => this.asRow(item));
-    return readCaseStatus() === 'draft' ? [this.filingRow('draft'), ...drafts] : drafts;
+    return draftCases.map((item) => this.asRow(item));
   }
 
   protected dateOnly(value: string): string {
@@ -95,27 +81,6 @@ export class RequestsPage implements OnDestroy {
 
   protected get visibleRows(): RequestRow[] {
     return this.listTab === 1 ? this.draftRows : this.filedRows;
-  }
-
-  private filingRow(status: ReturnType<typeof readCaseStatus>): RequestRow {
-    const rounds = readRounds();
-    const submitted = status !== 'draft' && status !== 'cancelled';
-    return {
-      id: 'filing',
-      code: filingRefId,
-      goods: 'เหล็กแผ่นรีดร้อน จากเวียดนามและอียิปต์',
-      kind: 'ยื่นแทนผู้ผลิตบางส่วน',
-      status: caseStatusLabel(status),
-      tone: caseStatusTone(status),
-      created: '15/05/2562 10:00',
-      round: submitted ? (rounds.at(-1)?.round ?? 1) : null,
-      waiting: status === 'revision',
-      draft: status === 'draft',
-      ready: status !== 'cancelled',
-      filing: true,
-      steps: filingProgress(status === 'draft' || status === 'cancelled' ? 0 : 1),
-      documents: [],
-    };
   }
 
   private asRow(item: ListedCase): RequestRow {
@@ -133,6 +98,13 @@ export class RequestsPage implements OnDestroy {
   protected openRow(row: RequestRow, event?: Event): void {
     event?.stopPropagation();
     if (!row.ready) return;
+    if (row.draft || row.status === 'ร่าง' || row.status === 'ฉบับร่าง') {
+      const form = this.formFor(row);
+      if (form?.route) {
+        void this.router.navigateByUrl(form.route);
+        return;
+      }
+    }
     if (row.filing) {
       const intent = readFilingIntent();
       if (intent?.codes.length) {
@@ -145,6 +117,13 @@ export class RequestsPage implements OnDestroy {
       return;
     }
     void this.router.navigate(['/requests', row.code]);
+  }
+
+  private formFor(row: RequestRow): RequestForm | null {
+    const raw = `${row.kind} ${row.code}`.replace(/^แบบ\s*/u, '');
+    const match = raw.match(/ปร\.?\s*[0-9ก-ฮ]*/u)?.[0] ?? row.code;
+    const code = match.replace(/^(ปร\.)(\S)/u, '$1 $2').trim();
+    return formOf(code) ?? formOf(row.code);
   }
 
   protected openRowKey(event: KeyboardEvent, row: RequestRow): void {

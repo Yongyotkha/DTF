@@ -1,3 +1,5 @@
+import { Router } from '@angular/router';
+
 const key = 'dft-filing-intent';
 
 export type FilingIntent = {
@@ -31,4 +33,12 @@ export function clearFilingIntent(): void {
   } catch {
     /* private browsing */
   }
+}
+
+export function goToFormUpload(router: Router, code: string): void {
+  const intent = readFilingIntent();
+  const measure = intent?.measure || 'มาตราการ AD';
+  const codes = intent?.codes?.length ? [...intent.codes] : [code];
+  saveFilingIntent({ measure, codes });
+  void router.navigateByUrl('/requests/upload', { state: { measure, codes } });
 }

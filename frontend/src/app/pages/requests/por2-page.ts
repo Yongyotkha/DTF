@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
@@ -77,7 +78,7 @@ function blankApplicant(open = true): Applicant {
 
 @Component({
   selector: 'app-por2-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
   templateUrl: './por2-page.html',
   styleUrl: './por2-page.css',
 })
@@ -105,6 +106,7 @@ export class Por2Page {
   protected roleTitle = '';
   protected signedOn = '';
   protected reviewOpen = false;
+  protected uploadOpen = false;
   protected readonly behalfLeft = behalfLeft;
   protected readonly behalfRight = behalfRight;
   protected readonly mainDocs = mainDocs;
@@ -151,6 +153,10 @@ export class Por2Page {
   ];
 
   constructor(private readonly view: ChangeDetectorRef) {}
+
+  protected openFilledUpload(): void {
+    this.uploadOpen = true;
+  }
 
   protected open(label: string): void {
     this.show(label);

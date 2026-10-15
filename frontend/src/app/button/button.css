@@ -154,6 +154,7 @@
 }
 
 .btn--pill {
+  border-radius: 50px;
   border-color: var(--color-border);
   color: var(--color-primary);
 }

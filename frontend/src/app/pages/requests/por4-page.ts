@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilledUpload } from './filled-upload';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
@@ -11,7 +12,7 @@ type ShipRow = { period: string; qty: string; value: string };
 
 @Component({
   selector: 'app-por4-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
   templateUrl: './por4-page.html',
   styleUrl: './por1-page.css',
 })
@@ -43,6 +44,7 @@ export class Por4Page {
   protected roleTitle = '';
   protected signedDate = '';
   protected reviewOpen = false;
+  protected uploadOpen = false;
   protected docKey = 'cert';
   protected section = '1.1';
   protected files: Record<string, string[]> = {};
@@ -93,6 +95,10 @@ export class Por4Page {
   ];
 
   constructor(private readonly view: ChangeDetectorRef) {}
+
+  protected openFilledUpload(): void {
+    this.uploadOpen = true;
+  }
 
   protected get visibleDocs(): DocItem[] {
     const group = this.section === '3' ? 'ship' : this.section === '4' ? 'evidence' : this.section === 'other' ? 'other' : 'support';
