@@ -1,5 +1,7 @@
 <label [class.error]="error">
-  <span>คำนำหน้า <span>*</span></span>
+  @if (!bare) {
+    <span>คำนำหน้า <span>*</span></span>
+  }
   <select [class.placeholder]="!value" [value]="value" (change)="choose($any($event.target).value)" (blur)="blurred.emit()">
     <option value="">เลือก</option>
     @for (name of options; track name) {

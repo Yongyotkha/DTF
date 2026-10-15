@@ -176,6 +176,7 @@ export class Accounts {
   }
 
   get displayName(): string {
+    if (this.userId === '1000000000101') return 'เจ้าหน้าที่กลุ่ม บท';
     if (this.person) return this.person;
     return this.signedIn ? roleLabel[this.signedIn] : roleLabel.corporate;
   }

@@ -1,7 +1,7 @@
 <div class="staff">
   <app-top-header class="fluid" />
   <div class="staff__body">
-    <app-side-nav kind="staff" open="คำขอ" active="หน้าหลัก" (chosen)="openMenu($event)" />
+    <app-side-nav kind="staff" open="" active="หน้าหลัก" (chosen)="openMenu($event)" />
     <main>
       @if (role === 'director' || role === 'officer') {
         <header class="desk-head">
@@ -238,7 +238,6 @@
       <section class="list" [class.list--director]="styled">
         <header>
           <h2>{{ current.label }}</h2>
-          <p>{{ current.count }} รายการ</p>
         </header>
         @for (row of rows; track $index) {
           <button type="button" class="row" (click)="openCase(row.code)">

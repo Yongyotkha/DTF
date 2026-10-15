@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
-type Named = { id: number; name: { th: string } };
+type Lang = 'th' | 'en';
+type Named = { id: number; name: { th: string; en: string } };
 type District = Named & { province_id: number };
 type Subdistrict = Named & { district_id: number; zip_code: number };
 
@@ -26,19 +27,19 @@ export class ThaiAddress {
     return this.request;
   }
 
-  districtOptions(provinceName: string): Named[] {
-    const province = this.provinces().find((item) => item.name.th === provinceName);
+  districtOptions(provinceName: string, lang: Lang = 'th'): District[] {
+    const province = this.provinces().find((item) => item.name[lang] === provinceName);
     if (!province) return [];
     return this.districts().filter((item) => item.province_id === province.id);
   }
 
-  matches(provinceName: string, districtName: string, subdistrictName: string, postcode: string): boolean {
-    const match = this.subdistrictOptions(provinceName, districtName).find((item) => item.name.th === subdistrictName);
+  matches(provinceName: string, districtName: string, subdistrictName: string, postcode: string, lang: Lang = 'th'): boolean {
+    const match = this.subdistrictOptions(provinceName, districtName, lang).find((item) => item.name[lang] === subdistrictName);
     return !!match && String(match.zip_code) === postcode;
   }
 
-  subdistrictOptions(provinceName: string, districtName: string): Subdistrict[] {
-    const district = this.districtOptions(provinceName).find((item) => item.name.th === districtName);
+  subdistrictOptions(provinceName: string, districtName: string, lang: Lang = 'th'): Subdistrict[] {
+    const district = this.districtOptions(provinceName, lang).find((item) => item.name[lang] === districtName);
     if (!district) return [];
     return this.subdistricts().filter((item) => item.district_id === district.id);
   }

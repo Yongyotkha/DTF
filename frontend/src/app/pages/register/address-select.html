@@ -1,6 +1,6 @@
 <div class="address">
   <label [class.error]="provinceError">
-    <span>จังหวัด <span>*</span></span>
+    <span>{{ provinceLabel }} <span>*</span></span>
     <span class="combo" (focusout)="leave($event, 'province')">
       <input
         [class.placeholder]="!provinceQuery()"
@@ -30,7 +30,7 @@
     @if (provinceError) { <span class="meta">{{ provinceMessage }}</span> }
   </label>
   <label [class.error]="districtError">
-    <span>อำเภอ/เขต <span>*</span></span>
+    <span>{{ districtLabel }} <span>*</span></span>
     <span class="combo" (focusout)="leave($event, 'district')">
       <input
         [class.placeholder]="!districtQuery()"
@@ -59,6 +59,7 @@
     </span>
     @if (districtError) { <span class="meta">{{ districtMessage }}</span> }
   </label>
+  @if (!subdistrictHidden) {
   <label [class.error]="subdistrictError">
     <span>ตำบล/แขวง <span>*</span></span>
     <span class="combo" (focusout)="leave($event, 'subdistrict')">
@@ -89,6 +90,8 @@
     </span>
     @if (subdistrictError) { <span class="meta">{{ subdistrictMessage }}</span> }
   </label>
+  }
+  @if (!postcodeHidden) {
   <label [class.error]="postcodeError">
     <span>รหัสไปรษณีย์ <span>*</span></span>
     <span class="combo" (focusout)="leave($event, 'postcode')">
@@ -120,6 +123,7 @@
     </span>
     @if (postcodeError) { <span class="meta">{{ postcodeMessage }}</span> }
   </label>
+  }
 </div>
 @if (failed()) {
   <p class="address__error">โหลดข้อมูลที่อยู่ไม่สำเร็จ</p>
