@@ -16,7 +16,7 @@
               <h1>ยื่นคำขอ</h1>
               <ul>
                 @for (form of caseForms; track form.code + form.measure) {
-                  <li>แบบ {{ form.code }} ({{ form.measure }})</li>
+                  <li>{{ form.code }}</li>
                 }
               </ul>
             </div>
@@ -25,7 +25,7 @@
               <h1>ยื่นคำขอ</h1>
               <ul>
                 @for (form of caseForms; track form.code + form.measure) {
-                  <li>แบบ {{ form.code }} ({{ form.measure }})</li>
+                  <li>{{ form.code }}</li>
                 }
               </ul>
             </div>
