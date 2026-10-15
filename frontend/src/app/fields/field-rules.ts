@@ -1,6 +1,7 @@
 export type DateLimit = 'any' | 'fromToday' | 'untilToday';
 
 export const prefixes = ['นาย', 'นาง', 'นางสาว'];
+export const englishPrefixes = ['Mr.', 'Mrs.', 'Miss'];
 
 export function startOfToday(): Date {
   const today = new Date();
@@ -63,6 +64,11 @@ export function personNameOk(value: string): boolean {
   return text.length >= 2 && /[\u0E00-\u0E7Fa-zA-Z]/.test(text);
 }
 
+export function latinNameOk(value: string): boolean {
+  const text = value.trim();
+  return text.length >= 2 && /^[A-Za-z][A-Za-z .'-]*$/.test(text);
+}
+
 export function textOk(value: string, min: number): boolean {
   return value.trim().length >= min;
 }
@@ -80,12 +86,18 @@ const emptyMessage = 'โปรดกรอกข้อมูลให้คร�
 export function fieldMessage(key: string, value: string, password = ''): string {
   const text = value.trim();
   if (!text) {
-    if (key === 'cert' || key === 'consent' || key === 'signature') return 'โปรดเลือกไฟล์';
-    if (key === 'prefix') return 'โปรดเลือกคำนำหน้า';
-    if (key === 'province') return 'โปรดเลือกจังหวัด';
-    if (key === 'district') return 'โปรดเลือกอำเภอ/เขต';
-    if (key === 'subdistrict') return 'โปรดเลือกตำบล/แขวง';
-    if (key === 'postcode') return 'โปรดเลือกรหัสไปรษณีย์';
+    if (key === 'cert' || key === 'consent' || key === 'signature' || key === 'proxyDoc' || key === 'proxySign') return 'โปรดเลือกไฟล์';
+    if (key === 'proxyStart') return 'โปรดเลือกวันที่';
+    if (key === 'proxyName') return 'โปรดกรอกชื่อผู้รับมอบอำนาจ';
+    if (key === 'proxyPowers') return 'โปรดเลือกอำนาจกระทำการแทน';
+    if (key === 'proxyKind') return 'โปรดเลือกประเภทการมอบอำนาจ';
+    if (key === 'proxySeal') return 'โปรดเลือกประเภทการแสดงตราประทับและลายเซ็น';
+    if (key === 'prefix' || key === 'prefixEn') return 'โปรดเลือกคำนำหน้า';
+    if (key === 'province' || key === 'provinceCert' || key === 'provinceEn' || key === 'issueProvince') return 'โปรดเลือกจังหวัด';
+    if (key === 'district' || key === 'districtCert' || key === 'districtEn' || key === 'issueDistrict') return 'โปรดเลือกอำเภอ/เขต';
+    if (key === 'cardIssued' || key === 'cardExpiry') return 'โปรดเลือกวันที่';
+    if (key === 'subdistrict' || key === 'subdistrictCert' || key === 'subdistrictEn') return 'โปรดเลือกตำบล/แขวง';
+    if (key === 'postcode' || key === 'postcodeCert') return 'โปรดเลือกรหัสไปรษณีย์';
     return emptyMessage;
   }
   switch (key) {
@@ -95,17 +107,48 @@ export function fieldMessage(key: string, value: string, password = ''): string 
       return 'หมายเลขโทรศัพท์ไม่ถูกต้อง';
     case 'regno':
       return 'เลขทะเบียนไม่ถูกต้อง';
+    case 'taxId':
+      return 'เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง';
     case 'registered':
       return parseThaiDate(text) ? 'เลือกวันที่ตั้งแต่วันนี้เป็นต้นไป' : 'วันที่ไม่ถูกต้อง';
     case 'birth':
+    case 'cardIssued':
       return parseThaiDate(text) ? 'เลือกวันที่ไม่เกินวันนี้' : 'วันที่ไม่ถูกต้อง';
+    case 'cardExpiry':
+      return 'วันที่ไม่ถูกต้อง';
+    case 'cardNo':
+      return 'หมายเลขบัตรไม่ถูกต้อง';
+    case 'givenEn':
+      return 'โปรดกรอกชื่อภาษาอังกฤษให้ถูกต้อง';
+    case 'surnameEn':
+      return 'โปรดกรอกนามสกุลภาษาอังกฤษให้ถูกต้อง';
+    case 'nationality':
+      return 'โปรดกรอกสัญชาติให้ถูกต้อง';
+    case 'mobile':
+      return 'หมายเลขโทรศัพท์มือถือไม่ถูกต้อง';
     case 'cert':
     case 'consent':
     case 'signature':
       return 'รองรับเฉพาะไฟล์ PDF, PNG หรือ JPG';
+    case 'proxyDoc':
+      return 'รองรับเฉพาะไฟล์ PDF, PNG, JPG, DOC หรือ DOCX';
+    case 'proxySign':
+      return 'รองรับเฉพาะไฟล์ PNG หรือ JPG';
+    case 'proxyName':
+      return 'โปรดกรอกชื่อผู้รับมอบอำนาจให้ถูกต้อง';
+    case 'proxyStart':
+      return 'วันที่ไม่ถูกต้อง';
+    case 'proxyPowers':
+      return 'โปรดเลือกอำนาจกระทำการแทน';
+    case 'proxyKind':
+      return 'โปรดเลือกประเภทการมอบอำนาจ';
+    case 'proxySeal':
+      return 'โปรดเลือกประเภทการแสดงตราประทับและลายเซ็น';
     case 'prefix':
+    case 'prefixEn':
       return 'โปรดเลือกคำนำหน้า';
     case 'name':
+    case 'nameEn':
       return 'โปรดกรอกชื่อให้ถูกต้อง';
     case 'surname':
       return 'โปรดกรอกนามสกุลให้ถูกต้อง';
@@ -124,6 +167,10 @@ export function fieldMessage(key: string, value: string, password = ''): string 
     case 'district':
     case 'subdistrict':
     case 'postcode':
+    case 'provinceEn':
+    case 'districtEn':
+    case 'subdistrictEn':
+    case 'postcodeEn':
       return 'ข้อมูลที่อยู่ไม่ตรงกัน';
     default:
       return emptyMessage;

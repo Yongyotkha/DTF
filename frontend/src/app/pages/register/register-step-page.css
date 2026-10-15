@@ -17,8 +17,8 @@
 .crumb {
   display: flex;
   align-items: center;
-  margin-top: 31px;
-  margin-bottom: 23px;
+  margin-top: 16px;
+  margin-bottom: 12px;
   color: var(--color-text-muted);
   font-family: var(--font-sans-thai);
   font-size: 16px;
@@ -46,7 +46,7 @@
 
 app-steps {
   display: block;
-  width: 860px;
+  width: 620px;
   margin-right: auto;
   margin-left: auto;
 }
@@ -55,8 +55,8 @@ app-steps {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  margin-top: 42px;
-  padding: 40px;
+  margin-top: 16px;
+  padding: 20px 40px 40px;
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: var(--color-white);
@@ -102,6 +102,52 @@ app-steps {
 
 .span-2 {
   grid-column: 1 / -1;
+}
+
+.place {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.joined {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 4px;
+  min-width: 0;
+}
+
+.joined__label {
+  grid-column: 1 / -1;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.joined__label span {
+  color: var(--color-error-red);
+}
+
+.joined app-prefix-field {
+  width: 128px;
+}
+
+.joined app-input-field {
+  min-width: 0;
+}
+
+.part {
+  margin: 8px 0 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
 }
 
 .lead {
@@ -164,6 +210,43 @@ app-steps {
   height: 20px;
   margin: 0;
   accent-color: var(--color-primary);
+  flex: none;
+}
+
+.choice--stack label {
+  align-items: flex-start;
+}
+
+.choice .meta {
+  color: var(--color-error-red);
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.seal {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seal .choice {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.seal app-button {
+  flex: none;
 }
 
 .regno {
@@ -178,7 +261,8 @@ app-steps {
   min-width: 0;
 }
 
-.download button {
+.download button,
+.download__link {
   width: fit-content;
   padding: 0;
   border: 0;
@@ -191,7 +275,8 @@ app-steps {
   transition: color var(--motion-state);
 }
 
-.download button:hover {
+.download button:hover,
+.download__link:hover {
   color: var(--color-link-hover);
 }
 
@@ -203,9 +288,9 @@ app-steps {
 }
 
 .director-bar h2 {
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 21px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
 }
 
 .table-scroll {
@@ -259,6 +344,17 @@ h2 {
 }
 
 .sheet > h2 {
+  text-align: center;
+  white-space: pre-line;
+}
+
+.agreement {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
   text-align: center;
   white-space: pre-line;
 }
@@ -363,9 +459,14 @@ h2 {
   }
 
   .form-grid,
+  .place,
   .fields,
   .access {
     grid-template-columns: 1fr;
+  }
+
+  .seal {
+    flex-direction: column;
   }
 
   .span-2 {
@@ -406,6 +507,26 @@ h2 {
   gap: 10px;
   justify-content: flex-end;
   margin: 0;
+}
+
+.actions .to-login {
+  margin-right: auto;
+  align-self: center;
+  color: var(--color-link);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-decoration: none;
+  transition: color var(--motion-state);
+}
+
+.actions .to-login:hover {
+  color: var(--color-link-hover);
+}
+
+.actions .to-login:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
 }
 
 .hint {

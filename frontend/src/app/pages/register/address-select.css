@@ -3,6 +3,11 @@
   min-width: 0;
 }
 
+:host(.split),
+:host(.split) .address {
+  display: contents;
+}
+
 .address {
   display: grid;
   grid-template-columns: 1fr 1fr;

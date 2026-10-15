@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { DftButton } from '../../button/button';
 import { TopHeader } from '../../top-header/top-header';
 
 type RegisterCard = {
   kind: 'corporate' | 'individual' | 'association';
   title: string;
-  audience: string;
   body: string;
   action: string;
   icon: string;
@@ -13,33 +13,35 @@ type RegisterCard = {
 
 @Component({
   selector: 'app-register-page',
-  imports: [TopHeader, RouterLink],
+  imports: [TopHeader, RouterLink, DftButton],
   templateUrl: './register-page.html',
   styleUrl: './register-page.css',
 })
 export class RegisterPage {
+  constructor(private readonly router: Router) {}
+
+  protected goLogin(): void {
+    void this.router.navigateByUrl('/login');
+  }
   protected readonly cards: RegisterCard[] = [
     {
       kind: 'corporate',
       title: 'นิติบุคคล',
-      audience: 'บริษัทจำกัด • ห้างหุ้นส่วน • นิติบุคคลต่างชาติ',
-      body: 'สำหรับนิติบุคคลที่จดทะเบียนพาณิชย์ใน\nประเทศไทย รองรับการเชื่อมโยงข้อมูล\nอัตโนมัติจากกรมพัฒนาธุรกิจการค้า\n(DBD)',
+      body: 'สำหรับนิติบุคคลที่จดทะเบียนพาณิชย์ในประเทศไทย',
       action: 'เลือกลงทะเบียนนิติบุคคล',
       icon: 'assets/auth/icon-corporate.svg',
     },
     {
       kind: 'individual',
       title: 'บุคคลธรรมดา',
-      audience: 'ประชาชนทั่วไป • ผู้ประกอบการรายบุคคล • ผู้รับมอบอำนาจ',
-      body: 'สำหรับผู้ประกอบการบุคคลธรรมดา\nตัวแทนอิสระ หรือประชาชนที่ต้องการ\nขอรับสิทธิประโยชน์และใบรับรองทางการ\nค้า',
+      body: 'สำหรับผู้ประกอบการบุคคลธรรมดา',
       action: 'เลือกลงทะเบียนบุคคลธรรมดา',
       icon: 'assets/auth/icon-individual.svg',
     },
     {
       kind: 'association',
       title: 'สมาคมการค้า',
-      audience: 'สมาคมการค้า • สภาหอการค้า • สภาอุตสาหกรรม',
-      body: 'สำหรับสมาคมการค้า องค์กรวิชาชีพ หรือ\nหอการค้าที่มีความประสงค์ยื่นขอรับรอง\nโควตา และกำกับดูแลข้อมูลสมาชิก',
+      body: 'สำหรับสมาคมการค้าและหอการค้า',
       action: 'เลือกลงทะเบียนสมาคมการค้า',
       icon: 'assets/auth/icon-association.svg',
     },

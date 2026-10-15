@@ -10,9 +10,10 @@ export class PrefixField {
   @Input() error = false;
   @Input() message = '';
   @Input() value = '';
+  @Input() options: readonly string[] = prefixes;
+  @Input() bare = false;
   @Output() valueChange = new EventEmitter<string>();
   @Output() blurred = new EventEmitter<void>();
-  protected readonly options = prefixes;
 
   protected choose(value: string): void {
     this.valueChange.emit(value);

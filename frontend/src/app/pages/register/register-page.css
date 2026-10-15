@@ -1,6 +1,10 @@
 /* Page - Register 115:630. The 1204 column stays centered and shrinks with the viewport. */
 .screen {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100dvh;
+  overflow: hidden;
   width: 100%;
   background: var(--color-bg-page);
 }
@@ -24,9 +28,12 @@ h1 {
 }
 
 .sheet {
-  margin-top: 39px;
-  margin-bottom: 48px;
-  padding: 48px clamp(16px, 4vw, 48px);
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 24px clamp(16px, 4vw, 48px) 32px;
+  overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: var(--color-white);
@@ -36,7 +43,7 @@ h1 {
 }
 
 .sheet > p {
-  margin: 0 0 40px;
+  margin: 0 0 20px;
   color: var(--color-primary);
   font-family: var(--font-sans-thai);
   font-size: 20px;
@@ -46,21 +53,18 @@ h1 {
 }
 
 .grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  justify-content: center;
   gap: 32px;
 }
 
 article {
   box-sizing: border-box;
   display: flex;
-  flex: 0 1 287px;
   flex-direction: column;
   align-items: center;
-  width: 287px;
-  max-width: 100%;
+  min-width: 0;
   padding: 28px;
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -88,24 +92,16 @@ h2 {
   line-height: 36px;
 }
 
-.audience,
 .body {
-  margin: 0;
+  margin: 12px 0 24px;
+  width: 100%;
   color: var(--color-text-muted);
   font-family: var(--font-sans-thai);
-  white-space: pre-line;
-}
-
-.audience {
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.body {
-  margin-top: 12px;
-  margin-bottom: 24px;
   font-size: 14px;
   line-height: 21px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 a {
@@ -139,4 +135,15 @@ a:hover {
 a:focus-visible {
   outline: none;
   box-shadow: var(--state-focus-ring);
+}
+
+.back {
+  display: flex;
+  margin-top: 16px;
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
