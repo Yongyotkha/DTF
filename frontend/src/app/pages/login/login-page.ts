@@ -61,7 +61,7 @@ export class LoginPage implements OnDestroy {
     const account = this.roles.find((item) => item.username === username);
     if (!account) return;
     this.rolePick = account.username;
-    this.taxId = account.username;
+    this.taxId = account.loginName || account.username;
     this.password = account.password;
     this.mail = account.email || 'support@datamining.co.th';
     this.submitted = false;
@@ -75,12 +75,16 @@ export class LoginPage implements OnDestroy {
     if (!this.submitted) return 'default';
     if (!this.password.trim()) return 'error';
     if (this.taxState === 'error') return 'default';
-    return this.accounts.matches(this.taxId, this.password) ? 'default' : 'error';
+    const id = this.accountId() ?? '';
+    if (!this.accounts.matches(id, this.password) || !this.accounts.isActive(id)) return 'error';
+    return 'default';
   }
 
   protected get passwordHelp(): string {
     if (this.passwordState !== 'error') return '';
     if (!this.password.trim()) return 'โปรดกรอกรหัสผ่าน';
+    const id = this.accountId() ?? '';
+    if (this.accounts.matches(id, this.password) && !this.accounts.isActive(id)) return 'บัญชีนี้ถูกปิดการใช้งาน';
     return 'รหัสผ่านไม่ถูกต้อง';
   }
 
@@ -114,9 +118,11 @@ export class LoginPage implements OnDestroy {
   protected submit(): void {
     this.submitted = true;
     if (this.taxState === 'error' || this.passwordState === 'error' || this.phase() !== 'form') return;
-    const email = this.accounts.emailOf(this.taxId);
+    const id = this.accountId();
+    if (!id) return;
+    const email = this.accounts.emailOf(id);
     if (email) this.mail = email;
-    if (this.accounts.isTrusted(this.taxId)) {
+    if (this.accounts.isTrusted(id)) {
       this.enter();
       return;
     }
@@ -130,7 +136,10 @@ export class LoginPage implements OnDestroy {
   protected confirmOtp(): void {
     this.otpTried.set(true);
     if (this.otpLeft() === 0 || this.otp().trim() !== this.sampleOtp) return;
-    if (this.trustDevice) this.accounts.trust(this.taxId);
+    if (this.trustDevice) {
+      const id = this.accountId();
+      if (id) this.accounts.trust(id);
+    }
     this.enter();
   }
 
@@ -154,8 +163,13 @@ export class LoginPage implements OnDestroy {
     clearTimeout(this.resentTimer);
   }
 
+  private accountId(): string | null {
+    return this.accounts.signInId(this.taxId);
+  }
+
   private enter(): void {
-    this.accounts.signIn(this.taxId, this.password);
+    const id = this.accountId();
+    if (!id || !this.accounts.isActive(id) || !this.accounts.signIn(id, this.password)) return;
     clearInterval(this.otpClock);
     this.phase.set('loading');
     this.timer = window.setTimeout(() => {

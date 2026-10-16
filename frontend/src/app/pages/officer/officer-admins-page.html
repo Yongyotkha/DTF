@@ -1,0 +1,116 @@
+<div class="desk">
+  <app-top-header class="fluid" name="super admin" />
+  <div class="desk__body">
+    <app-side-nav open="ตั้งค่าระบบ" active="ผู้ดูแลระบบและสิทธิ์การใช้งาน" [menus]="settingMenus" />
+    <main>
+      <header class="head">
+        <h1>ผู้ดูแลระบบและสิทธิ์การใช้งาน</h1>
+        <app-button class="icon-before" label="เพิ่มกลุ่มผู้ใช้งาน" (click)="openAddGroup()">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+        </app-button>
+      </header>
+      <app-tabs [labels]="tabs" [selected]="selected" (activeChange)="pickGroup($event)" />
+      <section class="panel">
+        <div class="panel-tabs" role="tablist">
+          @for (label of panelTabs; track label; let index = $index) {
+            <button type="button" role="tab" [attr.aria-selected]="panelTab === index" (click)="pickPanel(index)">{{ label }}</button>
+          }
+        </div>
+        @if (panelTab === 0) {
+          <div class="panel__tools">
+            <app-input-field class="block" kind="search" placeholder="ค้นหาอีเมล์,ชื่อผู้ใช้งาน" [labelled]="false" label="ค้นหาอีเมล์,ชื่อผู้ใช้งาน" [editable]="true" [value]="query" (valueChange)="query = $event" />
+            <app-button class="icon-before" label="เพิ่มผู้ใช้งาน" (click)="addUser()">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+            </app-button>
+          </div>
+          <table class="grid">
+            <thead>
+              <tr>
+                <th scope="col">ลำดับ</th>
+                <th scope="col">อีเมล์</th>
+                <th scope="col">ชื่อผู้ใช้งาน</th>
+                <th scope="col">เข้าใช้งานล่าสุด</th>
+                <th scope="col">สถานะ</th>
+                <th scope="col">แก้ไข</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (member of rows; track member.username; let index = $index) {
+                <tr>
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ member.email }}</td>
+                  <td>{{ member.name }}</td>
+                  <td>{{ lastSeen(member.username) }}</td>
+                  <td>
+                    @if (!locked(member.username)) {
+                      <button type="button" class="switch" [class.switch--off]="!active(member.username)" [attr.aria-pressed]="active(member.username)" [attr.aria-label]="active(member.username) ? 'เปิดใช้งาน' : 'ปิดใช้งาน'" (click)="toggleActive(member.username)"><span></span></button>
+                    }
+                  </td>
+                  <td>
+                    @if (!locked(member.username)) {
+                      <div class="acts">
+                        <button type="button" class="edit" aria-label="แก้ไข" (click)="editUser(member.username)">
+                          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M11.5804 4.83917H5.68454C5.23777 4.83917 4.8093 5.01665 4.49339 5.33256C4.17748 5.64847 4 6.07694 4 6.52371V18.3155C4 18.7622 4.17748 19.1907 4.49339 19.5066C4.8093 19.8225 5.23777 20 5.68454 20H17.4763C17.9231 20 18.3515 19.8225 18.6674 19.5066C18.9834 19.1907 19.1608 18.7622 19.1608 18.3155V12.4196M16.9499 4.52332C17.285 4.18824 17.7394 4 18.2133 4C18.6871 4 19.1416 4.18824 19.4767 4.52332C19.8118 4.85839 20 5.31285 20 5.78672C20 6.26059 19.8118 6.71505 19.4767 7.05012L11.8853 14.6423C11.6853 14.8422 11.4382 14.9884 11.1669 15.0677L8.74702 15.7752C8.67455 15.7963 8.59772 15.7976 8.52459 15.7789C8.45146 15.7601 8.3847 15.7221 8.33132 15.6687C8.27794 15.6153 8.23989 15.5485 8.22115 15.4754C8.20241 15.4023 8.20368 15.3255 8.22482 15.253L8.93232 12.8331C9.01194 12.562 9.1585 12.3152 9.35851 12.1155L16.9499 4.52332Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button type="button" aria-label="ลบ" (click)="askDelete(member.username)">
+                          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M10.4444 11.2V16M13.5556 11.2V16M17.4444 7.2V18.4C17.4444 18.8243 17.2806 19.2313 16.9888 19.5314C16.6971 19.8314 16.3014 20 15.8889 20H8.11111C7.69855 20 7.30289 19.8314 7.01117 19.5314C6.71944 19.2313 6.55556 18.8243 6.55556 18.4V7.2M5 7.2H19M8.88889 7.2V5.6C8.88889 5.17565 9.05278 4.76869 9.3445 4.46863C9.63622 4.16857 10.0319 4 10.4444 4H13.5556C13.9681 4 14.3638 4.16857 14.6555 4.46863C14.9472 4.76869 15.1111 5.17565 15.1111 5.6V7.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6">ไม่พบผู้ใช้งานในกลุ่มนี้</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <app-input-field class="name block" label="ชื่อกลุ่ม" [editable]="true" placeholder="ระบุชื่อกลุ่ม" [value]="draftName" (valueChange)="draftName = $event" />
+          <p class="access">สิทธิ์การเข้าใช้งาน</p>
+          @for (section of menuSections; track section.title) {
+            <section class="menu">
+              <h2>{{ section.title }}</h2>
+              <div class="menu__grid">
+                @for (item of section.items; track item) {
+                  <label>
+                    <input type="checkbox" [checked]="hasMenu(item)" (change)="toggleMenu(item)" [attr.aria-label]="item" />
+                    <img [src]="hasMenu(item) ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    {{ item }}
+                  </label>
+                }
+              </div>
+            </section>
+          }
+          <div class="save" [class.save--split]="canDeleteGroup">
+            @if (canDeleteGroup) {
+              <app-button type="danger-outline" label="ลบกลุ่ม" (click)="askDeleteGroup()" />
+            }
+            <app-button label="บันทึก" (click)="save()" />
+          </div>
+        }
+      </section>
+    </main>
+  </div>
+</div>
+@if (adding) {
+  <div class="notice">
+    <app-modal kind="form" heading="กลุ่มผู้ใช้งาน" fieldLabel="ชื่อกลุ่ม" fieldPlaceholder="ระบุ" [fieldValue]="newGroupName" (fieldChange)="newGroupName = $event" (choose)="finishAddGroup($event)" />
+  </div>
+}
+@if (saved) {
+  <div class="notice">
+    <app-modal kind="success" heading="บันทึกสำเร็จ" (choose)="closeSaved()" />
+  </div>
+}
+@if (removing) {
+  <div class="notice">
+    <app-modal kind="delete" (choose)="finishDelete($event)" />
+  </div>
+}
+@if (removingGroup) {
+  <div class="notice">
+    <app-modal kind="delete" heading="ยืนยันการลบกลุ่ม" detail="คุณต้องการลบกลุ่มนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้" (choose)="finishDeleteGroup($event)" />
+  </div>
+}

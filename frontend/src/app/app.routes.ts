@@ -26,6 +26,13 @@ import { StaffChatPage } from './pages/requests/staff-chat-page';
 import { CaseRegistryPage } from './pages/staff/case-registry-page';
 import { StaffHomePage } from './pages/staff/staff-home-page';
 import { StaffTaskPage } from './pages/staff/staff-task-page';
+import { OfficerAdminsPage } from './pages/officer/officer-admins-page';
+import { OfficerUserPage } from './pages/officer/officer-user-page';
+import { OfficerGroupSettingsPage } from './pages/officer/officer-group-settings-page';
+
+
+import { OfficerGroupsPage } from './pages/officer/officer-groups-page';
+import { OfficerLoginPage } from './pages/officer/officer-login-page';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -45,6 +52,14 @@ export const routes: Routes = [
   { path: 'head', component: StaffHomePage, data: { role: 'head' } },
   { path: 'head/filing', component: Por1Page, data: { review: 'head' } },
   { path: 'head/tasks/:code', component: StaffTaskPage, data: { role: 'head' } },
+  { path: 'officer/login', component: OfficerLoginPage },
+  { path: 'officer/groups', component: OfficerGroupsPage },
+  { path: 'officer/users/new', component: OfficerUserPage },
+  { path: 'officer/users/edit', component: OfficerUserPage, data: { edit: true } },
+  { path: 'officer/admins/new', component: OfficerUserPage, data: { admin: true } },
+  { path: 'officer/admins/edit', component: OfficerUserPage, data: { admin: true, edit: true } },
+  { path: 'officer/admins', component: OfficerAdminsPage },
+  { path: 'officer/groups/:groupId', component: OfficerGroupSettingsPage },
   { path: 'officer', component: StaffHomePage, data: { role: 'officer' } },
   { path: 'officer/filing', component: Por1Page, data: { review: 'officer' } },
   { path: 'officer/tasks/:code', component: StaffTaskPage, data: { role: 'officer' } },

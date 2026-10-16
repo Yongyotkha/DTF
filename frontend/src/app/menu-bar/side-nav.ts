@@ -1,6 +1,6 @@
 import { Injectable, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, computed, effect, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Accounts, roleHome } from '../accounts';
+import { Accounts, roleHome, AccountRole } from '../accounts';
 import { WorkspaceState } from '../workspace/workspace-state';
 import { MenuGroup } from './menu-group';
 import { MenuItem } from './menu-item';
@@ -47,7 +47,11 @@ export class SidebarState {
   }
 }
 
-type NavMenu = { title: string; items: string[] };
+export type NavMenu = { title: string; items: string[] };
+
+export const systemMenus: NavMenu[] = [
+  { title: 'ตั้งค่าระบบ', items: ['เจ้าหน้าที่และสิทธิ์การใช้งาน', 'ผู้ดูแลระบบและสิทธิ์การใช้งาน'] },
+];
 
 const applicantMenus: NavMenu[] = [
   { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
@@ -65,6 +69,19 @@ const directorMenus: NavMenu[] = [
 const headMenus: NavMenu[] = [
   { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
 ];
+
+const homeMenu: NavMenu = { title: '', items: ['หน้าหลัก'] };
+
+export const loginPermissionMenus: NavMenu[] = [
+  homeMenu,
+  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
+];
+
+export function menusForLoginRole(role: AccountRole): NavMenu[] {
+  if (role === 'corporate' || role === 'individual' || role === 'association') return applicantMenus;
+  const roleMenus = role === 'head' ? headMenus : role === 'director' ? directorMenus : role === 'staff' ? intakeMenus : [];
+  return [homeMenu, ...roleMenus];
+}
 
 @Component({
   selector: 'app-side-nav',
@@ -85,9 +102,27 @@ export class SideNav implements OnInit, OnDestroy {
   @Input() open = '';
   @Input() active = '';
   @Input() kind: 'applicant' | 'staff' = 'applicant';
+  @Input() menus: NavMenu[] | null = null;
   @Output() readonly chosen = new EventEmitter<string>();
 
+  protected showHome(): boolean {
+    if (this.menus) return false;
+    const granted = this.accounts.grantedMenus();
+    if (granted !== null) return granted.includes('หน้าหลัก');
+    return this.kind === 'staff';
+  }
+
   protected menuList(): NavMenu[] {
+    if (this.menus) return this.menus;
+    const granted = this.accounts.grantedMenus();
+    if (granted === null) return this.roleMenus();
+    return loginPermissionMenus
+      .filter((section) => section.title)
+      .map((section) => ({ ...section, items: section.items.filter((item) => granted.includes(item)) }))
+      .filter((section) => section.items.length > 0);
+  }
+
+  private roleMenus(): NavMenu[] {
     const role = this.accounts.role;
     if (role === 'officer') return [];
     if (role === 'head') return headMenus;
@@ -208,6 +243,8 @@ export class SideNav implements OnInit, OnDestroy {
       if (!internal) void this.router.navigate(['/requests/por-1'], { queryParams: { consult: '1' } });
     }
     if (label === 'หน้าหลัก' || label === 'หน้าแรก') void this.router.navigateByUrl(role ? roleHome[role] : '/home');
+    if (label === 'เจ้าหน้าที่และสิทธิ์การใช้งาน') void this.router.navigateByUrl('/officer/groups');
+    if (label === 'ผู้ดูแลระบบและสิทธิ์การใช้งาน') void this.router.navigateByUrl('/officer/admins');
     this.chosen.emit(label);
     this.submenu.set(null);
     if (this.state.narrow()) this.closeDrawer(false);

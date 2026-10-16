@@ -53,11 +53,17 @@
   }
 
   @if (content.form) {
-    <div class="modal__fields">
-      @for (item of [1, 2, 3, 4]; track item) {
-        <app-input-field class="modal-field" label="Label" />
-      }
-    </div>
+    @if (fieldLabel) {
+      <div class="modal__fields modal__fields--single">
+        <app-input-field class="modal-field" [label]="fieldLabel" [placeholder]="fieldPlaceholder" [editable]="true" [value]="fieldValue" [state]="fieldState" [helper]="fieldHelper" (valueChange)="fieldChange.emit($event)" />
+      </div>
+    } @else {
+      <div class="modal__fields">
+        @for (item of [1, 2, 3, 4]; track item) {
+          <app-input-field class="modal-field" label="Label" />
+        }
+      </div>
+    }
   }
 
   @if (content.actions.length) {

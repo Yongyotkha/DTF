@@ -43,7 +43,7 @@
           <span class="field__chip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.66 17.66L6.34 6.34M17.66 6.34L6.34 17.66" fill="none" stroke="currentColor" stroke-linecap="round"/></svg>Tags</span>
         </span>
       } @else {
-        <input [type]="shownType()" [attr.aria-label]="labelled ? null : label" [attr.inputmode]="digitsOnly ? 'numeric' : null" [attr.maxlength]="digitsOnly && maxLength > 0 ? maxLength : null" [value]="editable ? value : (isPlaceholder ? '' : shown)" [placeholder]="editable ? (placeholder || placeholdersHint) : (isPlaceholder ? shown : '')" [disabled]="locked" [readonly]="calendar || !editable || locked" [attr.aria-expanded]="calendar ? calendarOpen() : null" (input)="changed($event)" (blur)="blurred.emit()" />
+        <input [type]="shownType()" [attr.aria-label]="labelled ? null : label" [attr.inputmode]="digitsOnly || groupedPhone ? 'numeric' : null" [attr.maxlength]="digitsOnly && !groupedPhone && maxLength > 0 ? maxLength : null" [value]="editable ? value : (isPlaceholder ? '' : shown)" [placeholder]="editable ? (placeholder || placeholdersHint) : (isPlaceholder ? shown : '')" [disabled]="locked" [readonly]="calendar || !editable || locked" [attr.aria-expanded]="calendar ? calendarOpen() : null" (input)="changed($event)" (blur)="blurred.emit()" />
       }
       @if (reveal && inputType === 'password') {
         <button type="button" class="field__reveal" [attr.aria-label]="passwordVisible() ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'" [attr.aria-pressed]="passwordVisible()" (click)="togglePassword($event)">

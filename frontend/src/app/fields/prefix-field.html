@@ -1,11 +1,11 @@
 <label [class.error]="error">
   @if (!bare) {
-    <span>คำนำหน้า <span>*</span></span>
+    <span>{{ label }}@if (required) { <span> *</span> }</span>
   }
-  <select [class.placeholder]="!value" [value]="value" (change)="choose($any($event.target).value)" (blur)="blurred.emit()">
-    <option value="">เลือก</option>
+  <select [class.placeholder]="!value" (change)="choose($any($event.target).value)" (blur)="blurred.emit()">
+    <option value="" [selected]="!value">เลือก</option>
     @for (name of options; track name) {
-      <option [value]="name">{{ name }}</option>
+      <option [value]="name" [selected]="name === value">{{ name }}</option>
     }
   </select>
   @if (error) { <span class="meta">{{ message }}</span> }

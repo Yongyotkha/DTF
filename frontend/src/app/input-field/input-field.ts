@@ -49,6 +49,8 @@ export class InputField {
   @Output() blurred = new EventEmitter<void>();
   @Input() helper = '';
   @Input() digitsOnly = false;
+  @Input() lettersOnly = false;
+  @Input() groupedPhone = false;
   @Input() maxLength = 0;
   @Input() counter = '';
   @Input() font: 'thai' | 'inter' = 'thai';
@@ -99,12 +101,21 @@ export class InputField {
   protected changed(event: Event): void {
     const input = event.target as HTMLInputElement | HTMLTextAreaElement;
     let next = input.value;
-    if (this.digitsOnly) {
+    if (this.lettersOnly) {
+      next = next.replace(/[0-9๐-๙]/g, '').replace(/[^\u0E00-\u0E7Fa-zA-Z\s]/g, '');
+    } else if (this.groupedPhone) {
+      const limit = this.maxLength > 0 ? this.maxLength : 10;
+      next = this.groupPhone(next.replace(/\D/g, '').slice(0, limit));
+    } else if (this.digitsOnly) {
       next = next.replace(/\D/g, '');
       if (this.maxLength > 0) next = next.slice(0, this.maxLength);
-      if (input.value !== next) input.value = next;
     }
+    if (input.value !== next) input.value = next;
     this.valueChange.emit(next);
+  }
+
+  private groupPhone(digits: string): string {
+    return [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6)].filter((part) => part).join('-');
   }
 
   protected toggleCalendar(event: Event): void {

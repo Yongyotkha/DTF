@@ -1,0 +1,26 @@
+.edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.edit:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.acts button:only-child {
+  color: var(--color-text-muted);
+}
+
+.save--split {
+  justify-content: space-between;
+}

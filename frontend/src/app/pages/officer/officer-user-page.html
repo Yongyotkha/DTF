@@ -1,0 +1,39 @@
+<div class="desk">
+  <app-top-header class="fluid" name="super admin" />
+  <div class="desk__body">
+    <app-side-nav open="ตั้งค่าระบบ" [active]="admin ? 'ผู้ดูแลระบบและสิทธิ์การใช้งาน' : 'เจ้าหน้าที่และสิทธิ์การใช้งาน'" [menus]="settingMenus" />
+    <main>
+      <h1>{{ editing ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งาน' }}</h1>
+      <form class="sheet" (submit)="$event.preventDefault(); save()">
+        <h2>ข้อมูลส่วนบุคคล</h2>
+        <div class="cols">
+          <app-input-field class="block" label="ชื่อ-นามสกุล" [required]="true" [editable]="true" [lettersOnly]="true" [value]="fullName" [state]="fieldState(fullName)" [helper]="fieldState(fullName) === 'error' ? 'โปรดกรอกชื่อ-นามสกุล' : ''" (valueChange)="fullName = $event" />
+          <app-input-field class="block" label="เบอร์โทรศัพท์" [required]="!editing" [editable]="true" [groupedPhone]="true" [maxLength]="10" placeholder="080-000-0000" [value]="phone" [state]="editing ? 'default' : fieldState(phone)" [helper]="!editing && fieldState(phone) === 'error' ? 'โปรดกรอกเบอร์โทรศัพท์' : ''" (valueChange)="phone = $event" />
+          <app-input-field class="block" label="อีเมล" inputType="email" [required]="true" [editable]="true" [value]="email" [state]="fieldState(email)" [helper]="fieldState(email) === 'error' ? 'โปรดกรอกอีเมล' : ''" (valueChange)="email = $event" />
+          <app-prefix-field label="หน่วยงาน" [required]="false" [options]="units" [value]="unit" (valueChange)="unit = $event" />
+          <app-prefix-field label="ตำแหน่ง" [required]="false" [options]="titles" [value]="title" (valueChange)="title = $event" />
+        </div>
+        <h2>ข้อมูลบัญชี</h2>
+        <div class="cols">
+          <app-prefix-field label="ประเภทผู้ใช้งาน" [required]="false" [options]="userTypes" [value]="userType" (valueChange)="userType = $event" />
+          @if (!admin) {
+            <app-prefix-field label="สิทธิ์เข้าใช้งาน" [required]="true" [options]="accessGroupNames" [value]="accessGroupName" [error]="accessGroupError" message="โปรดเลือกสิทธิ์เข้าใช้งาน" (valueChange)="pickAccessGroup($event)" />
+          }
+          <app-input-field class="block" label="รหัสเจ้าหน้าที่" [editable]="true" placeholder="รหัสเจ้าหน้าที่" [value]="staffCode" [state]="staffHelp ? 'error' : 'default'" [helper]="staffHelp" (valueChange)="staffCode = $event" />
+          <app-input-field class="block" label="ชื่อผู้ใช้งาน" [required]="true" [editable]="true" [digitsOnly]="!admin" [maxLength]="admin ? 0 : 13" [value]="loginName" [state]="nameState" [helper]="nameHelp" (valueChange)="loginName = $event" />
+          <app-input-field class="block" label="รหัสผ่าน" inputType="password" [reveal]="true" [required]="true" [editable]="true" [value]="password" [state]="fieldState(password)" [helper]="fieldState(password) === 'error' ? 'โปรดกรอกรหัสผ่าน' : ''" (valueChange)="password = $event" />
+          <app-input-field class="block" label="ยืนยันรหัสผ่าน" inputType="password" [reveal]="true" [required]="true" [editable]="true" [value]="confirmPassword" [state]="confirmState" [helper]="confirmHelp" (valueChange)="confirmPassword = $event" />
+        </div>
+        <div class="actions">
+          <app-button type="outline" label="ยกเลิก" (click)="back()" />
+          <app-button label="บันทึก" (click)="save()" />
+        </div>
+      </form>
+    </main>
+  </div>
+</div>
+@if (saved) {
+  <div class="notice">
+    <app-modal kind="success" heading="บันทึกสำเร็จ" (choose)="closeSaved()" />
+  </div>
+}

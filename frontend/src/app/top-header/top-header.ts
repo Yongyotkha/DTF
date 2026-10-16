@@ -53,8 +53,9 @@ export class TopHeader {
       return;
     }
     if (label === 'ออกจากระบบ') {
+      const officer = this.router.url.startsWith('/officer');
       this.accounts.signOut();
-      void this.router.navigateByUrl('/login');
+      void this.router.navigateByUrl(officer ? '/officer/login' : '/login');
     }
   }
 

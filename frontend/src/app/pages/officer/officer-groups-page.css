@@ -1,0 +1,316 @@
+app-tabs {
+  display: block;
+}
+
+app-tabs ::ng-deep .tabs {
+  flex-wrap: wrap;
+}
+
+.desk {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.desk__body {
+  display: flex;
+  align-items: stretch;
+}
+
+main {
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.notice {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-overlay);
+}
+
+h1 {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.panel {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+}
+
+.panel-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.panel-tabs button {
+  height: 41px;
+  margin: 0;
+  padding: 10px 24px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.panel-tabs button[aria-selected='true'] {
+  background: var(--color-bg-page);
+}
+
+.panel-tabs button:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.panel__tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panel__tools app-input-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.panel .name {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin-bottom: 16px;
+}
+
+.access {
+  margin: 0 0 16px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.menu {
+  margin-bottom: 16px;
+}
+
+.menu h2 {
+  margin: 0 0 12px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 21px;
+}
+
+.menu__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.menu__grid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  cursor: pointer;
+}
+
+.menu__grid input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.menu__grid img {
+  flex: 0 0 24px;
+  pointer-events: none;
+}
+
+.save {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.save--split {
+  justify-content: space-between;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.grid th,
+.grid td {
+  box-sizing: border-box;
+  height: 45px;
+  padding: 12px;
+  border-bottom: 0.5px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.grid th {
+  background: var(--color-bg-page);
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  padding: 2px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-success);
+  cursor: pointer;
+}
+
+.switch span {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--color-white);
+}
+
+.switch--off {
+  background: var(--color-disabled-bg);
+}
+
+.switch--off span {
+  margin-left: 0;
+}
+
+.switch:focus-visible,
+.acts button:focus-visible,
+.pages button:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.acts {
+  display: flex;
+  gap: 8px;
+}
+
+.acts button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.acts button:last-child {
+  color: var(--color-error-red);
+}
+
+.pages {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.pages button {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.pages button:disabled {
+  color: var(--color-disabled-text);
+  cursor: default;
+}
+
+.pages__current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: var(--color-white);
+}

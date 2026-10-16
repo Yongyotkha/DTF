@@ -152,6 +152,12 @@ export class DftModal {
   @Input() otpLeft = 0;
   @Input() otpClock = '';
   @Input() otpResent = false;
+  @Input() fieldLabel = '';
+  @Input() fieldValue = '';
+  @Input() fieldPlaceholder = 'ระบุ';
+  @Input() fieldState: InputState = 'default';
+  @Input() fieldHelper = '';
+  @Output() fieldChange = new EventEmitter<string>();
   @Output() otpChange = new EventEmitter<string>();
   @Output() otpResend = new EventEmitter<void>();
   @Output() choose = new EventEmitter<string>();

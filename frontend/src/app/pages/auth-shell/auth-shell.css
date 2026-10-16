@@ -24,41 +24,6 @@
   object-position: center;
 }
 
-.stage__points {
-  position: absolute;
-  z-index: 1;
-  left: 96px;
-  bottom: 28px;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--color-text-on-primary);
-  pointer-events: none;
-}
-
-.stage__points li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 16px;
-  font-family: var(--font-sans-thai);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-}
-
-.stage__points li + li {
-  border-left: 1px solid rgb(255 255 255 / 70%);
-}
-
-.stage__points svg {
-  width: 32px;
-  height: 32px;
-  flex: none;
-}
-
 .stage__side {
   position: relative;
   z-index: 1;
@@ -81,34 +46,13 @@
   overflow: visible;
   border-radius: 16px;
   background: var(--color-white);
-  box-shadow: 0 16px 40px var(--color-shadow);
+  box-shadow:
+    0 8px 20.4px rgb(0 0 0 / 25%),
+    0 16px 40px var(--color-shadow);
   pointer-events: auto;
 }
 
-@media (max-width: 1100px) {
-  .stage__points {
-    left: 24px;
-    bottom: 16px;
-  }
-
-  .stage__points li {
-    gap: 8px;
-    padding: 0 12px;
-    font-size: 13px;
-    line-height: 18px;
-  }
-
-  .stage__points svg {
-    width: 28px;
-    height: 28px;
-  }
-}
-
 @media (max-width: 900px) {
-  .stage__points {
-    display: none;
-  }
-
   .stage__side {
     justify-content: center;
     padding: 16px;

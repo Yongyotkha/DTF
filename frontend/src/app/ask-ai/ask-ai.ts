@@ -18,7 +18,7 @@ export class AskAi {
   protected readonly shown = computed(() => {
     const path = this.path();
     if (path === '/requests/chat' || path.startsWith('/ai-workspace')) return false;
-    return !/^\/(login|forgot-password|register|design-system)(\/|$)/.test(path);
+    return !/^\/(login|forgot-password|register|design-system|officer\/login)(\/|$)/.test(path);
   });
   constructor(
     private readonly router: Router,
@@ -36,7 +36,7 @@ export class AskAi {
       const docked = this.shown() && this.chat.mode() === 'expanded' && this.workspace.band() === 'desktop';
       document.body.classList.toggle('ask-docked', docked);
       if (docked) document.body.style.setProperty('--ask-width', `${this.workspace.splitWidth()}px`);
-      if (!this.shown() && /^\/(login|forgot-password|register)(\/|$)/.test(this.path()) && this.workspace.split()) {
+      if (!this.shown() && /^\/(login|forgot-password|register|officer\/login)(\/|$)/.test(this.path()) && this.workspace.split()) {
         this.workspace.leaveSplit();
         this.chat.close();
       }

@@ -1,0 +1,49 @@
+<div class="desk">
+  <app-top-header class="fluid" name="super admin" />
+  <div class="desk__body">
+    <app-side-nav open="ตั้งค่าระบบ" active="เจ้าหน้าที่และสิทธิ์การใช้งาน" [menus]="settingMenus" />
+    <main>
+      <header class="head">
+        <h1>ตั้งค่ากลุ่มและสิทธิ์</h1>
+        <a class="back" routerLink="/officer/groups">กลับหน้ารายการกลุ่ม</a>
+      </header>
+      <section class="panel">
+        <app-input-field class="name" label="ชื่อกลุ่ม" [required]="true" [editable]="true" [value]="name" (valueChange)="name = $event" />
+        <table class="grid">
+          <thead>
+            <tr>
+              <th scope="col">ลำดับ</th>
+              <th scope="col">รหัสผู้ใช้งาน</th>
+              <th scope="col">ชื่อผู้ใช้งาน</th>
+              <th scope="col">ตำแหน่ง</th>
+              <th scope="col">ชนิดสิทธิ์</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (member of members; track member.username; let index = $index) {
+              <tr>
+                <td>{{ index + 1 }}</td>
+                <td>{{ member.username }}</td>
+                <td>{{ member.name }}</td>
+                <td>{{ member.title }}</td>
+                <td>
+                  <select class="role" [attr.aria-label]="'ชนิดสิทธิ์ของ ' + member.name" (change)="setRole(member.username, $any($event.target).value)">
+                    @for (item of accessRoles; track item.role) {
+                      <option [value]="item.role" [selected]="item.role === member.role">{{ item.label }}</option>
+                    }
+                  </select>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div class="save">
+          @if (saved) {
+            <p>บันทึกแล้ว หน้าเข้าสู่ระบบจะใช้สิทธิ์นี้</p>
+          }
+          <app-button label="บันทึก" (click)="save()" />
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

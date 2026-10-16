@@ -7,6 +7,8 @@ import { prefixes } from './field-rules';
   styleUrl: './prefix-field.css',
 })
 export class PrefixField {
+  @Input() label = 'คำนำหน้า';
+  @Input() required = true;
   @Input() error = false;
   @Input() message = '';
   @Input() value = '';

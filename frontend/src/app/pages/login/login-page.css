@@ -204,16 +204,16 @@ h1 {
 
 .register {
   align-self: center;
-  color: var(--color-link);
+  color: var(--color-primary);
   font-family: var(--font-sans-thai);
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 21px;
   text-decoration: none;
 }
 
 .register:hover {
-  color: var(--color-link-hover);
+  color: var(--color-primary-hover);
 }
 
 .register:focus-visible {
