@@ -28,8 +28,7 @@ h1 {
 }
 
 .sheet {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
   margin-top: 24px;
   margin-bottom: 24px;
   padding: 24px clamp(16px, 4vw, 48px) 32px;
