@@ -1,22 +1,19 @@
 <div class="upload" [class.upload--error]="error">
-  <span>{{ label }} @if (required) { <span>*</span> }</span>
+  <div class="upload__head">
+    <span>{{ label }} @if (required) { <span>*</span> }</span>
+    <ng-content />
+  </div>
   <label>
-    <input #picker type="file" accept=".pdf,.png,.jpg,.jpeg" (change)="picked($event)" (blur)="blurred.emit()" />
+    <input #picker type="file" [accept]="accept" (change)="picked($event)" (blur)="blurred.emit()" />
     <svg viewBox="0 0 12 13" width="12" height="13" aria-hidden="true"><path d="M6 1V9M6 1L3 4M6 1L9 4M1 12H11" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
     เลือกไฟล์
   </label>
   @if (value) {
-    <span class="preview">
-      <button type="button" class="preview__remove" aria-label="ลบไฟล์" (click)="remove($event)">✕</button>
-      @if (preview()) {
-        @if (previewKind() === 'image') {
-          <img [src]="preview()" alt="" />
-        } @else {
-          <iframe [src]="preview()" title="ตัวอย่างไฟล์"></iframe>
-        }
-      }
-      <em>{{ value }}</em>
-    </span>
+    <p class="file">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 12.5l6-6a3.2 3.2 0 0 1 4.5 4.5l-7.8 7.8a4.4 4.4 0 0 1-6.2-6.2L12.2 5.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="file__name">{{ value }}</span>
+    </p>
   }
+  @if (note) { <span class="note">{{ note }}</span> }
   @if (error) { <span class="meta">{{ message }}</span> }
 </div>

@@ -35,7 +35,16 @@ const demoMenu: { username: string; group: string }[] = [
   { username: '1000000000108', group: 'หัวหน้ากลุ่ม' },
   { username: '1000000000109', group: 'หัวหน้ากลุ่ม' },
   { username: '1000000000110', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)' },
+  { username: '1000000000112', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)' },
   { username: '1000000000111', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)' },
+  { username: '1000000000113', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)' },
+  { username: '1000000000114', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)' },
+  { username: '1000000000115', group: 'กลุ่มงานมาตรการป้องกัน (SG)' },
+  { username: '1000000000116', group: 'กลุ่มงานมาตรการป้องกัน (SG)' },
+  { username: '1000000000117', group: 'กลุ่มงานมาตรการป้องกัน (SG)' },
+  { username: '1000000000118', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
+  { username: '1000000000119', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
+  { username: '1000000000120', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
 ];
 
 export const roleLabel: Record<AccountRole, string> = {
@@ -65,7 +74,16 @@ export class Accounts {
     ['1000000000108', { password: 'Kanokorn@2569', role: 'head', person: 'นางกนกอร ไทยรัก', personTitle: 'กลุ่ม SG' }],
     ['1000000000109', { password: 'Piyaporn@2569', role: 'head', person: 'นางสาวปิยาภรณ์ นิลชู', personTitle: 'กลุ่มวิเคราะห์' }],
     ['1000000000110', { password: 'Jareena@2569', role: 'officer', person: 'นางสาวจรีณา กิจส่งเสริมกุล', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000112', { password: 'Officer@2569', role: 'officer', person: 'นางสาวศศิธร พงษ์พิพัฒน์', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
     ['1000000000111', { password: 'Kuljira@2569', role: 'officer', person: 'นางสาวกุลจิรา ปานทอง', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000113', { password: 'Officer@2569', role: 'officer', person: 'นางสาวมัลลิกา ทองคำ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000114', { password: 'Officer@2569', role: 'officer', person: 'นายอนุชา ศรีเมือง', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000115', { password: 'Officer@2569', role: 'officer', person: 'นางสาวอรทัย บุญส่ง', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000116', { password: 'Officer@2569', role: 'officer', person: 'นางสาวพิมพ์ใจ สุขเจริญ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000117', { password: 'Officer@2569', role: 'officer', person: 'นายธนพล แก้วกล้า', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000118', { password: 'Officer@2569', role: 'officer', person: 'นางสาวสุภาพร แสงอรุณ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000119', { password: 'Officer@2569', role: 'officer', person: 'นางสาวชลธิชา วัฒนกิจ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000120', { password: 'Officer@2569', role: 'officer', person: 'นายภูมิพัฒน์ อินทรสุข', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
   ]);
   private signedIn: AccountRole | '' = '';
   private person = '';
@@ -176,6 +194,7 @@ export class Accounts {
   }
 
   get displayName(): string {
+    if (this.userId === '1000000000101') return 'เจ้าหน้าที่กลุ่ม บท';
     if (this.person) return this.person;
     return this.signedIn ? roleLabel[this.signedIn] : roleLabel.corporate;
   }

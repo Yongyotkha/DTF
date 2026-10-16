@@ -19,7 +19,7 @@ function readSidebar(): 'expanded' | 'collapsed' | null {
 
 @Injectable({ providedIn: 'root' })
 export class SidebarState {
-  readonly preference = signal<'expanded' | 'collapsed' | null>(readSidebar());
+  readonly preference = signal<'expanded' | 'collapsed' | null>(readSidebar() ?? 'collapsed');
   readonly narrow = signal(typeof matchMedia === 'function' && matchMedia(narrowQuery).matches);
   readonly drawer = signal(false);
   readonly mounted = signal(false);

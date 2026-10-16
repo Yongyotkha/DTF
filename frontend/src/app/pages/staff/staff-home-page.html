@@ -1,7 +1,7 @@
 <div class="staff">
   <app-top-header class="fluid" />
   <div class="staff__body">
-    <app-side-nav kind="staff" open="คำขอ" active="หน้าหลัก" (chosen)="openMenu($event)" />
+    <app-side-nav kind="staff" open="" active="หน้าหลัก" (chosen)="openMenu($event)" />
     <main>
       @if (role === 'director' || role === 'officer') {
         <header class="desk-head">
@@ -55,10 +55,12 @@
         @if (awaitingApproval) {
           <section class="approve" aria-label="คำขอรออนุมัติยื่นแบบ">
             <div>
-              <h2>คำขอรออนุมัติยื่นแบบ</h2>
-              <p>เลขที่อ้างอิง {{ filingRef }} ผู้ยื่นไม่แก้ไข และส่งแบบยื่นทางการแล้ว ผู้รับเรื่องแล้วคือ {{ approverNames().join(' · ') }}</p>
+              <h2>{{ filingGate?.state === 'pending' ? 'ส่งมาขออนุมัติ' : 'คำขอรออนุมัติยื่นแบบ' }}</h2>
+              <p>เลขที่อ้างอิง {{ filingRef }} @if (filingGate?.state === 'pending') { ผู้ยื่นขอยื่นแบบทางการ ผู้รับผิดชอบคือ {{ approverNames().join(' · ') }} } @else { ผู้ยื่นไม่แก้ไข และส่งแบบยื่นทางการแล้ว ผู้รับเรื่องแล้วคือ {{ approverNames().join(' · ') }} }</p>
             </div>
-            @if (canApprove) {
+            @if (canApprove && filingGate?.state === 'pending') {
+              <app-button type="primary" label="ตรวจสอบคำขอ" (click)="openFiling()" />
+            } @else if (canApprove) {
               <app-button type="primary" label="อนุมัติการยื่นแบบ" (click)="approveFiling()" />
             }
           </section>
@@ -216,10 +218,12 @@
       @if (awaitingApproval) {
         <section class="approve" aria-label="คำขอรออนุมัติยื่นแบบ">
           <div>
-            <h2>คำขอรออนุมัติยื่นแบบ</h2>
-            <p>เลขที่อ้างอิง {{ filingRef }} ผู้ยื่นไม่แก้ไข และส่งแบบยื่นทางการแล้ว ผู้รับเรื่องแล้วคือ {{ approverNames().join(' · ') }}</p>
+            <h2>{{ filingGate?.state === 'pending' ? 'ส่งมาขออนุมัติ' : 'คำขอรออนุมัติยื่นแบบ' }}</h2>
+            <p>เลขที่อ้างอิง {{ filingRef }} @if (filingGate?.state === 'pending') { ผู้ยื่นขอยื่นแบบทางการ ผู้รับผิดชอบคือ {{ approverNames().join(' · ') }} } @else { ผู้ยื่นไม่แก้ไข และส่งแบบยื่นทางการแล้ว ผู้รับเรื่องแล้วคือ {{ approverNames().join(' · ') }} }</p>
           </div>
-          @if (canApprove) {
+          @if (canApprove && filingGate?.state === 'pending') {
+            <app-button type="primary" label="ตรวจสอบคำขอ" (click)="openFiling()" />
+          } @else if (canApprove) {
             <app-button type="primary" label="อนุมัติการยื่นแบบ" (click)="approveFiling()" />
           }
         </section>
@@ -238,7 +242,6 @@
       <section class="list" [class.list--director]="styled">
         <header>
           <h2>{{ current.label }}</h2>
-          <p>{{ current.count }} รายการ</p>
         </header>
         @for (row of rows; track $index) {
           <button type="button" class="row" (click)="openCase(row.code)">
