@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
@@ -21,7 +21,7 @@ type ProducerStat = { name: string; cells: Record<string, string> };
 
 @Component({
   selector: 'app-sg-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
+  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './sg-page.html',
   styleUrl: './por1-page.css',
 })

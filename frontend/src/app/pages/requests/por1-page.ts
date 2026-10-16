@@ -3547,6 +3547,10 @@ export class Por1Page {
   }
 
   protected leaveFiling(): void {
+    if (this.returnCase) {
+      void this.router.navigate(['/requests', this.returnCase]);
+      return;
+    }
     void this.router.navigateByUrl('/requests');
   }
 
@@ -3659,7 +3663,7 @@ export class Por1Page {
   }
 
   protected get canConfirm(): boolean {
-    return this.submitReady && this.submitAck;
+    return this.submitReady;
   }
 
   protected uploadOpen = false;
@@ -3697,27 +3701,10 @@ export class Por1Page {
   }
 
   protected confirmSubmit(): void {
-    const canSend = this.caseStatus === 'draft' || ((this.caseStatus === 'revision' || this.caseStatus === 'consult') && this.revising);
-    if (!canSend || !this.canConfirm || this.submitting) return;
-    this.submitting = true;
+    if (!this.canConfirm || this.submitting) return;
     this.submitOpen = false;
-    window.clearTimeout(this.submitTimer);
-    this.submitTimer = window.setTimeout(() => {
-      const round = this.captureRound(this.rounds.length + 1);
-      this.rounds = [...this.rounds, round];
-      writeRounds(this.rounds);
-      writeCaseStatus('review');
-      this.caseStatus = 'review';
-      this.revising = false;
-      this.viewingForm = false;
-      this.openedRound = null;
-      this.submitting = false;
-      this.notice = null;
-      writeReviewUntil(Date.now() + reviewWaitMs);
-      this.armReview();
-      this.publishGuide();
-      this.view.markForCheck();
-    }, 1400);
+    this.notice = 'submitted';
+    this.view.markForCheck();
   }
 
   protected consultWayText(channel?: string): string {
@@ -4091,6 +4078,7 @@ export class Por1Page {
 
   protected get noticeHeading(): string {
     if (this.notice === 'draft') return 'บันทึกร่างแล้ว';
+    if (this.notice === 'submitted') return 'ส่งคำขอสำเร็จ';
     if (this.notice === 'assist') return 'สร้างข้อมูลให้แล้ว';
     if (this.notice === 'check') return 'ตรวจให้แล้ว';
     if (this.notice === 'suggest') return 'แนะนำรายการแล้ว';
@@ -4110,13 +4098,19 @@ export class Por1Page {
     if (this.notice === 'etr') return `ระบบ eTR ส่ง Ref Case ID (eTR) ${this.etrRefNo} กลับมา และเชื่อมกับคำขอนี้แล้ว`;
     if (this.notice === 'saved') return 'ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว';
     if (this.notice === 'draft') return `คำขอเลขที่อ้างอิง ${this.refId} อยู่ในสถานะร่าง`;
+    if (this.notice === 'submitted') return `ระบบได้รับคำขอเลขที่อ้างอิง ${this.refId} แล้ว`;
     return `ระบบได้รับคำขอเลขที่อ้างอิง ${this.refId} แล้ว ผลการตรวจสอบจะแจ้งภายใน 10 วินาที`;
   }
 
   protected finishNotice(): void {
     const draft = this.notice === 'draft';
+    const submitted = this.notice === 'submitted';
     const stay = this.revising;
     this.notice = null;
+    if (submitted) {
+      void this.router.navigate(['/requests', 'AD1054']);
+      return;
+    }
     if (draft && !stay) void this.router.navigate(['/requests'], { queryParams: { tab: 'draft' } });
   }
 
@@ -4346,7 +4340,14 @@ export class Por1Page {
     return this.failSpots().find((spot) => spot.docs.includes(key))?.reason ?? '';
   }
 
+  private returnCase = '';
+
+  protected fixReason(anchor: string): string {
+    return this.failSpots().find((spot) => spot.anchors.includes(anchor))?.reason ?? '';
+  }
+
   private get activeFindings(): RoundFinding[] {
+    if (this.revising && this.returnCase) return this.revisionFindings;
     if (this.caseStatus === 'draft' || this.caseStatus === 'review' || this.caseStatus === 'cancelled' || this.caseStatus === 'official') return [];
     return this.rounds.at(-1)?.findings ?? [];
   }
@@ -4491,6 +4492,9 @@ export class Por1Page {
     }
     if (this.caseStatus === 'review') this.armReview();
     if (!this.reviewRole && this.route.snapshot.queryParamMap.get('consult') === '1') this.openConsult();
+    const caseCode = this.route.snapshot.queryParamMap.get('case') ?? '';
+    if (/^[A-Za-z0-9]+$/.test(caseCode)) this.returnCase = caseCode;
+    if (!this.reviewRole && this.route.snapshot.queryParamMap.get('revise') === '1') this.startRevise();
     if (this.caseStatus === 'consult' && this.consultAssigned && this.consultByChat) this.openTalk();
     if (this.caseStatus === 'consult' && !this.consultAssigned) this.watchAssign();
     this.watchApproval();

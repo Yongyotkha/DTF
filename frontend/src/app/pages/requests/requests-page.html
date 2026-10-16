@@ -22,7 +22,7 @@
               <article class="item" [class.item--link]="row.ready" [attr.tabindex]="row.ready ? 0 : null" (click)="openRow(row)" (keydown)="openRowKey($event, row)">
                 <header class="item__head">
                   <div>
-                    <p class="item__code">{{ row.code }}</p>
+                    <p class="item__code">{{ row.ref }}</p>
                     <p class="item__goods">{{ row.goods }}</p>
                   </div>
                   <app-status-tag [tone]="row.tone" [label]="row.status" />
@@ -43,7 +43,7 @@
                 </dl>
                 <div class="item__foot">
                   <div class="act">
-                    <app-button type="outline" [label]="row.ready ? 'ดำเนินการ' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row, $event)" />
+                    <app-button type="outline" [label]="row.ready ? 'ดูรายละเอียด' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row, $event)" />
                   </div>
                 </div>
               </article>

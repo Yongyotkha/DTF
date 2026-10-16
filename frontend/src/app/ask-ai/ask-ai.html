@@ -27,7 +27,7 @@
     </section>
   }
   @if (chat.mode() === 'closed') {
-    <button type="button" class="ask-launcher" aria-expanded="false" aria-label="สอบถาม AI" (click)="chat.show()">
+    <button type="button" class="ask-launcher" [class.ask-launcher--placed]="launcherPlace()" [class.ask-launcher--dragging]="launcherDragging()" [style.left.px]="launcherPlace()?.x" [style.top.px]="launcherPlace()?.y" aria-expanded="false" aria-label="สอบถาม AI" (pointerdown)="launcherDrag($event)" (click)="openChat($event)">
       <img src="assets/icons/chat-avatar.svg" width="36" height="36" alt="" />
       <span>แชทถาม AI<small>DFT Assistant</small></span>
     </button>

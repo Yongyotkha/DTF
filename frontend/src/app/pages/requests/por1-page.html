@@ -20,6 +20,9 @@
               <p class="crumb">คำขอ <span aria-hidden="true">›</span> รายละเอียดคำขอ</p>
             }
             <div class="case-title">
+              <button type="button" class="head__back" aria-label="กลับหน้ารายการ" (click)="leaveFiling()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+              </button>
               <h1>ยื่นคำขอ</h1>
               @if (!tracking) {
                 <app-status-tag [tone]="caseTone" [label]="caseLabel" />
@@ -2357,9 +2360,6 @@
             }
           </nav>
           <fieldset class="form" [disabled]="formLocked" (input)="publishGuide()" (change)="publishGuide()" (click)="publishGuide()" (focusin)="noteField($event)">
-            @if (sectionIssue) {
-              <p class="issue">{{ sectionIssue }}</p>
-            }
             @if (section === '1' && anchor === 'part-1-1') {
               <h3 id="part-1-1">1.1 ผู้ยื่นคำขอ</h3>
               <div class="grid">
@@ -2557,8 +2557,8 @@
                           <td class="col-no">{{ $index + 1 }}</td>
                           <td><textarea rows="1" [value]="row.producer" (input)="row.producer = $any($event.target).value" aria-label="ชื่อผู้ผลิต"></textarea></td>
                           <td><textarea rows="1" [value]="row.goods" (input)="row.goods = $any($event.target).value" aria-label="ชื่อสินค้า"></textarea></td>
-                          <td><textarea rows="1" [value]="row.made" (input)="row.made = $any($event.target).value" aria-label="ปริมาณที่ผลิต"></textarea></td>
-                          <td><textarea rows="1" [value]="row.sold" (input)="row.sold = $any($event.target).value" aria-label="ปริมาณที่จำหน่าย"></textarea></td>
+                          <td><textarea rows="1" [class.cell--bad]="!!fixReason('part-5')" [value]="row.made" (input)="row.made = $any($event.target).value" aria-label="ปริมาณที่ผลิต"></textarea></td>
+                          <td><textarea rows="1" [class.cell--bad]="!!fixReason('part-5')" [value]="row.sold" (input)="row.sold = $any($event.target).value" aria-label="ปริมาณที่จำหน่าย"></textarea></td>
                           <td class="col-unit"><input type="text" [value]="row.unit" (input)="row.unit = $any($event.target).value" aria-label="หน่วย" /></td>
                           <td class="col-manage">
                             <div class="manage">
@@ -2674,10 +2674,13 @@
                 </div>
                 <ng-container *ngTemplateOutlet="fileTools" />
               </div>
-              <label class="note note--lead">
+              <label class="note note--lead" [class.note--bad]="!!fixReason('part-2')">
                 ชื่อและลักษณะสินค้า<span class="req">*</span>
                 <textarea maxlength="200" placeholder="ระบุ" [value]="goodsDetail" (input)="goodsDetail = $any($event.target).value"></textarea>
                 <small>{{ goodsDetail.length }} / 200</small>
+                @if (fixReason('part-2'); as reason) {
+                  <small class="field__error">{{ reason }}</small>
+                }
               </label>
               <label class="note">
                 ช่องทางจำหน่ายและผู้ใช้สินค้า<span class="req">*</span>
@@ -3131,10 +3134,13 @@
               }
             } @else if (section === '5') {
               <h3 class="section-title" id="part-5">ส่วนที่ 5 ราคาส่งออก</h3>
-              <label class="note note--lead">
+              <label class="note note--lead" [class.note--bad]="!!fixReason('part-5')">
                 รายละเอียด<span class="req">*</span>
                 <textarea maxlength="200" placeholder="ระบุ" [value]="exportDetail" (input)="exportDetail = $any($event.target).value"></textarea>
                 <small>{{ exportDetail.length }} / 200</small>
+                @if (fixReason('part-5'); as reason) {
+                  <small class="field__error">{{ reason }}</small>
+                }
               </label>
               <ng-container *ngTemplateOutlet="sheet; context: { key: 'export' }" />
             } @else if (section === '6') {
@@ -3630,7 +3636,7 @@
   </div>
 </ng-template>
 <ng-template #sheet let-key="key">
-  <label class="drop" (dragover)="$event.preventDefault()" (drop)="dropDocs($event, key)">
+  <label class="drop" [class.drop--bad]="!!docIssue(key)" (dragover)="$event.preventDefault()" (drop)="dropDocs($event, key)">
     <svg class="drop__mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.4-8 5 5 0 0 1 9.5-1.6A3.5 3.5 0 0 1 18 18" /><path d="M12 16V8M9 11l3-3 3 3" /></svg>
     <strong>ลากไฟล์มาวางที่นี่ หรือเลือกไฟล์จากเครื่อง</strong>
     <span>รองรับ PDF, DOC, DOCX, PNG, JPG, JPEG</span>
@@ -3810,11 +3816,6 @@
           </div>
         }
       </div>
-      <label id="check-confirm" class="check__agree">
-        <input type="checkbox" [checked]="submitAck" [disabled]="!submitReady" (change)="submitAck = $any($event.target).checked" />
-        <img [src]="submitAck ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-        ข้าพเจ้ายืนยันว่าตรวจสอบข้อมูลและเอกสารประกอบเรียบร้อยแล้ว
-      </label>
       <footer class="check__foot">
         <app-button type="outline" label="กลับไปแก้ไข" (click)="submitOpen = false" />
         <app-button type="primary" label="ยืนยันยื่นตรวจสอบ" [state]="canConfirm ? 'default' : 'disabled'" (click)="confirmSubmit()" />

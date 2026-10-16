@@ -2,6 +2,13 @@
   display: block;
   min-width: 0;
   max-width: 100%;
+}
+
+:host:empty {
+  display: none;
+}
+
+:host:not(:empty) {
   margin: 0 0 20px;
   border-bottom: 1px solid var(--color-border);
 }

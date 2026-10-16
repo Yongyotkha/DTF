@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { DftModal } from '../../modal/modal';
@@ -16,7 +16,7 @@ const extraAccept = /\.(pdf|docx?|png|jpe?g)$/i;
 
 @Component({
   selector: 'app-form-upload-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, DftModal],
+  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, DftModal],
   templateUrl: './form-upload-page.html',
   styleUrl: './form-upload-page.css',
 })

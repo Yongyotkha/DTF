@@ -64,6 +64,7 @@ export const routes: Routes = [
   { path: 'requests/upload', component: FormUploadPage },
   { path: 'requests/draft/:id', component: DraftPage },
   { path: 'requests/chat', component: StaffChatPage },
+  { path: 'requests/:code/fixes', component: CasePage, data: { view: 'fixes' } },
   { path: 'requests/:code', component: CasePage },
   { path: 'profile', component: ProfilePage },
   { path: 'design-system', component: DesignSystemPage },

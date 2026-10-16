@@ -97,7 +97,7 @@ export function downloadFormTemplate(code: string): void {
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
-    ${paragraph(`เทมเพลต ${code}`)}
+    ${paragraph(`แบบฟอร์ม ${code}`)}
     ${paragraph(title)}
     ${detail ? paragraph(detail) : ''}
     ${paragraph('กรอกข้อมูลในไฟล์นี้ แล้วอัปโหลดกลับเข้าระบบ')}
@@ -130,7 +130,7 @@ export function downloadFormTemplate(code: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `เทมเพลต ${code}.docx`;
+  link.download = `แบบฟอร์ม ${code}.docx`;
   link.click();
   URL.revokeObjectURL(url);
 }

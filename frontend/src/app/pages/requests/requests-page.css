@@ -180,20 +180,20 @@ h1 {
 
 .chooser {
   position: fixed;
-  inset: 0;
-  z-index: 3;
+  inset: 65px 0 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 24px;
   background: var(--color-overlay);
 }
 
 .chooser section {
   display: flex;
   flex-direction: column;
-  width: min(1240px, 100%);
-  max-height: calc(100vh - 32px);
+  width: min(1204px, 100%);
+  max-height: 100%;
   overflow: hidden;
   border-radius: 20px;
   background: var(--color-white);

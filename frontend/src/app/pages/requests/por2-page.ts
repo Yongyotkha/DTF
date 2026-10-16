@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
@@ -82,7 +83,7 @@ function blankApplicant(open = true): Applicant {
 
 @Component({
   selector: 'app-por2-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
+  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por2-page.html',
   styleUrl: './por1-page.css',
 })

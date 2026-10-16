@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
@@ -16,7 +17,7 @@ type ShipRow = { period: string; qty: string; value: string };
 
 @Component({
   selector: 'app-por4-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
+  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por4-page.html',
   styleUrl: './por1-page.css',
 })

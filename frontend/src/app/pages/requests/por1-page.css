@@ -38,11 +38,50 @@ main {
   overflow-wrap: break-word;
 }
 
-.head__title {
+.head__title,
+.case-title {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
+}
+
+.head__back {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state);
+}
+
+.head__back:hover {
+  background: var(--color-bg-page);
+}
+
+.head__back:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.head__back svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .head h1 {
@@ -54,7 +93,7 @@ main {
 .case-title {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 2px 12px;
 }
 
@@ -1138,11 +1177,13 @@ main {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  align-self: flex-start;
   gap: 4px;
   width: 298px;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100vh - 125px);
   padding: 10px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .toc__group {
@@ -1170,7 +1211,7 @@ main {
 }
 
 [id^="part-"] {
-  scroll-margin-top: 172px;
+  scroll-margin-top: 125px;
 }
 
 .toc button {
@@ -1260,6 +1301,13 @@ main {
 
 .row-fail td {
   background: var(--color-error-bg);
+  color: var(--color-error-red);
+}
+
+.drop--bad {
+  border-color: var(--color-error-red);
+  background: var(--color-error-bg);
+  color: var(--color-error-red);
 }
 
 .toc button:focus-visible {
@@ -1828,9 +1876,12 @@ fieldset legend {
 .field--bad > input,
 .field--bad > textarea,
 .field--bad > .select select,
-.note--bad > textarea {
+.note--bad > textarea,
+.table-wrap textarea.cell--bad,
+.table-wrap input.cell--bad {
   border: 1.5px solid var(--color-error-red);
   background: var(--color-error-bg);
+  color: var(--color-error-red);
 }
 
 .field--bad > .field__error,
@@ -3589,6 +3640,10 @@ table:has(.col-no) {
   line-height: 24px;
 }
 
+.check__group .check__row strong {
+  font-weight: 400;
+}
+
 .check__row > div span,
 .check__facts dt,
 .check__agree {
@@ -3768,13 +3823,6 @@ body.workspace-split .head {
   position: sticky;
   top: 65px;
   z-index: 3;
-}
-
-@media (min-width: 901px) {
-  .toc {
-    position: sticky;
-    top: 172px;
-  }
 }
 
 @media (max-width: 900px) {

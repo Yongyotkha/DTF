@@ -15,7 +15,18 @@
   color: var(--color-text-on-primary);
   font-family: var(--font-sans-thai);
   box-shadow: var(--shadow-card);
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.ask-launcher--placed {
+  right: auto;
+  bottom: auto;
+}
+
+.ask-launcher--dragging {
+  cursor: grabbing;
 }
 
 .ask-launcher img {
