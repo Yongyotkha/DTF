@@ -103,12 +103,51 @@
       </header>
       @if (reviewRole) {
         @if (caseStatus === 'approval') {
-          <section class="approve-band" aria-label="รออนุมัติการยื่นแบบ">
-            <h2>รออนุมัติการยื่นแบบ</h2>
-            <p>ผู้ยื่นไม่แก้ไขแบบเพิ่ม และส่งแบบยื่นทางการหลังขอปรึกษาแล้ว ผู้รับมอบหมายที่รับเรื่องแล้วต้องกดอนุมัติก่อน สถานะจึงเป็นยื่นแบบ</p>
-            <p>ผู้รับเรื่องแล้ว: {{ approverNames().join(' · ') }}</p>
-            @if (canApproveFiling) {
-              <app-button type="primary" label="อนุมัติการยื่นแบบ" (click)="approveOfficial()" />
+          <section class="approve-band" aria-label="ส่งมาขออนุมัติ">
+            @if (filingGate?.state === 'pending') {
+              <div>
+                <h2>ส่งมาขออนุมัติ</h2>
+                <p>ผู้ยื่นขอยื่นแบบทางการหลังขอคำปรึกษา เจ้าหน้าที่รับผิดชอบตรวจก่อน สถานะจึงเป็นยื่นแบบ</p>
+                <p>ผู้รับผิดชอบ: {{ filingGate.owners.join(' · ') }}</p>
+              </div>
+              @if (canApproveFiling) {
+                <div class="path-choice" role="radiogroup" aria-label="ผลการตรวจ">
+                  <button type="button" [class.on]="filingDecision === 'approve'" (click)="filingDecision = 'approve'">
+                    <img [src]="filingDecision === 'approve' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    <span>
+                      <strong>อนุมัติ</strong>
+                      <small>ตรวจแล้ว ปรับสถานะเป็นยื่นแบบ</small>
+                    </span>
+                  </button>
+                  <button type="button" [class.on]="filingDecision === 'reject'" (click)="filingDecision = 'reject'">
+                    <img [src]="filingDecision === 'reject' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    <span>
+                      <strong>ยังไม่ผ่าน</strong>
+                      <small>ส่งกลับผู้ยื่น พร้อมเหตุผล</small>
+                    </span>
+                  </button>
+                </div>
+                @if (filingDecision === 'reject') {
+                  <label class="assign-remark">
+                    <span>เหตุผล<span class="req">*</span></span>
+                    <textarea rows="3" maxlength="500" placeholder="ระบุเหตุผลที่ยังไม่ผ่าน" [value]="filingReason" (input)="filingReason = $any($event.target).value"></textarea>
+                  </label>
+                }
+                <footer class="assign-foot">
+                  <app-button class="icon-before" type="primary" label="ยืนยันผลตรวจ" [state]="filingDecisionReady ? 'default' : 'disabled'" (click)="submitFilingDecision()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+                  </app-button>
+                </footer>
+              }
+            } @else {
+              <div>
+                <h2>รออนุมัติการยื่นแบบ</h2>
+                <p>ผู้ยื่นไม่แก้ไขแบบเพิ่ม และส่งแบบยื่นทางการหลังขอปรึกษาแล้ว ผู้รับมอบหมายที่รับเรื่องแล้วต้องกดอนุมัติก่อน สถานะจึงเป็นยื่นแบบ</p>
+                <p>ผู้รับเรื่องแล้ว: {{ approverNames().join(' · ') }}</p>
+              </div>
+              @if (canApproveFiling) {
+                <app-button type="primary" label="อนุมัติการยื่นแบบ" (click)="approveOfficial()" />
+              }
             }
           </section>
         }
@@ -308,9 +347,9 @@
                 <svg viewBox="0 0 24 24"><path d="M12 17h.01M12 7v6M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
               </span>
               <div>
-                <h2>ส่งแบบยื่นทางการโดยไม่แก้ไข</h2>
-                <p>คำขอเลขที่อ้างอิง {{ refId }} ไม่มีการแก้ไขแบบเพิ่ม หลังขอปรึกษาแล้ว รอผู้รับมอบหมายที่รับเรื่องแล้วกดอนุมัติ สถานะจึงเป็นยื่นแบบ</p>
-                <p>ผู้รับเรื่องแล้ว: {{ approverNames().join(' · ') }}</p>
+                <h2>{{ filingGate?.state === 'pending' ? 'ส่งมาขออนุมัติ' : 'ส่งแบบยื่นทางการโดยไม่แก้ไข' }}</h2>
+                <p>คำขอเลขที่อ้างอิง {{ refId }} @if (filingGate?.state === 'pending') { ส่งให้เจ้าหน้าที่รับผิดชอบตรวจสอบแล้ว สถานะจะเป็นยื่นแบบเมื่ออนุมัติ } @else { ไม่มีการแก้ไขแบบเพิ่ม หลังขอปรึกษาแล้ว รอผู้รับมอบหมายที่รับเรื่องแล้วกดอนุมัติ สถานะจึงเป็นยื่นแบบ }</p>
+                <p>ผู้รับผิดชอบ: {{ filingOwners().join(' · ') }}</p>
                 <p class="amend-note">วันที่ยื่นครั้งแรก {{ filedOn }} · วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน) {{ amendUntil }}</p>
               </div>
             </div>
@@ -352,6 +391,14 @@
                 <div><small>ครบกำหนดการแก้ไขเพิ่มเติม</small><strong>{{ amendUntil }}@if (amendSpan) { (อีก {{ amendSpan }} วัน) }</strong></div>
               </li>
             </ul>
+            @if (filingGate?.state === 'rejected') {
+              <p class="act-note">ยังไม่ผ่าน โดย {{ filingGate.by }} เมื่อ {{ filingGate.at }} น. {{ filingGate.reason }}</p>
+            }
+            <div class="review__actions">
+              <app-button class="icon-before" type="primary" label="ยื่นแบบทางการ" (click)="officialOpen = true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
+              </app-button>
+            </div>
           </section>
         } @else if (caseStatus === 'consult') {
           <section class="sheet consult" aria-label="ปรึกษาเจ้าหน้าที่">
@@ -463,8 +510,11 @@
               </div>
             </div>
             }
+            @if (filingGate?.state === 'rejected') {
+              <p class="act-note">ยังไม่ผ่าน โดย {{ filingGate.by }} เมื่อ {{ filingGate.at }} น. {{ filingGate.reason }}</p>
+            }
             <div class="review__actions">
-              <app-button class="icon-before" type="primary" label="ไม่แก้ไข ส่งแบบยื่นทางการ" (click)="officialOpen = true">
+              <app-button class="icon-before" type="primary" label="ยื่นแบบทางการ" (click)="officialOpen = true">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
               </app-button>
               <app-button class="icon-before" type="outline" label="แก้ไขคำขอ" (click)="startRevise()">
@@ -763,9 +813,11 @@
               <div class="sheet__split">
                 <nav class="toc" aria-label="งานที่มอบหมาย">
                   @for (item of dutyMatters; track item.title) {
-                    <button type="button" class="toc__child" [class.toc__on]="activeDuty?.title === item.title" [attr.aria-current]="activeDuty?.title === item.title ? 'true' : null" (click)="dutyPick = item.title">
-                      <img [src]="item.tone === 'success' ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                      {{ item.title }}
+                    <button type="button" class="toc__child" [class.toc__on]="activeDuty?.title === item.title" [attr.data-tone]="item.tone" [attr.aria-current]="activeDuty?.title === item.title ? 'true' : null" (click)="dutyPick = item.title">
+                      <span>{{ item.title }}</span>
+                      @if (item.status) {
+                        <app-status-tag variant="soft" [tone]="item.tone" [label]="item.status" />
+                      }
                     </button>
                   }
                   @if (!dutyMatters.length) {
@@ -777,7 +829,6 @@
                     <header class="assign-head">
                       <div>
                         <h2>{{ activeDuty?.title || 'งาน' }}</h2>
-                        <p>{{ activeDuty?.status || 'ยังไม่มีงานที่มอบหมายให้คุณ' }}</p>
                       </div>
                       @if (reviewRole === 'director' && activeDuty?.title !== 'ขอคำปรึกษา') {
                         <button type="button" class="assign-add" (click)="openAssign()">
@@ -789,13 +840,13 @@
                     @if (activeDuty?.title === 'ขอคำปรึกษา') {
                       <article class="consult-board">
                         <ng-template #consultFields>
-                          <div class="assign-dates">
+                          <div class="assign-dates assign-dates--when">
                             <app-thai-date-field label="วันที่มอบหมาย" placeholder="16/05/2562" [required]="true" [value]="consultAssignedOn" (valueChange)="consultAssignedOn = $event" />
                             <app-thai-date-field label="วันที่กำหนดส่ง" placeholder="30/05/2562" [required]="true" [value]="consultDueOn" (valueChange)="consultDueOn = $event" />
+                            <label class="slip-time">เวลาครบกำหนดส่ง
+                              <span><input type="text" inputmode="numeric" maxlength="5" placeholder="14:28" aria-label="เวลาครบกำหนดส่ง" [value]="consultDueTime" (input)="consultDueTime = $any($event.target).value" /> น.</span>
+                            </label>
                           </div>
-                          <label class="slip-time">เวลาครบกำหนดส่ง
-                            <span><input type="text" inputmode="numeric" maxlength="5" placeholder="14:28" aria-label="เวลาครบกำหนดส่ง" [value]="consultDueTime" (input)="consultDueTime = $any($event.target).value" /> น.</span>
-                          </label>
                           <label class="slip-check">
                             <input type="checkbox" [checked]="consultRemind" (change)="consultRemind = $any($event.target).checked" />
                             <img [src]="consultRemind ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
@@ -817,31 +868,101 @@
                             <table>
                               <thead>
                                 <tr>
-                                  <th>รายการ</th>
+                                  <th class="col-no">ลำดับ</th>
                                   <th>ชื่อเอกสาร</th>
                                   <th>ชื่อเอกสารใหม่</th>
-                                  <th>การจัดการ</th>
+                                  <th class="col-act">การจัดการ</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 @for (file of consultFiles; track $index) {
                                   <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ file.name }}</td>
+                                    <td class="col-no">{{ $index + 1 }}</td>
+                                    <td class="col-file">{{ file.name }}</td>
                                     <td><input type="text" aria-label="ชื่อเอกสารใหม่" [value]="file.title" (input)="renameConsultFile($index, $any($event.target).value)" /></td>
-                                    <td><button type="button" (click)="removeConsultFile($index)">ลบ</button></td>
+                                    <td class="col-act">
+                                      <button type="button" class="office-view" aria-label="ลบ" (click)="removeConsultFile($index)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                      </button>
+                                    </td>
                                   </tr>
                                 }
                               </tbody>
                             </table>
                           </div>
                         </ng-template>
+                        <ng-template #resultFields>
+                          <label class="assign-remark">
+                            <span>รายละเอียดผล<span class="req">*</span></span>
+                            <textarea rows="3" maxlength="500" placeholder="ระบุผลการดำเนินงาน" [value]="resultDetail" (input)="resultDetail = $any($event.target).value"></textarea>
+                            <small>{{ resultDetail.length }}/500</small>
+                          </label>
+                          <p class="slip-file-label">แนบไฟล์ผลงาน</p>
+                          <label class="slip-drop">
+                            <img src="assets/icons/por1-upload.svg" width="24" height="24" alt="" />
+                            <strong>วางไฟล์ที่นี่เพื่ออัพโหลด</strong>
+                            <span>คลิกเพื่อเรียกดูไฟล์</span>
+                            <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx" multiple (change)="addResultFiles($event)" />
+                          </label>
+                          @if (resultFiles.length) {
+                            <div class="table-wrap slip-files">
+                              <table>
+                                <thead>
+                                  <tr>
+                                    <th class="col-no">ลำดับ</th>
+                                    <th>ชื่อเอกสาร</th>
+                                    <th class="col-act">การจัดการ</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (file of resultFiles; track $index) {
+                                    <tr>
+                                      <td class="col-no">{{ $index + 1 }}</td>
+                                      <td>{{ file.name }}</td>
+                                      <td class="col-act">
+                                        <button type="button" class="office-view" aria-label="ลบ" (click)="removeResultFile($index)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          }
+                        </ng-template>
+                        <ng-template #officerSelect let-group="group">
+                          <div class="people-select">
+                            <button type="button" class="people-select__face" [class.is-empty]="!consultPickOfficers.length" [attr.aria-expanded]="officerListOpen" aria-haspopup="listbox" (click)="officerListOpen = !officerListOpen">
+                              <span>{{ officerPickText() }}</span>
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6" /></svg>
+                            </button>
+                            @if (officerListOpen) {
+                              <button type="button" class="people-select__backdrop" aria-label="ปิด" (click)="officerListOpen = false"></button>
+                              <div class="people-select__panel" role="listbox" aria-label="เลือกเจ้าหน้าที่" aria-multiselectable="true" (click)="$event.stopPropagation()">
+                                <label class="people-select__find">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-3.5-3.5" /></svg>
+                                  <input type="search" placeholder="ค้นหาชื่อ..." aria-label="ค้นหาชื่อ" [value]="officerQuery" (input)="officerQuery = $any($event.target).value" />
+                                </label>
+                                <ul>
+                                  @for (person of filteredMembers(group); track person.name) {
+                                    <li>
+                                      <button type="button" role="option" [attr.aria-selected]="consultPickOfficers.includes(person.name)" (click)="toggleConsultOfficer(person.name)">
+                                        <img [src]="consultPickOfficers.includes(person.name) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                                        {{ person.name }}
+                                      </button>
+                                    </li>
+                                  } @empty {
+                                    <li class="people-select__empty">ไม่พบชื่อ</li>
+                                  }
+                                </ul>
+                              </div>
+                            }
+                          </div>
+                        </ng-template>
                         <section class="consult-docs" aria-label="เอกสารที่ยื่นขอเข้ามา">
                           <header>
                             <h3>เอกสารที่ยื่นขอเข้ามา</h3>
-                            @if (consult?.channel) {
-                              <p>ช่องทาง {{ consultWayText(consult?.channel) }}</p>
-                            }
                           </header>
                           <div class="table-wrap consult-table">
                             <table>
@@ -849,8 +970,9 @@
                                 <tr>
                                   <th class="col-no">ลำดับ</th>
                                   <th>ชื่อเอกสาร</th>
-                                  <th>ส่วน</th>
-                                  <th>การจัดการ</th>
+                                  <th>ชื่อผู้ยื่น</th>
+                                    <th class="col-fit">วันที่เวลา</th>
+                                    <th class="col-act">การจัดการ</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -858,10 +980,17 @@
                                   <tr>
                                     <td class="col-no">{{ i + 1 }}</td>
                                     <td>{{ doc.title }}</td>
-                                    <td>{{ doc.place }}</td>
-                                    <td>
-                                      <button type="button" class="office-view" (click)="openConsultDoc(doc)">ดู</button>
-                                      <button type="button" class="office-view" (click)="downloadConsultDoc(doc)">ดาวน์โหลด</button>
+                                    <td>{{ doc.by }}</td>
+                                    <td class="col-fit">{{ doc.at }} น.</td>
+                                    <td class="col-act">
+                                      <div class="made-actions">
+                                        <button type="button" class="office-view" aria-label="ดู" (click)="openConsultDoc(doc)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        </button>
+                                        <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadConsultDoc(doc)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                        </button>
+                                      </div>
                                     </td>
                                   </tr>
                                 }
@@ -871,121 +1000,449 @@
                         </section>
                         @if (reviewRole === 'director') {
                           <section class="consult-assign" aria-label="มอบหมายงาน">
-                          <header>
-                            <h3>มอบหมายงาน</h3>
-                            <p>เลือกได้มากกว่า 1 กลุ่ม เอาออกได้ตลอด</p>
-                          </header>
-                          <section class="slip" aria-label="มอบหมายให้หัวหน้ากลุ่ม">
-                            <div class="slip-line">
-                              <span>มอบหมายงานให้<span class="req">*</span></span>
-                              <div class="slip-choices">
-                                @for (group of assignableGroups; track group.name) {
-                                  <button type="button" (click)="toggleConsultGroup(group.name)"><img [src]="consultPickGroups.includes(group.name) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />{{ group.name }}</button>
-                                }
-                              </div>
-                            </div>
-                            <ng-container [ngTemplateOutlet]="consultFields" />
-                            <footer class="assign-foot"><app-button type="primary" label="มอบหมายงาน" [state]="consultPickGroups.length && consultFormReady ? 'default' : 'disabled'" (click)="assignConsultGroups()" /></footer>
-                          </section>
-                          @if (consultJobs.length) {
+                            <header>
+                              <span>
+                                <h3>มอบหมายงานให้กลุ่ม</h3>
+                                <p>เลือกได้มากกว่า 1 กลุ่ม</p>
+                              </span>
+                              @if (!consultClosed) {
+                              <app-button class="icon-before" type="primary" label="มอบหมายงาน" (click)="openConsultForm('groups')">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 8v6M17 11h6" /></svg>
+                              </app-button>
+                              }
+                            </header>
+                            @if (!consultJobs.length) {
+                              <p class="consult-blank">ยังไม่มีการมอบหมาย</p>
+                            } @else {
                             <div class="table-wrap consult-table">
                               <table>
                                 <thead>
                                   <tr>
+                                    <th class="col-no">ลำดับ</th>
                                     <th>กลุ่มงาน</th>
-                                    <th>หัวหน้ากลุ่ม</th>
-                                    <th>คำสั่ง</th>
-                                    <th>สถานะ</th>
-                                    <th>การจัดการ</th>
+                                    <th class="col-fit">กำหนดส่ง</th>
+                                    <th class="col-fit">สถานะ</th>
+                                      <th class="col-fit">วันเวลารับ/คืน</th>
+                                    <th class="col-act">การจัดการ</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  @for (job of consultJobs; track job.group) {
+                                  @for (job of consultJobs; track job.group; let i = $index) {
                                     <tr>
-                                      <td>{{ job.group }}</td>
-                                      <td>{{ jobHead(job.group) }}</td>
-                                      <td>{{ job.form?.order || '—' }}</td>
-                                      <td><app-status-tag variant="soft" [tone]="job.reply === 'accept' ? 'info' : job.reply === 'return' ? 'danger' : 'warning'" [label]="job.reply === 'accept' ? 'รับ' : job.reply === 'return' ? 'ส่งคืน' : 'งานเข้าใหม่'" /></td>
-                                      <td><button type="button" class="office-view" (click)="removeConsultGroup(job.group)">เอาออก</button></td>
+                                      <td class="col-no">{{ i + 1 }}</td>
+                                      <td>
+                                        <span class="consult-who">
+                                          <strong>{{ job.group }}</strong>
+                                          <small>{{ jobHead(job.group) }} · มอบเมื่อ {{ job.form?.assignedOn || '—' }}</small>
+                                        </span>
+                                      </td>
+                                      <td class="col-fit">{{ job.form?.dueOn ? job.form?.dueOn + ' ' + job.form?.dueTime + ' น.' : '—' }}</td>
+                                      <td class="col-fit">
+                                        <span class="consult-when">
+                                          <app-status-tag variant="soft" [tone]="job.reply === 'accept' ? 'info' : job.reply === 'return' ? 'danger' : 'warning'" [label]="job.reply === 'accept' ? 'รับ' : job.reply === 'return' ? 'ส่งคืน' : 'งานรับใหม่'" />
+                                          @if (job.result) { <app-status-tag variant="soft" tone="success" label="รายงานผล" /> }
+                                        </span>
+                                      </td>
+                                      <td class="col-fit">
+                                        <span class="consult-when">
+                                          <span>{{ replyWhen(job.reply, job.repliedAt) }}</span>
+                                          @if (job.result) { <span>{{ job.result.at }} น.</span> }
+                                        </span>
+                                      </td>
+                                      <td class="col-act">
+                                        <div class="made-actions">
+                                          <ng-container [ngTemplateOutlet]="resultView" [ngTemplateOutletContext]="{ who: job.group, result: job.result }" />
+                                          <button type="button" class="office-view" aria-label="ดู" (click)="openConsultSlip(jobHead(job.group) || job.group, job.form)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
+                                          <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadConsultSlip(jobHead(job.group) || job.group, job.form)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                          </button>
+                                          <button type="button" class="office-view" aria-label="เอาออก" (click)="removeConsultGroup(job.group)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                          </button>
+                                        </div>
+                                      </td>
                                     </tr>
                                   }
                                 </tbody>
                               </table>
                             </div>
-                          }
+                            @if (consultClosed) {
+                              <p class="act-note">ปิดงานเมื่อ {{ consultClosed.at }} น.</p>
+                            } @else {
+                              <footer class="assign-foot">
+                                <app-button class="icon-before" type="primary" label="ปิดงาน" (click)="closeConsultWork()">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+                                </app-button>
+                              </footer>
+                            }
+                            }
                           </section>
                         } @else if (consultGroupJob(); as job) {
                           <section class="consult-assign" aria-label="มอบหมายงาน">
-                          <header>
-                            <h3>มอบหมายงาน</h3>
-                            <p>กลุ่มงาน {{ job.group }}</p>
-                          </header>
-                          @if (isMyGroupHead() && job.form?.order) {
-                            <p class="act-note">คำสั่งจากผู้อำนวยการ: {{ job.form?.order }} · กำหนดส่ง {{ job.form?.dueOn }} {{ job.form?.dueTime }} น.</p>
-                          }
-                          @if (isMyGroupHead() && job.reply === 'pending') {
-                            <section class="slip" aria-label="รับงานขอคำปรึกษา">
-                              <h3>รับงาน</h3>
-                              <div class="slip-line"><span>สถานะการรับ<span class="req">*</span></span><div class="slip-choices"><button type="button" (click)="consultReceipt = 'accept'"><img [src]="consultReceipt === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ</button><button type="button" (click)="consultReceipt = 'return'"><img [src]="consultReceipt === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคืน</button></div></div>
-                              <ng-container [ngTemplateOutlet]="consultFields" />
-                              <footer class="assign-foot"><app-button type="primary" [label]="consultReceipt === 'return' ? 'ยืนยันการส่งคืน' : 'ยืนยันการรับ'" [state]="consultFormReady ? 'default' : 'disabled'" (click)="replyConsultGroup(consultReceipt)" /></footer>
-                            </section>
-                          } @else if (isMyGroupHead() && job.reply === 'accept') {
-                            <section class="slip" aria-label="มอบหมายให้เจ้าหน้าที่ในกลุ่ม">
-                              <h3>มอบหมายให้เจ้าหน้าที่ในกลุ่ม</h3>
-                              <p>เลือกได้มากกว่า 1 คน เอาออกได้ตลอด แม้จะรับหรือไม่รับ</p>
-                              <div class="slip-line"><span>มอบหมายงานให้<span class="req">*</span></span><div class="slip-choices">@for (person of membersOf(job.group); track person.name) { <button type="button" (click)="toggleConsultOfficer(person.name)"><img [src]="consultPickOfficers.includes(person.name) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />{{ person.name }}</button> }</div></div>
-                              <ng-container [ngTemplateOutlet]="consultFields" />
-                              <footer class="assign-foot"><app-button type="primary" label="มอบหมายงาน" [state]="consultPickOfficers.length && consultFormReady ? 'default' : 'disabled'" (click)="assignConsultOfficers()" /></footer>
-                            </section>
-                            @if (job.officers.length) {
+                            <header>
+                              <span>
+                                <h3>มอบหมายงาน</h3>
+                                <p>กลุ่มงาน {{ job.group }}</p>
+                              </span>
+                            </header>
+                            @if (isMyGroupHead()) {
                               <div class="table-wrap consult-table">
                                 <table>
                                   <thead>
                                     <tr>
-                                      <th>เจ้าหน้าที่</th>
-                                      <th>สถานะ</th>
-                                      <th>การจัดการ</th>
+                                      <th class="col-no">ลำดับ</th>
+                                      <th>กลุ่มงาน</th>
+                                      <th class="col-fit">กำหนดส่ง</th>
+                                      <th class="col-fit">สถานะ</th>
+                                      <th class="col-fit">วันเวลารับ/คืน</th>
+                                      <th class="col-act">การจัดการ</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    @for (officer of job.officers; track officer.name) {
-                                      <tr>
-                                        <td>{{ officer.name }}</td>
-                                        <td><app-status-tag variant="soft" [tone]="officer.reply === 'accept' ? 'info' : officer.reply === 'return' ? 'danger' : 'warning'" [label]="officer.reply === 'accept' ? 'รับ' : officer.reply === 'return' ? 'ส่งคืน' : 'งานเข้าใหม่'" /></td>
-                                        <td><button type="button" class="office-view" (click)="removeConsultOfficer(officer.name)">เอาออก</button></td>
-                                      </tr>
-                                    }
+                                    <tr>
+                                      <td class="col-no">1</td>
+                                      <td>
+                                        <span class="consult-who">
+                                          <strong>{{ job.group }}</strong>
+                                          <small>{{ jobHead(job.group) }} · มอบเมื่อ {{ job.form?.assignedOn || '—' }}</small>
+                                        </span>
+                                      </td>
+                                      <td class="col-fit">{{ job.form?.dueOn ? job.form?.dueOn + ' ' + job.form?.dueTime + ' น.' : '—' }}</td>
+                                      <td class="col-fit">
+                                        <span class="consult-when">
+                                          <app-status-tag variant="soft" [tone]="job.reply === 'return' ? 'danger' : job.reply === 'accept' ? 'info' : 'warning'" [label]="job.reply === 'return' ? 'ส่งคืน' : job.reply === 'accept' ? 'รับ' : 'งานรับใหม่'" />
+                                          @if (job.result) { <app-status-tag variant="soft" tone="success" label="รายงานผล" /> }
+                                        </span>
+                                      </td>
+                                      <td class="col-fit">
+                                        <span class="consult-when">
+                                          <span>{{ replyWhen(job.reply, job.repliedAt) }}</span>
+                                          @if (job.result) { <span>{{ job.result.at }} น.</span> }
+                                        </span>
+                                      </td>
+                                      <td class="col-act">
+                                        <div class="made-actions">
+                                          <ng-container [ngTemplateOutlet]="resultView" [ngTemplateOutletContext]="{ who: job.group, result: job.result }" />
+                                          <button type="button" class="office-view" aria-label="ดู" (click)="openConsultSlip(jobHead(job.group) || job.group, job.form)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
+                                          <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadConsultSlip(jobHead(job.group) || job.group, job.form)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
                                   </tbody>
                                 </table>
                               </div>
+                              @if (consultClosed) {
+                                <p class="act-note">ผู้อำนวยการปิดงานแล้วเมื่อ {{ consultClosed.at }} น.</p>
+                              }
+                              @if (job.reply !== 'return' && !job.officers.length && !consultClosed) {
+                                <section class="slip consult-next" aria-label="แบบฟอร์มมอบหมายให้เจ้าหน้าที่">
+                                  <h3>การดำเนินการต่อ</h3>
+                                  <p>เลือกว่าจะรายงานผลเอง หรือส่งต่องานให้เจ้าหน้าที่ในกลุ่ม</p>
+                                  @if (job.reply === 'pending') {
+                                    <div class="slip-line">
+                                      <span>สถานะการรับ<span class="req">*</span></span>
+                                      <div class="slip-choices">
+                                        <button type="button" (click)="consultReceipt = 'accept'"><img [src]="consultReceipt === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ</button>
+                                        <button type="button" (click)="consultReceipt = 'return'"><img [src]="consultReceipt === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคืน</button>
+                                      </div>
+                                    </div>
+                                  }
+                                  @if (job.reply === 'accept' || consultReceipt !== 'return') {
+                                    <div class="path-choice" role="radiogroup" aria-label="การดำเนินการต่อ">
+                                      <button type="button" [class.on]="consultMove === 'report'" (click)="consultMove = 'report'">
+                                        <img [src]="consultMove === 'report' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                                        <span>
+                                          <strong>รายงานผล</strong>
+                                          <small>กลุ่มนี้ทำงานเอง แล้วรายงานผลให้ผู้อำนวยการตรวจสอบ</small>
+                                        </span>
+                                      </button>
+                                      <button type="button" [class.on]="consultMove === 'forward'" (click)="consultMove = 'forward'">
+                                        <img [src]="consultMove === 'forward' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                                        <span>
+                                          <strong>ส่งต่อ</strong>
+                                          <small>มอบหมายต่อให้เจ้าหน้าที่ในกลุ่ม เลือกชื่อได้มากกว่า 1 คน แล้วกรอกแบบฟอร์ม</small>
+                                        </span>
+                                      </button>
+                                    </div>
+                                  }
+                                  @if ((job.reply === 'accept' || consultReceipt !== 'return') && consultMove === 'forward') {
+                                    <div class="slip-line">
+                                      <span>มอบหมายงานให้<span class="req">*</span></span>
+                                      <ng-container [ngTemplateOutlet]="officerSelect" [ngTemplateOutletContext]="{ group: job.group }" />
+                                    </div>
+                                    <ng-container [ngTemplateOutlet]="consultFields" />
+                                  }
+                                  @if ((job.reply === 'accept' || consultReceipt !== 'return') && consultMove === 'report' && !job.result) {
+                                    <ng-container [ngTemplateOutlet]="resultFields" />
+                                  }
+                                  @if (job.result) {
+                                    <p class="act-note">รายงานผลให้ผู้อำนวยการแล้วเมื่อ {{ job.result.at }} น.</p>
+                                  }
+                                  @if (!job.result && (job.reply === 'pending' || consultMove === 'forward' || (consultMove === 'report' && consultReceipt !== 'return'))) {
+                                    <footer class="assign-foot">
+                                      <app-button class="icon-before" type="primary" [label]="job.reply === 'pending' && consultReceipt === 'return' ? 'ยืนยันการส่งคืน' : consultMove === 'forward' ? 'มอบหมายงาน' : 'รายงานผล'" [state]="headWorkCanSend ? 'default' : 'disabled'" (click)="submitHeadWork()">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 8v6M17 11h6" /></svg>
+                                      </app-button>
+                                    </footer>
+                                  }
+                                </section>
+                              }
+                              @if (job.reply !== 'return' && job.officers.length) {
+                                  <header>
+                                    <span>
+                                      <h3>เจ้าหน้าที่ที่ได้รับมอบหมาย</h3>
+                                      <p>รายชื่อที่ส่งต่องานไปแล้ว</p>
+                                    </span>
+                                    @if (!consultClosed) {
+                                    <app-button class="icon-before" type="primary" label="มอบหมายงานเพิ่ม" (click)="openConsultForm('officers')">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 8v6M17 11h6" /></svg>
+                                    </app-button>
+                                    }
+                                  </header>
+                                  <div class="table-wrap consult-table">
+                                    <table>
+                                      <thead>
+                                        <tr>
+                                          <th class="col-no">ลำดับ</th>
+                                          <th>เจ้าหน้าที่</th>
+                                          <th class="col-fit">กำหนดส่ง</th>
+                                          <th class="col-fit">สถานะ</th>
+                                      <th class="col-fit">วันเวลารับ/คืน</th>
+                                          <th class="col-act">การจัดการ</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @for (officer of job.officers; track officer.name; let i = $index) {
+                                          <tr>
+                                            <td class="col-no">{{ i + 1 }}</td>
+                                            <td>
+                                              <span class="consult-who">
+                                                <strong>{{ officer.name }}</strong>
+                                                <small>มอบเมื่อ {{ officer.form?.assignedOn || '—' }}</small>
+                                              </span>
+                                            </td>
+                                            <td class="col-fit">{{ officer.form?.dueOn ? officer.form?.dueOn + ' ' + officer.form?.dueTime + ' น.' : '—' }}</td>
+                                            <td class="col-fit">
+                                              <span class="consult-when">
+                                                <app-status-tag variant="soft" [tone]="officer.reply === 'accept' ? 'info' : officer.reply === 'return' ? 'danger' : 'warning'" [label]="officer.reply === 'accept' ? 'รับ' : officer.reply === 'return' ? 'ส่งคืน' : 'งานรับใหม่'" />
+                                                @if (officer.result || officer.move === 'report') { <app-status-tag variant="soft" tone="success" label="รายงานผล" /> }
+                                                @if (officer.move === 'forward') { <app-status-tag variant="soft" tone="info" label="ส่งต่อ" /> }
+                                              </span>
+                                            </td>
+                                            <td class="col-fit">
+                                              <span class="consult-when">
+                                                <span>{{ replyWhen(officer.reply, officer.repliedAt) }}</span>
+                                                @if (officer.result) { <span>{{ officer.result.at }} น.</span> }
+                                              </span>
+                                            </td>
+                                            <td class="col-act">
+                                              <div class="made-actions">
+                                                <ng-container [ngTemplateOutlet]="resultView" [ngTemplateOutletContext]="{ who: officer.name, result: officer.result }" />
+                                                <button type="button" class="office-view" aria-label="ดู" (click)="openConsultSlip(officer.name, officer.form)">
+                                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                                </button>
+                                                <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadConsultSlip(officer.name, officer.form)">
+                                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                                </button>
+                                                <button type="button" class="office-view" aria-label="เอาออก" (click)="removeConsultOfficer(officer.name)">
+                                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                                </button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  @if (!consultClosed && !job.result && officersReported(job)) {
+                                    <section class="slip" aria-label="รายงานผลให้ผู้อำนวยการ">
+                                      <h3>รายงานผลให้ผู้อำนวยการ</h3>
+                                      <p>รวบรวมผลจากเจ้าหน้าที่ แล้วรายงานผลให้ผู้อำนวยการตรวจสอบ</p>
+                                      @for (officer of job.officers; track officer.name) {
+                                        @if (officer.result) {
+                                          <p class="act-note">{{ officer.name }} รายงานผลเมื่อ {{ officer.result.at }} น. {{ officer.result.detail }}</p>
+                                        }
+                                      }
+                                      <ng-container [ngTemplateOutlet]="resultFields" />
+                                      <footer class="assign-foot">
+                                        <app-button class="icon-before" type="primary" label="รายงานผล" [state]="resultDetail.trim() ? 'default' : 'disabled'" (click)="submitGroupResult()">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                                        </app-button>
+                                      </footer>
+                                    </section>
+                                  }
+                                  @if (job.result) {
+                                    <p class="act-note">รายงานผลให้ผู้อำนวยการแล้วเมื่อ {{ job.result.at }} น.</p>
+                                  }
+                              }
+                            } @else if (myConsultOfficer(); as mine) {
+                              <div class="table-wrap consult-table">
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th class="col-no">ลำดับ</th>
+                                      <th>เจ้าหน้าที่</th>
+                                      <th class="col-fit">กำหนดส่ง</th>
+                                      <th class="col-fit">สถานะ</th>
+                                      <th class="col-fit">วันเวลารับ/คืน</th>
+                                      <th class="col-act">การจัดการ</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr>
+                                      <td class="col-no">1</td>
+                                      <td>
+                                        <span class="consult-who">
+                                          <strong>{{ mine.name }}</strong>
+                                          <small>มอบเมื่อ {{ mine.form?.assignedOn || '—' }}</small>
+                                        </span>
+                                      </td>
+                                      <td class="col-fit">{{ mine.form?.dueOn ? mine.form?.dueOn + ' ' + mine.form?.dueTime + ' น.' : '—' }}</td>
+                                      <td class="col-fit">
+                                        <span class="consult-when">
+                                          <app-status-tag variant="soft" [tone]="mine.reply === 'accept' ? 'info' : mine.reply === 'return' ? 'danger' : 'warning'" [label]="mine.reply === 'accept' ? 'รับ' : mine.reply === 'return' ? 'ส่งคืน' : 'งานรับใหม่'" />
+                                          @if (mine.result || mine.move === 'report') { <app-status-tag variant="soft" tone="success" label="รายงานผล" /> }
+                                          @if (mine.move === 'forward') { <app-status-tag variant="soft" tone="info" label="ส่งต่อ" /> }
+                                        </span>
+                                      </td>
+                                      <td class="col-fit">
+                                        <span class="consult-when">
+                                          <span>{{ replyWhen(mine.reply, mine.repliedAt) }}</span>
+                                          @if (mine.result) { <span>{{ mine.result.at }} น.</span> }
+                                        </span>
+                                      </td>
+                                      <td class="col-act">
+                                        <div class="made-actions">
+                                          <ng-container [ngTemplateOutlet]="resultView" [ngTemplateOutletContext]="{ who: mine.name, result: mine.result }" />
+                                          <button type="button" class="office-view" aria-label="ดู" (click)="openConsultSlip(mine.name, mine.form)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
+                                          <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadConsultSlip(mine.name, mine.form)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                              @if (consultClosed) {
+                                <p class="act-note">ผู้อำนวยการปิดงานแล้วเมื่อ {{ consultClosed.at }} น.</p>
+                              }
+                              @if (!consultClosed && mine.reply === 'pending') {
+                                <div class="path-choice" role="radiogroup" aria-label="สถานะการรับ">
+                                  <button type="button" [class.on]="consultReceipt === 'accept'" (click)="consultReceipt = 'accept'">
+                                    <img [src]="consultReceipt === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                                    <span>
+                                      <strong>รับ</strong>
+                                      <small>รับงานนี้ไว้ดำเนินการ</small>
+                                    </span>
+                                  </button>
+                                  <button type="button" [class.on]="consultReceipt === 'return'" (click)="consultReceipt = 'return'">
+                                    <img [src]="consultReceipt === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                                    <span>
+                                      <strong>ส่งคืน</strong>
+                                      <small>ส่งงานกลับให้หัวหน้ากลุ่ม</small>
+                                    </span>
+                                  </button>
+                                </div>
+                                <footer class="assign-foot">
+                                  <app-button class="icon-before" type="primary" [label]="consultReceipt === 'return' ? 'ยืนยันการส่งคืน' : 'ยืนยันการรับ'" (click)="replyConsultOfficer(consultReceipt)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+                                  </app-button>
+                                </footer>
+                              }
+                              @if (!consultClosed && mine.reply === 'accept' && !mine.result) {
+                                <section class="slip" aria-label="รายงานผล">
+                                  <h3>รายงานผล</h3>
+                                  <p>รายงานผลการทำงานให้หัวหน้ากลุ่ม</p>
+                                  <ng-container [ngTemplateOutlet]="resultFields" />
+                                  <footer class="assign-foot">
+                                    <app-button class="icon-before" type="primary" label="รายงานผล" [state]="resultDetail.trim() ? 'default' : 'disabled'" (click)="submitOfficerResult()">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                                    </app-button>
+                                  </footer>
+                                </section>
+                              }
+                              @if (mine.result) {
+                                <p class="act-note">รายงานผลให้หัวหน้ากลุ่มแล้วเมื่อ {{ mine.result.at }} น.</p>
+                              }
+                            } @else if (!isMyGroupHead()) {
+                              <p class="act-note">รอหัวหน้ากลุ่มมอบหมาย</p>
                             }
-                          } @else if (isMyGroupHead() && job.reply === 'return') {
-                            <p class="act-note">ส่งคืนแล้ว</p>
-                          } @else if (myConsultOfficer(); as mine) {
-                            @if (mine.form?.order) {
-                              <p class="act-note">คำสั่ง: {{ mine.form?.order }} · กำหนดส่ง {{ mine.form?.dueOn }} {{ mine.form?.dueTime }} น.</p>
-                            }
-                            @if (mine.reply === 'pending') {
-                              <section class="slip" aria-label="รับงานที่ได้รับมอบ">
-                                <h3>รับงาน</h3>
-                                <div class="slip-line"><span>สถานะการรับ<span class="req">*</span></span><div class="slip-choices"><button type="button" (click)="consultReceipt = 'accept'"><img [src]="consultReceipt === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ</button><button type="button" (click)="consultReceipt = 'return'"><img [src]="consultReceipt === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคืน</button></div></div>
-                                <div class="slip-line"><span>สถานะ<span class="req">*</span></span><div class="slip-choices"><button type="button" (click)="consultMove = 'report'"><img [src]="consultMove === 'report' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รายงานผล</button><button type="button" (click)="consultMove = 'forward'"><img [src]="consultMove === 'forward' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งต่อ</button></div></div>
-                                <ng-container [ngTemplateOutlet]="consultFields" />
-                                <footer class="assign-foot"><app-button type="primary" [label]="consultReceipt === 'return' ? 'ยืนยันการส่งคืน' : 'ยืนยันการรับ'" [state]="consultFormReady ? 'default' : 'disabled'" (click)="replyConsultOfficer(consultReceipt)" /></footer>
-                              </section>
-                            } @else {
-                              <p class="act-note">{{ mine.reply === 'return' ? 'ส่งคืนแล้ว' : 'รับงานแล้ว' }}</p>
-                            }
-                          } @else if (!isMyGroupHead()) {
-                            <p class="act-note">รอหัวหน้ากลุ่มมอบหมาย</p>
-                          }
                           </section>
                         } @else if (reviewRole !== 'director' && reviewRole !== 'staff') {
                           <section class="consult-assign" aria-label="มอบหมายงาน">
                             <header><h3>มอบหมายงาน</h3></header>
                             <p class="act-note">เห็นรายการที่ยื่นขอเข้ามา ยังมอบหมายงานไม่ได้</p>
                           </section>
+                        }
+                        @if (consultForm) {
+                          <div class="assign-pop" (click)="closeConsultForm()">
+                            <section class="assign-dialog" role="dialog" aria-modal="true" aria-labelledby="consult-form-title" (click)="$event.stopPropagation()">
+                              <header>
+                                <div>
+                                  <h2 id="consult-form-title">{{ consultFormTitle }}</h2>
+                                  <p>{{ consultFormHint }}</p>
+                                </div>
+                                <button type="button" aria-label="ปิด" (click)="closeConsultForm()">✕</button>
+                              </header>
+                              <div class="consult-form">
+                                @if (consultForm === 'groups') {
+                                  <div class="group-pick">
+                                    <header>
+                                      <span>
+                                        <strong>เลือกกลุ่มงาน</strong>
+                                        <small>เลือกได้มากกว่า 1 กลุ่ม</small>
+                                      </span>
+                                      <em>เลือกแล้ว {{ consultPickGroups.length }} กลุ่ม</em>
+                                    </header>
+                                    <div class="group-pick__grid" role="group" aria-label="มอบหมายงานให้">
+                                      @for (group of assignableGroups; track group.name) {
+                                        <button type="button" [class.on]="consultPickGroups.includes(group.name)" [attr.aria-pressed]="consultPickGroups.includes(group.name)" (click)="toggleConsultGroup(group.name)">
+                                          <img [src]="consultPickGroups.includes(group.name) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                                          <span>
+                                            <strong>{{ groupLabel(group.name) }}</strong>
+                                            <small>{{ group.name }}</small>
+                                          </span>
+                                        </button>
+                                      }
+                                    </div>
+                                  </div>
+                                }
+                                @if (consultForm === 'officers' && consultGroupJob(); as picked) {
+                                  <div class="slip-line">
+                                    <span>มอบหมายงานให้<span class="req">*</span></span>
+                                    <ng-container [ngTemplateOutlet]="officerSelect" [ngTemplateOutletContext]="{ group: picked.group }" />
+                                  </div>
+                                }
+                                @if (consultForm === 'group-reply') {
+                                  <div class="slip-line">
+                                    <span>สถานะการรับ<span class="req">*</span></span>
+                                    <div class="slip-choices">
+                                      <button type="button" (click)="consultReceipt = 'accept'"><img [src]="consultReceipt === 'accept' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ</button>
+                                      <button type="button" (click)="consultReceipt = 'return'"><img [src]="consultReceipt === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคืน</button>
+                                    </div>
+                                  </div>
+                                }
+                                <ng-container [ngTemplateOutlet]="consultFields" />
+                              </div>
+                              <footer>
+                                <app-button class="icon-before" type="outline" label="ยกเลิก" (click)="closeConsultForm()">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                                </app-button>
+                                <app-button class="icon-before" type="primary" [label]="consultForm === 'groups' || consultForm === 'officers' ? 'มอบหมายงาน' : consultReceipt === 'return' ? 'ยืนยันการส่งคืน' : 'ยืนยันการรับ'" [state]="consultFormCanSend ? 'default' : 'disabled'" (click)="submitConsultForm()">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 8v6M17 11h6" /></svg>
+                                </app-button>
+                              </footer>
+                            </section>
+                          </div>
                         }
                       </article>
                     } @else if (activeDuty?.tasks?.length) {
@@ -1023,6 +1480,7 @@
                         }
                       </ul>
                     }
+                    @if (activeDuty?.title !== 'ขอคำปรึกษา') {
                     @if (false && canAssignWork && (peopleReady || reviewRole === 'staff')) {
                       <ol class="handoff" aria-label="ขั้นตอนการมอบหมาย">
                         @for (step of handoffSteps; track step.title) {
@@ -1109,6 +1567,7 @@
                           }
                         }
                       </ul>
+                    }
                     }
                     @if (false && reviewRole === 'director' && assignReply === 'return' && replyReason) {
                       <label class="assign-remark">เหตุผลการส่งคืน
@@ -3876,6 +4335,13 @@
     </section>
   </div>
 }
+<ng-template #resultView let-who="who" let-result="result">
+  @if (result) {
+    <button type="button" class="office-view" aria-label="ดูรายงานผล" (click)="openConsultResult(who, result)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+    </button>
+  }
+</ng-template>
 <ng-template #slipView let-slip="slip">
   <article class="slip-view">
     <header>
@@ -3920,11 +4386,16 @@
   <div class="sample sample--submit sample--check" (click)="officialOpen = false">
     <section role="dialog" aria-modal="true" aria-labelledby="official-title" (click)="$event.stopPropagation()">
       <div class="submit__bar">
-        <h2 id="official-title">ยืนยันส่งแบบยื่นทางการ</h2>
+        <h2 id="official-title">{{ caseStatus === 'consult' && consultDutyAssigned ? 'ส่งขออนุมัติยื่นแบบทางการ' : 'ยืนยันยื่นแบบทางการ' }}</h2>
         <button type="button" class="submit__close" (click)="officialOpen = false">✕ ปิด</button>
       </div>
-      @if (caseStatus === 'consult') {
-        <p class="submit__hint">ไม่มีการแก้ไขแบบเพิ่ม ระบบส่งให้ผู้รับมอบหมายที่รับเรื่องแล้วกดอนุมัติก่อน สถานะจึงเป็นยื่นแบบ{{ approverNames().length ? ' ผู้รับเรื่องแล้วคือ ' + approverNames().join(' และ ') : '' }}</p>
+      @if (caseStatus === 'consult' && consultDutyAssigned) {
+        <p class="submit__hint">มีการมอบหมายงานแล้ว ส่งให้เจ้าหน้าที่รับผิดชอบตรวจสอบก่อน สถานะจึงเป็นยื่นแบบ ผู้รับผิดชอบคือ {{ filingOwners().join(' และ ') }}</p>
+        @if (filingGate?.state === 'rejected') {
+          <p class="submit__hint">ครั้งก่อนยังไม่ผ่าน: {{ filingGate.reason }}</p>
+        }
+      } @else if (caseStatus === 'consult') {
+        <p class="submit__hint">ยังไม่มีการมอบหมายงาน สถานะจะเป็นยื่นแบบทันที</p>
       } @else {
         <p class="submit__hint">ระบบจะบันทึกคำขอนี้เป็นสถานะยื่นแบบ</p>
       }
@@ -3932,12 +4403,12 @@
         <app-button class="icon-before" type="outline" label="กลับไปพิจารณา" (click)="officialOpen = false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
         </app-button>
-        @if (caseStatus === 'consult') {
-          <app-button class="icon-before" type="primary" label="ส่งให้ผู้รับมอบหมายอนุมัติ" (click)="confirmOfficial()">
+        @if (caseStatus === 'consult' && consultDutyAssigned) {
+          <app-button class="icon-before" type="primary" label="ส่งขออนุมัติ" (click)="confirmOfficial()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </app-button>
         } @else {
-          <app-button class="icon-before" type="primary" label="ยืนยันส่งแบบยื่นทางการ" (click)="confirmOfficial()">
+          <app-button class="icon-before" type="primary" label="ยืนยันยื่นแบบทางการ" (click)="confirmOfficial()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
           </app-button>
         }
@@ -4076,8 +4547,12 @@
         <p><strong>รายละเอียด</strong><br>{{ replyLetterBody }}</p>
       </div>
       <footer>
-        <app-button type="outline" label="ดาวน์โหลด" (click)="downloadReplyFile(viewingReply)" />
-        <app-button type="primary" label="ปิด" (click)="viewingReply = null" />
+        <app-button class="icon-before" type="outline" label="ดาวน์โหลด" (click)="downloadReplyFile(viewingReply)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+        </app-button>
+        <app-button class="icon-before" type="primary" label="ปิด" (click)="viewingReply = null">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </app-button>
       </footer>
     </section>
   </div>
@@ -4099,8 +4574,12 @@
         }
       </div>
       <footer>
-        <app-button type="outline" label="ดาวน์โหลด" (click)="downloadNoticeFile(viewingNotice)" />
-        <app-button type="primary" label="ปิด" (click)="viewingNotice = ''" />
+        <app-button class="icon-before" type="outline" label="ดาวน์โหลด" (click)="downloadNoticeFile(viewingNotice)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+        </app-button>
+        <app-button class="icon-before" type="primary" label="ปิด" (click)="viewingNotice = ''">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </app-button>
       </footer>
     </section>
   </div>
@@ -4122,8 +4601,12 @@
         }
       </div>
       <footer>
-        <app-button type="outline" label="ดาวน์โหลด" (click)="downloadMade(viewingMade)" />
-        <app-button type="primary" label="ปิด" (click)="viewingMade = null" />
+        <app-button class="icon-before" type="outline" label="ดาวน์โหลด" (click)="downloadMade(viewingMade)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+        </app-button>
+        <app-button class="icon-before" type="primary" label="ปิด" (click)="viewingMade = null">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </app-button>
       </footer>
     </section>
   </div>

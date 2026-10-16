@@ -9,9 +9,11 @@ const reviewUntilKey = 'dft-por1-review-until';
 const approvalUntilKey = 'dft-por1-approval-until';
 const approvedByKey = 'dft-por1-approved-by';
 const consultKey = 'dft-por1-consult';
+const consultJobKey = 'dft-por1-consult-jobs';
+const filingGateKey = 'dft-por1-filing-gate';
 
 export type ConsultWay = 'phone' | 'online' | 'onsite';
-export type ConsultRequest = { topic: string; detail: string; when: string; channel?: ConsultWay };
+export type ConsultRequest = { topic: string; detail: string; when: string; channel?: ConsultWay; by?: string; at?: string };
 export type ConsultNote = {
   from: 'applicant' | 'officer';
   text: string;
@@ -192,9 +194,48 @@ export function acceptedAssignees(value: WorkAssignment): string[] {
   return [...new Set(names)];
 }
 
+export type FilingGate = { state: 'pending' | 'rejected'; at: string; owners: string[]; by?: string; reason?: string };
+
+export function readFilingGate(): FilingGate | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(filingGateKey) || 'null') as FilingGate | null;
+    if (!value || (value.state !== 'pending' && value.state !== 'rejected') || !Array.isArray(value.owners)) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+export function writeFilingGate(gate: FilingGate | null): void {
+  if (!gate) sessionStorage.removeItem(filingGateKey);
+  else sessionStorage.setItem(filingGateKey, JSON.stringify(gate));
+}
+
+/** เจ้าหน้าที่ที่ได้รับมอบหมายในคำขอปรึกษา หรือหัวหน้ากลุ่มถ้ากลุ่มนั้นทำงานเอง */
+export function consultFilingOwners(): string[] {
+  let jobs: { group?: string; officers?: { name?: string }[] }[] = [];
+  try {
+    const value = JSON.parse(sessionStorage.getItem(consultJobKey) || '[]') as { group?: string; officers?: { name?: string }[] }[];
+    jobs = Array.isArray(value) ? value : [];
+  } catch {
+    jobs = [];
+  }
+  const names: string[] = [];
+  for (const job of jobs) {
+    const officers = (job.officers ?? []).map((officer) => officer.name || '').filter((name) => !!name);
+    if (officers.length) names.push(...officers);
+    else if (job.group) {
+      const head = groupHead(job.group);
+      if (head) names.push(head);
+    }
+  }
+  return [...new Set(names)];
+}
+
 export function caseStatusLabel(status: CaseStatus): string {
   if (status === 'review') return 'อยู่ระหว่างตรวจสอบ';
   if (status === 'revision') return 'กรุณาแก้ไขข้อมูล';
+  if (status === 'consult' && readFilingGate()?.state === 'rejected') return 'ยังไม่ผ่าน';
   if (status === 'consult' && !readConsultAssigned()) {
     const step = readConsultStep();
     if (step === 'receive' || step === 'forward') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
@@ -202,7 +243,7 @@ export function caseStatusLabel(status: CaseStatus): string {
     return 'รอผู้อำนวยการมอบหมายกลุ่ม';
   }
   if (status === 'consult') return 'รอนัดพบเจ้าหน้าที่';
-  if (status === 'approval') return 'รอผู้รับมอบหมายอนุมัติ';
+  if (status === 'approval') return readFilingGate()?.state === 'pending' ? 'ส่งมาขออนุมัติ' : 'รอผู้รับมอบหมายอนุมัติ';
   if (status === 'official') return 'ยื่นแบบ';
   if (status === 'cancelled') return 'ยกเลิก';
   return 'ร่าง';
@@ -1055,6 +1096,8 @@ export function startFilingCase(): void {
 }
 
 export function caseStatusTone(status: CaseStatus): StatusTone {
+  if (status === 'consult' && readFilingGate()?.state === 'rejected') return 'danger';
+  if (status === 'approval' && readFilingGate()?.state === 'pending') return 'warning';
   if (status === 'review' || status === 'consult' || status === 'approval') return 'info';
   if (status === 'revision') return 'warning';
   if (status === 'official') return 'success';

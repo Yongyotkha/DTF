@@ -6,7 +6,7 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { assignmentReachesOfficer, groupHead, groupMembers, staffPeople, workGroups } from './staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep } from '../requests/case-status';
+import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
 
 type Bucket = 'in' | 'pending' | 'out' | 'follow' | 'group';
 type WorkKind = 'request' | 'job' | 'track';
@@ -64,6 +64,7 @@ export class StaffHomePage implements OnDestroy {
   protected readonly officerUnit = filingUnit;
   protected readonly applicantName = 'บมจ. สหวิริยาสตีลอินดัสตรี';
   protected awaitingApproval = readCaseStatus() === 'approval';
+  protected filingGate: FilingGate | null = readFilingGate();
   protected awaitingConsult = false;
   protected consultAssigned = false;
   protected consultStep: ConsultStep = 'receive';
@@ -106,10 +107,13 @@ export class StaffHomePage implements OnDestroy {
 
   protected get deskStats(): { id: DeskFilter; label: string; count: number }[] {
     if (this.role === 'officer') {
+      const owned = this.consultOfficerAssignment();
       const consultOpen = readCaseStatus() === 'consult' && !!readConsult();
-      const mine = consultOpen
-        ? (this.officerOwnsConsult() ? 1 : 0)
-        : (assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned) ? 1 : 0);
+      const mine = owned
+        ? 1
+        : consultOpen
+          ? (this.officerOwnsConsult() ? 1 : 0)
+          : (assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned) ? 1 : 0);
       return [
         { id: 'in', label: 'งานรับเข้า', count: mine },
         { id: 'wait', label: 'รอมอบหมาย', count: 0 },
@@ -189,6 +193,22 @@ export class StaffHomePage implements OnDestroy {
     return readCaseStatus() === 'consult' && !!readConsult() && (this.consultStep === 'receive' || this.consultStep === 'forward');
   }
 
+  private consultOfficerAssignment(): { reply?: string; result?: unknown } | undefined {
+    const me = this.accounts.personName;
+    if (!me) return undefined;
+    try {
+      const jobs = JSON.parse(sessionStorage.getItem('dft-por1-consult-jobs') || '[]') as { officers?: { name?: string; reply?: string; result?: unknown }[] }[];
+      if (!Array.isArray(jobs)) return undefined;
+      for (const job of jobs) {
+        const mine = job.officers?.find((officer) => officer.name === me);
+        if (mine) return mine;
+      }
+    } catch {
+      return undefined;
+    }
+    return undefined;
+  }
+
   private officerOwnsConsult(): boolean {
     if (readCaseStatus() !== 'consult' || !readConsult() || this.consultStep !== 'member' || !this.consultAssigned) return false;
     const me = this.accounts.personName;
@@ -199,6 +219,13 @@ export class StaffHomePage implements OnDestroy {
 
   private officerJobs(filter: DeskFilter): TaskCase[] {
     if (filter !== 'in' && filter !== 'doing') return [];
+    if (filter === 'in' && this.awaitingApproval && this.canApprove) return [{ ...this.liveJob('ส่งมาขออนุมัติ', 'warning'), title: 'ขอคำปรึกษา' }];
+    const owned = this.consultOfficerAssignment();
+    if (owned) {
+      const status = owned.result ? 'รายงานผล' : owned.reply === 'accept' ? 'กำลังดำเนินงาน' : owned.reply === 'return' ? 'ส่งคืน' : 'งานรับใหม่';
+      const tone = owned.result || owned.reply === 'accept' ? 'success' as const : owned.reply === 'return' ? 'danger' as const : 'warning' as const;
+      return [{ ...this.liveJob(status, tone), title: 'ขอคำปรึกษา' }];
+    }
     if (readCaseStatus() === 'consult' && readConsult()) {
       return this.officerOwnsConsult() ? [this.liveJob(assignmentStepLabel(readWorkAssignment()), assignmentStepTone(readWorkAssignment()))] : [];
     }
@@ -357,6 +384,7 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected approverNames(): string[] {
+    if (this.filingGate?.state === 'pending' && this.filingGate.owners.length) return this.filingGate.owners;
     return acceptedAssignees(readWorkAssignment());
   }
 
@@ -366,12 +394,16 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected jobLabel(row: TaskCase): string {
-    if (row.code === this.filingRef && this.canApprove) return 'อนุมัติการยื่นแบบ';
+    if (row.code === this.filingRef && this.canApprove) return this.filingGate?.state === 'pending' ? 'ตรวจสอบคำขอ' : 'อนุมัติการยื่นแบบ';
     if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') return 'มอบหมายกลุ่ม';
     return 'ดูคำขอ';
   }
 
   protected jobClick(row: TaskCase): void {
+    if (row.code === this.filingRef && this.canApprove && this.filingGate?.state === 'pending') {
+      this.openFiling();
+      return;
+    }
     if (row.code === this.filingRef && this.canApprove) {
       this.approveFiling();
       return;
@@ -490,8 +522,10 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected approveFiling(): void {
-    if (readCaseStatus() !== 'approval' || !this.canApprove) return;
+    if (readCaseStatus() !== 'approval' || !this.canApprove || this.filingGate?.state === 'pending') return;
     writeApprovedBy(this.accounts.personName);
+    writeFilingGate(null);
+    this.filingGate = null;
     writeCaseStatus('official');
     this.awaitingApproval = false;
   }
@@ -541,6 +575,7 @@ export class StaffHomePage implements OnDestroy {
     this.consultTopic = request?.topic ?? '';
     this.consultWhen = request?.channel === 'phone' ? 'โทรศัพท์' : request?.channel === 'online' ? 'Online' : request?.channel === 'onsite' ? 'OnSite' : (request?.when ?? '');
     this.awaitingApproval = readCaseStatus() === 'approval';
+    this.filingGate = readFilingGate();
     if (!this.awaitingConsult) this.assignOpen = false;
   }
 
