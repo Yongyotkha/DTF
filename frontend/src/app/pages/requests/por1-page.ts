@@ -80,10 +80,14 @@ function defaultWorkDrafts(): WorkDraft[] {
         field('วันที่', '20/05/2562'),
         field('เรื่อง', 'ขอความอนุเคราะห์ข้อมูลผู้ผลิตสินค้าเหล็กแผ่นรีดร้อน'),
         field('เรียน', 'ผู้อำนวยการศูนย์สารสนเทศโรงงานอุตสาหกรรม กรมโรงงานอุตสาหกรรม\nผู้อำนวยการสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nประธานกลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย\nผู้อำนวยการศูนย์สารสนเทศเศรษฐกิจอุตสาหกรรม สำนักงานเศรษฐกิจอุตสาหกรรม', true),
+        field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 ลงวันที่ 15/05/2562'),
         field('สิ่งที่ส่งมาด้วย', '1. แบบแสดงรายชื่อผู้ผลิต พร้อมสถานที่ตั้ง\n2. แบบแสดงกำลังการผลิตและปริมาณการผลิต\n3. แบบแสดงปริมาณความต้องการใช้ภายในประเทศ', true),
         field('เนื้อความ', 'ด้วยกรมการค้าต่างประเทศได้รับคำขอเลขที่อ้างอิง REF256205150001 จากบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้พิจารณาตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอข้อมูลผู้ผลิตในประเทศ ได้แก่ รายชื่อและสถานที่ตั้ง กำลังการผลิตและปริมาณการผลิตช่วงปี 2561 ถึงต้นปี 2562 และปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน', true),
         field('กำหนดส่งข้อมูล', '20/06/2562'),
+        field('โทรศัพท์', ''),
+        field('โทรสาร', ''),
         field('ลงชื่อ', 'กองปกป้องและตอบโต้ทางการค้า'),
+        field('ตำแหน่ง', 'กองปกป้องและตอบโต้ทางการค้า กรมการค้าต่างประเทศ'),
       ],
     },
     {
@@ -93,7 +97,13 @@ function defaultWorkDrafts(): WorkDraft[] {
         field('วัตถุประสงค์', 'รวมอุปสงค์และอุปทานให้สอดคล้องกับฐานะผู้ยื่นในคำขอ REF256205150001 และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
         field('วิธีจัดทำ', '1. รวมรายชื่อผู้ผลิตจาก 4 หน่วยงาน\n2. ดูยอดรวมของแต่ละรายการ\n3. ใช้รายการที่ใหญ่ที่สุดเป็นรายชื่อหลัก\n4. ตรวจชื่อซ้ำจากการพิมพ์หรือบริษัทเดียวกันแต่คนละที่อยู่', true),
         field('หน่วยงาน', 'กรมโรงงานอุตสาหกรรม\nสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nสภาอุตสาหกรรมแห่งประเทศไทย\nสำนักงานเศรษฐกิจอุตสาหกรรม', true),
+        field('วันที่ได้รับข้อมูล', '28/05/2562'),
+        field('เลขที่หนังสือตอบกลับ', 'กรมโรงงานอุตสาหกรรม อก 1234/2562\nสถาบันเหล็กและเหล็กกล้า เหล็ก 88/2562\nสภาอุตสาหกรรมแห่งประเทศไทย อก. 56/2562\nสำนักงานเศรษฐกิจอุตสาหกรรม ศก. 210/2562', true),
+        field('รายชื่อผู้ผลิต', 'ใช้รายชื่อที่มียอดใหญ่ที่สุดจาก 4 หน่วยงานเป็นรายชื่อหลัก แล้วตัดชื่อซ้ำจากการพิมพ์คนละแบบหรือบริษัทเดียวกันแต่คนละที่อยู่', true),
+        field('กำลังการผลิตและปริมาณการผลิต', 'รวมกำลังการผลิตและปริมาณการผลิตปี 2561 ถึงต้นปี 2562 จากแบบที่หน่วยงานส่งกลับ', true),
+        field('ปริมาณความต้องการใช้ภายในประเทศ', 'รวมปริมาณความต้องการใช้ภายในประเทศช่วงเดียวกับคำขอ เพื่อเทียบกับฐานะผู้ยื่น', true),
         field('จุดที่ข้อมูลยังไม่ครบ', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562\nปริมาณนำเข้าที่เชื่อมกับความเสียหาย\nรายชื่อผู้ผลิตที่ร่วมยื่นตามหนังสือมอบอำนาจ', true),
+        field('สรุปที่นำไปใช้', 'ใช้รายชื่อหลักและยอดรวมนี้จัดทำแบบสอบถามเบื้องต้น และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
       ],
     },
     {
@@ -101,34 +111,49 @@ function defaultWorkDrafts(): WorkDraft[] {
       file: 'แบบสอบถามเบื้องต้น จาก Sum ข้อมูลจาก 4 หน่วยงาน',
       fields: [
         field('ชื่อแบบ', 'แบบสอบถามเบื้องต้น กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
+        field('กลุ่มผู้รับแบบ', 'ผู้ผลิตเหล็กแผ่นรีดร้อนในประเทศที่อยู่ในรายชื่อหลักจาก 4 หน่วยงาน'),
         field('คำขอ', 'REF256205150001 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
+        field('วันที่จัดทำ', '28/05/2562'),
         field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'เป็นผู้ผลิตในประเทศ ผู้ยื่นคำขอ หรือผู้ที่เกี่ยวข้องอย่างอื่น', true),
         field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'กำลังการผลิตและปริมาณการผลิต ปี 2561 ถึงต้นปี 2562', true),
         field('ส่วนที่ 3 ราคา', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 และช่วงเวลาที่ครอบคลุม', true),
         field('ส่วนที่ 4 ความเสียหาย', 'ปริมาณนำเข้าเชื่อมกับตัวชี้วัดความเสียหายอย่างไร', true),
         field('ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น', 'รายชื่อผู้ผลิตที่ร่วมยื่นครบตามหนังสือมอบอำนาจหรือไม่', true),
+        field('ช่องทางส่งคำตอบ', 'ส่งกลับกองปกป้องและตอบโต้ทางการค้า พร้อมไฟล์แบบที่กรอกแล้ว'),
+        field('ผู้จัดทำ', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
         field('กำหนดส่งคำตอบ', '20/06/2562'),
       ],
     },
   ];
 }
 
+const defaultNoticeGaps: DocGap[] = [
+  { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
+  { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
+  { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
+];
+
+function gapSentence(gap: DocGap): string {
+  const place = gap.place.trim();
+  const rest = [gap.title.trim(), gap.detail.trim()].filter(Boolean).join(' ');
+  if (place && rest) return `${place}: ${rest}`;
+  return place || rest;
+}
+
+function noticeBody(action: DocAction, dueOn: string, gaps: DocGap[]): string {
+  if (action === 'complete') return 'ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด แล้ว เห็นว่าคำขอและเอกสารประกอบครบถ้วนถูกต้อง';
+  const lines = gaps.map((gap, index) => `${index + 1}. ${gapSentence(gap)}`).filter((line) => !line.endsWith('. ')).join('\n');
+  if (action === 'late') return `ด้วยครบกำหนดแก้ไขเพิ่มเติมคำขอเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้องในเรื่องดังนี้\n${lines}`;
+  return `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 แล้ว ยังไม่ครบถ้วนดังนี้ จึงขอให้ส่งข้อมูลเพิ่มภายใน ${dueOn}\n${lines}`;
+}
+
 function noticeLetterFields(action: DocAction, noticedOn: string, dueOn: string, signer: string): WorkDraft['fields'] {
-  const gaps = [
-    'หลักฐานราคายังไม่ครอบคลุมช่วงปลายปี 2561 ถึงต้นปี 2562',
-    'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย',
-    'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบตามหนังสือมอบอำนาจ',
-  ];
   const subject = action === 'complete'
     ? 'แจ้งผลการตรวจคำขอครบถ้วนถูกต้อง'
     : action === 'late'
       ? 'แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน'
       : 'แจ้งให้ส่งข้อมูลเพิ่มเติมคำขอตอบโต้การทุ่มตลาด';
-  const body = action === 'complete'
-    ? 'ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด แล้ว เห็นว่าคำขอและเอกสารประกอบครบถ้วนถูกต้อง'
-    : action === 'late'
-      ? `ด้วยครบกำหนดแก้ไขเพิ่มเติมคำขอเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้องในเรื่องดังนี้\n1. ${gaps[0]}\n2. ${gaps[1]}\n3. ${gaps[2]}`
-      : `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 แล้ว ยังไม่ครบถ้วนในเรื่องดังนี้ จึงขอให้ส่งข้อมูลเพิ่มภายใน ${dueOn}\n1. ${gaps[0]}\n2. ${gaps[1]}\n3. ${gaps[2]}`;
+  const body = noticeBody(action, dueOn, defaultNoticeGaps);
   return [
     field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
     field('วันที่', noticedOn),
@@ -663,11 +688,7 @@ export class Por1Page {
   protected madeDocs: MadeDoc[] = [];
   protected editingId = '';
   protected viewingMade: MadeDoc | null = null;
-  protected docGaps: DocGap[] = [
-    { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
-    { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
-    { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
-  ];
+  protected docGaps: DocGap[] = defaultNoticeGaps.map((gap) => ({ ...gap }));
   protected docAction: DocAction = 'amend';
   protected docNoticedOn = '20/05/2562';
   protected docDueOn = '20/06/2562';
@@ -2078,9 +2099,12 @@ export class Por1Page {
   }
 
   protected showReviewTab(tab: ReviewTab): boolean {
-    if (tab === 'form') return true;
-    if (tab === 'assign') return this.reviewRole === 'staff' || this.reviewRole === 'director' || this.reviewRole === 'head';
-    return this.reviewRole === 'officer';
+    if (!this.reviewRole) return false;
+    if (tab === 'assign') {
+      if (this.reviewRole === 'officer') return !!this.myConsultOfficer();
+      return this.reviewRole === 'staff' || this.reviewRole === 'director' || this.reviewRole === 'head';
+    }
+    return true;
   }
 
   protected reviewTabs(): { id: ReviewTab; label: string }[] {
@@ -2335,6 +2359,12 @@ export class Por1Page {
     this.notice = etr ? 'etr' : 'saved';
   }
 
+  protected noticeDot(): string {
+    if (this.docSent && this.docAction === 'complete') return 'assets/icons/por1-dot-done.svg';
+    if (this.docSent || this.madeOf('แจ้งผลการตรวจ').length || this.docFiles.length) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
   protected docActionLabel(action: DocAction): string {
     if (action === 'complete') return 'แจ้งคำขอครบถ้วนถูกต้อง';
     if (action === 'late') return 'แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
@@ -2350,16 +2380,11 @@ export class Por1Page {
     return this.noticeSaraban ? `${base} เลขรับสารบรรณ ${this.noticeSaraban}` : base;
   }
 
-  protected get noticeTag(): string {
-    if (this.docAction === 'complete') return 'ครบถ้วนถูกต้อง';
-    if (this.docAction === 'late') return 'ไม่ครบภายใน 4 เดือน';
-    return 'ข้อมูลไม่ครบถ้วน';
-  }
-
-  protected get noticeTone(): 'success' | 'warning' | 'danger' {
-    if (this.docAction === 'complete') return 'success';
-    if (this.docAction === 'late') return 'danger';
-    return 'warning';
+  protected noticeDue(item?: MadeDoc): string {
+    const saved = item?.fields.find((field) => field.label === 'กำหนดส่งข้อมูล')?.value.trim();
+    if (saved && saved !== '-') return saved;
+    if (this.docAction === 'complete') return '—';
+    return this.docDueOn || '—';
   }
 
   protected viewingNotice = '';
@@ -2383,9 +2408,8 @@ export class Por1Page {
 
   protected get canReviewDocs(): boolean {
     if (this.docSent) return false;
-    if (!this.etrAccepted) return false;
-    if (this.reviewRole === 'director') return true;
-    return this.approverNames().includes(this.signedPerson);
+    if (this.reviewRole === 'director' || this.reviewRole === 'staff') return true;
+    return this.etrAccepted && this.approverNames().includes(this.signedPerson);
   }
 
   protected get docCanSend(): boolean {
@@ -2399,19 +2423,40 @@ export class Por1Page {
     if (this.docSent) return;
     const suggested: DocGap[] = this.noticePasses.length
       ? [{ place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' }]
-      : [
-          { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
-          { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
-          { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
-        ];
+      : defaultNoticeGaps.map((gap) => ({ ...gap }));
     this.docGaps = suggested.map((gap) => ({ ...gap }));
     this.docNote = this.docGaps.map((gap) => gap.title).join(' ');
-    const body = this.docGaps.map((gap, index) => `${index + 1}. ${gap.title} ${gap.detail}`).join('\n');
-    this.noticeLetter = this.noticeLetter.map((field) => field.label === 'เนื้อความ'
-      ? { ...field, value: `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง ${this.refId} แล้ว ยังไม่ครบถ้วนดังนี้ จึงขอให้ส่งเพิ่มภายใน ${this.docDueOn}\n${body}` }
-      : field);
+    this.applyGapBody();
     writeDocNotice(this.docPayload(false));
     this.notice = 'suggest';
+  }
+
+  private applyGapBody(): void {
+    const lines = this.docGaps.map((gap) => gapSentence(gap)).filter(Boolean).map((line, index) => `${index + 1}. ${line}`).join('\n');
+    const value = this.docAction === 'late'
+      ? `ด้วยครบกำหนดแก้ไขเพิ่มเติมคำขอเมื่อ ${this.amendUntil || '15/09/2562'} แล้วยังไม่ครบถ้วนถูกต้องในเรื่องดังนี้\n${lines}`
+      : `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง ${this.refId} แล้ว ยังไม่ครบถ้วนดังนี้ จึงขอให้ส่งข้อมูลเพิ่มภายใน ${this.docDueOn}\n${lines}`;
+    this.noticeLetter = this.noticeLetter.map((field) => field.label === 'เนื้อความ' ? { ...field, value } : field);
+  }
+
+  private foldGapsIntoNotice(): void {
+    if (this.docAction === 'complete' || this.docSent) return;
+    const current = this.noticeLetter.find((field) => field.label === 'เนื้อความ')?.value ?? '';
+    const covered = this.docGaps.every((gap) => !gap.place.trim() || current.includes(gap.place.trim()));
+    if (current.trim() && covered) return;
+    this.applyGapBody();
+  }
+
+  private syncGapsFromBody(value: string): void {
+    const gaps = value.split('\n').flatMap((line) => {
+      const match = line.trim().match(/^\d+\.\s+(.+)$/);
+      if (!match) return [];
+      const text = match[1].trim();
+      const colon = text.indexOf(':');
+      if (colon > 0) return [{ place: text.slice(0, colon).trim(), title: text.slice(colon + 1).trim(), detail: '' }];
+      return [{ place: '', title: text, detail: '' }];
+    });
+    if (gaps.length) this.docGaps = gaps;
   }
 
   protected addGap(): void {
@@ -2432,6 +2477,7 @@ export class Por1Page {
   protected assistNotice(): void {
     if (this.docSent) return;
     this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    if (this.docAction !== 'complete') this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
     this.docNote = this.docAction === 'complete'
       ? 'ตรวจแล้วคำขอและเอกสารประกอบครบถ้วนถูกต้อง'
       : this.docAction === 'late'
@@ -2442,8 +2488,75 @@ export class Por1Page {
   }
 
   protected setNoticeField(index: number, value: string): void {
+    const label = this.noticeLetter[index]?.label;
     this.noticeLetter = this.noticeLetter.map((item, itemIndex) => itemIndex === index ? { ...item, value } : item);
+    if (label === 'เนื้อความ' && this.docAction === 'amend') this.syncGapsFromBody(value);
     if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  protected agencyOpen = false;
+
+  protected agencyDoc(title: string): boolean {
+    return title === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง' || title === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง' || title === 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง';
+  }
+
+  protected agencyPreview = false;
+
+  protected draftValue(label: string): string {
+    return this.workDocs[this.docPart]?.fields.find((field) => field.label === label)?.value.trim() || '';
+  }
+
+  protected agencyDate(label: string): boolean {
+    return label === 'วันที่' || label.startsWith('วันที่') || label.startsWith('กำหนดส่ง');
+  }
+
+  protected agencyFull(label: string): boolean {
+    return !['ที่', 'วันที่', 'โทรศัพท์', 'โทรสาร', 'กำหนดส่งข้อมูล', 'วันที่ได้รับข้อมูล', 'วันที่จัดทำ', 'กำหนดส่งคำตอบ'].includes(label);
+  }
+
+  protected fieldRows(field: { label: string; value: string; long?: boolean }): number {
+    const room: Record<string, number> = {
+      'เรียน': 4,
+      'สิ่งที่ส่งมาด้วย': 4,
+      'เนื้อความ': 6,
+      'หน่วยงาน': 4,
+      'เลขที่หนังสือตอบกลับ': 4,
+      'วิธีจัดทำ': 4,
+      'วัตถุประสงค์': 3,
+      'รายชื่อผู้ผลิต': 3,
+      'กำลังการผลิตและปริมาณการผลิต': 3,
+      'ปริมาณความต้องการใช้ภายในประเทศ': 3,
+      'จุดที่ข้อมูลยังไม่ครบ': 3,
+      'สรุปที่นำไปใช้': 3,
+    };
+    const written = field.value ? field.value.split('\n').length : 0;
+    return Math.min(10, Math.max(room[field.label] ?? 3, written));
+  }
+
+  protected agencyLead(item: MadeDoc): string {
+    const topic = item.fields.find((field) => field.label === 'เรื่อง' || field.label === 'ชื่อแบบ' || field.label === 'วัตถุประสงค์');
+    return topic?.value.split('\n')[0] || item.kind;
+  }
+
+  protected openAgencyForm(id = ''): void {
+    if (id) this.editMade(id);
+    else {
+      this.freshMade();
+      this.workDocs = this.workDocs.map((item, index) => index === this.docPart ? { ...item, fields: item.fields.map((field) => ({ ...field, value: '' })) } : item);
+      writeWorkDrafts(this.workDocs);
+    }
+    this.agencyOpen = true;
+  }
+
+  protected closeAgencyForm(): void {
+    this.agencyOpen = false;
+    this.editingId = '';
+  }
+
+  protected saveAgencyForm(): void {
+    const creating = !this.editingId;
+    this.saveMade(creating);
+    this.agencyOpen = false;
   }
 
   protected madeOf(title: string): MadeDoc[] {
@@ -2452,18 +2565,95 @@ export class Por1Page {
 
   protected extraFiles: { kind: string; name: string; title: string; sentOn: string }[] = this.readExtraFiles();
 
+  protected agencyFilesOpen = false;
+  protected filePop: 'agency' | 'notice' | '' = '';
+  protected noticeFormOpen = false;
+
+  protected openAttach(target: 'agency' | 'notice'): void {
+    this.filePop = target;
+    this.agencyFilesOpen = true;
+  }
+
+  protected closeAttach(): void {
+    this.agencyFilesOpen = false;
+    this.filePop = '';
+  }
+
+  protected openNoticeForm(id = ''): void {
+    const fresh = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    if (id) {
+      const found = this.madeDocs.find((item) => item.id === id);
+      if (!found) return;
+      this.editingId = id;
+      this.noticeLetter = fresh.map((field) => ({ ...field, value: found.fields.find((item) => item.label === field.label)?.value ?? '' }));
+    } else {
+      this.editingId = '';
+      this.noticeLetter = fresh.map((field) => ({ ...field }));
+    }
+    this.foldGapsIntoNotice();
+    this.noticeFormOpen = true;
+  }
+
+  protected closeNoticeForm(): void {
+    this.noticeFormOpen = false;
+    this.editingId = '';
+  }
+
+  protected saveNoticeForm(): void {
+    if (!this.canReviewDocs) return;
+    const topic = this.noticeLetter.find((field) => field.label === 'เรื่อง')?.value.trim() || this.docActionLabel(this.docAction);
+    const fields = this.noticeLetter.map((item) => item.label === 'เรื่อง' && !item.value.trim() ? { ...item, value: topic } : { ...item });
+    this.noticeLetter = fields.map((item) => ({ ...item }));
+    if (this.editingId) {
+      this.madeDocs = this.madeDocs.map((item) => item.id === this.editingId ? { ...item, fields, at: this.docNoticedOn || '20/05/2562' } : item);
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `notice-${Date.now()}`, kind: 'แจ้งผลการตรวจ', at: this.docNoticedOn || '20/05/2562', fields }];
+      this.editingId = '';
+    }
+    writeMadeDocs(this.madeDocs);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+    this.noticeFormOpen = false;
+  }
+
+  protected previewNotice(): void {
+    this.viewingMade = {
+      id: 'notice-preview',
+      kind: 'แจ้งผลการตรวจ',
+      at: this.docNoticedOn,
+      fields: this.noticeLetter.map((item) => ({ ...item })),
+    };
+  }
+
+  protected dropAgencyFiles(event: DragEvent): void {
+    event.preventDefault();
+    if (this.filePop === 'notice') this.pushDocFiles(event.dataTransfer?.files);
+    else this.pushExtraFiles(event.dataTransfer?.files);
+  }
+
   protected extrasOf(kind: string): { kind: string; name: string; title: string; sentOn: string }[] {
     return this.extraFiles.filter((file) => file.kind === kind);
   }
 
   protected addExtraFiles(event: Event): void {
-    const kind = this.workDocs[this.docPart]?.title;
     const input = event.target as HTMLInputElement;
-    if (!kind) return;
-    const files = [...(input.files ?? [])].map((file) => ({ kind, name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: '20/05/2562' }));
+    if (this.filePop === 'notice') this.pushDocFiles(input.files);
+    else this.pushExtraFiles(input.files);
+    input.value = '';
+  }
+
+  private pushDocFiles(list: FileList | null | undefined): void {
+    if (!list?.length || this.docSent) return;
+    const files = [...list].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: this.docNoticedOn || '20/05/2562' }));
+    this.docFiles = [...this.docFiles, ...files];
+    writeDocNotice(this.docPayload(this.docSent));
+  }
+
+  private pushExtraFiles(list: FileList | null | undefined): void {
+    const kind = this.workDocs[this.docPart]?.title;
+    if (!kind || !list?.length) return;
+    const files = [...list].map((file) => ({ kind, name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: '20/05/2562' }));
     this.extraFiles = [...this.extraFiles, ...files];
     this.writeExtraFiles();
-    input.value = '';
   }
 
   protected renameExtraFile(kind: string, index: number, title: string): void {
@@ -2559,7 +2749,11 @@ export class Por1Page {
     if (index < 0) return;
     this.docPart = index;
     this.editingId = id;
-    this.workDocs = this.workDocs.map((item, itemIndex) => itemIndex === index ? { ...item, fields: found.fields.map((field) => ({ ...field })) } : item);
+    const template = defaultWorkDrafts().find((item) => item.title === found.kind);
+    const fields = template
+      ? template.fields.map((field) => ({ ...field, value: found.fields.find((item) => item.label === field.label)?.value ?? field.value }))
+      : found.fields.map((field) => ({ ...field }));
+    this.workDocs = this.workDocs.map((item, itemIndex) => itemIndex === index ? { ...item, fields } : item);
   }
 
   protected downloadMade(item: MadeDoc): void {
@@ -3590,10 +3784,12 @@ export class Por1Page {
 
   protected renameDocFile(index: number, title: string): void {
     this.docFiles = this.docFiles.map((file, item) => (item === index ? { ...file, title } : file));
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
   }
 
   protected removeDocFile(index: number): void {
     this.docFiles = this.docFiles.filter((_, item) => item !== index);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
   }
 
   protected get officeLinks(): OfficeLink[] {
@@ -3858,6 +4054,41 @@ export class Por1Page {
     const to = read(this.amendUntil);
     if (!from || !to || to < from) return 0;
     return Math.round((to - from) / 86400000);
+  }
+
+  protected get caseClock(): { tone: 'info' | 'warning' | 'danger'; label: string; text: string } | null {
+    if (!this.tracking && !this.reviewRole) return null;
+    if (this.docSent && this.docAction === 'complete') {
+      if (this.inquiryFeeSent && !this.inquiryPayAck) return this.dueClock(this.inquiryFeeDue, 'ชำระค่าธรรมเนียม', 'หากเกินกำหนดต้องทำเรื่องขอขยายเวลา');
+      return null;
+    }
+    if (this.docSent && this.docAction === 'late') {
+      return { tone: 'danger', label: 'ถึงกำหนดแล้ว', text: `กระบวนการขอพิจารณาครบ 4 เดือนเมื่อ ${this.amendUntil} แล้วยังไม่ครบถ้วน ต้องทำเรื่องขอขยายเวลา` };
+    }
+    if (this.docSent && this.docAction === 'amend') {
+      const extra = this.dueClock(this.docDueOn, 'ส่งข้อมูลเพิ่ม', 'หากเกินกำหนดต้องทำเรื่องขอขยายเวลา');
+      if (extra?.tone === 'danger') return extra;
+    }
+    const left = this.daysUntil(this.amendUntil);
+    if (left < 0) return { tone: 'danger', label: 'ถึงกำหนดแล้ว', text: `อยู่ในกระบวนการขอพิจารณา ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil} ต้องทำเรื่องขอขยายเวลา` };
+    return { tone: left <= 30 ? 'warning' : 'info', label: `เหลือ ${left} วัน`, text: `อยู่ในกระบวนการขอพิจารณา ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil} หากเกินต้องทำเรื่องขอขยายเวลา` };
+  }
+
+  private dueClock(due: string, work: string, over: string): { tone: 'info' | 'warning' | 'danger'; label: string; text: string } | null {
+    const left = this.daysUntil(due);
+    if (!due) return null;
+    if (left < 0) return { tone: 'danger', label: 'ถึงกำหนดแล้ว', text: `ครบกำหนด${work}เมื่อ ${due} ${over}` };
+    return { tone: left <= 7 ? 'warning' : 'info', label: `เหลือ ${left} วัน`, text: `ครบกำหนด${work}เมื่อ ${due}` };
+  }
+
+  private daysUntil(value: string): number {
+    const [day, month, year] = value.split('/').map(Number);
+    if (!day || !month || !year) return 0;
+    const due = new Date(year - 543, month - 1, day);
+    const today = new Date();
+    due.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return Math.round((due.getTime() - today.getTime()) / 86400000);
   }
 
   protected leaveFiling(): void {
@@ -4861,8 +5092,7 @@ export class Por1Page {
     if (this.reviewRole) {
       this.viewingForm = true;
       this.ensureAssignment();
-      if (this.reviewRole === 'staff' || this.reviewRole === 'director' || this.reviewRole === 'head') this.reviewTab = 'assign';
-      else if (this.reviewRole === 'officer') this.reviewTab = this.myConsultOfficer() ? 'assign' : 'docs';
+      this.reviewTab = 'form';
       this.ensureReceipt();
       this.seedConsultDraft();
       this.seedResultDraft();

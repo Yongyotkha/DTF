@@ -48,6 +48,8 @@ export class InputField {
   @Output() valueChange = new EventEmitter<string>();
   @Output() blurred = new EventEmitter<void>();
   @Input() helper = '';
+  @Input() rows = 3;
+  @Input() grow = false;
   @Input() digitsOnly = false;
   @Input() maxLength = 0;
   @Input() counter = '';
