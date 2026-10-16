@@ -1,5 +1,6 @@
 import { ApplicationRef, ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { downloadFormTemplate } from './form-template';
 
 const maxBytes = 50 * 1024 * 1024;
 const accept = /\.docx$/i;
@@ -38,6 +39,12 @@ export class FilledUpload implements OnDestroy {
   protected close(): void {
     this.clearTimer();
     this.closed.emit();
+  }
+
+  protected downloadTemplate(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    downloadFormTemplate(this.code);
   }
 
   protected allowDrop(event: DragEvent): void {

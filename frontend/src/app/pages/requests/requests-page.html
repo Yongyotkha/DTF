@@ -104,7 +104,9 @@
         </div>
       </div>
       <footer class="chooser__foot">
-        <app-button type="primary" label="ตกลง" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()" />
+        <app-button type="primary" label="ถัดไป" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </app-button>
       </footer>
       } @else {
       <div class="chooser__body">

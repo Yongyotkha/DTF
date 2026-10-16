@@ -29,6 +29,7 @@
       <div>
         <h2 id="fill-upload-title">อัปโหลดไฟล์</h2>
         <p>ระบบจะอ่านไฟล์ที่คุณกรอกไว้ แล้วนำข้อมูลมาใส่ในฟอร์มให้ คุณตรวจสอบและแก้ไขได้ก่อนยื่น</p>
+        <p class="fill-upload__tmpl">ดาวน์โหลด <button type="button" class="tmpl" (click)="downloadTemplate($event)">เทมเพลต {{ code }}</button></p>
       </div>
       <button type="button" class="fill-upload__close" aria-label="ปิด" (click)="close()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>

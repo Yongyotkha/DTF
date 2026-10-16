@@ -53,6 +53,27 @@
   line-height: 21px;
 }
 
+.fill-upload__tmpl {
+  margin: 8px 0 0;
+}
+
+.tmpl {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-template-link);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tmpl:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
 .fill-upload__close {
   display: inline-flex;
   flex: none;
