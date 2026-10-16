@@ -1,6 +1,7 @@
 <label
   class="field"
   [class]="'field field--' + kind + ' field--' + state + ' field--' + size + ' field--' + font"
+  [class.field--grow]="grow"
 >
   @if (labelled) {
     <span class="field__label">
@@ -16,7 +17,7 @@
 
   @if (kind === 'textarea') {
     <span class="field__control">
-      <textarea [value]="editable ? value : shown" [disabled]="locked" [readonly]="!editable || locked" rows="3" (input)="changed($event)" (blur)="blurred.emit()"></textarea>
+      <textarea [attr.rows]="rows" [value]="editable ? value : shown" [disabled]="locked" [readonly]="!editable || locked" (input)="changed($event)" (blur)="blurred.emit()"></textarea>
     </span>
   } @else {
     <span class="field__control" (pointerdown)="toggleCalendar($event)">

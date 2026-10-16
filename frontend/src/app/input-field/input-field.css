@@ -259,6 +259,17 @@
   height: 87px;
 }
 
+.field--textarea.field--grow .field__control,
+.field--textarea.field--grow.field--focus .field__control {
+  height: auto;
+}
+
+.field--textarea.field--grow .field__control textarea {
+  height: auto;
+  min-height: 72px;
+  resize: vertical;
+}
+
 .field--sm .field__control {
   height: 32px;
 }
