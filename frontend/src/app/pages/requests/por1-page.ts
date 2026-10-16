@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Accounts } from '../../accounts';
+import { Accounts, roleLabel } from '../../accounts';
 import { DftButton } from '../../button/button';
 import { ThaiDateField } from '../../fields/thai-date-field';
 import { InputField } from '../../input-field/input-field';
@@ -12,7 +12,7 @@ import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultRequest, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, readFilingGate, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultRequest, type FilingGate, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { readParty, readText, valueIsWrong, wrongHint } from './form-extract';
@@ -26,8 +26,41 @@ type HistoryItem = { phase: string; title: string; when: string; detail: string;
 type DutyState = 'new' | 'accepted' | 'returned' | 'working';
 type DutyMove = '' | 'report' | 'forward';
 type ConsultSlip = { assignedOn: string; dueOn: string; dueTime: string; remind: boolean; order: string; files: AssignFile[] };
-type ConsultOfficerJob = { name: string; reply: 'pending' | 'accept' | 'return'; move: DutyMove; form?: ConsultSlip };
-type ConsultGroupJob = { group: string; reply: 'pending' | 'accept' | 'return'; officers: ConsultOfficerJob[]; form?: ConsultSlip };
+type ConsultResult = { at: string; detail: string; files: AssignFile[] };
+type ConsultOfficerJob = { name: string; reply: 'pending' | 'accept' | 'return'; move: DutyMove; repliedAt?: string; result?: ConsultResult; form?: ConsultSlip };
+type ConsultGroupJob = { group: string; reply: 'pending' | 'accept' | 'return'; repliedAt?: string; result?: ConsultResult; officers: ConsultOfficerJob[]; form?: ConsultSlip };
+type ConsultForm = '' | 'groups' | 'officers' | 'group-reply' | 'officer-reply';
+
+function sampleConsultJobs(): ConsultGroupJob[] {
+  const slip = (order: string): ConsultSlip => ({
+    assignedOn: '16/05/2562',
+    dueOn: '30/05/2562',
+    dueTime: '14:28',
+    remind: true,
+    order,
+    files: [{ name: 'บันทึกมอบหมาย.pdf', title: 'บันทึกข้อความมอบหมายงาน' }],
+  });
+  const ad = 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)';
+  const cvd = 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)';
+  return [
+    {
+      group: ad,
+      reply: 'accept',
+      repliedAt: '16/05/2562 11:05',
+      form: slip('ให้กลุ่ม AD พิจารณาคำขอที่ปรึกษา แล้วรายงานผลภายในกำหนด'),
+      officers: [
+        { name: 'นางสาวจรีณา กิจส่งเสริมกุล', reply: 'accept', move: 'report', repliedAt: '16/05/2562 13:40', form: slip('ตรวจเอกสารคำขอที่ปรึกษาแล้วรายงานผล') },
+        { name: 'นางสาววรรณา ตั้งตรง', reply: 'pending', move: '', form: slip('รวบรวมข้อเท็จจริงจากผู้ยื่น') },
+      ],
+    },
+    {
+      group: cvd,
+      reply: 'pending',
+      form: slip('ให้กลุ่ม CVD ช่วยตรวจมาตรการอุดหนุนที่เกี่ยวข้อง'),
+      officers: [],
+    },
+  ];
+}
 
 type GoodsRow = { producer: string; goods: string; made: string; sold: string; unit: string };
 type MakerRow = { name: string; address: string; phone: string; fax: string; web: string; email: string };
@@ -553,6 +586,9 @@ export class Por1Page {
   protected approvedBy = readApprovedBy();
   protected readonly officerUnit = filingUnit;
   protected officialOpen = false;
+  protected filingGate: FilingGate | null = readFilingGate();
+  protected filingDecision: 'approve' | 'reject' = 'approve';
+  protected filingReason = '';
   protected consult: ConsultRequest | null = readConsult();
   protected consultTopic = 'ขอปรึกษาการแก้ไขคำขอ';
   protected consultDetail = 'รายการที่ยังไม่ผ่านมีหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตในประเทศ ต้องการให้นัดหมายเพื่อชี้แจงก่อนส่งแบบคำร้องทางการ';
@@ -561,9 +597,24 @@ export class Por1Page {
   protected consultNotes: ConsultNote[] = readConsultThread();
   protected consultAssigned = readConsultAssigned();
   private readonly consultJobKey = 'dft-por1-consult-jobs';
+  protected consultClosed: { at: string } | null = this.readConsultClosed();
   protected consultJobs: ConsultGroupJob[] = this.readConsultJobs();
+  protected consultForm: ConsultForm = '';
   protected consultPickGroups: string[] = [];
   protected consultPickOfficers: string[] = [];
+  protected officerListOpen = false;
+  protected officerQuery = '';
+
+  protected filteredMembers(group: string) {
+    const query = this.officerQuery.trim();
+    return this.membersOf(group).filter((person) => !query || person.name.includes(query));
+  }
+
+  protected officerPickText(): string {
+    if (!this.consultPickOfficers.length) return 'เลือกเจ้าหน้าที่';
+    if (this.consultPickOfficers.length <= 2) return this.consultPickOfficers.join(', ');
+    return `เลือกแล้ว ${this.consultPickOfficers.length} คน`;
+  }
   protected consultReceipt: 'accept' | 'return' = 'accept';
   protected consultMove: DutyMove = 'report';
   protected consultOrder = '';
@@ -572,6 +623,8 @@ export class Por1Page {
   protected consultDueTime = '14:28';
   protected consultRemind = false;
   protected consultFiles: AssignFile[] = [];
+  protected resultDetail = '';
+  protected resultFiles: AssignFile[] = [];
   protected consultPlan: ConsultPlan | null = readConsultPlan();
 
   protected get channelText(): string {
@@ -1018,7 +1071,7 @@ export class Por1Page {
       const mine = this.shownTasks.find((task) => task.head === this.signedPerson);
       return !!mine && (this.groupAct(mine) || this.showForward(mine));
     }
-    if (this.reviewRole === 'officer') return this.consultWaiting() || this.handAct(this.signedPerson) || this.dutyMatters.some((item) => item.tasks.some((task) => task.state === 'new'));
+    if (this.reviewRole === 'officer') return this.consultWaiting() || this.handAct(this.signedPerson);
     return false;
   }
 
@@ -1307,7 +1360,7 @@ export class Por1Page {
   }
 
   protected dutyLabel(state: 'new' | 'accepted' | 'returned' | 'working'): string {
-    if (state === 'new') return 'งานเข้าใหม่';
+    if (state === 'new') return 'งานรับใหม่';
     if (state === 'accepted') return 'งานที่รับ';
     if (state === 'returned') return 'คืน';
     return 'งานกำลังดำเนินงาน';
@@ -1320,52 +1373,90 @@ export class Por1Page {
     return 'success';
   }
 
-  /** ตัวอย่างงานที่มอบแยกเรื่อง คนที่ไม่มีสิทธิ์มอบหมายเห็นเฉพาะงานของตน */
-  protected get dutyMatters(): { title: string; status: string; tone: 'success' | 'warning' | 'neutral'; people: string[]; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] }[] {
-    const jareena = 'นางสาวจรีณา กิจส่งเสริมกุล';
-    const kuljira = 'นางสาวกุลจิรา ปานทอง';
-    const patchara = 'นางสาวพัชราวรรณ ไทยอาจ';
-    const samples: { title: string; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] }[] = [
-      { title: 'ตรวจสอบเอกสาร', tasks: [{ work: 'ตรวจแบบคำขอ', person: jareena, state: 'working', move: 'report' }, { work: 'ตรวจหลักฐานราคาและปริมาณนำเข้า', person: kuljira, state: 'new', move: '' }, { work: 'จัดหนังสือแจ้งผล', person: patchara, state: 'returned', move: '' }] },
-      { title: 'ร่างวาระประชุม', tasks: [{ work: 'ร่างข้อเท็จจริง', person: jareena, state: 'working', move: 'forward' }, { work: 'ตรวจความครบก่อนส่งคณะกรรมการ', person: patchara, state: 'accepted', move: '' }] },
-      { title: 'แบบสอบถาม', tasks: [{ work: 'ผู้นำเข้า', person: jareena, state: 'new', move: '' }, { work: 'ผู้ผลิตในประเทศ', person: kuljira, state: 'working', move: 'report' }, { work: 'ผู้ส่งออก', person: patchara, state: 'working', move: 'forward' }] },
-      { title: 'ตรวจสถานประกอบการ', tasks: [{ work: 'จัดหนังสือแจ้งและนัดตรวจ', person: kuljira, state: 'accepted', move: '' }, { work: 'เขียนรายงานผล', person: jareena, state: 'working', move: 'report' }] },
-      { title: 'ผลขั้นต้น', tasks: [{ work: 'จัดวาระและประกาศ', person: patchara, state: 'new', move: '' }, { work: 'หนังสือแจ้งผู้มีส่วนได้เสีย', person: jareena, state: 'accepted', move: '' }] },
-    ];
-    const consult = this.consultCanSee() ? [{
+  /** ตอนนี้เดินเฉพาะงานขอคำปรึกษา งานขั้นถัดไปยังไม่เปิดในเมนูนี้ */
+  protected get dutyMatters(): { title: string; status: string; tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral'; people: string[]; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] }[] {
+    if (!this.consultCanSee()) return [];
+    const status = this.consultFlowStatus();
+    const tone = status === 'ส่งคืน' ? 'danger' as const : status === 'รอตรวจสอบการรายงานผล' || status === 'งานติดตาม' ? 'info' as const : status === 'รายงานผล' || status === 'กำลังดำเนินงาน' || status === 'ปิดงาน' ? 'success' as const : 'warning' as const;
+    return [{
       title: 'ขอคำปรึกษา',
-      status: this.consultWaiting() ? 'มีงานเข้าใหม่' : 'กำลังดำเนินงาน',
-      tone: this.consultWaiting() ? 'warning' as const : 'success' as const,
-      people: [] as string[],
-      tasks: [] as { work: string; person: string; state: DutyState; move: DutyMove }[],
-    }] : [];
-    return [...consult, ...samples.flatMap((item) => {
-      const tasks = item.tasks.map((task) => ({ ...task, state: this.dutyStatus(item.title, task.work, task.state), move: this.dutyMove(item.title, task.work, task.move) }));
-      const mine = tasks.filter((task) => task.person === this.signedPerson);
-      if (!this.canAssignWork && !mine.length) return [];
-      const shown = this.canAssignWork ? tasks : mine;
-      const pending = shown.some((task) => task.state === 'new');
-      return [{
-        title: item.title,
-        status: pending ? 'มีงานเข้าใหม่' : 'กำลังดำเนินงาน',
-        tone: pending ? 'warning' as const : 'success' as const,
-        people: this.canAssignWork ? [...new Set(shown.map((task) => task.person))] : [],
-        tasks: shown,
-      }];
-    })];
+      status,
+      tone,
+      people: [],
+      tasks: [],
+    }];
   }
 
-  protected get activeDuty(): { title: string; status: string; tone: 'success' | 'warning' | 'neutral'; people: string[]; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] } | null {
+  protected get activeDuty(): { title: string; status: string; tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral'; people: string[]; tasks: { work: string; person: string; state: DutyState; move: DutyMove }[] } | null {
     const rows = this.dutyMatters;
     return rows.find((row) => row.title === this.dutyPick) ?? rows[0] ?? null;
   }
 
+  protected officersReported(job: ConsultGroupJob): boolean {
+    return job.officers.some((officer) => !!officer.result);
+  }
+
+  protected replyWhen(reply: string, at?: string): string {
+    if (reply === 'pending' || !at) return '—';
+    return `${at} น.`;
+  }
+
+  private fillReplyTimes(jobs: ConsultGroupJob[]): ConsultGroupJob[] {
+    const stamp = this.replyStamp();
+    let changed = false;
+    const next = jobs.map((job) => {
+      let repliedAt = job.repliedAt;
+      if (job.reply !== 'pending' && !repliedAt) {
+        repliedAt = stamp;
+        changed = true;
+      }
+      const officers = job.officers.map((officer) => {
+        if (officer.reply !== 'pending' && !officer.repliedAt) {
+          changed = true;
+          return { ...officer, repliedAt: stamp };
+        }
+        return officer;
+      });
+      return { ...job, repliedAt, officers };
+    });
+    if (changed) sessionStorage.setItem(this.consultJobKey, JSON.stringify(next));
+    return next;
+  }
+
   private readConsultJobs(): ConsultGroupJob[] {
     try {
-      const value = JSON.parse(sessionStorage.getItem(this.consultJobKey) || '[]') as ConsultGroupJob[];
-      return Array.isArray(value) ? value : [];
+      const raw = sessionStorage.getItem(this.consultJobKey);
+      const seeded = sessionStorage.getItem('dft-por1-consult-sample') === '1';
+      if (!raw || !seeded) return this.keepSampleConsultJobs();
+      const value = JSON.parse(raw) as ConsultGroupJob[];
+      if (!Array.isArray(value) || !value.length) return this.keepSampleConsultJobs();
+      return this.fillReplyTimes(value);
     } catch {
-      return [];
+      return this.keepSampleConsultJobs();
+    }
+  }
+
+  private keepSampleConsultJobs(): ConsultGroupJob[] {
+    const sample = sampleConsultJobs();
+    sessionStorage.setItem(this.consultJobKey, JSON.stringify(sample));
+    sessionStorage.setItem('dft-por1-consult-sample', '1');
+    return sample;
+  }
+
+  protected closeConsultWork(): void {
+    if (this.reviewRole !== 'director' || !this.consultJobs.length || this.consultClosed) return;
+    const closed = { at: this.replyStamp() };
+    sessionStorage.setItem('dft-por1-consult-closed', JSON.stringify(closed));
+    this.consultClosed = closed;
+  }
+
+  private readConsultClosed(): { at: string } | null {
+    try {
+      const value = JSON.parse(sessionStorage.getItem('dft-por1-consult-closed') || 'null') as { at?: string } | null;
+      if (!value?.at) return null;
+      return { at: value.at };
+    } catch {
+      return null;
     }
   }
 
@@ -1408,40 +1499,115 @@ export class Por1Page {
     return job.officers.some((officer) => officer.name === this.signedPerson);
   }
 
-  protected consultWaiting(): boolean {
-    if (this.reviewRole === 'director') return this.consultJobs.length === 0;
+  protected consultFlowStatus(): 'งานรับใหม่' | 'งานติดตาม' | 'ส่งคืน' | 'กำลังดำเนินงาน' | 'รายงานผล' | 'รอตรวจสอบการรายงานผล' | 'ปิดงาน' {
+    if (this.consultClosed) return 'ปิดงาน';
+    if (this.reviewRole === 'director' || this.reviewRole === 'staff') {
+      if (!this.consultJobs.length) return 'งานรับใหม่';
+      if (this.consultJobs.some((job) => job.reply === 'return')) return 'ส่งคืน';
+      if (this.consultJobs.some((job) => job.result)) return 'รอตรวจสอบการรายงานผล';
+      return 'งานติดตาม';
+    }
     const job = this.consultGroupJob();
-    if (!job) return false;
-    if (staffPeople.some((person) => person.name === this.signedPerson && person.lead)) return job.reply === 'pending';
-    return job.officers.some((officer) => officer.name === this.signedPerson && officer.reply === 'pending');
+    if (this.isMyGroupHead() && job) {
+      if (job.reply === 'return') return 'ส่งคืน';
+      if (job.result) return 'รอตรวจสอบการรายงานผล';
+      if (job.reply === 'pending' || !job.officers.length) return 'งานรับใหม่';
+      if (job.officers.some((officer) => officer.reply === 'return')) return 'ส่งคืน';
+      return 'งานติดตาม';
+    }
+    const mine = this.myConsultOfficer();
+    if (mine?.result) return 'รายงานผล';
+    if (mine?.reply === 'return') return 'ส่งคืน';
+    if (!mine || mine.reply === 'pending') return 'งานรับใหม่';
+    return 'กำลังดำเนินงาน';
   }
 
-  protected consultDocs(): { title: string; place: string; detail: string }[] {
-    return [
-      { title: this.consultTopic, place: 'คำขอคำปรึกษา', detail: this.consultDetail },
-      ...this.revisionFindings.map((item) => ({ title: item.title, place: item.place, detail: item.detail })),
-    ];
+  protected consultWaiting(): boolean {
+    const status = this.consultFlowStatus();
+    return status === 'งานรับใหม่' || status === 'ส่งคืน';
   }
 
-  protected openConsultDoc(doc: { title: string; place: string; detail: string }): void {
+  protected consultDocs(): { title: string; place: string; detail: string; by: string; at: string }[] {
+    const topic = (this.consult?.topic || this.consultTopic).trim();
+    const detail = (this.consult?.detail || this.consultDetail).trim();
+    if (!topic) return [];
+    return [{
+      title: topic,
+      place: 'คำขอคำปรึกษา',
+      detail,
+      by: this.consultSubmitter,
+      at: this.consult?.at || `${this.filedOn} 10:15`,
+    }];
+  }
+
+  protected openConsultDoc(doc: { title: string; place: string; detail: string; by: string; at: string }): void {
     this.viewingMade = this.consultMade(doc);
   }
 
-  protected downloadConsultDoc(doc: { title: string; place: string; detail: string }): void {
+  protected downloadConsultDoc(doc: { title: string; place: string; detail: string; by: string; at: string }): void {
     this.downloadMade(this.consultMade(doc));
   }
 
-  private consultMade(doc: { title: string; place: string; detail: string }): MadeDoc {
-    return {
-      id: doc.title,
-      kind: doc.title,
-      at: this.consultWhen,
+  protected openConsultResult(who: string, result?: ConsultResult): void {
+    if (!result) return;
+    const files = result.files.length ? result.files.map((file) => file.title || file.name).join('\n') : '—';
+    this.viewingMade = {
+      id: who,
+      kind: 'รายงานผล',
+      at: `${result.at} น.`,
       fields: [
-        { label: 'ส่วน', value: doc.place },
-        { label: 'รายละเอียด', value: doc.detail },
-        { label: 'เวลานัด', value: this.consultWhen },
+        { label: 'ผู้รายงาน', value: who },
+        { label: 'วันเวลารายงานผล', value: `${result.at} น.` },
+        { label: 'รายละเอียดผล', value: result.detail || '—' },
+        { label: 'ไฟล์แนบ', value: files },
       ],
     };
+  }
+
+  protected openConsultSlip(who: string, form?: ConsultSlip): void {
+    this.viewingMade = this.consultSlipDoc(who, form);
+  }
+
+  protected downloadConsultSlip(who: string, form?: ConsultSlip): void {
+    this.downloadMade(this.consultSlipDoc(who, form));
+  }
+
+  private consultSlipDoc(who: string, form?: ConsultSlip): MadeDoc {
+    const files = form?.files.length ? form.files.map((file) => file.title || file.name).join('\n') : '—';
+    return {
+      id: who,
+      kind: 'แบบฟอร์มมอบหมายงาน',
+      at: form?.assignedOn || '—',
+      fields: [
+        { label: 'มอบหมายให้', value: who },
+        { label: 'วันที่มอบหมาย', value: form?.assignedOn || '—' },
+        { label: 'วันที่กำหนดส่ง', value: form?.dueOn || '—' },
+        { label: 'เวลาครบกำหนดส่ง', value: form?.dueTime ? `${form.dueTime} น.` : '—' },
+        { label: 'แจ้งเตือน', value: form?.remind ? 'แจ้งเตือนก่อนถึงวันครบกำหนด' : 'ไม่แจ้งเตือน' },
+        { label: 'คำสั่ง/การดำเนินการ', value: form?.order || '—' },
+        { label: 'ไฟล์แนบ', value: files },
+      ],
+    };
+  }
+
+  private consultMade(doc: { title: string; place: string; detail: string; by: string; at: string }): MadeDoc {
+    const channel = this.consultWayText(this.consult?.channel || this.consultChannel);
+    return {
+      id: doc.title,
+      kind: 'คำขอคำปรึกษา',
+      at: doc.at,
+      fields: [
+        { label: 'เรื่อง', value: doc.title },
+        { label: 'รายละเอียด', value: doc.detail },
+        { label: 'ช่องทางการปรึกษา', value: channel || '—' },
+        { label: 'ชื่อผู้ยื่น', value: doc.by },
+        { label: 'วันที่เวลา', value: doc.at },
+      ],
+    };
+  }
+
+  protected groupLabel(name: string): string {
+    return name.replace(/^กลุ่มงาน/, '');
   }
 
   protected toggleConsultGroup(group: string): void {
@@ -1450,6 +1616,47 @@ export class Por1Page {
 
   protected toggleConsultOfficer(name: string): void {
     this.consultPickOfficers = this.consultPickOfficers.includes(name) ? this.consultPickOfficers.filter((item) => item !== name) : [...this.consultPickOfficers, name];
+  }
+
+  protected openConsultForm(kind: ConsultForm): void {
+    this.clearConsultDraft();
+    this.consultForm = kind;
+  }
+
+  protected openConsultReply(kind: 'group-reply' | 'officer-reply', receipt: 'accept' | 'return'): void {
+    this.openConsultForm(kind);
+    this.consultReceipt = receipt;
+  }
+
+  protected closeConsultForm(): void {
+    this.consultForm = '';
+    this.clearConsultDraft();
+  }
+
+  protected get consultFormTitle(): string {
+    if (this.consultForm === 'groups') return 'มอบหมายงานให้กลุ่ม';
+    if (this.consultForm === 'officers') return 'มอบหมายให้เจ้าหน้าที่ในกลุ่ม';
+    return 'รับงาน';
+  }
+
+  protected get consultFormHint(): string {
+    if (this.consultForm === 'groups') return 'เลือกได้มากกว่า 1 กลุ่ม และมอบหมายซ้ำได้เมื่อต้องการสั่งใหม่';
+    if (this.consultForm === 'officers') return 'เลือกได้มากกว่า 1 คน เอาออกได้ตลอด แม้จะรับหรือไม่รับ';
+    return 'ใช้แบบฟอร์มเดียวกับตอนมอบหมายงาน';
+  }
+
+  protected get consultFormCanSend(): boolean {
+    if (!this.consultFormReady) return false;
+    if (this.consultForm === 'groups') return this.consultPickGroups.length > 0;
+    if (this.consultForm === 'officers') return this.consultPickOfficers.length > 0;
+    return this.consultForm === 'group-reply' || this.consultForm === 'officer-reply';
+  }
+
+  protected submitConsultForm(): void {
+    if (this.consultForm === 'groups') this.assignConsultGroups();
+    else if (this.consultForm === 'officers') this.assignConsultOfficers();
+    else if (this.consultForm === 'group-reply') this.replyConsultGroup(this.consultReceipt);
+    else if (this.consultForm === 'officer-reply') this.replyConsultOfficer(this.consultReceipt);
   }
 
   protected get consultFormReady(): boolean {
@@ -1490,6 +1697,9 @@ export class Por1Page {
     this.consultPickOfficers = [];
     this.consultReceipt = 'accept';
     this.consultMove = 'report';
+    this.consultRemind = false;
+    this.officerListOpen = false;
+    this.officerQuery = '';
   }
 
   protected assignConsultGroups(): void {
@@ -1500,13 +1710,16 @@ export class Por1Page {
       const found = next.find((job) => job.group === group);
       if (found) {
         found.form = form;
-        if (found.reply === 'return') found.reply = 'pending';
+        if (found.reply === 'return') {
+          found.reply = 'pending';
+          found.repliedAt = undefined;
+        }
       } else {
         next.push({ group, reply: 'pending', officers: [], form });
       }
     }
     this.consultJobs = next;
-    this.clearConsultDraft();
+    this.closeConsultForm();
     this.writeConsultJobs();
   }
 
@@ -1516,11 +1729,111 @@ export class Por1Page {
     this.writeConsultJobs();
   }
 
+  protected get headWorkCanSend(): boolean {
+    if (!this.isMyGroupHead()) return false;
+    const job = this.consultGroupJob();
+    if (!job || job.reply === 'return') return false;
+    if (job.reply === 'pending' && this.consultReceipt === 'return') return true;
+    if (this.consultMove !== 'forward') return !!this.resultDetail.trim();
+    return this.consultPickOfficers.length > 0 && this.consultFormReady;
+  }
+
+  protected submitHeadWork(): void {
+    if (!this.headWorkCanSend) return;
+    const job = this.consultGroupJob();
+    if (!job) return;
+    if (job.reply === 'pending' && this.consultReceipt === 'return') {
+      this.markGroupReply('return');
+      this.clearConsultDraft();
+      return;
+    }
+    if (this.consultMove !== 'forward') {
+      if (job.reply === 'pending' && this.consultReceipt === 'return') {
+        this.markGroupReply('return');
+        this.clearResultDraft();
+        return;
+      }
+      if (job.reply === 'pending') this.markGroupReply('accept');
+      this.saveGroupResult();
+      this.clearResultDraft();
+      return;
+    }
+    if (job.reply === 'pending') this.markGroupReply('accept');
+    this.assignConsultOfficers();
+  }
+
+  protected addResultFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const next = [...this.resultFiles];
+    for (const file of input.files ?? []) next.push({ name: file.name, title: file.name });
+    this.resultFiles = next;
+    input.value = '';
+  }
+
+  protected removeResultFile(index: number): void {
+    this.resultFiles = this.resultFiles.filter((_, item) => item !== index);
+  }
+
+  protected submitOfficerResult(): void {
+    const detail = this.resultDetail.trim();
+    const mine = this.myConsultOfficer();
+    if (!detail || !mine || mine.reply !== 'accept' || mine.result) return;
+    const result: ConsultResult = {
+      at: this.replyStamp(),
+      detail,
+      files: this.resultFiles.map((file) => ({ name: file.name, title: file.title.trim() || file.name })),
+    };
+    this.consultJobs = this.consultJobs.map((job) => ({
+      ...job,
+      officers: job.officers.map((officer) => officer.name === this.signedPerson ? { ...officer, result } : officer),
+    }));
+    this.writeConsultJobs();
+    this.clearResultDraft();
+  }
+
+  protected submitGroupResult(): void {
+    this.saveGroupResult();
+    this.clearResultDraft();
+  }
+
+  private saveGroupResult(): void {
+    const detail = this.resultDetail.trim();
+    if (!detail) return;
+    const group = this.myWorkGroup();
+    const result: ConsultResult = {
+      at: this.replyStamp(),
+      detail,
+      files: this.resultFiles.map((file) => ({ name: file.name, title: file.title.trim() || file.name })),
+    };
+    this.consultJobs = this.consultJobs.map((job) => job.group === group ? { ...job, result } : job);
+    this.writeConsultJobs();
+  }
+
+  private clearResultDraft(): void {
+    this.resultDetail = '';
+    this.resultFiles = [];
+  }
+
+  private markGroupReply(reply: 'accept' | 'return'): void {
+    const group = this.myWorkGroup();
+    this.consultJobs = this.consultJobs.map((item) => item.group === group && item.reply === 'pending' ? { ...item, reply, repliedAt: this.replyStamp(), officers: reply === 'return' ? [] : item.officers } : item);
+    this.writeConsultJobs();
+  }
+
+  private replyStamp(): string {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${now.getFullYear() + 543} ${hour}:${minute}`;
+  }
+
   protected replyConsultGroup(reply: 'accept' | 'return'): void {
     if (!this.isMyGroupHead() || !this.consultFormReady) return;
     const group = this.myWorkGroup();
-    this.consultJobs = this.consultJobs.map((job) => job.group === group && job.reply === 'pending' ? { ...job, reply, officers: reply === 'return' ? [] : job.officers } : job);
-    this.clearConsultDraft();
+    this.consultJobs = this.consultJobs.map((job) => job.group === group && job.reply === 'pending' ? { ...job, reply, repliedAt: this.replyStamp(), officers: reply === 'return' ? [] : job.officers } : job);
+    this.closeConsultForm();
     this.writeConsultJobs();
   }
 
@@ -1538,6 +1851,7 @@ export class Por1Page {
           if (found.reply === 'return') {
             found.reply = 'pending';
             found.move = '';
+            found.repliedAt = undefined;
           }
         } else {
           officers.push({ name, reply: 'pending', move: '', form });
@@ -1545,7 +1859,7 @@ export class Por1Page {
       }
       return { ...job, officers };
     });
-    this.clearConsultDraft();
+    this.closeConsultForm();
     this.writeConsultJobs();
   }
 
@@ -1556,12 +1870,12 @@ export class Por1Page {
   }
 
   protected replyConsultOfficer(reply: 'accept' | 'return'): void {
-    if (!this.myConsultOfficer() || !this.consultFormReady) return;
+    const mine = this.myConsultOfficer();
+    if (!mine || mine.reply !== 'pending') return;
     this.consultJobs = this.consultJobs.map((job) => ({
       ...job,
-      officers: job.officers.map((officer) => officer.name === this.signedPerson && officer.reply === 'pending' ? { ...officer, reply, move: reply === 'accept' ? this.consultMove : '' } : officer),
+      officers: job.officers.map((officer) => officer.name === this.signedPerson && officer.reply === 'pending' ? { ...officer, reply, move: '', repliedAt: this.replyStamp() } : officer),
     }));
-    this.clearConsultDraft();
     this.writeConsultJobs();
   }
 
@@ -3720,6 +4034,12 @@ export class Por1Page {
     }, 1400);
   }
 
+  protected get consultSubmitter(): string {
+    if (this.consult?.by) return this.consult.by;
+    if (!this.reviewRole) return this.accounts.displayName;
+    return roleLabel.corporate;
+  }
+
   protected consultWayText(channel?: string): string {
     if (channel === 'phone') return 'โทรศัพท์';
     if (channel === 'online') return 'Online';
@@ -3735,7 +4055,7 @@ export class Por1Page {
     const topic = this.consultTopic.trim();
     const detail = this.consultDetail.trim();
     if (!topic || !detail || !this.consultChannel) return;
-    const request = { topic, detail, when: '', channel: this.consultChannel };
+    const request = { topic, detail, when: '', channel: this.consultChannel, by: this.accounts.displayName, at: `${this.filedOn} 10:15` };
     writeConsult(request);
     this.consult = request;
     this.consultNotes = [];
@@ -3946,14 +4266,30 @@ export class Por1Page {
     return acceptedAssignees(readWorkAssignment());
   }
 
+  protected filingOwners(): string[] {
+    return this.filingGate?.owners.length ? this.filingGate.owners : consultFilingOwners();
+  }
+
+  protected get consultDutyAssigned(): boolean {
+    return consultFilingOwners().length > 0;
+  }
+
+  protected get filingDecisionReady(): boolean {
+    return this.filingDecision === 'approve' || !!this.filingReason.trim();
+  }
+
   protected get canApproveFiling(): boolean {
-    return !!this.reviewRole && this.caseStatus === 'approval' && this.approverNames().includes(this.signedPerson);
+    if (!this.reviewRole || this.caseStatus !== 'approval') return false;
+    if (this.filingGate?.state === 'pending') return this.filingGate.owners.includes(this.signedPerson);
+    return this.approverNames().includes(this.signedPerson);
   }
 
   protected approveOfficial(): void {
     if (!this.canApproveFiling) return;
     writeApprovedBy(this.signedPerson);
     this.approvedBy = this.signedPerson;
+    writeFilingGate(null);
+    this.filingGate = null;
     writeApprovalUntil(0);
     window.clearInterval(this.approvalTimer);
     writeCaseStatus('official');
@@ -3962,27 +4298,58 @@ export class Por1Page {
     this.publishGuide();
   }
 
+  protected submitFilingDecision(): void {
+    if (!this.canApproveFiling || !this.filingDecisionReady) return;
+    if (this.filingDecision === 'approve') {
+      this.approveOfficial();
+      return;
+    }
+    const gate: FilingGate = {
+      state: 'rejected',
+      at: this.replyStamp(),
+      owners: this.filingGate?.owners ?? [],
+      by: this.signedPerson,
+      reason: this.filingReason.trim(),
+    };
+    writeFilingGate(gate);
+    this.filingGate = gate;
+    this.filingDecision = 'approve';
+    this.filingReason = '';
+    writeApprovalUntil(0);
+    window.clearInterval(this.approvalTimer);
+    writeCaseStatus('consult');
+    this.caseStatus = 'consult';
+    this.publishGuide();
+  }
+
   protected confirmOfficial(): void {
     const fromConsult = this.caseStatus === 'consult';
-    const next = fromConsult ? 'approval' : 'official';
-    if (fromConsult) this.readyApprovers();
-    writeCaseStatus(next);
-    this.caseStatus = next;
+    const owners = fromConsult ? consultFilingOwners() : [];
     this.officialOpen = false;
     this.consultOpen = false;
     this.revising = false;
     this.viewingForm = false;
     this.openedRound = null;
-    if (fromConsult) {
+    if (fromConsult && owners.length) {
+      const gate: FilingGate = { state: 'pending', at: this.replyStamp(), owners };
+      writeFilingGate(gate);
+      this.filingGate = gate;
       writeApprovalUntil(0);
+      writeCaseStatus('approval');
+      this.caseStatus = 'approval';
       const note: ConsultNote = {
         from: 'applicant',
-        text: 'ไม่แก้ไขแบบเพิ่ม และยืนยันส่งแบบยื่นทางการ รอผู้รับมอบหมายที่รับเรื่องแล้วอนุมัติ',
-        at: '16/05/2562 11:55',
+        text: `ขอยื่นแบบทางการ ส่งให้${owners.join(' และ ')}ตรวจสอบอนุมัติ`,
+        at: gate.at,
       };
       this.consultNotes = [...readConsultThread(), note];
       writeConsultThread(this.consultNotes);
       this.watchApproval();
+    } else {
+      writeFilingGate(null);
+      this.filingGate = null;
+      writeCaseStatus('official');
+      this.caseStatus = 'official';
     }
     this.publishGuide();
   }
@@ -4460,8 +4827,25 @@ export class Por1Page {
     this.previews.set(file.name, URL.createObjectURL(file));
   }
 
+  private seedConsultDraft(): void {
+    if (!this.isMyGroupHead()) return;
+    this.consultReceipt = 'accept';
+    this.consultPickOfficers = this.membersOf(this.myWorkGroup()).slice(0, 2).map((person) => person.name);
+    this.consultOrder = 'ให้ตรวจสอบเอกสารคำขอที่ปรึกษา รวบรวมข้อเท็จจริง และรายงานผลภายในกำหนด';
+    this.consultRemind = true;
+    this.consultFiles = [{ name: 'คำสั่งมอบหมาย.pdf', title: 'คำสั่งมอบหมายงาน' }];
+  }
+
+  private seedResultDraft(): void {
+    const mine = this.myConsultOfficer();
+    if (mine?.reply === 'accept' && !mine.result) {
+      this.resultDetail = 'ตรวจสอบเอกสารคำขอที่ปรึกษาแล้ว สรุปข้อเท็จจริงตามที่ได้รับมอบหมาย';
+    }
+  }
+
   ngOnInit(): void {
     this.caseStatus = readCaseStatus();
+    this.filingGate = readFilingGate();
     this.caseNotes = readCaseNotes();
     this.noteReads = readNoteReads(this.accounts.username);
     this.laterPhase = readLaterPhase();
@@ -4477,8 +4861,10 @@ export class Por1Page {
       this.viewingForm = true;
       this.ensureAssignment();
       if (this.reviewRole === 'staff' || this.reviewRole === 'director' || this.reviewRole === 'head') this.reviewTab = 'assign';
-      else if (this.reviewRole === 'officer') this.reviewTab = 'docs';
+      else if (this.reviewRole === 'officer') this.reviewTab = this.myConsultOfficer() ? 'assign' : 'docs';
       this.ensureReceipt();
+      this.seedConsultDraft();
+      this.seedResultDraft();
     }
     if (this.caseStatus === 'approval' && !this.consult) {
       writeCaseStatus('official');
@@ -4529,6 +4915,7 @@ export class Por1Page {
         const stored = readCaseStatus();
         if (stored === 'approval') return;
         this.caseStatus = stored;
+        this.filingGate = readFilingGate();
         this.approvedBy = readApprovedBy();
         window.clearInterval(this.approvalTimer);
         this.publishGuide();
@@ -4546,6 +4933,7 @@ export class Por1Page {
       const stored = readCaseStatus();
       if (stored !== 'approval') {
         this.caseStatus = stored;
+        this.filingGate = readFilingGate();
         this.approvedBy = readApprovedBy();
         window.clearInterval(this.approvalTimer);
         writeApprovalUntil(0);
