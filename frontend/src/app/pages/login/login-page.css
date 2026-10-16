@@ -10,7 +10,7 @@ h1 {
   font-size: 24px;
   font-weight: 700;
   line-height: 32px;
-  text-align: left;
+  text-align: center;
 }
 
 .lead {
@@ -20,6 +20,7 @@ h1 {
   font-size: 14px;
   font-weight: 400;
   line-height: 21px;
+  text-align: center;
 }
 
 .role {
@@ -204,7 +205,7 @@ h1 {
 
 .register {
   align-self: center;
-  color: var(--color-link);
+  color: var(--color-selected-orange);
   font-family: var(--font-sans-thai);
   font-size: 14px;
   font-weight: 400;
@@ -213,7 +214,7 @@ h1 {
 }
 
 .register:hover {
-  color: var(--color-link-hover);
+  color: color-mix(in srgb, var(--color-selected-orange) 82%, var(--color-primary));
 }
 
 .register:focus-visible {

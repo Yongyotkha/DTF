@@ -3678,7 +3678,9 @@ table:has(.col-no) {
 }
 
 .check__group .check__row strong {
+  font-size: 14px;
   font-weight: 400;
+  line-height: 21px;
 }
 
 .check__row > div span,

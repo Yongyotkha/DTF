@@ -45,7 +45,7 @@
     <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" placeholder="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก" mark="card" [required]="true" [editable]="true" [state]="taxState" [value]="taxId" (valueChange)="taxId = $event" />
     <app-input-field class="block" label="รหัสผ่าน" placeholder="ระบุรหัสผ่าน" inputType="password" mark="lock" [reveal]="true" [required]="true" [editable]="true" [state]="passwordState" [helper]="passwordHelp" [value]="password" (valueChange)="password = $event" />
     <a class="forgot" routerLink="/forgot-password">ลืมรหัสผ่าน</a>
-    <app-button class="wide" size="lg" label="เข้าสู่ระบบ" (click)="submit()">
+    <app-button class="wide login-submit" size="lg" label="เข้าสู่ระบบ" (click)="submit()">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 12H21" fill="none" stroke="currentColor" stroke-linecap="round" /><path d="M15 18L21 12L15 6" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
     </app-button>
     <p class="or">หรือ</p>
