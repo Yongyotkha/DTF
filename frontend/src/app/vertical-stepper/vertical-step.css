@@ -52,6 +52,24 @@
   background: linear-gradient(#ffb700, #ff7c00);
   box-shadow: 0 0 0 4px #ffcb88;
   color: var(--color-white);
+  animation: vstep-on 1.6s ease-in-out infinite;
+}
+
+@keyframes vstep-on {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px #ffcb88;
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px #ffcb88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vstep[data-state='pending'] .vstep__circle {
+    animation: none;
+  }
 }
 
 .vstep[data-state='disabled'] .vstep__circle {

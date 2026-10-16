@@ -1,9 +1,15 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
+import { DataTable } from '../../data-table/data-table';
+import { FileField } from '../../fields/file-field';
+import { ThaiDateField } from '../../fields/thai-date-field';
+import { InputField } from '../../input-field/input-field';
 import { DftModal } from '../../modal/modal';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
+import { StepperOne, StepperOneItem } from '../../stepper-1/stepper-1';
 import { TopHeader } from '../../top-header/top-header';
 import { formOf } from './form-catalog';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
@@ -11,7 +17,7 @@ import { findListedCase, stepLabel } from './request-cases';
 
 @Component({
   selector: 'app-case-page',
-  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, DftModal],
+  imports: [NgTemplateOutlet, TopHeader, SideNav, RouterLink, DftButton, StatusTag, DftModal, FileField, StepperOne, InputField, ThaiDateField, DataTable],
   templateUrl: './case-page.html',
   styleUrl: './case-page.css',
 })
@@ -24,6 +30,7 @@ export class CasePage implements OnDestroy {
   protected readonly reviewPending: boolean;
   protected readonly supplement: boolean;
   protected readonly fixesOnly: boolean;
+  protected readonly supplementView: boolean;
   protected readonly statusNote: string;
   protected stepIndex = 1;
   protected readonly steps: { label: string; number: string }[];
@@ -94,10 +101,24 @@ export class CasePage implements OnDestroy {
   ];
   protected readonly reviewItems = ['ความครบถ้วนของแบบฟอร์ม', 'หนังสือรับรองบริษัท', 'เอกสารประกอบคำขอ'];
   protected readonly supplementDue = '20 ก.พ. 2569';
-  protected readonly supplementFacts: { label: string; value: string; due?: boolean }[] = [
-    { label: 'เจ้าหน้าที่แจ้งเมื่อ', value: '10 ก.พ. 2569' },
-    { label: 'กำหนดส่งข้อมูล', value: '20 ก.พ. 2569', due: true },
+  protected readonly supplementStep = 3;
+  protected readonly supplementSteps: StepperOneItem[] = [
+    { state: 'success', label: 'ผปก. ยื่นแบบคำขอ', number: '1' },
+    { state: 'success', label: 'คต. พิจารณาคำขอ', number: '2' },
+    { state: 'pending', label: 'ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม', number: '3' },
+    { state: 'disabled', label: 'ผปก. รับทราบคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน', number: '4' },
+    { state: 'disabled', label: 'คต. บันทึกผลการพิจารณาเปิดการไต่สวน', number: '5' },
+    { state: 'disabled', label: 'ผปก. บันทึกหลักฐานชำระค่าธรรมเนียม', number: '6' },
+    { state: 'disabled', label: 'คต. แจ้งประกาศเปิดการไต่สวน', number: '7' },
+    { state: 'disabled', label: 'ผลการไต่สวนชั้นต้น', number: '8' },
+    { state: 'disabled', label: 'รับฟังความคิดเห็น', number: '9' },
+    { state: 'disabled', label: 'ประกาศผลชั้นที่สุด', number: '10' },
   ];
+  protected readonly amendDueOn = '06/06/2569';
+  protected readonly dueOn = '20/02/2569';
+  protected readonly overviewNote = '-';
+  protected readonly endOn = '06/06/2569';
+  protected readonly extendDecisionFile = 'ผลการพิจารณาขยายเวลา.pdf';
   protected readonly supplementTasks: {
     title: string;
     kind: string;
@@ -202,6 +223,25 @@ export class CasePage implements OnDestroy {
   sentConsult: { topic: string; detail: string; channel: 'phone' | 'online' | 'onsite'; filedOn: string } | null = null;
   filedOpen = false;
   officialReview = false;
+  supplementFiles: Record<string, string> = {};
+  supplementSent = false;
+  supplementDraftSaved = false;
+  supplementKind: 'fix' | 'extend' = 'extend';
+  extendReason = 'ขอขยายระยะเวลา';
+  extendNewDue = '22/09/2569';
+  extendFiles: { name: string; title: string }[] = [];
+  protected readonly extendColumns = ['ลำดับ', 'ชื่อเอกสาร', 'ชื่อเอกสารใหม่'];
+  coverDate = '22/09/2569';
+  coverNo = '22/09/2569';
+  coverTo = 'ผู้อำนวยการกองปกป้องและตอบโต้ทางการค้า';
+  coverSubject = '';
+  coverRef = '';
+  coverEnclosed = '';
+  coverDetail = '';
+  coverPurpose = '';
+  coverSeal = '';
+  coverLetterFile = '';
+  coverPreview = false;
   private reviewTimer = 0;
 
   constructor(
@@ -211,6 +251,7 @@ export class CasePage implements OnDestroy {
   ) {
     const code = route.snapshot.paramMap.get('code') ?? '';
     this.fixesOnly = route.snapshot.data['view'] === 'fixes';
+    this.supplementView = route.snapshot.data['view'] === 'supplement';
     const item = findListedCase(code);
     this.code = item?.code ?? code;
     this.requestRef = item?.ref || '—';
@@ -284,7 +325,15 @@ export class CasePage implements OnDestroy {
 
   protected get stageStatus(): string {
     if (this.stageDone && this.viewLabel === 'ยื่นคำขอ') return 'ยื่นคำขอสำเร็จ';
-    return this.stageDone ? 'เสร็จสิ้น' : 'กำลังดำเนินการ';
+    if (this.stageDone) return 'เสร็จสิ้น';
+    if (this.supplement) return 'ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม';
+    return 'กำลังดำเนินการ';
+  }
+
+  protected get stageTone(): StatusTone {
+    if (this.stageDone) return 'success';
+    if (this.supplement) return 'warning';
+    return 'info';
   }
 
   protected get officialLocked(): boolean {
@@ -347,7 +396,100 @@ export class CasePage implements OnDestroy {
   }
 
   protected openSupplement(): void {
-    document.getElementById('supplement-tasks')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    void this.router.navigate(['/requests', this.code, 'supplement']);
+  }
+
+  protected downloadExtendDecision(): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>ผลการพิจารณาขยายเวลา</title></head><body><h1>ผลการพิจารณาขยายเวลา</h1><p>เลขที่คำขอ ${this.requestRef}</p><p>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน) ${this.amendDueOn}</p><p>วันที่ครบกำหนด ${this.dueOn}</p><p>กำหนดวันสิ้นสุด ${this.endOn}</p><p>หมายเหตุ ${this.overviewNote}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.extendDecisionFile;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  setSupplementFile(title: string, name: string): void {
+    this.supplementFiles = { ...this.supplementFiles, [title]: name };
+    this.view.detectChanges();
+  }
+
+  setSupplementKind(kind: 'fix' | 'extend'): void {
+    this.supplementKind = kind;
+    this.view.detectChanges();
+  }
+
+  setExtendReason(value: string): void {
+    this.extendReason = value;
+    this.view.detectChanges();
+  }
+
+  setExtendDue(value: string): void {
+    this.extendNewDue = value;
+    this.view.detectChanges();
+  }
+
+  addExtendFile(name: string): void {
+    if (!name || this.extendFiles.some((file) => file.name === name)) return;
+    this.extendFiles = [...this.extendFiles, { name, title: name }];
+    this.view.detectChanges();
+  }
+
+  protected get extendFileRows(): string[][] {
+    if (!this.extendFiles.length) return [['', '', '']];
+    return this.extendFiles.map((file, index) => [String(index + 1), file.name, file.title]);
+  }
+
+  protected get coverReady(): boolean {
+    return [this.coverDate, this.coverNo, this.coverTo, this.coverSubject, this.coverRef, this.coverEnclosed, this.coverDetail, this.coverPurpose, this.coverSeal, this.coverLetterFile].every((item) => !!item.trim());
+  }
+
+  protected get coverCount(): string {
+    return `${this.coverDetail.length} / 200`;
+  }
+
+  protected get supplementReady(): boolean {
+    if (!this.coverReady) return false;
+    if (this.supplementKind === 'extend') {
+      return !!this.extendReason.trim() && !!this.extendNewDue.trim() && this.extendFiles.length > 0;
+    }
+    return this.supplementTasks.every((task) => !!this.supplementFiles[task.title]);
+  }
+
+  setCover(field: 'coverDate' | 'coverNo' | 'coverTo' | 'coverSubject' | 'coverRef' | 'coverEnclosed' | 'coverDetail' | 'coverPurpose' | 'coverSeal' | 'coverLetterFile', value: string): void {
+    this[field] = field === 'coverDetail' ? value.slice(0, 200) : value;
+    this.view.detectChanges();
+  }
+
+  openCoverPreview(): void {
+    if (!this.coverReady) return;
+    this.coverPreview = true;
+    this.view.detectChanges();
+  }
+
+  closeCoverPreview(): void {
+    this.coverPreview = false;
+    this.view.detectChanges();
+  }
+
+  saveSupplementDraft(): void {
+    this.supplementDraftSaved = true;
+    this.view.detectChanges();
+  }
+
+  closeSupplementDraft(): void {
+    this.supplementDraftSaved = false;
+    this.view.detectChanges();
+  }
+
+  sendSupplement(): void {
+    this.supplementSent = true;
+    this.view.detectChanges();
+  }
+
+  finishSupplement(): void {
+    this.supplementSent = false;
+    void this.router.navigate(['/requests', this.code]);
   }
 
   submitOfficial(): void {
