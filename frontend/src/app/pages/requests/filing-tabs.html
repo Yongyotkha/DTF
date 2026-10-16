@@ -1,0 +1,10 @@
+@if (shown) {
+  <div class="filing-tabs" role="tablist">
+    @for (form of forms; track form.code; let i = $index) {
+      <button type="button" class="filing-tab" role="tab" [class.filing-tab--on]="selected === i" [attr.aria-selected]="selected === i" (click)="open(i)">
+        <strong>แบบฟอร์ม {{ form.code }}</strong>
+        <span>{{ name(form) }}</span>
+      </button>
+    }
+  </div>
+}

@@ -1,0 +1,483 @@
+<div class="por1">
+  <app-top-header class="fluid" />
+  <div class="por1__body">
+    <app-side-nav open="คำขอ" active="ยื่นคำขอ" />
+    <main>
+      <div class="review-pin">
+        <header class="head">
+          <div>
+            <div class="head__title">
+              <h1>{{ heading }}</h1>
+              <app-status-tag tone="neutral" label="ร่าง" />
+            </div>
+            <p>{{ lead }}</p>
+          </div>
+          <div class="head__actions">
+            <button type="button" class="head__history" aria-label="ประวัติคำขอ">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
+            </button>
+            <span class="head__split" aria-hidden="true"></span>
+            <app-button type="outline" label="บันทึกร่าง" />
+            <app-button type="primary" label="ยื่นตรวจสอบ" (click)="reviewOpen = true" />
+          </div>
+        </header>
+      </div>
+      <section class="sheet">
+        <app-filing-tabs />
+        <div class="sheet__bar">
+          <h2>รายละเอียดเอกสาร</h2>
+          <div class="sheet__upload">
+            <app-button class="icon-before" type="pill" label="อัปโหลดไฟล์" (click)="openFilledUpload()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+            </app-button>
+          </div>
+        </div>
+        <div class="sheet__split">
+          <nav class="toc" aria-label="ส่วนของแบบคำขอมาตรการปกป้อง">
+            @for (group of toc; track group.label) {
+              <p class="toc__group">{{ group.label }}</p>
+              @for (item of group.items; track item.id) {
+                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="badSection(item.id)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">
+                  @if (badSection(item.id)) {
+                    <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
+                  } @else {
+                    <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                  }
+                  {{ item.label }}
+                </button>
+              }
+            }
+          </nav>
+          <fieldset class="form">
+            @if (section === '1.1') {
+              <h3>1.1 ผู้ยื่นคำขอ</h3>
+              <p>ผู้ยื่นคำขอจะต้องเป็นผู้ผลิตภายในประเทศที่ผลิตสินค้าชนิดเดียวกันกับสินค้านำเข้าที่เพิ่มขึ้น</p>
+              <div class="grid">
+                <label class="field">
+                  ชื่อ<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="company" (input)="company = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  สัญชาติ<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="nationality" (input)="nationality = $any($event.target).value" />
+                </label>
+                <label class="field field--wide">
+                  ที่อยู่<span class="req">*</span>
+                  <textarea rows="2" placeholder="ระบุ" [value]="address" (input)="address = $any($event.target).value"></textarea>
+                </label>
+                <label class="field" [class.field--bad]="bad('phone')">
+                  โทรศัพท์<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="phone" (input)="phone = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  โทรสาร
+                  <input type="text" placeholder="ระบุ" [value]="fax" (input)="fax = $any($event.target).value" />
+                </label>
+                <label class="field field--wide">
+                  ชื่อบุคคล นิติบุคคล สมาคม หรือกลุ่มอุตสาหกรรมที่ได้รับมอบอำนาจ
+                  <input type="text" placeholder="ระบุ" [value]="principal" (input)="principal = $any($event.target).value" />
+                </label>
+                <label class="field field--wide">
+                  ที่อยู่ของผู้รับมอบอำนาจ
+                  <textarea rows="2" placeholder="ระบุ" [value]="principalAddress" (input)="principalAddress = $any($event.target).value"></textarea>
+                </label>
+                <label class="field">
+                  โทรศัพท์
+                  <input type="text" placeholder="ระบุ" [value]="principalPhone" (input)="principalPhone = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  โทรสาร
+                  <input type="text" placeholder="ระบุ" [value]="principalFax" (input)="principalFax = $any($event.target).value" />
+                </label>
+              </div>
+              <fieldset class="filing">
+                <legend>ประเภทของการยื่นคำขอ<span class="req">*</span></legend>
+                <label>
+                  <input type="radio" name="filing" value="self" [checked]="filing === 'self'" (change)="setFiling('self')" />
+                  <img [src]="filing === 'self' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  ยื่นคำขอโดยผู้ผลิตรายเดียว
+                </label>
+                <label>
+                  <input type="radio" name="filing" value="all" [checked]="filing === 'all'" (change)="setFiling('all')" />
+                  <img [src]="filing === 'all' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  กระทำแทนผู้ผลิตทั้งหมดในอุตสาหกรรมภายใน
+                </label>
+                <label>
+                  <input type="radio" name="filing" value="some" [checked]="filing === 'some'" (change)="setFiling('some')" />
+                  <img [src]="filing === 'some' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  กระทำการแทนผู้ผลิตบางส่วนในอุตสาหกรรมภายใน
+                </label>
+              </fieldset>
+              <p>ผู้ผลิตรายเดียวให้แนบหนังสือรับรอง งบการเงิน และรายการสินค้า ถ้ายื่นแทนผู้ผลิตให้กรอกรายชื่อในเอกสารผนวก และแนบหนังสือรับรอง งบการเงิน ปริมาณสินค้า และหนังสือมอบอำนาจ</p>
+            } @else if (section === '1.2') {
+              <h3>1.2 ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก</h3>
+              <p>ถ้าผู้ผลิตสินค้าชนิดเดียวกันเป็นผู้นำเข้าสินค้าที่ถูกพิจารณา หรือเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออกจากต่างประเทศ ให้แจ้งชื่อ ที่อยู่ โทรศัพท์ โทรสาร ความเกี่ยวข้อง และปริมาณการนำเข้า</p>
+              @for (row of related; track $index) {
+                <div class="grid">
+                  <label class="field">
+                    ผู้ผลิต
+                    <input type="text" placeholder="ระบุ" [value]="row.producer" (input)="setRelated($index, 'producer', $event)" />
+                  </label>
+                  <label class="field">
+                    ผู้นำเข้า
+                    <input type="text" placeholder="ระบุ" [value]="row.importer" (input)="setRelated($index, 'importer', $event)" />
+                  </label>
+                  <label class="field">
+                    ผู้ส่งออก
+                    <input type="text" placeholder="ระบุ" [value]="row.exporter" (input)="setRelated($index, 'exporter', $event)" />
+                  </label>
+                  <label class="field">
+                    ปริมาณการนำเข้า
+                    <input type="text" placeholder="ระบุ" [value]="row.volume" (input)="setRelated($index, 'volume', $event)" />
+                  </label>
+                  <label class="field field--wide">
+                    ความเกี่ยวข้อง
+                    <textarea rows="2" placeholder="ระบุ" [value]="row.link" (input)="setRelated($index, 'link', $event)"></textarea>
+                  </label>
+                </div>
+                @if (related.length > 1) {
+                  <app-button type="outline" label="ลบรายการนี้" (click)="removeRelated($index)" />
+                }
+              }
+              <app-button type="outline" label="เพิ่มรายการ" (click)="addRelated()" />
+            } @else if (section === '1.3') {
+              <h3>1.3 คำขอมาตรการช่วยเหลือ</h3>
+              <p>ในช่วง 1 ปีก่อนหน้านี้ ได้ยื่นคำขอให้รัฐบาลกำหนดมาตรการช่วยเหลือหรือไม่ เช่น มาตรการทางภาษี การจำกัดปริมาณการนำเข้า หรือค่าธรรมเนียมพิเศษ ถ้ามีให้แจ้งว่ามีคำขอเมื่อใด ถึงหน่วยงานใด รัฐบาลช่วยเหลือหรือไม่ และเมื่อใด</p>
+              <label class="field field--wide">
+                รายละเอียด<span class="req">*</span>
+                <textarea rows="5" placeholder="ระบุ" [value]="priorAid" (input)="priorAid = $any($event.target).value"></textarea>
+              </label>
+            } @else if (section === '2') {
+              <h3>รายละเอียดของสินค้า</h3>
+              <p>เปรียบเทียบสินค้าที่ถูกพิจารณากับสินค้าชนิดเดียวกันที่ผู้ยื่นคำขอผลิตได้ในประเทศ</p>
+              <div class="grid">
+                <label class="field" [class.field--bad]="bad('tradeName')">
+                  2.1 ชื่อทางการค้า<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="tradeName" (input)="tradeName = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  ชื่อทางวิทยาศาสตร์
+                  <input type="text" placeholder="ถ้ามี" [value]="scienceName" (input)="scienceName = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  พิกัดอัตราศุลกากร<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="hsCode" (input)="hsCode = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  อัตราอากรขาเข้าปัจจุบัน<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="duty" (input)="duty = $any($event.target).value" />
+                </label>
+                <label class="field field--wide">
+                  2.2 ลักษณะทางกายภาพ ลักษณะทางเคมี และโครงสร้าง<span class="req">*</span>
+                  <textarea rows="3" placeholder="ระบุ" [value]="physical" (input)="physical = $any($event.target).value"></textarea>
+                </label>
+                <label class="field field--wide">
+                  2.3 มาตรฐานทางอุตสาหกรรม<span class="req">*</span>
+                  <textarea rows="2" placeholder="ประเทศของมาตรฐานและเกรด" [value]="standard" (input)="standard = $any($event.target).value"></textarea>
+                </label>
+                <label class="field field--wide">
+                  2.4 ขั้นตอนและกระบวนการผลิต<span class="req">*</span>
+                  <textarea rows="3" placeholder="ระบุ" [value]="process" (input)="process = $any($event.target).value"></textarea>
+                </label>
+                <label class="field">
+                  2.5 ช่องทางการจัดจำหน่าย<span class="req">*</span>
+                  <textarea rows="2" placeholder="ระบุ" [value]="channel" (input)="channel = $any($event.target).value"></textarea>
+                </label>
+                <label class="field">
+                  2.6 ผู้ใช้สินค้าขั้นสุดท้าย<span class="req">*</span>
+                  <textarea rows="2" placeholder="ระบุ" [value]="endUser" (input)="endUser = $any($event.target).value"></textarea>
+                </label>
+                <label class="field field--wide">
+                  2.7 มาตรการนำเข้าที่ไม่ใช่ภาษี
+                  <textarea rows="2" placeholder="อนุญาตนำเข้า โควตา หรือค่าธรรมเนียมพิเศษ ถ้ามี" [value]="nonTariff" (input)="nonTariff = $any($event.target).value"></textarea>
+                </label>
+                <label class="field">
+                  2.8 ประเทศแหล่งกำเนิด<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="origin" (input)="origin = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  2.9 ประเทศผู้ส่งออก<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="exporterCountry" (input)="exporterCountry = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  2.10 ส่วนที่เหมือนกัน<span class="req">*</span>
+                  <textarea rows="3" placeholder="ระบุ" [value]="samePoint" (input)="samePoint = $any($event.target).value"></textarea>
+                </label>
+                <label class="field">
+                  ส่วนที่แตกต่างกัน<span class="req">*</span>
+                  <textarea rows="3" placeholder="ระบุ" [value]="differentPoint" (input)="differentPoint = $any($event.target).value"></textarea>
+                </label>
+              </div>
+            } @else if (section === '3.1' || section === '3.2' || section === '3.3' || section === 'annex-a' || section === 'annex-b1' || section === 'annex-b2') {
+              <h3>
+                @if (section === '3.1') { 3.1 ผู้ผลิตหรือผู้ส่งออกจากต่างประเทศ }
+                @if (section === '3.2') { 3.2 ผู้นำเข้าสินค้าที่ถูกพิจารณาในประเทศ }
+                @if (section === '3.3') { 3.3 สมาคมหรือกลุ่มอุตสาหกรรมผู้ใช้สินค้าชนิดเดียวกัน }
+                @if (section === 'annex-a') { เอกสารผนวก ก. ผู้ผลิตทั้งหมดที่กระทำแทน }
+                @if (section === 'annex-b1') { เอกสารผนวก ข. ส่วนที่ 1 ผู้ผลิตที่ถูกแทน }
+                @if (section === 'annex-b2') { เอกสารผนวก ข. ส่วนที่ 2 ผู้ผลิตที่ไม่ได้ขอให้แทน }
+              </h3>
+              @if (section === '3.1' || section === '3.2' || section === '3.3') {
+                <p>ใช้ข้อมูลล่าสุด</p>
+              }
+              @for (row of contactRows; track $index) {
+                <div class="grid">
+                  <label class="field">
+                    รายชื่อ<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="row.name" (input)="setContact($index, 'name', $event)" />
+                  </label>
+                  <label class="field">
+                    ที่อยู่<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="row.address" (input)="setContact($index, 'address', $event)" />
+                  </label>
+                  <label class="field">
+                    โทรศัพท์
+                    <input type="text" placeholder="ระบุ" [value]="row.phone" (input)="setContact($index, 'phone', $event)" />
+                  </label>
+                  <label class="field">
+                    โทรสาร
+                    <input type="text" placeholder="ระบุ" [value]="row.fax" (input)="setContact($index, 'fax', $event)" />
+                  </label>
+                  @if (section === 'annex-a' || section === 'annex-b1') {
+                    <label class="field field--wide">
+                      หมายเหตุ
+                      <input type="text" placeholder="ระบุ" [value]="row.note" (input)="setContact($index, 'note', $event)" />
+                    </label>
+                  }
+                </div>
+                @if (contactRows.length > 1) {
+                  <app-button type="outline" label="ลบรายชื่อนี้" (click)="removeContact($index)" />
+                }
+              }
+              <app-button type="outline" label="เพิ่มรายชื่อ" (click)="addContact()" />
+            } @else if (section === '4.1') {
+              <h3>4.1 ปริมาณการนำเข้าสินค้าที่ถูกพิจารณา</h3>
+              <p>แสดงปีปัจจุบันและย้อนหลัง 5 ปี</p>
+              <label class="field">
+                หน่วย<span class="req">*</span>
+                <input type="text" placeholder="ระบุหน่วย" [value]="unitImport" (input)="unitImport = $any($event.target).value" />
+              </label>
+              <div class="grid">
+                @for (year of years; track year.key) {
+                  <label class="field">
+                    ปริมาณการนำเข้า {{ year.label }}<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="yearValue(importQty, year.key)" (input)="setYear('importQty', year.key, $event)" />
+                  </label>
+                }
+                @for (year of years; track year.key) {
+                  <label class="field">
+                    อัตราการเปลี่ยนแปลง (%) {{ year.label }}
+                    <input type="text" placeholder="ระบุ" [value]="yearValue(importChange, year.key)" (input)="setYear('importChange', year.key, $event)" />
+                  </label>
+                }
+              </div>
+            } @else if (section === '4.2') {
+              <h3>4.2 ปริมาณความต้องการใช้ภายในประเทศ</h3>
+              <p>ความต้องการใช้ภายในประเทศหมายถึงปริมาณการนำเข้าสินค้าที่ถูกพิจารณารวมกับปริมาณการขายภายในประเทศ</p>
+              <label class="field">
+                หน่วย<span class="req">*</span>
+                <input type="text" placeholder="ระบุหน่วย" [value]="unitDemand" (input)="unitDemand = $any($event.target).value" />
+              </label>
+              <div class="grid">
+                @for (year of years; track year.key) {
+                  <label class="field">
+                    ความต้องการใช้ {{ year.label }}<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="yearValue(demandQty, year.key)" (input)="setYear('demandQty', year.key, $event)" />
+                  </label>
+                }
+                @for (year of years; track year.key) {
+                  <label class="field">
+                    อัตราการเปลี่ยนแปลง (%) {{ year.label }}
+                    <input type="text" placeholder="ระบุ" [value]="yearValue(demandChange, year.key)" (input)="setYear('demandChange', year.key, $event)" />
+                  </label>
+                }
+              </div>
+            } @else if (section === '4.3') {
+              <h3>4.3 แนวโน้มการเพิ่มขึ้น</h3>
+              <p>อธิบายว่าการนำเข้าเพิ่มขึ้นอย่างรวดเร็วในอัตราที่คาดไม่ถึงหรือไม่ อย่างไร</p>
+              <label class="field field--wide">
+                คำอธิบาย<span class="req">*</span>
+                <textarea rows="5" placeholder="ระบุ" [value]="trend" (input)="trend = $any($event.target).value"></textarea>
+              </label>
+            } @else if (section === '5.1') {
+              <h3>5.1 ผลการดำเนินงาน</h3>
+              <p>แสดงข้อมูลของอุตสาหกรรมภายในโดยรวม และข้อมูลของผู้ผลิตที่ร่วมยื่นคำขอแต่ละราย เป็นปีปัจจุบันและย้อนหลัง 5 ปี</p>
+              <label class="field">
+                หน่วย<span class="req">*</span>
+                <input type="text" placeholder="ระบุหน่วย" [value]="unitPerformance" (input)="unitPerformance = $any($event.target).value" />
+              </label>
+              <h3>อุตสาหกรรมภายในโดยรวม</h3>
+              @for (metric of performanceRows; track metric.key) {
+                <div class="grid">
+                  @for (year of years; track year.key) {
+                    <label class="field">
+                      {{ metric.label }} {{ year.label }}
+                      <input type="text" placeholder="ระบุ" [value]="industryValue(metric.key, year.key)" (input)="setIndustry(metric.key, year.key, $event)" />
+                    </label>
+                  }
+                </div>
+              }
+              @for (producer of producers; track $index) {
+                <h3>ผู้ผลิตรายที่ {{ $index + 1 }}</h3>
+                <label class="field">
+                  ชื่อผู้ผลิต<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="producer.name" (input)="setProducerName($index, $event)" />
+                </label>
+                @for (metric of performanceRows; track metric.key) {
+                  <div class="grid">
+                    @for (year of years; track year.key) {
+                      <label class="field">
+                        {{ metric.label }} {{ year.label }}
+                        <input type="text" placeholder="ระบุ" [value]="producerValue($index, metric.key, year.key)" (input)="setProducer($index, metric.key, year.key, $event)" />
+                      </label>
+                    }
+                  </div>
+                }
+                @if (producers.length > 1) {
+                  <app-button type="outline" label="ลบผู้ผลิตรายนี้" (click)="removeProducer($index)" />
+                }
+              }
+              <app-button type="outline" label="เพิ่มผู้ผลิต" (click)="addProducer()" />
+            } @else if (section === '5.2') {
+              <h3>5.2 ผลกระทบต่ออุตสาหกรรมภายใน</h3>
+              <p>จากข้อมูลผลการดำเนินงาน อุตสาหกรรมภายในได้รับผลกระทบจากการนำเข้าสินค้าที่ถูกพิจารณาในลักษณะที่เป็นความเสียหายหรือไม่ อย่างไร</p>
+              <label class="field field--wide">
+                คำอธิบาย<span class="req">*</span>
+                <textarea rows="5" placeholder="ระบุ" [value]="injury" (input)="injury = $any($event.target).value"></textarea>
+              </label>
+            } @else if (section === '5.3') {
+              <h3>5.3 มาตรการปกป้องชั่วคราว</h3>
+              <p>มีความจำเป็นต้องได้รับการปกป้องโดยมาตรการปกป้องชั่วคราว (Provisional Safeguard Measure) เพื่อป้องกันความเสียหายเฉพาะหน้าโดยเร่งด่วนหรือไม่ อย่างไร</p>
+              <label class="field field--wide">
+                คำอธิบาย<span class="req">*</span>
+                <textarea rows="5" placeholder="ระบุ" [value]="provisional" (input)="provisional = $any($event.target).value"></textarea>
+              </label>
+            } @else if (section === '6.1') {
+              <h3>6.1 ข้อได้เปรียบหรือเสียเปรียบ</h3>
+              <p>เทียบกับผู้ผลิตสินค้าชนิดเดียวกันที่นำเข้าจากต่างประเทศ มีข้อได้เปรียบหรือเสียเปรียบในด้านใด</p>
+              <label class="field field--wide">
+                คำอธิบาย<span class="req">*</span>
+                <textarea rows="5" placeholder="ระบุ" [value]="advantage" (input)="advantage = $any($event.target).value"></textarea>
+              </label>
+            } @else if (section === '6.2') {
+              <h3>6.2 แผนปรับปรุง</h3>
+              <p>ชี้แจงแผนปรับตัว กรอบเวลา และขั้นตอน เช่น การปรับปรุงเครื่องจักร ระบบผลิต การควบรวมกิจการ และการบริหารจัดการ ภายในกี่ปี</p>
+              <label class="field field--wide">
+                รายละเอียดแผน<span class="req">*</span>
+                <textarea rows="6" placeholder="ระบุ" [value]="plan" (input)="plan = $any($event.target).value"></textarea>
+              </label>
+            } @else if (section === '9') {
+              <h3>คำรับรองและลงนาม</h3>
+              <p>ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นตลอดจนข้อความในเอกสารภาคผนวกที่แนบ และเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้ ถูกต้องและเป็นความจริงทุกประการ</p>
+              <label class="ack">
+                <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
+                <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                <span>ข้าพเจ้ารับรองว่าข้อความและเอกสารประกอบถูกต้องและเป็นความจริง<span class="req">*</span></span>
+              </label>
+              <div class="grid">
+                <label class="field">
+                  ชื่อผู้ยื่นคำขอ<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="signer" (input)="signer = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  ตำแหน่ง<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  วันที่<span class="req">*</span>
+                  <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="signedDate" (input)="signedDate = $any($event.target).value" />
+                </label>
+              </div>
+            } @else {
+              <h3>ภาคผนวก และเอกสารประกอบอื่น</h3>
+              <p>หากเนื้อที่สำหรับกรอกข้อมูลในส่วนใดไม่เพียงพอ ให้แนบรายละเอียดเพิ่มเติม</p>
+            }
+            @if (visibleDocs.length) {
+              <div class="doc-browser">
+                <div class="doc-nav" role="tablist">
+                  @for (item of visibleDocs; track item.key) {
+                    <button type="button" role="tab" [class.doc-nav__on]="activeDoc.key === item.key" [attr.aria-selected]="activeDoc.key === item.key" (click)="openDoc(item.key)">
+                      <img [src]="namesOf(item.key).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      <span>{{ item.label }}</span>
+                    </button>
+                  }
+                </div>
+                <div class="doc-detail" role="tabpanel">
+                  <div class="doc-detail__bar">
+                    <div>
+                      <p class="doc-detail__title">{{ activeDoc.label }}</p>
+                      <p class="doc-detail__meta">{{ namesOf(activeDoc.key).length }} ไฟล์ · {{ activeDoc.hint }}</p>
+                    </div>
+                    <label class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" [accept]="activeDoc.accept" (change)="pick(activeDoc.key, $event)" />
+                    </label>
+                  </div>
+                  <div class="table-wrap doc-detail__table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>เอกสาร</th>
+                          <th>สถานะเอกสาร</th>
+                          <th class="col-manage">จัดการ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (name of namesOf(activeDoc.key); track name) {
+                          <tr>
+                            <td>{{ name }}</td>
+                            <td><app-status-tag tone="success" label="แนบแล้ว" /></td>
+                            <td class="col-manage">
+                              <div class="manage">
+                                <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeListed(activeDoc.key, name, $event)">
+                                  <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            }
+          </fieldset>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+@if (uploadOpen) {
+  <app-filled-upload [code]="formCode" (filled)="applyRead()" (closed)="uploadOpen = false" />
+}
+@if (reviewOpen) {
+  <div class="sample sample--submit" (click)="reviewOpen = false">
+    <section role="dialog" aria-modal="true" aria-label="ตรวจสอบเอกสาร คำขอมาตรการปกป้อง" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2>ตรวจสอบเอกสาร คำขอมาตรการปกป้อง</h2>
+        <button type="button" class="submit__close" (click)="reviewOpen = false">✕ ปิด</button>
+      </div>
+      <p>กรอกข้อความตามที่เป็นจริง ข้อมูลลับให้ยื่นทั้งฉบับลับและฉบับที่เปิดเผยได้ตามมาตรา 21</p>
+      <div class="submit__check">
+        <div>
+          <dt>ผู้ยื่น</dt>
+          <dd>{{ company || 'ยังไม่ระบุ' }}</dd>
+        </div>
+        <div>
+          <dt>ประเภทการยื่น</dt>
+          <dd>{{ filingLabel }}</dd>
+        </div>
+        <div>
+          <dt>สินค้า</dt>
+          <dd>{{ tradeName || 'ยังไม่ระบุ' }}</dd>
+        </div>
+      </div>
+      <div class="submit__actions">
+        <app-button type="outline" label="กลับไปแก้ไข" (click)="reviewOpen = false" />
+        <app-button type="primary" label="ยืนยันยื่นตรวจสอบ" (click)="reviewOpen = false" />
+      </div>
+    </section>
+  </div>
+}

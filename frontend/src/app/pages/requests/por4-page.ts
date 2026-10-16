@@ -1,9 +1,13 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
+import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extract';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
+import { filingMeasureTitle } from './filing-intent';
+import { scrollFormToTop } from './form-scroll';
 
 type TocItem = { id: string; label: string };
 type TocGroup = { label: string; items: TocItem[] };
@@ -12,11 +16,12 @@ type ShipRow = { period: string; qty: string; value: string };
 
 @Component({
   selector: 'app-por4-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por4-page.html',
   styleUrl: './por1-page.css',
 })
 export class Por4Page {
+  protected readonly filingTitle = filingMeasureTitle();
   protected measure: 'dumping' | 'subsidy' = 'dumping';
   protected stake = '';
   protected filing: 'self' | 'behalf' = 'self';
@@ -45,6 +50,7 @@ export class Por4Page {
   protected signedDate = '';
   protected reviewOpen = false;
   protected uploadOpen = false;
+  protected readOn = false;
   protected docKey = 'cert';
   protected section = '1.1';
   protected files: Record<string, string[]> = {};
@@ -99,6 +105,51 @@ export class Por4Page {
   protected openFilledUpload(): void {
     this.uploadOpen = true;
   }
+  protected readSpots: { contact: string[]; body: string[] } = { contact: ['1.3'], body: ['4'] };
+
+  protected applyRead(): void {
+    const host = this as unknown as { applicants?: object[] };
+    if (host.applicants?.length) {
+      fillApplicant(host.applicants[0]);
+      host.applicants = [...host.applicants];
+    }
+    fillKnown(this);
+    const bag = this as unknown as Record<string, unknown>;
+    if (typeof bag['goods'] === 'string' && typeof bag['notice'] !== 'string') bag['goods'] = 'เหล็กแผ่น';
+    if (bag['measure'] === '') bag['measure'] = 'dumping';
+    if (bag['filing'] === '') bag['filing'] = 'self';
+    this.readOn = true;
+    this.view.detectChanges();
+  }
+
+  protected bad(key: string): boolean {
+    if (!this.readOn) return false;
+    const people = (this as unknown as { applicants?: Record<string, string>[] }).applicants;
+    const person = people?.[0];
+    const picked = person && Object.prototype.hasOwnProperty.call(person, key) ? person[key] : (this as unknown as Record<string, unknown>)[key];
+    return valueIsWrong(key, String(picked ?? ''));
+  }
+
+  protected readHint(key: string): string {
+    return this.bad(key) ? wrongHint(key) : '';
+  }
+
+  protected badSection(id: string): boolean {
+    const contact = this.bad('phone') || this.bad('email') || this.bad('agentPhone');
+    const body = this.bad('notice') || this.bad('stopReason') || this.bad('tradeName') || this.bad('goods');
+    if (this.readSpots.contact.includes(id)) return contact;
+    if (this.readSpots.body.includes(id)) return body;
+    return false;
+  }
+
+  protected get sectionIssue(): string {
+    const bag = this as unknown as { section?: string; step?: string };
+    const id = bag.section ?? bag.step ?? '';
+    if (!this.badSection(id)) return '';
+    if (this.readSpots.contact.includes(id)) return 'อ่านเบอร์โทรและอีเมลจากไฟล์ได้ไม่ถูกต้อง';
+    return 'ข้อมูลส่วนนี้ไม่ตรงกับไฟล์ต้นฉบับ';
+  }
+
 
   protected get visibleDocs(): DocItem[] {
     const group = this.section === '3' ? 'ship' : this.section === '4' ? 'evidence' : this.section === 'other' ? 'other' : 'support';
@@ -122,13 +173,14 @@ export class Por4Page {
     return 'ยังไม่เลือก';
   }
 
-  protected open(item: TocItem): void {
+  protected open(item: TocItem, event?: Event): void {
     this.section = item.id;
     if (item.id === 'docs') this.docKey = this.visibleDocs[0]?.key ?? 'cert';
     if (item.id === '3') this.docKey = 'ship';
     if (item.id === '4') this.docKey = 'margin';
     if (item.id === 'other') this.docKey = 'other';
     this.view.detectChanges();
+    scrollFormToTop(event);
   }
 
   protected current(item: TocItem): boolean {

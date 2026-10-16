@@ -387,6 +387,7 @@ h2 {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  cursor: pointer;
   gap: 12px;
   min-width: 0;
   padding: 16px;

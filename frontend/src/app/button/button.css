@@ -155,8 +155,9 @@
 
 .btn--pill {
   border-radius: 50px;
-  border-color: var(--color-border);
-  color: var(--color-primary);
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+  font-weight: 700;
 }
 
 .btn--pill[data-state='hover'],

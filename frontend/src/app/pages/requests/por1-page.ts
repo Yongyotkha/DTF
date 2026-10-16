@@ -13,7 +13,10 @@ import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
 import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultRequest, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
+import { readParty, readText, valueIsWrong, wrongHint } from './form-extract';
+import { scrollFormToTop } from './form-scroll';
 
 type InquiryStep = 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote' | 'notice' | 'hearing' | 'questions' | 'visit';
 type ReviewTab = 'form' | 'assign' | 'docs' | 'inquiry' | 'prelim' | 'draftFinal' | 'finalResult' | 'link';
@@ -251,7 +254,7 @@ const toc: TocGroup[] = [
 
 @Component({
   selector: 'app-por1-page',
-  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FilledUpload],
+  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FilledUpload, FilingTabs],
   templateUrl: './por1-page.html',
   styleUrl: './por1-page.css',
 })
@@ -3660,9 +3663,32 @@ export class Por1Page {
   }
 
   protected uploadOpen = false;
+  protected readOn = false;
 
   protected openFilledUpload(): void {
     this.uploadOpen = true;
+  }
+
+  protected applyRead(): void {
+    this.phone = readParty.phone;
+    this.email = readParty.email;
+    this.agentPhone = readParty.agentPhone;
+    if (!this.agentFax.trim()) this.agentFax = readParty.agentFax;
+    if (!this.agentEmail.trim()) this.agentEmail = readParty.agentEmail;
+    this.relatedImport = readText.related;
+    this.readOn = true;
+    this.publishGuide();
+    this.view.detectChanges();
+  }
+
+  protected bad(key: string): boolean {
+    if (!this.readOn) return false;
+    const value = key === 'related' ? this.relatedImport : String((this as unknown as Record<string, string>)[key] ?? '');
+    return valueIsWrong(key, value);
+  }
+
+  protected readHint(key: string): string {
+    return this.bad(key) ? wrongHint(key) : '';
   }
 
   protected openSubmit(): void {
@@ -4212,22 +4238,13 @@ export class Por1Page {
     if (input instanceof HTMLInputElement) input.value = '';
   }
 
-  protected open(item: TocLink): void {
+  protected open(item: TocLink, event?: Event): void {
     this.section = item.id;
     this.anchor = item.anchor ?? '';
     this.guideField = '';
     this.publishGuide();
     this.view.detectChanges();
-    requestAnimationFrame(() => this.revealSection(item.anchor ?? ''));
-  }
-
-  private revealSection(anchor: string): void {
-    const target = (anchor && document.getElementById(anchor)) || document.querySelector('.form');
-    if (!(target instanceof HTMLElement)) return;
-    const pin = document.querySelector('.review-pin');
-    const offset = 65 + (pin instanceof HTMLElement ? pin.offsetHeight : 0);
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top: Math.max(0, top) });
+    scrollFormToTop(event);
   }
 
   protected current(item: TocLink): boolean {
@@ -4306,12 +4323,23 @@ export class Por1Page {
   }
 
   protected issueFor(item: TocLink): string {
+    const read = this.readIssue(item);
+    if (read) return read;
     return this.failSpots().find((spot) => this.spotHits(spot, item))?.reason ?? '';
+  }
+
+  private readIssue(item: TocLink): string {
+    if (item.anchor === 'part-1-1' && (this.bad('phone') || this.bad('email') || this.bad('agentPhone'))) {
+      return 'อ่านเบอร์โทรและอีเมลจากไฟล์ได้ไม่ถูกต้อง';
+    }
+    if (item.anchor === 'part-1-2' && this.bad('related')) return 'ข้อมูลส่วนนี้ไม่ตรงกับไฟล์ต้นฉบับ';
+    return '';
   }
 
   protected get sectionIssue(): string {
     const item = this.toc.flatMap((group) => group.items).find((entry) => this.current(entry));
-    return item ? this.issueFor(item) : '';
+    if (!item) return '';
+    return this.failSpots().find((spot) => this.spotHits(spot, item))?.reason ?? '';
   }
 
   protected docIssue(key: string): string {

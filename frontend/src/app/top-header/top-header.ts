@@ -32,40 +32,10 @@ export class TopHeader {
     return this.account && this.sidebar.mounted() && this.sidebar.narrow();
   }
 
-  protected showTools(): boolean {
-    return this.account && this.sidebar.mounted();
-  }
-
-  protected splitLabel(): string {
-    return this.workspace.band() === 'desktop' ? 'เปิดมุมมองคู่กับ AI' : 'เปิดผู้ช่วย AI';
-  }
-
   protected toggleDrawer(): void {
     const next = !this.sidebar.drawer();
     this.sidebar.drawer.set(next);
     if (next) queueMicrotask(() => document.getElementById('sidebar-collapse')?.focus());
-  }
-
-  protected enterFocus(): void {
-    this.workspace.enterFocus();
-    queueMicrotask(() => document.getElementById('workspace-exit')?.focus());
-  }
-
-  protected exitFocus(): void {
-    this.workspace.exitFocus();
-    queueMicrotask(() => document.getElementById('workspace-focus')?.focus());
-  }
-
-  protected toggleSplit(): void {
-    if (this.workspace.split()) {
-      this.workspace.leaveSplit();
-      document.dispatchEvent(new CustomEvent('dft-split-close'));
-      queueMicrotask(() => document.getElementById('workspace-split')?.focus());
-      return;
-    }
-    this.workspace.openSplit();
-    document.dispatchEvent(new CustomEvent('dft-split-open'));
-    queueMicrotask(() => document.querySelector<HTMLElement>('.ask-panel [aria-label="ปิดแชท"]')?.focus());
   }
 
   protected toggleMenu(): void {

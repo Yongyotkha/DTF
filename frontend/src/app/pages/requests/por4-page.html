@@ -7,7 +7,7 @@
         <header class="head">
           <div>
             <div class="head__title">
-              <h1>ยื่นคำขอแบบ ปร. 4 (มาตราการ AD)</h1>
+              <h1>{{ filingTitle }}</h1>
               <app-status-tag tone="neutral" label="ร่าง" />
             </div>
             <p>แบบคำขอให้พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน สำหรับผู้ส่งออกหรือผู้ผลิตรายใหม่ ตามมาตรา 58 และมาตรา 70</p>
@@ -23,6 +23,7 @@
         </header>
       </div>
       <section class="sheet">
+        <app-filing-tabs />
         <div class="sheet__bar">
           <h2>รายละเอียดเอกสาร</h2>
           <div class="sheet__upload">
@@ -36,8 +37,12 @@
             @for (group of toc; track group.label) {
               <p class="toc__group">{{ group.label }}</p>
               @for (item of group.items; track item.label) {
-                <button type="button" class="toc__child" [class.toc__on]="current(item)" [attr.aria-current]="current(item) ? 'true' : null" (click)="open(item)">
-                  <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="badSection(item.id)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">
+                  @if (badSection(item.id)) {
+                    <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
+                  } @else {
+                    <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                  }
                   {{ item.label }}
                 </button>
               }
@@ -112,7 +117,7 @@
                   ที่อยู่<span class="req">*</span>
                   <textarea rows="1" placeholder="ระบุ" [value]="address" (input)="address = $any($event.target).value"></textarea>
                 </label>
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('phone')">
                   โทรศัพท์<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="phone" (input)="phone = $any($event.target).value" />
                 </label>
@@ -120,7 +125,7 @@
                   โทรสาร
                   <input type="text" placeholder="ระบุ" [value]="fax" (input)="fax = $any($event.target).value" />
                 </label>
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('email')">
                   ไปรษณีย์อิเล็กทรอนิกส์
                   <input type="email" placeholder="ระบุ" [value]="email" (input)="email = $any($event.target).value" />
                 </label>
@@ -129,7 +134,7 @@
                   <input type="text" placeholder="ระบุ" [value]="agent" (input)="agent = $any($event.target).value" />
                   <small>(ผู้มีอำนาจกระทำการแทน/ผู้รับมอบอำนาจ)</small>
                 </label>
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('agentPhone')">
                   โทรศัพท์
                   <input type="text" placeholder="ระบุ" [value]="agentPhone" (input)="agentPhone = $any($event.target).value" />
                 </label>
@@ -224,7 +229,7 @@
                     สินค้า<span class="req">*</span>
                     <input type="text" placeholder="ระบุ" [value]="goods" (input)="goods = $any($event.target).value" />
                   </label>
-                  <label class="field field--wide">
+                  <label class="field field--wide" [class.field--bad]="bad('notice')">
                     ตามประกาศคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน เรื่อง<span class="req">*</span>
                     <textarea rows="3" placeholder="ระบุ" [value]="notice" (input)="notice = $any($event.target).value"></textarea>
                   </label>
@@ -325,7 +330,7 @@
   </div>
 </div>
 @if (uploadOpen) {
-  <app-filled-upload code="ปร. 4" (closed)="uploadOpen = false" />
+  <app-filled-upload code="ปร. 4" (filled)="applyRead()" (closed)="uploadOpen = false" />
 }
 @if (reviewOpen) {
   <div class="sample sample--submit" (click)="reviewOpen = false">

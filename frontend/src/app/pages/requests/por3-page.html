@@ -1,13 +1,13 @@
-<div class="por2">
+<div class="por1">
   <app-top-header class="fluid" />
-  <div class="por2__body">
+  <div class="por1__body">
     <app-side-nav open="คำขอ" active="ยื่นคำขอ" />
     <main>
       <div class="review-pin">
         <header class="head">
           <div>
             <div class="head__title">
-              <h1>ยื่นคำขอแบบ ปร. 3 (มาตราการ AD)</h1>
+              <h1>{{ filingTitle }}</h1>
               <app-status-tag tone="neutral" label="ร่าง" />
             </div>
             <p>แบบคำขอให้พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุนต่อไปตามมาตรา 57</p>
@@ -23,6 +23,7 @@
         </header>
       </div>
       <section class="sheet">
+        <app-filing-tabs />
         <div class="sheet__bar">
           <h2>รายละเอียดเอกสาร</h2>
           <div class="sheet__upload">
@@ -36,8 +37,12 @@
             @for (group of menu; track group.title) {
               <p class="toc__group">{{ group.title }}</p>
               @for (item of group.items; track item.label) {
-                <button type="button" class="toc__child" [class.toc__on]="step === item.label" [attr.aria-current]="step === item.label ? 'true' : null" (click)="open(item.label)">
-                  <img [src]="filled(item.label) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                <button type="button" class="toc__child" [class.toc__on]="step === item.label" [class.toc__fail]="badSection(item.label)" [attr.aria-current]="step === item.label ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item.label, $event)">
+                  @if (badSection(item.label)) {
+                    <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
+                  } @else {
+                    <img [src]="filled(item.label) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                  }
                   {{ item.label }}
                 </button>
               }
@@ -49,7 +54,7 @@
               <div class="grid">
               <fieldset class="field--wide">
                 <legend>มาตรการที่ขอให้ดำเนินการพิจารณาทบทวนการเรียกเก็บอากร</legend>
-                <div class="stack">
+                <div class="choices">
                   <label>
                     <input type="radio" name="measure" value="dumping" [checked]="measure === 'dumping'" (change)="measure = 'dumping'" />
                     <img [src]="measure === 'dumping' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
@@ -64,7 +69,7 @@
               </fieldset>
               <fieldset class="field--wide">
                 <legend>ประเภทของการยื่นคำขอ</legend>
-                <div class="stack">
+                <div class="choices">
                   <label>
                     <input type="radio" name="filing" value="self" [checked]="filing === 'self'" (change)="filing = 'self'" />
                     <img [src]="filing === 'self' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
@@ -85,253 +90,243 @@
               </div>
             } @else if (step === '1.2 ข้อมูลและเอกสารประกอบ') {
               <h3 id="por3-step">1.2 ข้อมูลและเอกสารประกอบ</h3>
-              <p class="intro">กรอกข้อมูลและยื่นเอกสารประกอบ เพิ่มผู้ยื่นคำขอได้มากกว่าหนึ่งรายชื่อ</p>
-              <div class="pane">
+              <p class="lead">กรอกข้อมูลและยื่นเอกสารประกอบ เพิ่มผู้ยื่นคำขอได้มากกว่าหนึ่งรายชื่อ</p>
+              <div class="table-head">
+                <p>ผู้ยื่นคำขอ</p>
+                <app-button type="outline" label="เพิ่มผู้ยื่นคำขอ" (click)="addApplicant()" />
+              </div>
               @for (person of applicants; track $index; let i = $index) {
-                <article class="party">
-                  <header class="party__bar">
-                    <strong>ผู้ยื่นคำขอรายที่ {{ i + 1 }}</strong>
-                    <span>
-                      <button type="button" class="icon-btn" aria-label="ลบผู้ยื่นคำขอ" (click)="removeApplicant(i)">
-                        <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
-                      </button>
-                      <button type="button" class="icon-btn" [attr.aria-expanded]="person.open" [attr.aria-label]="person.open ? 'ย่อ' : 'ขยาย'" (click)="toggleApplicant(i)">
-                        <img [src]="person.open ? 'assets/icons/chevron-up.svg' : 'assets/icons/chevron-down.svg'" width="24" height="24" alt="" />
-                      </button>
-                    </span>
-                  </header>
-                  @if (person.open) {
-                    <p class="subhead">เอกสารแนบ</p>
-                    <div class="docs">
-                      @for (doc of mainDocs; track doc.key) {
-                        <div class="doc">
-                          <div>
-                            <p>
-                              <span>
-                                {{ doc.title }}
-                                @if (doc.required) { <span class="req">*</span> }
-                              </span>
-                            </p>
-                            @if (person.files[doc.key]) {
-                              <p class="doc__file">
-                                <img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />
-                                {{ person.files[doc.key] }}
-                                <button type="button" aria-label="ลบไฟล์" (click)="clearFile(i, doc.key)">
-                                  <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
-                                </button>
-                              </p>
-                            }
-                          </div>
-                          <label class="pick">
-                            <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
-                            เลือกไฟล์
-                            <input type="file" (change)="pickFile(i, doc.key, $event)" />
-                          </label>
+                <div class="part-head">
+                  <h3 class="part-head__title">ผู้ยื่นคำขอรายที่ {{ i + 1 }}</h3>
+                  <button type="button" class="trash" aria-label="ลบผู้ยื่นคำขอ" (click)="removeApplicant(i)">
+                    <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                  </button>
+                </div>
+                <h4>เอกสารแนบ</h4>
+                <div class="uploads">
+                  @for (doc of mainDocs; track doc.key) {
+                    <div class="upload">
+                      <span>
+                        {{ doc.title }}
+                        @if (doc.required) { <span class="req">*</span> }
+                      </span>
+                      <label class="pick">
+                        <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                        เลือกไฟล์
+                        <input type="file" (change)="pickFile(i, doc.key, $event)" />
+                      </label>
+                      @if (person.files[doc.key]) {
+                        <p class="attach-count">1 ไฟล์</p>
+                        <div class="file-cards">
+                          <article class="file-card">
+                            <span class="file-card__mark" aria-hidden="true">
+                              <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+                            </span>
+                            <div class="file-card__body"><p>{{ person.files[doc.key] }}</p></div>
+                            <div class="manage">
+                              <button type="button" class="trash" aria-label="ลบไฟล์" (click)="clearFile(i, doc.key)">
+                                <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                              </button>
+                            </div>
+                          </article>
                         </div>
                       }
                     </div>
-                    <label class="check">
-                      <input type="checkbox" [checked]="person.foreign" (change)="setField(i, 'foreign', $event)" />
-                      <img [src]="person.foreign ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                      ผู้ยื่นคำขอเป็นนิติบุคคลในต่างประเทศ
-                    </label>
-                    @if (person.foreign) {
-                      <div class="docs">
-                        @for (doc of foreignDocs; track doc.key) {
-                          <div class="doc">
-                            <div>
-                              <p>
-                                {{ doc.title }}
-                                @if (doc.hint) {
-                                  <small>{{ doc.hint }}</small>
-                                }
-                              </p>
-                              @if (person.files[doc.key]) {
-                                <p class="doc__file">
-                                  <img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />
-                                  {{ person.files[doc.key] }}
-                                  <button type="button" aria-label="ลบไฟล์" (click)="clearFile(i, doc.key)">
-                                    <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
-                                  </button>
-                                </p>
-                              }
-                            </div>
-                            <label class="pick">
-                              <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
-                              เลือกไฟล์
-                              <input type="file" (change)="pickFile(i, doc.key, $event)" />
-                            </label>
+                  }
+                </div>
+                <label class="ack">
+                  <input type="checkbox" [checked]="person.foreign" (change)="setField(i, 'foreign', $event)" />
+                  <img [src]="person.foreign ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                  ผู้ยื่นคำขอเป็นนิติบุคคลในต่างประเทศ
+                </label>
+                @if (person.foreign) {
+                  <div class="uploads">
+                    @for (doc of foreignDocs; track doc.key) {
+                      <div class="upload">
+                        <span>{{ doc.title }}</span>
+                        @if (doc.hint) { <small>{{ doc.hint }}</small> }
+                        <label class="pick">
+                          <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                          เลือกไฟล์
+                          <input type="file" (change)="pickFile(i, doc.key, $event)" />
+                        </label>
+                        @if (person.files[doc.key]) {
+                          <p class="attach-count">1 ไฟล์</p>
+                          <div class="file-cards">
+                            <article class="file-card">
+                              <span class="file-card__mark" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+                              </span>
+                              <div class="file-card__body"><p>{{ person.files[doc.key] }}</p></div>
+                              <div class="manage">
+                                <button type="button" class="trash" aria-label="ลบไฟล์" (click)="clearFile(i, doc.key)">
+                                  <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                                </button>
+                              </div>
+                            </article>
                           </div>
                         }
                       </div>
                     }
-                  }
-                </article>
+                  </div>
+                }
               }
-              <button type="button" class="add" (click)="addApplicant()">
-                <img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />
-                เพิ่มผู้ยื่นคำขอ
-              </button>
-              </div>
             } @else if (step === '1.3 ผู้ยื่นคำขอ') {
               <h3 id="por3-step">1.3 ผู้ยื่นคำขอ</h3>
-              <div class="pane">
-              @for (person of applicants; track $index; let i = $index) {
-                <article class="party">
-                  <header class="party__bar">
-                    <strong>ผู้ยื่นคำขอรายที่ {{ i + 1 }}</strong>
-                    <span>
-                      <button type="button" class="icon-btn" aria-label="ลบผู้ยื่นคำขอ" (click)="removeApplicant(i)">
-                        <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
-                      </button>
-                      <button type="button" class="icon-btn" [attr.aria-expanded]="person.open" (click)="toggleApplicant(i)">
-                        <img [src]="person.open ? 'assets/icons/chevron-up.svg' : 'assets/icons/chevron-down.svg'" width="24" height="24" alt="" />
-                      </button>
-                    </span>
-                  </header>
-                  @if (person.open) {
-                    <div class="pair">
-                      <label class="field">ชื่อ/บริษัท/สมาคม<span class="req">*</span>
-                        <input type="text" placeholder="ระบุ" [value]="person.name" (input)="setField(i, 'name', $event)" />
-                      </label>
-                      <label class="field">สัญชาติ<span class="req">*</span>
-                        <input type="text" placeholder="ระบุ" [value]="person.nation" (input)="setField(i, 'nation', $event)" />
-                      </label>
-                    </div>
-                    <div class="pair">
-                      <label class="field">ที่อยู่<span class="req">*</span>
-                        <input type="text" placeholder="ระบุ" [value]="person.address" (input)="setField(i, 'address', $event)" />
-                      </label>
-                      <label class="field">จังหวัด<span class="req">*</span>
-                        <span class="select">
-                          <select [value]="person.province" (change)="setField(i, 'province', $event)">
-                            <option value="">เลือก</option>
-                          </select>
-                          <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
-                        </span>
-                      </label>
-                    </div>
-                    <div class="triple">
-                      <label class="field">อำเภอ/เขต<span class="req">*</span>
-                        <span class="select">
-                          <select [value]="person.district" (change)="setField(i, 'district', $event)">
-                            <option value="">เลือก</option>
-                          </select>
-                          <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
-                        </span>
-                      </label>
-                      <label class="field">ตำบล/แขวง<span class="req">*</span>
-                        <span class="select">
-                          <select [value]="person.subdistrict" (change)="setField(i, 'subdistrict', $event)">
-                            <option value="">เลือก</option>
-                          </select>
-                          <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
-                        </span>
-                      </label>
-                      <label class="field">รหัสไปรษณีย์<span class="req">*</span>
-                        <input type="text" placeholder="รหัสไปรษณีย์" disabled />
-                      </label>
-                    </div>
-                    <div class="triple">
-                      <label class="field">โทรศัพท์<span class="req">*</span>
-                        <input type="text" placeholder="ระบุ" [value]="person.phone" (input)="setField(i, 'phone', $event)" />
-                      </label>
-                      <label class="field">โทรสาร
-                        <input type="text" placeholder="ระบุ" [value]="person.fax" (input)="setField(i, 'fax', $event)" />
-                      </label>
-                      <label class="field">ไปรษณีย์อิเล็กทรอนิกส์
-                        <input type="text" placeholder="ระบุ" [value]="person.email" (input)="setField(i, 'email', $event)" />
-                      </label>
-                    </div>
-                  }
-                </article>
-              }
-              <button type="button" class="add" (click)="addApplicant()">
-                <img src="assets/icons/por2-plus.svg" width="24" height="24" alt="" />
-                เพิ่มผู้ยื่นคำขอ
-              </button>
+              <div class="table-head">
+                <p>ผู้ยื่นคำขอ</p>
+                <app-button type="outline" label="เพิ่มผู้ยื่นคำขอ" (click)="addApplicant()" />
               </div>
+              @for (person of applicants; track $index; let i = $index) {
+                <div class="part-head">
+                  <h3 class="part-head__title">ผู้ยื่นคำขอรายที่ {{ i + 1 }}</h3>
+                  <button type="button" class="trash" aria-label="ลบผู้ยื่นคำขอ" (click)="removeApplicant(i)">
+                    <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                  </button>
+                </div>
+                <div class="grid">
+                  <label class="field">ชื่อ/บริษัท/สมาคม<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.name" (input)="setField(i, 'name', $event)" />
+                  </label>
+                  <label class="field">สัญชาติ<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.nation" (input)="setField(i, 'nation', $event)" />
+                  </label>
+                  <label class="field field--wide">ที่อยู่<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.address" (input)="setField(i, 'address', $event)" />
+                  </label>
+                  <label class="field">จังหวัด<span class="req">*</span>
+                    <span class="select">
+                      <select [value]="person.province" (change)="setField(i, 'province', $event)">
+                        <option value="">เลือก</option>
+                      </select>
+                      <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
+                    </span>
+                  </label>
+                  <label class="field">อำเภอ/เขต<span class="req">*</span>
+                    <span class="select">
+                      <select [value]="person.district" (change)="setField(i, 'district', $event)">
+                        <option value="">เลือก</option>
+                      </select>
+                      <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
+                    </span>
+                  </label>
+                  <label class="field">ตำบล/แขวง<span class="req">*</span>
+                    <span class="select">
+                      <select [value]="person.subdistrict" (change)="setField(i, 'subdistrict', $event)">
+                        <option value="">เลือก</option>
+                      </select>
+                      <img src="assets/icons/chevron-down.svg" width="24" height="24" alt="" />
+                    </span>
+                  </label>
+                  <label class="field">รหัสไปรษณีย์<span class="req">*</span>
+                    <input type="text" placeholder="รหัสไปรษณีย์" disabled />
+                  </label>
+                  <label class="field" [class.field--bad]="i === 0 && bad('phone')">โทรศัพท์<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.phone" (input)="setField(i, 'phone', $event)" />
+                  </label>
+                  <label class="field">โทรสาร
+                    <input type="text" placeholder="ระบุ" [value]="person.fax" (input)="setField(i, 'fax', $event)" />
+                  </label>
+                  <label class="field" [class.field--bad]="i === 0 && bad('email')">ไปรษณีย์อิเล็กทรอนิกส์
+                    <input type="text" placeholder="ระบุ" [value]="person.email" (input)="setField(i, 'email', $event)" />
+                  </label>
+                </div>
+              }
             } @else if (step === 'พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน') {
               <h3 id="por3-step">พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</h3>
               <div class="grid">
                 <label class="field field--wide">สินค้า<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="goods" (input)="goods = $any($event.target).value" />
                 </label>
-                <label class="field field--count field--wide">ตามประกาศคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน เรื่อง<span class="req">*</span>
+                <label class="note field--wide" [class.note--bad]="bad('notice')">ตามประกาศคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน เรื่อง<span class="req">*</span>
                   <textarea maxlength="200" placeholder="ระบุ" [value]="notice" (input)="notice = $any($event.target).value"></textarea>
-                  <span class="count">{{ notice.length }} / 200</span>
+                  <small>{{ notice.length }} / 200</small>
                 </label>
-                <p class="lead field--wide">แนบพยานหลักฐานและข้อมูลรายละเอียดที่แสดงว่ายังมีความจำเป็นต้องเรียกเก็บอากรต่อไป</p>
-                <div class="docs field--wide">
-                  <div class="doc">
-                    <p><span>พยานหลักฐานประกอบการทบทวนการเรียกเก็บอากร<span class="req">*</span></span></p>
+              </div>
+              <p class="lead">แนบพยานหลักฐานและข้อมูลรายละเอียดที่แสดงว่ายังมีความจำเป็นต้องเรียกเก็บอากรต่อไป</p>
+              <div class="uploads">
+                  <div class="upload">
+                    <span>พยานหลักฐานประกอบการทบทวนการเรียกเก็บอากร<span class="req">*</span></span>
                     <label class="pick">
                       <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
                       เลือกไฟล์
                       <input type="file" (change)="addNamed('evidence', $event)" />
                     </label>
+                    @if (evidence.length) {
+                      <p class="attach-count">{{ evidence.length }} ไฟล์</p>
+                      <div class="file-cards">
+                        @for (file of evidence; track file + $index) {
+                          <article class="file-card">
+                            <span class="file-card__mark" aria-hidden="true">
+                              <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+                            </span>
+                            <div class="file-card__body"><p>{{ file }}</p></div>
+                            <div class="manage">
+                              <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeNamed('evidence', $index)">
+                                <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                              </button>
+                            </div>
+                          </article>
+                        }
+                      </div>
+                    }
                   </div>
-                  @for (file of evidence; track file + $index) {
-                    <div class="doc">
-                      <p class="doc__file">
-                        <img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />
-                        {{ file }}
-                        <button type="button" aria-label="ลบไฟล์" (click)="removeNamed('evidence', $index)">
-                          <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
-                        </button>
-                      </p>
-                    </div>
-                  }
                 </div>
-                <label class="check field--wide">
-                  <input type="checkbox" [checked]="evidenceReady" (change)="evidenceReady = $any($event.target).checked" />
-                  <img [src]="evidenceReady ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                  ได้เสนอพยานหลักฐานและข้อมูลรายละเอียดมาพร้อมด้วยแล้ว
-                </label>
-              </div>
+              <label class="ack">
+                <input type="checkbox" [checked]="evidenceReady" (change)="evidenceReady = $any($event.target).checked" />
+                <img [src]="evidenceReady ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                ได้เสนอพยานหลักฐานและข้อมูลรายละเอียดมาพร้อมด้วยแล้ว
+              </label>
             } @else if (step === 'ยุติการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน') {
               <h3 id="por3-step">ยุติการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</h3>
               <div class="grid">
-                <label class="field field--count field--wide">เหตุที่ขอให้ยุติการเรียกเก็บอากร<span class="req">*</span>
+                <label class="note field--wide" [class.note--bad]="bad('stopReason')">เหตุที่ขอให้ยุติการเรียกเก็บอากร<span class="req">*</span>
                   <textarea maxlength="200" placeholder="ระบุ" [value]="stopReason" (input)="stopReason = $any($event.target).value"></textarea>
-                  <span class="count">{{ stopReason.length }} / 200</span>
+                  <small>{{ stopReason.length }} / 200</small>
                 </label>
-                <div class="docs field--wide">
-                  <div class="doc">
-                    <p><span>พยานหลักฐานประกอบการยุติการเรียกเก็บอากร</span></p>
+              </div>
+              <div class="uploads">
+                  <div class="upload">
+                    <span>พยานหลักฐานประกอบการยุติการเรียกเก็บอากร</span>
                     <label class="pick">
                       <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
                       เลือกไฟล์
                       <input type="file" (change)="addNamed('stopFiles', $event)" />
                     </label>
+                    @if (stopFiles.length) {
+                      <p class="attach-count">{{ stopFiles.length }} ไฟล์</p>
+                      <div class="file-cards">
+                        @for (file of stopFiles; track file + $index) {
+                          <article class="file-card">
+                            <span class="file-card__mark" aria-hidden="true">
+                              <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+                            </span>
+                            <div class="file-card__body"><p>{{ file }}</p></div>
+                            <div class="manage">
+                              <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeNamed('stopFiles', $index)">
+                                <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                              </button>
+                            </div>
+                          </article>
+                        }
+                      </div>
+                    }
                   </div>
-                  @for (file of stopFiles; track file + $index) {
-                    <div class="doc">
-                      <p class="doc__file">
-                        <img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />
-                        {{ file }}
-                        <button type="button" aria-label="ลบไฟล์" (click)="removeNamed('stopFiles', $index)">
-                          <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
-                        </button>
-                      </p>
-                    </div>
-                  }
                 </div>
-                <label class="check field--wide">
-                  <input type="checkbox" [checked]="stopReady" (change)="stopReady = $any($event.target).checked" />
-                  <img [src]="stopReady ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                  ได้เสนอพยานหลักฐานและข้อมูลรายละเอียดมาพร้อมด้วยแล้ว
-                </label>
-              </div>
+              <label class="ack">
+                <input type="checkbox" [checked]="stopReady" (change)="stopReady = $any($event.target).checked" />
+                <img [src]="stopReady ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                ได้เสนอพยานหลักฐานและข้อมูลรายละเอียดมาพร้อมด้วยแล้ว
+              </label>
             } @else if (step === 'คำรับรองและลงนาม') {
               <h3 id="por3-step">คำรับรองและลงนาม</h3>
+              <p class="pledge">ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียวและขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ</p>
+              <label class="ack">
+                <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
+                <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                ข้าพเจ้ารับทราบและยืนยันตามคำรับรองข้างต้น
+              </label>
               <div class="grid">
-                <p class="pledge field--wide">ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียวและขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ</p>
-                <label class="check field--wide">
-                  <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
-                  <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                  ข้าพเจ้ารับทราบและยืนยันตามคำรับรองข้างต้น
-                </label>
                 <label class="field">ลงชื่อ (ผู้ยื่นคำขอ/ผู้รับมอบอำนาจ)<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="signer" (input)="signer = $any($event.target).value" />
                 </label>
@@ -347,28 +342,33 @@
               </div>
             } @else if (step === 'เอกสารประกอบอื่นๆ') {
               <h3 id="por3-step">เอกสารประกอบอื่นๆ</h3>
-              <div class="pane">
-              <div class="docs">
-                <div class="doc">
-                  <p><span>เอกสารอื่น ๆ ที่แนบประกอบ</span></p>
+              <div class="uploads">
+                <div class="upload">
+                  <span>เอกสารอื่น ๆ ที่แนบประกอบ</span>
                   <label class="pick">
                     <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
                     เลือกไฟล์
                     <input type="file" (change)="addNamed('otherFiles', $event)" />
                   </label>
+                  @if (otherFiles.length) {
+                    <p class="attach-count">{{ otherFiles.length }} ไฟล์</p>
+                    <div class="file-cards">
+                      @for (file of otherFiles; track file + $index) {
+                        <article class="file-card">
+                          <span class="file-card__mark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+                          </span>
+                          <div class="file-card__body"><p>{{ file }}</p></div>
+                          <div class="manage">
+                            <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeNamed('otherFiles', $index)">
+                              <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                            </button>
+                          </div>
+                        </article>
+                      }
+                    </div>
+                  }
                 </div>
-                @for (file of otherFiles; track file + $index) {
-                  <div class="doc">
-                    <p class="doc__file">
-                      <img src="assets/icons/por2-pdf.svg" width="16" height="16" alt="" />
-                      {{ file }}
-                      <button type="button" aria-label="ลบไฟล์" (click)="removeNamed('otherFiles', $index)">
-                        <img src="assets/icons/por2-trash.svg" width="16" height="17.5" alt="" />
-                      </button>
-                    </p>
-                  </div>
-                }
-              </div>
               </div>
             } @else {
               <h3 id="por3-step">{{ step }}</h3>
@@ -380,7 +380,7 @@
   </div>
 </div>
 @if (uploadOpen) {
-  <app-filled-upload code="ปร. 3" (closed)="uploadOpen = false" />
+  <app-filled-upload code="ปร. 3" (filled)="applyRead()" (closed)="uploadOpen = false" />
 }
 @if (reviewOpen) {
   <div class="sample sample--submit" (click)="reviewOpen = false">
@@ -389,20 +389,19 @@
         <h2>ตรวจสอบเอกสาร แบบ ปร. 3</h2>
         <button type="button" class="submit__close" (click)="reviewOpen = false">✕ ปิด</button>
       </div>
-      <p class="submit__hint">ข้อมูลที่กรอกทุกขั้นตอนถูกนำมาใส่ในแบบ ปร. 3 หากต้องแก้ไขให้กลับไปที่หัวข้อนั้น</p>
-      <div class="submit__paper">
-        <h3>แบบ ปร. 3</h3>
-        <p class="submit__name">คำขอให้พิจารณาทบทวนการเรียกเก็บอากรตอบโต้การทุ่มตลาดหรือการอุดหนุนต่อไป</p>
-        <div class="submit__measures">
-          <strong>มาตรการที่ขอให้ดำเนินการพิจารณาทบทวนการเรียกเก็บอากร</strong>
-          <p><img [src]="measure === 'dumping' ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />ตอบโต้การทุ่มตลาด</p>
-          <p><img [src]="measure === 'subsidy' ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />ตอบโต้การอุดหนุน</p>
+      <p>กรอกข้อความหรือทำเครื่องหมายตามที่เป็นจริง ตัวเลือกและไฟล์ที่แนบจะถูกนำไปใส่ในแบบ ปร. 3</p>
+      <div class="submit__check">
+        <div>
+          <dt>มาตรการ</dt>
+          <dd>{{ measure === 'dumping' ? 'ตอบโต้การทุ่มตลาด' : 'ตอบโต้การอุดหนุน' }}</dd>
         </div>
-        <div class="preview">
-          <h4>ประเภทของการยื่นคำขอ</h4>
-          <p><img [src]="filing === 'self' ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />ยื่นคำขอในนามของตนเอง</p>
-          <p><img [src]="filing === 'all' ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />ยื่นคำขอโดยกระทำการแทนผู้ผลิตทั้งหมด</p>
-          <p><img [src]="filing === 'part' ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />ยื่นคำขอโดยกระทำการแทนผู้ผลิตบางส่วน</p>
+        <div>
+          <dt>ประเภทการยื่น</dt>
+          <dd>{{ filing === 'self' ? 'ยื่นคำขอในนามของตนเอง' : filing === 'all' ? 'ยื่นคำขอโดยกระทำการแทนผู้ผลิตทั้งหมด' : 'ยื่นคำขอโดยกระทำการแทนผู้ผลิตบางส่วน' }}</dd>
+        </div>
+        <div>
+          <dt>สินค้า</dt>
+          <dd>{{ goods || '—' }}</dd>
         </div>
       </div>
       <div class="submit__actions">

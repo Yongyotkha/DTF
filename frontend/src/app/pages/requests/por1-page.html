@@ -14,11 +14,6 @@
             <p class="crumb">คำขอ <span aria-hidden="true">›</span> รายละเอียดคำขอ</p>
             <div class="case-title">
               <h1>ยื่นคำขอ</h1>
-              <ul>
-                @for (form of caseForms; track form.code + form.measure) {
-                  <li>{{ form.code }}</li>
-                }
-              </ul>
             </div>
           } @else {
             @if (showStatus) {
@@ -26,11 +21,6 @@
             }
             <div class="case-title">
               <h1>ยื่นคำขอ</h1>
-              <ul [class.case-title__slash]="showStatus">
-                @for (form of caseForms; track form.code + form.measure) {
-                  <li>{{ form.code }}</li>
-                }
-              </ul>
               @if (!tracking) {
                 <app-status-tag [tone]="caseTone" [label]="caseLabel" />
               }
@@ -2334,6 +2324,7 @@
       }
       @if (showForm) {
       <section class="sheet" [class.sheet--view]="formLocked">
+        <app-filing-tabs />
         <div class="sheet__bar">
           <h2>รายละเอียดเอกสาร</h2>
           @if (!formLocked) {
@@ -2354,7 +2345,7 @@
             @for (group of toc; track group.label) {
               <p class="toc__group" [class.toc__group--fail]="groupFailed(group)">{{ group.label }}</p>
               @for (item of group.items; track item.label) {
-                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="failed(item)" [attr.aria-current]="current(item) ? 'true' : null" (click)="open(item)">
+                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="failed(item)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">
                   @if (failed(item)) {
                     <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
                   } @else {
@@ -2406,7 +2397,7 @@
                   ที่อยู่<span class="req">*</span>
                   <textarea rows="1" placeholder="ระบุ" [value]="address" (input)="address = $any($event.target).value"></textarea>
                 </label>
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('phone')">
                   โทรศัพท์<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="phone" (input)="phone = $any($event.target).value" />
                 </label>
@@ -2414,7 +2405,7 @@
                   โทรสาร
                   <input type="text" placeholder="ระบุ" [value]="fax" (input)="fax = $any($event.target).value" />
                 </label>
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('email')">
                   ไปรษณีย์อิเล็กทรอนิกส์
                   <input type="email" placeholder="ระบุ" [value]="email" (input)="email = $any($event.target).value" />
                 </label>
@@ -2423,7 +2414,7 @@
                   <input type="text" placeholder="ระบุ" [value]="agent" (input)="agent = $any($event.target).value" />
                   <small>(ผู้มีอำนาจกระทำแทน/ผู้รับมอบอำนาจ)</small>
                 </label>
-                <label class="field">
+                <label class="field" [class.field--bad]="bad('agentPhone')">
                   โทรศัพท์
                   <input type="text" placeholder="ระบุ" [value]="agentPhone" (input)="agentPhone = $any($event.target).value" />
                 </label>
@@ -2663,7 +2654,7 @@
               </div>
             } @else if (section === '1' && anchor === 'part-1-2') {
               <h3 id="part-1-2">1.2 ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก</h3>
-              <label class="note">
+              <label class="note" [class.note--bad]="bad('related')">
                 ผู้ผลิตสินค้าชนิดเดียวกันที่เป็นผู้นำเข้า หรือเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก<span class="req">*</span>
                 <textarea maxlength="200" placeholder="ระบุ" [value]="relatedImport" (input)="relatedImport = $any($event.target).value"></textarea>
                 <small>{{ relatedImport.length }} / 200</small>
@@ -3517,7 +3508,7 @@
   </div>
 </div>
 @if (uploadOpen) {
-  <app-filled-upload code="ปร. 1" (closed)="uploadOpen = false" />
+  <app-filled-upload code="ปร. 1" (filled)="applyRead()" (closed)="uploadOpen = false" />
 }
 @if (docView) {
   <div class="sample sample--submit sample--letter" (click)="docView = null">
@@ -3770,17 +3761,12 @@
         </div>
       </header>
       <div class="check__body">
-        <article class="check__row">
-          <span class="check__mark" [class.check__mark--gap]="!sectionsReady" aria-hidden="true">
-            @if (sectionsReady) {
-              <svg viewBox="0 0 24 24"><path d="M6 12.5 10 16.5 18 8" /></svg>
-            } @else {
-              <svg viewBox="0 0 24 24"><path d="M8 8l8 8M16 8l-8 8" /></svg>
-            }
-          </span>
+        <article class="check__row check__row--plain">
           <div>
             <strong>{{ sectionsReady ? 'ข้อมูลที่จำเป็นครบถ้วน' : 'ยังมีรายการที่จำเป็นไม่ครบ' }}</strong>
-            <span>{{ sectionsReady ? 'สามารถดำเนินการยื่นคำขอต่อได้' : 'กลับไปแก้ไขก่อนยื่น' }}</span>
+            @if (!sectionsReady) {
+              <span>กลับไปแก้ไขก่อนยื่น</span>
+            }
           </div>
           <app-status-tag [tone]="sectionsReady ? 'success' : 'danger'" [label]="sectionsReady ? 'พร้อมยื่น' : 'ยังไม่พร้อม'" />
         </article>
@@ -3816,21 +3802,19 @@
                   }
                 </span>
                 <strong>{{ group.label }}</strong>
-                <app-status-tag [tone]="groupComplete(group) ? 'success' : 'danger'" [label]="groupComplete(group) ? 'ครบถ้วน' : 'ยังไม่ครบ'" />
+                @if (!groupComplete(group)) {
+                  <app-status-tag tone="danger" label="ยังไม่ครบ" />
+                }
               </article>
             }
           </div>
         }
-        <p class="check__lock">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-          หลังยื่นคำขอ ระบบจะล็อกข้อมูลชั่วคราวระหว่างตรวจสอบ และจะแจ้งผลให้ทราบเมื่อดำเนินการเรียบร้อย
-        </p>
-        <label id="check-confirm" class="check__agree">
-          <input type="checkbox" [checked]="submitAck" [disabled]="!submitReady" (change)="submitAck = $any($event.target).checked" />
-          <img [src]="submitAck ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-          ข้าพเจ้ายืนยันว่าตรวจสอบข้อมูลและเอกสารประกอบเรียบร้อยแล้ว
-        </label>
       </div>
+      <label id="check-confirm" class="check__agree">
+        <input type="checkbox" [checked]="submitAck" [disabled]="!submitReady" (change)="submitAck = $any($event.target).checked" />
+        <img [src]="submitAck ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+        ข้าพเจ้ายืนยันว่าตรวจสอบข้อมูลและเอกสารประกอบเรียบร้อยแล้ว
+      </label>
       <footer class="check__foot">
         <app-button type="outline" label="กลับไปแก้ไข" (click)="submitOpen = false" />
         <app-button type="primary" label="ยืนยันยื่นตรวจสอบ" [state]="canConfirm ? 'default' : 'disabled'" (click)="confirmSubmit()" />

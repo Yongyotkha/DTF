@@ -1,4 +1,5 @@
 import { Router } from '@angular/router';
+import { requestMeasures } from './form-catalog';
 
 const key = 'dft-filing-intent';
 
@@ -33,6 +34,12 @@ export function clearFilingIntent(): void {
   } catch {
     /* private browsing */
   }
+}
+
+export function filingMeasureTitle(fallback = 'มาตราการ AD'): string {
+  const measure = readFilingIntent()?.measure || fallback;
+  const label = requestMeasures.find((item) => item.value === measure)?.label ?? 'การทุ่มตลาด (AD)';
+  return `ยื่นคำขอ ${label}`;
 }
 
 export function goToFormUpload(router: Router, code: string): void {

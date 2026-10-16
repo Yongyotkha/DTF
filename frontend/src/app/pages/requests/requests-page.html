@@ -13,7 +13,7 @@
         </app-button>
       </header>
       <section class="panel">
-        <app-tabs [labels]="tabLabels" [selected]="listTab" (activeChange)="setListTab($event)" />
+        <app-tabs line [labels]="tabLabels" [selected]="listTab" (activeChange)="setListTab($event)" />
         @if (visibleRows.length === 0) {
           <p class="empty">ไม่พบคำขอที่ตรงกับเงื่อนไข</p>
         } @else {
@@ -75,9 +75,9 @@
           </div>
         </div>
         <div class="cards">
-          @for (form of forms; track form.code) {
-            <article class="card" [class.card--picked]="isPicked(form.code)">
-              <label class="card__check">
+          @for (form of visibleForms; track form.code) {
+            <label class="card" [class.card--picked]="isPicked(form.code)">
+              <span class="card__check">
                 <input type="checkbox" [checked]="isPicked(form.code)" [attr.aria-label]="'เลือก ' + form.code" (change)="setPicked(form.code, $any($event.target).checked)" />
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M5.25 3H18.75C19.9926 3 21 4.00736 21 5.25V18.75C21 19.9926 19.9926 21 18.75 21H5.25C4.00736 21 3 19.9926 3 18.75V5.25C3 4.00736 4.00736 3 5.25 3Z" />
@@ -85,7 +85,7 @@
                     <path d="M7.2 12.2L10.4 15.3L16.8 8.7" />
                   }
                 </svg>
-              </label>
+              </span>
               <div class="card__main">
                 <div class="card__body">
                   <span class="card__top">
@@ -99,12 +99,14 @@
                   <p>{{ purpose(form).summary }}</p>
                 </div>
               </div>
-            </article>
+            </label>
           }
         </div>
       </div>
       <footer class="chooser__foot">
-        <app-button type="primary" label="ตกลง" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()" />
+        <app-button type="primary" label="ถัดไป" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </app-button>
       </footer>
       } @else {
       <div class="chooser__body">
@@ -139,7 +141,7 @@
         <app-button class="icon-before" type="outline" label="ย้อนกลับ" (click)="backToForms()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
         </app-button>
-        <app-button type="primary" label="ดำเนินการ" [state]="filingMethod ? 'default' : 'disabled'" (click)="confirmMethod()">
+        <app-button type="primary" label="ดำเนินการ" [state]="canConfirmMethod() ? 'default' : 'disabled'" (click)="confirmMethod()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </app-button>
       </footer>

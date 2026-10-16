@@ -36,3 +36,44 @@
   color: var(--color-disabled-text);
   box-shadow: none;
 }
+
+.tabs--line {
+  align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs--line .tab {
+  height: auto;
+  align-items: flex-start;
+  margin: 0 0 -1px;
+  padding: 12px 20px 10px;
+  border-radius: 0;
+  border-bottom: 6px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  transition:
+    color var(--motion-state),
+    border-color var(--motion-state);
+}
+
+.tabs--line .tab--active,
+.tabs--line .tab:active:not(:disabled) {
+  background: transparent;
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.tabs--line .tab:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.tabs--line .tab:disabled {
+  background: transparent;
+  color: var(--color-disabled-text);
+}

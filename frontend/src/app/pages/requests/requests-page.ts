@@ -5,7 +5,7 @@ import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
-import { RequestForm, formOf, purposeOf, requestForms, requestMeasures } from './form-catalog';
+import { RequestForm, formOf, formsFor, purposeOf, requestForms, requestMeasures } from './form-catalog';
 import { startFilingCase } from './case-status';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
 import { archiveCases, draftCases, ListedCase } from './request-cases';
@@ -23,6 +23,10 @@ export class RequestsPage implements OnDestroy {
   protected readonly measures = requestMeasures;
   protected readonly forms = requestForms;
   protected measure = 'มาตราการ AD';
+
+  protected get visibleForms(): RequestForm[] {
+    return formsFor(this.measure);
+  }
   protected readonly picked = signal<Readonly<Record<string, readonly string[]>>>({});
   protected choosing = false;
   protected filingStep: 'forms' | 'method' = 'forms';
@@ -52,7 +56,10 @@ export class RequestsPage implements OnDestroy {
           this.filingStep = 'method';
         }
       }
-      if (next && !this.choosing) setTimeout(() => document.getElementById('chooser-close')?.focus({ preventScroll: true }), 0);
+      if (next && !this.choosing) {
+        this.pickLoneForm();
+        setTimeout(() => document.getElementById('chooser-close')?.focus({ preventScroll: true }), 0);
+      }
       if (!next && this.choosing) setTimeout(() => this.opener?.focus(), 0);
       this.choosing = next;
       document.body.classList.toggle('chooser-open', next);
@@ -161,23 +168,48 @@ export class RequestsPage implements OnDestroy {
 
   protected pickMeasure(value: string): void {
     this.measure = value;
+    this.pickLoneForm();
+  }
+
+  private pickLoneForm(): void {
+    const forms = this.visibleForms;
+    if (forms.length !== 1 || this.isPicked(forms[0].code)) return;
+    this.setPicked(forms[0].code, true);
+  }
+
+  protected chosenCodes(): string[] {
+    const picked = this.picked()[this.measure] ?? [];
+    if (picked.length) return [...picked];
+    const forms = this.visibleForms;
+    return forms.length === 1 ? [forms[0].code] : [];
   }
 
   protected isPicked(code: string): boolean {
-    return (this.picked()[this.measure] ?? []).includes(code);
+    return this.chosenCodes().includes(code);
   }
 
   protected canContinue(): boolean {
-    return (this.picked()[this.measure] ?? []).length > 0;
+    return this.chosenCodes().length > 0;
   }
 
   protected continueFiling(): void {
-    const picked = this.picked()[this.measure] ?? [];
+    const picked = this.chosenCodes();
     if (!picked.length) return;
     saveFilingIntent({ measure: this.measure, codes: picked });
-    const form = this.forms.find((item) => picked.includes(item.code) && item.route)
-      ?? this.forms.find((item) => item.route);
-    if (form) this.openForm(form.code);
+    const form = this.visibleForms.find((item) => picked.includes(item.code) && item.route);
+    if (form) {
+      this.openForm(form.code);
+      return;
+    }
+    this.filingMethod = '';
+    this.filingStep = 'method';
+  }
+
+  protected canConfirmMethod(): boolean {
+    if (this.filingMethod === 'upload') return true;
+    if (this.filingMethod !== 'system') return false;
+    const picked = this.picked()[this.measure] ?? [];
+    return this.visibleForms.some((item) => picked.includes(item.code) && !!item.route);
   }
 
   protected backToForms(): void {
@@ -197,10 +229,9 @@ export class RequestsPage implements OnDestroy {
       void this.router.navigateByUrl('/requests/upload', { state: { measure: this.measure, codes: [...picked] } });
       return;
     }
-    if (this.filingMethod !== 'system') return;
+    if (!this.canConfirmMethod()) return;
     saveFilingIntent({ measure: this.measure, codes: picked });
-    const form = this.forms.find((item) => picked.includes(item.code) && item.route)
-      ?? this.forms.find((item) => item.route);
+    const form = this.visibleForms.find((item) => picked.includes(item.code) && item.route);
     if (form) this.openForm(form.code);
   }
 

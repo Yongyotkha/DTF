@@ -1,0 +1,59 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0 0 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.filing-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.filing-tab {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin: 0 0 -1px;
+  padding: 12px 20px 10px;
+  border: 0;
+  border-bottom: 6px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--motion-state),
+    border-color var(--motion-state);
+}
+
+.filing-tab strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.filing-tab span {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.filing-tab--on {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.filing-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}

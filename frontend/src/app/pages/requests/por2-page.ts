@@ -1,10 +1,14 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { DftButton } from '../../button/button';
+import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
+import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extract';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
+import { filingMeasureTitle } from './filing-intent';
+import { scrollFormToTop } from './form-scroll';
 
 type DocItem = { key: string; title: string; hint?: string; required?: boolean; excel?: boolean };
 
@@ -78,11 +82,12 @@ function blankApplicant(open = true): Applicant {
 
 @Component({
   selector: 'app-por2-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por2-page.html',
-  styleUrl: './por2-page.css',
+  styleUrl: './por1-page.css',
 })
 export class Por2Page {
+  protected readonly filingTitle = filingMeasureTitle();
   protected measure = '';
   protected role = '';
   protected step = 'มาตรการและประเภทการยื่น';
@@ -107,6 +112,7 @@ export class Por2Page {
   protected signedOn = '';
   protected reviewOpen = false;
   protected uploadOpen = false;
+  protected readOn = false;
   protected readonly behalfLeft = behalfLeft;
   protected readonly behalfRight = behalfRight;
   protected readonly mainDocs = mainDocs;
@@ -157,11 +163,56 @@ export class Por2Page {
   protected openFilledUpload(): void {
     this.uploadOpen = true;
   }
+  protected readSpots: { contact: string[]; body: string[] } = { contact: ['ข้อมูลและเอกสารประกอบ'], body: ['สินค้า ประกาศ และเหตุที่เปลี่ยนแปลง'] };
 
-  protected open(label: string): void {
+  protected applyRead(): void {
+    const host = this as unknown as { applicants?: object[] };
+    if (host.applicants?.length) {
+      fillApplicant(host.applicants[0]);
+      host.applicants = [...host.applicants];
+    }
+    fillKnown(this);
+    const bag = this as unknown as Record<string, unknown>;
+    if (typeof bag['goods'] === 'string' && typeof bag['notice'] !== 'string') bag['goods'] = 'เหล็กแผ่น';
+    if (bag['measure'] === '') bag['measure'] = 'dumping';
+    if (bag['filing'] === '') bag['filing'] = 'self';
+    this.readOn = true;
+    this.view.detectChanges();
+  }
+
+  protected bad(key: string): boolean {
+    if (!this.readOn) return false;
+    const people = (this as unknown as { applicants?: Record<string, string>[] }).applicants;
+    const person = people?.[0];
+    const picked = person && Object.prototype.hasOwnProperty.call(person, key) ? person[key] : (this as unknown as Record<string, unknown>)[key];
+    return valueIsWrong(key, String(picked ?? ''));
+  }
+
+  protected readHint(key: string): string {
+    return this.bad(key) ? wrongHint(key) : '';
+  }
+
+  protected badSection(id: string): boolean {
+    const contact = this.bad('phone') || this.bad('email') || this.bad('agentPhone');
+    const body = this.bad('notice') || this.bad('stopReason') || this.bad('tradeName') || this.bad('goods');
+    if (this.readSpots.contact.includes(id)) return contact;
+    if (this.readSpots.body.includes(id)) return body;
+    return false;
+  }
+
+  protected get sectionIssue(): string {
+    const bag = this as unknown as { section?: string; step?: string };
+    const id = bag.section ?? bag.step ?? '';
+    if (!this.badSection(id)) return '';
+    if (this.readSpots.contact.includes(id)) return 'อ่านเบอร์โทรและอีเมลจากไฟล์ได้ไม่ถูกต้อง';
+    return 'ข้อมูลส่วนนี้ไม่ตรงกับไฟล์ต้นฉบับ';
+  }
+
+
+  protected open(label: string, event?: Event): void {
     this.show(label);
     this.view.detectChanges();
-    requestAnimationFrame(() => this.revealSection());
+    scrollFormToTop(event);
   }
 
   protected filled(label: string): boolean {
@@ -239,14 +290,5 @@ export class Por2Page {
       }
     }
     this.step = label;
-  }
-
-  private revealSection(): void {
-    const target = document.getElementById('por2-step') ?? document.querySelector('.form');
-    if (!(target instanceof HTMLElement)) return;
-    const pin = document.querySelector('.review-pin');
-    const offset = 65 + (pin instanceof HTMLElement ? pin.offsetHeight : 0);
-    const top = target.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top: Math.max(0, top) });
   }
 }

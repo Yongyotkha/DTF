@@ -7,10 +7,10 @@
         <header class="head">
           <div>
             <div class="head__title">
-              <h1>ยื่นคำขอแบบ ปร. 3ก (มาตราการ AD)</h1>
+              <h1>{{ filingTitle }}</h1>
               <app-status-tag tone="neutral" label="ร่าง" />
             </div>
-            <p>แบบคำขอให้พิจารณาทบทวนการใช้บังคับความตกลงเพื่อระงับการทุ่มตลาดหรือการอุดหนุนต่อไป ตามมาตรา 48 และมาตรา 70</p>
+            <p>แบบคำขอให้พิจารณาทบทวนการใช้บังคับความตกลงเพื่อระงับการทุ่มตลาดหรือการอุดหนุนต่อไป ตามมาตรา 48 มาตรา 57 และมาตรา 70</p>
           </div>
           <div class="head__actions">
             <button type="button" class="head__history" aria-label="ประวัติคำขอ">
@@ -23,6 +23,7 @@
         </header>
       </div>
       <section class="sheet">
+        <app-filing-tabs />
         <div class="sheet__bar">
           <h2>รายละเอียดเอกสาร</h2>
           <div class="sheet__upload">
@@ -36,8 +37,12 @@
             @for (group of toc; track group.label) {
               <p class="toc__group">{{ group.label }}</p>
               @for (item of group.items; track item.label) {
-                <button type="button" class="toc__child" [class.toc__on]="current(item)" [attr.aria-current]="current(item) ? 'true' : null" (click)="open(item)">
-                  <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="badSection(item.id)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">
+                  @if (badSection(item.id)) {
+                    <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
+                  } @else {
+                    <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                  }
                   {{ item.label }}
                 </button>
               }
@@ -46,92 +51,114 @@
           <fieldset class="form">
             @if (section === '1.1') {
               <h3>1.1 ประเภทของการยื่นคำขอ</h3>
-              <div class="grid">
-                <fieldset class="field--wide">
-                  <legend>มาตรการที่ขอให้ดำเนินการพิจารณาทบทวนการใช้บังคับความตกลง<span class="req">*</span></legend>
-                  <div class="choices">
-                    <label>
-                      <input type="radio" name="measure" value="dumping" [checked]="measure === 'dumping'" (change)="measure = 'dumping'" />
-                      <img [src]="measure === 'dumping' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                      ตอบโต้การทุ่มตลาด
-                    </label>
-                    <label>
-                      <input type="radio" name="measure" value="subsidy" [checked]="measure === 'subsidy'" (change)="measure = 'subsidy'" />
-                      <img [src]="measure === 'subsidy' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                      ตอบโต้การอุดหนุน
-                    </label>
-                  </div>
-                </fieldset>
-              </div>
               <fieldset class="filing">
-                <legend>รูปแบบการยื่นคำขอ<span class="req">*</span></legend>
+                <legend>ประเภทของการยื่นคำขอ<span class="req">*</span></legend>
                 <label>
-                  <input type="radio" name="filing" value="self" [checked]="filing === 'self'" (change)="filing = 'self'" />
+                  <input type="radio" name="filing" value="self" [checked]="filing === 'self'" (change)="chooseFiling('self')" />
                   <img [src]="filing === 'self' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
                   ยื่นคำขอในนามของตนเอง
                 </label>
                 <label>
-                  <input type="radio" name="filing" value="all" [checked]="filing === 'all'" (change)="filing = 'all'" />
-                  <img [src]="filing === 'all' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                  ยื่นคำขอ โดยกระทำการแทนผู้ผลิตทั้งหมด
-                </label>
-                <label>
-                  <input type="radio" name="filing" value="part" [checked]="filing === 'part'" (change)="filing = 'part'" />
-                  <img [src]="filing === 'part' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                  ยื่นคำขอ โดยกระทำการแทนผู้ผลิตบางส่วน
+                  <input type="radio" name="filing" value="behalf" [checked]="filing !== 'self'" (change)="chooseFiling('behalf')" />
+                  <img [src]="filing !== 'self' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  ยื่นคำขอ โดยกระทำการแทน
                 </label>
               </fieldset>
+              @if (filing !== 'self') {
+                <fieldset class="filing">
+                  <legend>กระทำการแทน<span class="req">*</span></legend>
+                  <label>
+                    <input type="radio" name="scope" value="all" [checked]="filing === 'all'" (change)="filing = 'all'" />
+                    <img [src]="filing === 'all' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    ผู้ผลิตทั้งหมด
+                  </label>
+                  <label>
+                    <input type="radio" name="scope" value="part" [checked]="filing === 'part'" (change)="filing = 'part'" />
+                    <img [src]="filing === 'part' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                    ผู้ผลิตบางส่วน
+                  </label>
+                </fieldset>
+              }
             } @else if (section === '1.2') {
-              <h3>1.2 ข้อมูลผู้ยื่นคำขอ</h3>
-              <p>สามารถเพิ่มเติมชื่อผู้ยื่นคำขอได้มากกว่าหนึ่งรายชื่อ โดยกรอกข้อมูลและยื่นเอกสารประกอบ</p>
-              <div class="grid">
-                <label class="field">
-                  ชื่อ/บริษัท/สมาคม<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="company" (input)="company = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  สัญชาติ<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="nationality" (input)="nationality = $any($event.target).value" />
-                </label>
-                <label class="field field--wide">
-                  ที่อยู่<span class="req">*</span>
-                  <textarea rows="1" placeholder="ระบุ" [value]="address" (input)="address = $any($event.target).value"></textarea>
-                </label>
-                <label class="field">
-                  โทรศัพท์<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="phone" (input)="phone = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  โทรสาร
-                  <input type="text" placeholder="ระบุ" [value]="fax" (input)="fax = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  ไปรษณีย์อิเล็กทรอนิกส์
-                  <input type="email" placeholder="ระบุ" [value]="email" (input)="email = $any($event.target).value" />
-                </label>
-                <label class="field field--wide">
-                  โดย<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="agent" (input)="agent = $any($event.target).value" />
-                  <small>(ผู้มีอำนาจกระทำการแทน/ผู้รับมอบอำนาจ)</small>
-                </label>
-                <label class="field">
-                  โทรศัพท์
-                  <input type="text" placeholder="ระบุ" [value]="agentPhone" (input)="agentPhone = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  โทรสาร
-                  <input type="text" placeholder="ระบุ" [value]="agentFax" (input)="agentFax = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  ไปรษณีย์อิเล็กทรอนิกส์
-                  <input type="email" placeholder="ระบุ" [value]="agentEmail" (input)="agentEmail = $any($event.target).value" />
-                </label>
+              <h3>1.2 ข้อมูลและเอกสารประกอบ</h3>
+              <p class="lead">กรอกข้อมูลผู้ยื่นคำขอในระบบ เพิ่มได้มากกว่าหนึ่งรายชื่อ และอัปโหลดเอกสารประกอบตามประเภทการยื่น</p>
+              <div class="table-head">
+                <p>ผู้ยื่นคำขอ</p>
+                <app-button type="outline" label="เพิ่มผู้ยื่นคำขอ" (click)="addApplicant()" />
               </div>
-              <label class="ack">
-                <input type="checkbox" [checked]="foreign" (change)="foreign = $any($event.target).checked" />
-                <img [src]="foreign ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                <span>ผู้ยื่นคำขอเป็นนิติบุคคลในต่างประเทศ</span>
-              </label>
+              @for (person of applicants; track i; let i = $index) {
+                <div class="part-head">
+                  <h3 class="part-head__title">ผู้ยื่นคำขอรายที่ {{ i + 1 }}</h3>
+                  <button type="button" class="trash" aria-label="ลบผู้ยื่นคำขอ" (click)="removeApplicant(i)">
+                    <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                  </button>
+                </div>
+                <div class="grid">
+                  <label class="field">
+                    ชื่อ/บริษัท/สมาคม<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.name" (input)="setApplicant(i, { name: $any($event.target).value })" />
+                  </label>
+                  <label class="field">
+                    สัญชาติ<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.nation" (input)="setApplicant(i, { nation: $any($event.target).value })" />
+                  </label>
+                  <label class="field field--wide">
+                    ที่อยู่<span class="req">*</span>
+                    <textarea rows="2" placeholder="ระบุ" [value]="person.address" (input)="setApplicant(i, { address: $any($event.target).value })"></textarea>
+                  </label>
+                  <label class="field" [class.field--bad]="i === 0 && bad('phone')">
+                    โทรศัพท์<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.phone" (input)="setApplicant(i, { phone: $any($event.target).value })" />
+                  </label>
+                  <label class="field">
+                    โทรสาร
+                    <input type="text" placeholder="ระบุ" [value]="person.fax" (input)="setApplicant(i, { fax: $any($event.target).value })" />
+                  </label>
+                  <label class="field" [class.field--bad]="i === 0 && bad('email')">
+                    ไปรษณีย์อิเล็กทรอนิกส์
+                    <input type="email" placeholder="ระบุ" [value]="person.email" (input)="setApplicant(i, { email: $any($event.target).value })" />
+                  </label>
+                  <label class="field field--wide">
+                    โดย<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="person.agent" (input)="setApplicant(i, { agent: $any($event.target).value })" />
+                    <small>(ผู้มีอำนาจกระทำการแทน/ผู้รับมอบอำนาจ)</small>
+                  </label>
+                  <label class="field" [class.field--bad]="i === 0 && bad('agentPhone')">
+                    โทรศัพท์
+                    <input type="text" placeholder="ระบุ" [value]="person.agentPhone" (input)="setApplicant(i, { agentPhone: $any($event.target).value })" />
+                  </label>
+                  <label class="field">
+                    โทรสาร
+                    <input type="text" placeholder="ระบุ" [value]="person.agentFax" (input)="setApplicant(i, { agentFax: $any($event.target).value })" />
+                  </label>
+                  <label class="field">
+                    ไปรษณีย์อิเล็กทรอนิกส์
+                    <input type="email" placeholder="ระบุ" [value]="person.agentEmail" (input)="setApplicant(i, { agentEmail: $any($event.target).value })" />
+                  </label>
+                </div>
+              }
+              <h4>เอกสารประกอบ</h4>
+              @if (filing === 'self') {
+                <p class="lead">ยื่นคำขอในนามของตนเอง ให้แนบหนังสือรับรองบริษัท งบการเงิน และรายการสินค้าที่ผลิตและ/หรือจำหน่าย</p>
+              } @else if (filing === 'all') {
+                <p class="lead">กระทำการแทนผู้ผลิตทั้งหมด ให้แนบเอกสารผนวก ก. ตามแบบ ปร. 1 โดยอนุโลม พร้อมหนังสือรับรองบริษัท งบการเงิน หนังสือมอบอำนาจ และรายการปริมาณสินค้าของผู้ผลิตทุกราย</p>
+              } @else {
+                <p class="lead">กระทำการแทนผู้ผลิตบางส่วน ให้แนบเอกสารผนวก ข. ส่วนที่ 1 และส่วนที่ 2 ตามแบบ ปร. 1 โดยอนุโลม พร้อมเอกสารของผู้ผลิตที่ขอให้กระทำการแทน และรายการปริมาณสินค้าของผู้ผลิตที่มิได้ขอให้กระทำการแทน</p>
+              }
+              <div class="uploads">
+                @for (doc of supportDocs; track doc.key) {
+                  <div class="upload">
+                    <span>{{ doc.title }}<span class="req">*</span></span>
+                    <label class="pick">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" [accept]="doc.accept" (change)="pick(doc.key, $event)" />
+                    </label>
+                    <small>{{ doc.hint }}</small>
+                    <ng-container [ngTemplateOutlet]="listed" [ngTemplateOutletContext]="{ key: doc.key }" />
+                  </div>
+                }
+              </div>
             } @else if (section === '1.3') {
               <h3>1.3 สถานะผู้ยื่นคำขอ</h3>
               <fieldset class="filing">
@@ -147,95 +174,73 @@
                   ไม่ใช่ผู้ยื่นคำขอให้พิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุนสินค้ารายนี้
                 </label>
               </fieldset>
-            } @else if (section === 'docs' || section === '3' || section === 'other') {
-              @if (section === 'docs') {
-                <h3>เอกสารประกอบ</h3>
-                <p>ยื่นในนามตนเองให้แสดงหนังสือรับรองบริษัท งบการเงิน และรายการสินค้า หากกระทำการแทนผู้ผลิตทั้งหมดให้แนบผนวก ก. หากแทนบางส่วนให้แนบผนวก ข. พร้อมหนังสือมอบอำนาจและรายการปริมาณสินค้า</p>
-              } @else if (section === '3') {
-                <h3>เหตุผลและพยานหลักฐาน</h3>
-                <div class="grid">
-                  <label class="field field--wide">
-                    หากยุติการใช้บังคับความตกลงเพื่อระงับการทุ่มตลาดหรือการอุดหนุนตามข้อ 2 จะทำให้มีการทุ่มตลาดหรือการอุดหนุนและความเสียหายต่อไปหรือฟื้นคืนมาอีก โดยมีเหตุผลข้อเท็จจริงพอสังเขป<span class="req">*</span>
-                    <textarea rows="6" placeholder="ระบุ" [value]="stopReason" (input)="stopReason = $any($event.target).value"></textarea>
-                  </label>
-                  <label class="ack field--wide">
-                    <input type="checkbox" [checked]="evidenceReady" (change)="evidenceReady = $any($event.target).checked" />
-                    <img [src]="evidenceReady ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                    <span>ได้เสนอพยานหลักฐานและข้อมูลรายละเอียดที่ระบุข้างต้นมาพร้อมด้วยแล้ว</span>
-                  </label>
-                </div>
-                <p>การเสนอพยานหลักฐานให้อ้างอิงรูปแบบและวิธีการกรอกข้อมูลตามแบบ ปร. 1 ในส่วนที่เกี่ยวข้อง</p>
-              } @else {
-                <h3>ภาคผนวก และเอกสารประกอบอื่น</h3>
-              }
-              <div class="doc-browser">
-                <div class="doc-nav" role="tablist">
-                  @for (item of visibleDocs; track item.key) {
-                    <button type="button" role="tab" [class.doc-nav__on]="activeDoc.key === item.key" [attr.aria-selected]="activeDoc.key === item.key" (click)="openDoc(item.key)">
-                      <img [src]="namesOf(item.key).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                      <span>{{ item.label }}<span class="req">*</span></span>
-                    </button>
-                  }
-                </div>
-                <div class="doc-detail" role="tabpanel">
-                  <div class="doc-detail__bar">
-                    <div>
-                      <p class="doc-detail__title">{{ activeDoc.label }}<span class="req">*</span></p>
-                      <p class="doc-detail__meta">{{ namesOf(activeDoc.key).length }} ไฟล์ · {{ activeDoc.hint }}</p>
-                    </div>
-                    <label class="pick">
-                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
-                      เลือกไฟล์
-                      <input type="file" [accept]="activeDoc.accept" (change)="pick(activeDoc.key, $event)" />
-                    </label>
-                  </div>
-                  <div class="table-wrap doc-detail__table">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>เอกสาร</th>
-                          <th>สถานะเอกสาร</th>
-                          <th class="col-manage">จัดการ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (name of namesOf(activeDoc.key); track name) {
-                          <tr>
-                            <td>{{ name }}</td>
-                            <td><app-status-tag tone="success" label="แนบแล้ว" /></td>
-                            <td class="col-manage">
-                              <div class="manage">
-                                <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeListed(activeDoc.key, name, $event)">
-                                  <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
             } @else if (section === '2') {
-              <h3>สินค้า ประกาศ และความตกลง</h3>
+              <h3>ขอให้พิจารณาทบทวนการใช้บังคับความตกลงต่อไป</h3>
+              <fieldset class="filing">
+                <legend>ระบุความตกลงที่ขอให้ดำเนินการพิจารณาทบทวนการใช้บังคับความตกลงเพื่อ<span class="req">*</span></legend>
+                <label>
+                  <input type="radio" name="agreement" value="dumping" [checked]="agreement === 'dumping'" (change)="agreement = 'dumping'" />
+                  <img [src]="agreement === 'dumping' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  ระงับการทุ่มตลาด
+                </label>
+                <label>
+                  <input type="radio" name="agreement" value="subsidy" [checked]="agreement === 'subsidy'" (change)="agreement = 'subsidy'" />
+                  <img [src]="agreement === 'subsidy' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                  ระงับการอุดหนุน
+                </label>
+              </fieldset>
               <div class="grid">
                 <label class="field field--wide">
-                  สินค้าที่ขอให้พิจารณาทบทวนการใช้บังคับความตกลงต่อไป<span class="req">*</span>
+                  สินค้า<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="goods" (input)="goods = $any($event.target).value" />
                 </label>
                 <label class="field field--wide">
-                  ตามประกาศคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน เรื่อง<span class="req">*</span>
-                  <textarea rows="3" placeholder="ระบุ" [value]="notice" (input)="notice = $any($event.target).value"></textarea>
+                  ตามที่ ได้กระทำไว้กับกรมการค้าต่างประเทศ<span class="req">*</span>
+                  <input type="text" placeholder="ระบุผู้ทำความตกลง" [value]="party" (input)="party = $any($event.target).value" />
                 </label>
                 <label class="field">
-                  ตามความตกลงฯ เลขที่
+                  ความตกลงฯ เลขที่<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="agreementNo" (input)="agreementNo = $any($event.target).value" />
                 </label>
+                <label class="field">
+                  วันที่<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="agreeDay" (input)="agreeDay = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  เดือน<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="agreeMonth" (input)="agreeMonth = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  พ.ศ.<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="agreeYear" (input)="agreeYear = $any($event.target).value" />
+                </label>
               </div>
+            } @else if (section === '3') {
+              <h3>หากยกเลิกความตกลง</h3>
+              <label class="note" [class.note--bad]="bad('stopReason')">
+                หากยกเลิกความตกลงเพื่อระงับการทุ่มตลาดหรือการอุดหนุนตามข้อ 2 จะทำให้มีการทุ่มตลาดหรือการอุดหนุนและความเสียหายต่อไปหรือฟื้นคืนมาอีก โดยมีเหตุผลข้อเท็จจริงพอสังเขป<span class="req">*</span>
+                <textarea rows="6" placeholder="ระบุ" [value]="stopReason" (input)="stopReason = $any($event.target).value"></textarea>
+              </label>
+              <div class="uploads">
+                <div class="upload">
+                  <span>พยานหลักฐานและข้อมูลรายละเอียด<span class="req">*</span></span>
+                  <label class="pick">
+                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                    เลือกไฟล์
+                    <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx" (change)="pick('evidence', $event)" />
+                  </label>
+                  <small>อ้างอิงรูปแบบตามแบบ ปร. 1 ในส่วนที่เกี่ยวข้อง · เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx, xls, xlsx</small>
+                  <ng-container [ngTemplateOutlet]="listed" [ngTemplateOutletContext]="{ key: 'evidence' }" />
+                </div>
+              </div>
+              <label class="ack">
+                <input type="checkbox" [checked]="evidenceReady" (change)="evidenceReady = $any($event.target).checked" />
+                <img [src]="evidenceReady ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                <span>ได้เสนอพยานหลักฐานและข้อมูลรายละเอียดที่ระบุข้างต้นมาพร้อมด้วยแล้ว</span>
+              </label>
             } @else if (section === '9') {
               <h3>คำรับรองและลงนาม</h3>
-              <p>ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียว และขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ</p>
+              <p class="pledge">ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารภาคผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียวและขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ</p>
               <label class="ack">
                 <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
                 <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
@@ -256,11 +261,17 @@
                 </label>
                 <label class="field">
                   วันที่<span class="req">*</span>
-                  <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="signedDate" (input)="signedDate = $any($event.target).value" />
+                  <input type="text" placeholder="ระบุ" [value]="signedDay" (input)="signedDay = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  เดือน<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="signedMonth" (input)="signedMonth = $any($event.target).value" />
+                </label>
+                <label class="field">
+                  พ.ศ.<span class="req">*</span>
+                  <input type="text" placeholder="ระบุ" [value]="signedYear" (input)="signedYear = $any($event.target).value" />
                 </label>
               </div>
-            } @else {
-              <h3>{{ section }}</h3>
             }
           </fieldset>
         </div>
@@ -268,8 +279,30 @@
     </main>
   </div>
 </div>
+
+<ng-template #listed let-key="key">
+  @if (namesOf(key).length) {
+    <p class="attach-count">{{ namesOf(key).length }} ไฟล์</p>
+    <div class="file-cards">
+      @for (name of namesOf(key); track name) {
+        <article class="file-card">
+          <span class="file-card__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v6h6" /></svg>
+          </span>
+          <div class="file-card__body"><p>{{ name }}</p></div>
+          <div class="manage">
+            <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeListed(key, name, $event)">
+              <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</ng-template>
+
 @if (uploadOpen) {
-  <app-filled-upload code="ปร. 3ก" (closed)="uploadOpen = false" />
+  <app-filled-upload code="ปร. 3ก" (filled)="applyRead()" (closed)="uploadOpen = false" />
 }
 @if (reviewOpen) {
   <div class="sample sample--submit" (click)="reviewOpen = false">
@@ -281,16 +314,20 @@
       <p>กรอกข้อความหรือทำเครื่องหมายตามที่เป็นจริง ตัวเลือกและไฟล์ที่แนบจะถูกนำไปใส่ในแบบ ปร. 3ก</p>
       <div class="submit__check">
         <div>
-          <dt>มาตรการ</dt>
-          <dd>{{ measure === 'dumping' ? 'ตอบโต้การทุ่มตลาด' : 'ตอบโต้การอุดหนุน' }}</dd>
-        </div>
-        <div>
           <dt>ประเภทการยื่น</dt>
-          <dd>{{ filing === 'self' ? 'ยื่นคำขอในนามของตนเอง' : filing === 'all' ? 'กระทำการแทนผู้ผลิตทั้งหมด' : 'กระทำการแทนผู้ผลิตบางส่วน' }}</dd>
+          <dd>{{ filingLabel }}</dd>
         </div>
         <div>
-          <dt>สถานะผู้ยื่น</dt>
-          <dd>{{ priorApplicant === 'yes' ? 'เป็นผู้ยื่นคำขอรายเดิม' : priorApplicant === 'no' ? 'ไม่ใช่ผู้ยื่นคำขอรายเดิม' : 'ยังไม่เลือก' }}</dd>
+          <dt>ความตกลง</dt>
+          <dd>{{ agreement === 'dumping' ? 'ระงับการทุ่มตลาด' : 'ระงับการอุดหนุน' }}</dd>
+        </div>
+        <div>
+          <dt>สินค้า</dt>
+          <dd>{{ goods || 'ยังไม่ระบุ' }}</dd>
+        </div>
+        <div>
+          <dt>ความตกลงฯ เลขที่</dt>
+          <dd>{{ agreementNo || 'ยังไม่ระบุ' }}</dd>
         </div>
       </div>
       <div class="submit__actions">
