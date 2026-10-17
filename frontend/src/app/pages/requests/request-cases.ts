@@ -84,7 +84,7 @@ export const archiveCases: ListedCase[] = [
     id: 'ad1005',
     code: 'AD1005',
     ref: 'REF256902060002',
-    goods: 'เหล็กแผ่นรีดร้อน',
+    goods: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน',
     kind: 'ทบทวนมาตรการ ครั้งที่ 4',
     status: 'ตรวจสอบข้อมูล',
     tone: 'info',

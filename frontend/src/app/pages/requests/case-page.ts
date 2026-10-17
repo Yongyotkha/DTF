@@ -101,18 +101,14 @@ export class CasePage implements OnDestroy {
   ];
   protected readonly reviewItems = ['ความครบถ้วนของแบบฟอร์ม', 'หนังสือรับรองบริษัท', 'เอกสารประกอบคำขอ'];
   protected readonly supplementDue = '20 ก.พ. 2569';
-  protected readonly supplementStep = 3;
-  protected readonly supplementSteps: StepperOneItem[] = [
-    { state: 'success', label: 'ผปก. ยื่นแบบคำขอ', number: '1' },
-    { state: 'success', label: 'คต. พิจารณาคำขอ', number: '2' },
-    { state: 'pending', label: 'ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม', number: '3' },
-    { state: 'disabled', label: 'ผปก. รับทราบคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน', number: '4' },
-    { state: 'disabled', label: 'คต. บันทึกผลการพิจารณาเปิดการไต่สวน', number: '5' },
-    { state: 'disabled', label: 'ผปก. บันทึกหลักฐานชำระค่าธรรมเนียม', number: '6' },
-    { state: 'disabled', label: 'คต. แจ้งประกาศเปิดการไต่สวน', number: '7' },
-    { state: 'disabled', label: 'ผลการไต่สวนชั้นต้น', number: '8' },
-    { state: 'disabled', label: 'รับฟังความคิดเห็น', number: '9' },
-    { state: 'disabled', label: 'ประกาศผลชั้นที่สุด', number: '10' },
+  protected supplementStep = 3;
+  private readonly supplementLabels = [
+    'ผปก. ยื่นแบบคำขอ',
+    'คต. พิจารณาคำขอ',
+    'ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม',
+    'ผปก. รับทราบคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน',
+    'คต. บันทึกผลการพิจารณาเปิดการไต่สวน',
+    'ผปก. บันทึกหลักฐานชำระค่าธรรมเนียม',
   ];
   protected readonly amendDueOn = '06/06/2569';
   protected readonly dueOn = '20/02/2569';
@@ -310,6 +306,14 @@ export class CasePage implements OnDestroy {
     return step ? step.label : '';
   }
 
+  protected get filedView(): boolean {
+    return this.viewLabel === 'ยื่นคำขอ' || this.viewLabel === 'ยื่นคำขอทบทวน';
+  }
+
+  protected get reviewOverview(): boolean {
+    return this.supplement && (this.supplementView || this.viewLabel === 'ตรวจสอบข้อมูล');
+  }
+
   protected get viewLabel(): string {
     const step = this.steps[this.viewStep - 1];
     return step ? step.label : '';
@@ -324,8 +328,9 @@ export class CasePage implements OnDestroy {
   }
 
   protected get stageStatus(): string {
-    if (this.stageDone && this.viewLabel === 'ยื่นคำขอ') return 'ยื่นคำขอสำเร็จ';
+    if (this.stageDone && this.filedView) return 'ยื่นคำขอสำเร็จ';
     if (this.stageDone) return 'เสร็จสิ้น';
+    if (this.supplement && this.supplementStep >= 4) return 'ผปก. รับทราบคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
     if (this.supplement) return 'ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม';
     return 'กำลังดำเนินการ';
   }
@@ -435,6 +440,14 @@ export class CasePage implements OnDestroy {
     this.view.detectChanges();
   }
 
+  protected get supplementSteps(): StepperOneItem[] {
+    return this.supplementLabels.map((label, index) => {
+      const number = index + 1;
+      const state = number < this.supplementStep ? 'success' : number === this.supplementStep ? 'pending' : 'disabled';
+      return { state, label, number: String(number) };
+    });
+  }
+
   protected get extendFileRows(): string[][] {
     if (!this.extendFiles.length) return [['', '', '']];
     return this.extendFiles.map((file, index) => [String(index + 1), file.name, file.title]);
@@ -483,13 +496,14 @@ export class CasePage implements OnDestroy {
   }
 
   sendSupplement(): void {
+    if (this.supplementStep === 3) this.supplementStep = 4;
     this.supplementSent = true;
     this.view.detectChanges();
   }
 
   finishSupplement(): void {
     this.supplementSent = false;
-    void this.router.navigate(['/requests', this.code]);
+    this.view.detectChanges();
   }
 
   submitOfficial(): void {
