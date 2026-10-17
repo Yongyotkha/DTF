@@ -92,7 +92,7 @@ export class CasePage implements OnDestroy {
       reason: 'ยังมีเอกสารประกอบที่ต้องแนบเพิ่มเติม จึงยังไม่สามารถตรวจรายการให้ครบได้',
     },
   ];
-  protected readonly countries = ['ญี่ปุ่น', 'แอฟริกาใต้', 'รัสเซีย'];
+  protected readonly countries: string[];
   protected readonly history: { title: string; detail: string; when: string; docs: string[] }[];
   protected readonly reviewStats: { value: string; label: string; tone: StatusTone }[] = [
     { value: '6', label: 'ผ่านการตรวจสอบ', tone: 'success' },
@@ -210,6 +210,7 @@ export class CasePage implements OnDestroy {
   protected viewStep = 1;
   fixesOpen = false;
   openFixTitle: string | null = null;
+  extraOpen = false;
   supplementOpen: Record<string, boolean> = {};
   consultOpen = false;
   consultTopic = 'ขอปรึกษาการแก้ไขคำขอ';
@@ -225,19 +226,29 @@ export class CasePage implements OnDestroy {
   supplementKind: 'fix' | 'extend' = 'extend';
   extendReason = 'ขอขยายระยะเวลา';
   extendNewDue = '22/09/2569';
-  extendFiles: { name: string; title: string }[] = [];
+  extendFiles: { name: string; title: string }[] = [
+    { name: 'ขอขยายเวลา - 22/09/2569.pdf', title: 'ขอขยายเวลา - 22/09/2569.pdf' },
+  ];
   protected readonly extendColumns = ['ลำดับ', 'ชื่อเอกสาร', 'ชื่อเอกสารใหม่'];
   coverDate = '22/09/2569';
   coverNo = '22/09/2569';
   coverTo = 'ผู้อำนวยการกองปกป้องและตอบโต้ทางการค้า';
-  coverSubject = '';
-  coverRef = '';
-  coverEnclosed = '';
-  coverDetail = '';
-  coverPurpose = '';
-  coverSeal = '';
-  coverLetterFile = '';
+  coverSubject = 'ยื่นคำขอขยายเวลา';
+  coverRef = '-';
+  coverEnclosed = '-';
+  coverDetail = 'บริษัทฯ ขอขยายระยะเวลาการส่งข้อมูลที่แก้ไขเพิ่มเติม เนื่องจากอยู่ระหว่างรวบรวมเอกสารหลักฐานให้ครบถ้วน';
+  coverPurpose = 'มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา';
+  coverSeal = 'ตราประทับบริษัท.png';
+  coverLetterFile = 'หน้าหนังสือนำส่งฉบับจริง.png';
   coverPreview = false;
+  protected readonly feeRefNo = '147855858';
+  protected readonly feeNotice = '-';
+  protected readonly feeNoticeFile = 'หนังสือชำระค่าธรรมเนียม.pdf';
+  protected readonly feeNoticeDue = '22/09/2569';
+  feePaid = true;
+  feePaidOn = '22/09/2569';
+  feeAmount = '';
+  feeProofFiles: { name: string; title: string }[] = [];
   private reviewTimer = 0;
 
   constructor(
@@ -264,6 +275,7 @@ export class CasePage implements OnDestroy {
     this.statusNote = item ? `${item.status} · ${item.kind}` : 'ไม่พบคำขอ';
     this.filingRound = item?.round ?? 1;
     this.filedOn = item?.created || '—';
+    this.countries = item?.countries?.length ? item.countries : ['ญี่ปุ่น', 'แอฟริกาใต้', 'รัสเซีย'];
     const picked = selectedFiling(item?.kind, this.filedForms.map((form) => form.code));
     this.selectedMeasure = picked.measure;
     this.selectedCodes = picked.codes;
@@ -385,6 +397,11 @@ export class CasePage implements OnDestroy {
     this.view.detectChanges();
   }
 
+  toggleExtra(): void {
+    this.extraOpen = !this.extraOpen;
+    this.view.detectChanges();
+  }
+
   toggleSupplement(title: string): void {
     this.supplementOpen = { ...this.supplementOpen, [title]: !this.supplementOpen[title] };
     this.view.detectChanges();
@@ -440,11 +457,54 @@ export class CasePage implements OnDestroy {
     this.view.detectChanges();
   }
 
+  setFeePaidOn(value: string): void {
+    this.feePaidOn = value;
+    this.view.detectChanges();
+  }
+
+  setFeeAmount(value: string): void {
+    this.feeAmount = value;
+    this.view.detectChanges();
+  }
+
+  addFeeProofFile(name: string): void {
+    if (!name || this.feeProofFiles.some((file) => file.name === name)) return;
+    this.feeProofFiles = [...this.feeProofFiles, { name, title: name }];
+    this.view.detectChanges();
+  }
+
+  protected get feeProofRows(): string[][] {
+    if (!this.feeProofFiles.length) return [['', '', '']];
+    return this.feeProofFiles.map((file, index) => [String(index + 1), file.name, file.title]);
+  }
+
+  protected downloadFeeNotice(): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>หนังสือชำระค่าธรรมเนียม</title></head><body><h1>หนังสือชำระค่าธรรมเนียม</h1><p>เลขที่อ้างอิง ${this.feeRefNo}</p><p>เลขที่คำขอ ${this.requestRef}</p><p>ภายในวันที่ ${this.feeNoticeDue}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.feeNoticeFile;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected get supplementCurrent(): number {
+    return Math.min(this.supplementStep, this.supplementLabels.length);
+  }
+
   protected get supplementSteps(): StepperOneItem[] {
+    const notes = [
+      `${this.filedOn} 10:15`,
+      '03/04/2569 14:20',
+      '22/09/2569 09:30',
+      '22/09/2569 10:15',
+      '22/09/2569 11:30',
+      '22/09/2569 14:00',
+    ];
     return this.supplementLabels.map((label, index) => {
       const number = index + 1;
       const state = number < this.supplementStep ? 'success' : number === this.supplementStep ? 'pending' : 'disabled';
-      return { state, label, number: String(number) };
+      return { state, label, number: String(number), note: number < this.supplementStep ? notes[index] || '' : '' };
     });
   }
 
@@ -496,7 +556,8 @@ export class CasePage implements OnDestroy {
   }
 
   sendSupplement(): void {
-    if (this.supplementStep === 3) this.supplementStep = 4;
+    if (this.supplementStep > this.supplementLabels.length) return;
+    this.supplementStep += 1;
     this.supplementSent = true;
     this.view.detectChanges();
   }

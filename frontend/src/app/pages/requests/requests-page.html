@@ -23,18 +23,21 @@
                 <header class="item__head">
                   <div>
                     <p class="item__code">{{ row.ref }}</p>
-                    <p class="item__goods">{{ row.goods }}</p>
                   </div>
                   <app-status-tag [tone]="row.tone" [label]="row.status" />
                 </header>
                 <dl class="item__facts">
                   <div>
-                    <dt>แบบคำขอ</dt>
-                    <dd>{{ row.kind }}</dd>
+                    <dt>ชื่อสินค้า</dt>
+                    <dd>{{ row.goods }}</dd>
                   </div>
                   <div>
-                    <dt>ครั้งที่ยื่น</dt>
-                    <dd>{{ row.round ? 'ครั้งที่ ' + row.round : '—' }}</dd>
+                    <dt>ประเทศ</dt>
+                    <dd>{{ row.countries.length ? row.countries.join(', ') : '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>แบบคำขอ</dt>
+                    <dd>{{ row.kind }}</dd>
                   </div>
                   <div>
                     <dt>วันที่</dt>

@@ -10,5 +10,6 @@ export type VerticalStepState = 'success' | 'pending' | 'disabled';
 export class VerticalStep {
   @Input() state: VerticalStepState = 'disabled';
   @Input() label = 'text';
+  @Input() note = '';
   @Input() number = '1';
 }

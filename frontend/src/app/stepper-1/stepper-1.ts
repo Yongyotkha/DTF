@@ -5,6 +5,7 @@ export interface StepperOneItem {
   state: VerticalStepState;
   label: string;
   number: string;
+  note?: string;
 }
 
 @Component({

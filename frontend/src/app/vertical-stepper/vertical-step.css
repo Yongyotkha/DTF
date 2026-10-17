@@ -52,24 +52,6 @@
   background: linear-gradient(#ffb700, #ff7c00);
   box-shadow: 0 0 0 4px #ffcb88;
   color: var(--color-white);
-  animation: vstep-on 1.6s ease-in-out infinite;
-}
-
-@keyframes vstep-on {
-  0%,
-  100% {
-    box-shadow: 0 0 0 4px #ffcb88;
-  }
-
-  50% {
-    box-shadow: 0 0 0 8px #ffcb88;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .vstep[data-state='pending'] .vstep__circle {
-    animation: none;
-  }
 }
 
 .vstep[data-state='disabled'] .vstep__circle {
@@ -78,6 +60,19 @@
   color: var(--color-text-muted);
 }
 
+.vstep__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .vstep__label {
   line-height: 21px;
+}
+
+.vstep__note {
+  color: var(--color-text-muted);
+  font-size: var(--type-label-size);
+  font-weight: 400;
+  line-height: 18px;
 }

@@ -11,6 +11,7 @@ export type ListedCase = {
   code: string;
   ref: string;
   goods: string;
+  countries: string[];
   kind: string;
   status: string;
   tone: StatusTone;
@@ -40,6 +41,7 @@ export const archiveCases: ListedCase[] = [
     code: 'AD1039',
     ref: 'REF256902060001',
     goods: 'หลอดหรือท่อทำด้วยเหล็ก จากเวียดนาม',
+    countries: ['เวียดนาม'],
     kind: 'แบบ ปร.1',
     status: 'ยื่นคำขอ',
     tone: 'info',
@@ -55,6 +57,7 @@ export const archiveCases: ListedCase[] = [
     code: 'AD1024',
     ref: 'REF256708010001',
     goods: 'เหล็กกล้าไร้สนิมรีดเย็น',
+    countries: ['จีน'],
     kind: 'คำขอหลบเลี่ยงมาตรการ',
     status: 'อยู่ระหว่างตรวจสอบ',
     tone: 'info',
@@ -70,6 +73,7 @@ export const archiveCases: ListedCase[] = [
     code: 'AD1054',
     ref: 'REF256205150001',
     goods: 'พอลิเอทิลีนเทเรฟทาเลต (PET) จากจีน',
+    countries: ['จีน'],
     kind: 'แบบ ปร.1',
     status: 'ยื่นคำขอ',
     tone: 'info',
@@ -85,6 +89,7 @@ export const archiveCases: ListedCase[] = [
     code: 'AD1005',
     ref: 'REF256902060002',
     goods: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน',
+    countries: ['ญี่ปุ่น', 'แอฟริกาใต้', 'รัสเซีย'],
     kind: 'ทบทวนมาตรการ ครั้งที่ 4',
     status: 'ตรวจสอบข้อมูล',
     tone: 'info',
@@ -102,6 +107,7 @@ export const archiveCases: ListedCase[] = [
     code: 'AD1020',
     ref: 'REF256608100001',
     goods: 'เหล็กแผ่นรีดร้อนเจือโบรอน',
+    countries: ['จีน'],
     kind: 'แบบ ปร.1',
     status: 'รับฟังความคิดเห็น',
     tone: 'warning',
@@ -117,6 +123,7 @@ export const archiveCases: ListedCase[] = [
     code: 'AD1004',
     ref: 'REF256903090001',
     goods: 'เหล็กกล้าไร้สนิมรีดเย็น จากญี่ปุ่น เกาหลี และไต้หวัน',
+    countries: ['ญี่ปุ่น', 'เกาหลี', 'ไต้หวัน'],
     kind: 'ทบทวนมาตรการ',
     status: 'ร่างผลการทบทวน',
     tone: 'warning',
@@ -135,6 +142,7 @@ export const draftCases: ListedCase[] = [
     code: 'ปร.3',
     ref: 'REF256900000001',
     goods: 'ต่ออายุมาตรการตอบโต้การทุ่มตลาด 14 ประเทศ',
+    countries: ['14 ประเทศ'],
     kind: 'แบบ ปร.3',
     status: 'ร่าง',
     tone: 'neutral',

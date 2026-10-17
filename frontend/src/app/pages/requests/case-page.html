@@ -34,42 +34,10 @@
       </header>
       @if (supplementView) {
         <div class="panel supplement-work">
-          <app-stepper-1 class="embedded" [current]="supplementStep" [steps]="supplementSteps" />
+          <app-stepper-1 class="embedded" [current]="supplementCurrent" [steps]="supplementSteps" />
           @if (supplementStep < 4) {
           <div class="sheet">
-            <ng-container *ngTemplateOutlet="caseOverview" />
-            <div class="extend-form">
-              <div>
-                <p class="extend-form__label">ดำเนินการ <span>*</span></p>
-                <div class="extend-form__choices">
-                  <button type="button" (click)="setSupplementKind('fix')">
-                    <img [src]="supplementKind === 'fix' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                    ส่งคำขอที่แก้ไข
-                  </button>
-                  <button type="button" (click)="setSupplementKind('extend')">
-                    <img [src]="supplementKind === 'extend' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                    ขอขยายเวลา
-                  </button>
-                </div>
-              </div>
-              @if (supplementKind === 'extend') {
-                <app-input-field class="block" kind="textarea" label="หมายเหตุความจำเป็นในการขอขยายเวลา" [value]="extendReason" (valueChange)="setExtendReason($event)" />
-              }
-              @if (supplementKind === 'extend') {
-                <div class="extend-form__date">
-                  <app-thai-date-field label="วันที่ครบกำหนดส่งใหม่" [required]="true" [value]="extendNewDue" (valueChange)="setExtendDue($event)" />
-                </div>
-                <app-file-field label="แนบไฟล์ประกอบการขอขยายเวลา" [required]="true" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpeg,.jpg,.png,.tiff" note="เฉพาะนามสกุล doc, docx, xls, xlsx, ppt, pptx, pdf, jpeg, jpg, png, tiff" (valueChange)="addExtendFile($event)" />
-                <app-data-table class="fill index" [columns]="extendColumns" [rows]="extendFileRows" />
-              } @else {
-                <p class="status-note">แนบไฟล์ที่เจ้าหน้าที่ขอ แล้วส่งภายใน {{ supplementDue }}</p>
-                <div class="supplement-files">
-                  @for (task of supplementTasks; track task.title) {
-                    <app-file-field [label]="task.title" [required]="true" [accept]="task.accept.includes('Excel') ? '.pdf,.xls,.xlsx' : '.pdf'" [note]="'รูปแบบที่รับ ' + task.accept" [value]="supplementFiles[task.title] || ''" (valueChange)="setSupplementFile(task.title, $event)" />
-                  }
-                </div>
-              }
-            </div>
+            <ng-container *ngTemplateOutlet="requestExtra" />
             <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
             <div class="letter-form">
               <app-thai-date-field label="วันที่หนังสือ" [required]="true" [value]="coverDate" (valueChange)="setCover('coverDate', $event)" />
@@ -87,6 +55,10 @@
                 <app-button type="primary" size="sm" label="ตัวอย่างนำส่ง" [state]="coverReady ? 'default' : 'disabled'" (click)="openCoverPreview()" />
               </div>
             </div>
+          </div>
+          } @else if (supplementStep === 6) {
+          <div class="sheet">
+            <ng-container *ngTemplateOutlet="feeProofForm" />
           </div>
           }
         </div>
@@ -189,7 +161,7 @@
             <p class="officer__note">คุณไม่ต้องดำเนินการใด ๆ ในตอนนี้ หากต้องการข้อมูลเพิ่มเติม ระบบจะแจ้งทางอีเมลและแสดงรายการที่หน้านี้</p>
           </article>
         } @else if (supplement && viewLabel === 'ตรวจสอบข้อมูล') {
-          <article class="extra" aria-label="เจ้าหน้าที่ขอข้อมูลเพิ่มเติม">
+          <article class="extra" [class.extra--open]="extraOpen" aria-label="เจ้าหน้าที่ขอข้อมูลเพิ่มเติม">
             <div class="extra__lead">
               <span class="extra__mark" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M12 7v6.5" /><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none" /></svg>
@@ -199,9 +171,23 @@
                 <p>เจ้าหน้าที่ตรวจสอบคำขอของคุณแล้ว พบว่าต้องการข้อมูลเพิ่มเติม กรุณาส่งภายใน {{ supplementDue }}</p>
               </div>
               <app-button type="primary" label="ยื่นข้อมูลเพิ่มเติม" (click)="openSupplement()" />
+              <button type="button" class="more" [attr.aria-expanded]="extraOpen" [attr.aria-label]="extraOpen ? 'หุบรายละเอียด' : 'ขยายรายละเอียด'" (click)="toggleExtra()">
+                <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+              </button>
             </div>
+            @if (extraOpen) {
+              <div class="extra__detail">
+                <app-stepper-1 class="embedded" [current]="supplementCurrent" [steps]="supplementSteps" />
+                <div class="extra__pane">
+                  @if (supplementStep >= 6) {
+                    <ng-container *ngTemplateOutlet="feeProofRead" />
+                  } @else {
+                    <ng-container *ngTemplateOutlet="requestExtraRead" />
+                  }
+                </div>
+              </div>
+            }
           </article>
-          <ng-container *ngTemplateOutlet="caseOverview" />
         } @else if (viewLabel === 'ตรวจสอบข้อมูล') {
           <div class="alert">
             <p>
@@ -529,6 +515,175 @@
     </section>
   </div>
 }
+<ng-template #feeProofForm>
+  <div class="letter-form">
+    <app-input-field class="block" kind="text" label="เลขที่อ้างอิง" state="readonly" [value]="feeRefNo" />
+    <app-input-field class="block" kind="text" label="ชื่อบริษัท" state="readonly" [value]="applicants[0].name" />
+    <app-input-field class="block" kind="text" label="ชื่อสินค้า" state="readonly" [value]="'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน'" />
+    <app-input-field class="block" kind="text" label="ประเทศ" state="readonly" [value]="countries.join(', ')" />
+    <app-thai-date-field label="วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)" state="readonly" [value]="amendDueOn" />
+    <app-input-field class="block" kind="text" label="แจ้งชำระค่าธรรมเนียม" state="readonly" [value]="feeNotice" />
+    <div>
+      <p class="extend-form__label">ไฟล์แจ้งชำระค่าธรรมเนียม</p>
+      <button type="button" class="overview__file" (click)="downloadFeeNotice()">
+        <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+        {{ feeNoticeFile }}
+      </button>
+    </div>
+    <app-thai-date-field label="ภายในวันที่" state="readonly" [value]="feeNoticeDue" />
+    <div>
+      <p class="extend-form__label">ผลการชำระค่าธรรมเนียม</p>
+      <div class="extend-form__choices">
+        <button type="button">
+          <img [src]="feePaid ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ชำระค่าธรรมเนียมแล้ว
+        </button>
+      </div>
+    </div>
+    <app-thai-date-field label="ชำระเมื่อวันที่" [value]="feePaidOn" (valueChange)="setFeePaidOn($event)" />
+    <app-input-field class="block wide" kind="text" label="จำนวนเงิน" [editable]="true" placeholder="ระบุ" [value]="feeAmount" (valueChange)="setFeeAmount($event)" />
+    <app-file-field class="wide" label="แนบไฟล์หลักฐานการชำระค่าธรรมเนียม" [required]="true" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpeg,.jpg,.png,.tiff" note="เฉพาะนามสกุล doc, docx, xls, xlsx, ppt, pptx, pdf, jpeg, jpg, png, tiff" (valueChange)="addFeeProofFile($event)" />
+    <app-data-table class="fill index wide" [columns]="extendColumns" [rows]="feeProofRows" />
+  </div>
+  <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
+  <div class="letter-form">
+    <app-thai-date-field label="วันที่หนังสือ" [required]="true" [value]="coverDate" (valueChange)="setCover('coverDate', $event)" />
+    <app-thai-date-field label="เลขที่หนังสือ" [required]="true" [value]="coverNo" (valueChange)="setCover('coverNo', $event)" />
+    <app-input-field class="block wide" kind="text" label="เรียน" [required]="true" state="readonly" [value]="coverTo" />
+    <app-input-field class="block wide" kind="text" label="เรื่อง" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverSubject" (valueChange)="setCover('coverSubject', $event)" />
+    <app-input-field class="block wide" kind="text" label="อ้างอิง" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverRef" (valueChange)="setCover('coverRef', $event)" />
+    <app-input-field class="block wide" kind="text" label="สิ่งที่แนบมาด้วย" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverEnclosed" (valueChange)="setCover('coverEnclosed', $event)" />
+    <app-input-field class="block wide" kind="textarea" label="รายละเอียด" [required]="true" [editable]="true" placeholder="text" [counter]="coverCount" [value]="coverDetail" (valueChange)="setCover('coverDetail', $event)" />
+    <app-input-field class="block wide" kind="text" label="มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverPurpose" (valueChange)="setCover('coverPurpose', $event)" />
+    <app-file-field label="แนบไฟล์ตราประทับบริษัท" [required]="true" accept=".png,.jpg,.jpeg" note="เฉพาะนามสกุล png, jpg, jpeg" [value]="coverSeal" (valueChange)="setCover('coverSeal', $event)" />
+    <app-file-field label="แนบไฟล์หนังสือนำส่งฉบับจริง" [required]="true" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" note="เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx" [value]="coverLetterFile" (valueChange)="setCover('coverLetterFile', $event)" />
+    <div class="letter-note">
+      <p>หมายเหตุ : สามารถ Preview ตัวอย่างใบนำส่งเมื่อกรอกข้อมูลครบถ้วน</p>
+      <app-button type="primary" size="sm" label="ตัวอย่างนำส่ง" [state]="coverReady ? 'default' : 'disabled'" (click)="openCoverPreview()" />
+    </div>
+  </div>
+</ng-template>
+<ng-template #feeProofRead>
+  <div class="letter-form">
+    <app-input-field class="block" kind="text" label="เลขที่อ้างอิง" state="readonly" [value]="feeRefNo" />
+    <app-input-field class="block" kind="text" label="ชื่อบริษัท" state="readonly" [value]="applicants[0].name" />
+    <app-input-field class="block" kind="text" label="ชื่อสินค้า" state="readonly" [value]="'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน'" />
+    <app-input-field class="block" kind="text" label="ประเทศ" state="readonly" [value]="countries.join(', ')" />
+    <app-thai-date-field label="วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)" state="readonly" [value]="amendDueOn" />
+    <app-input-field class="block" kind="text" label="แจ้งชำระค่าธรรมเนียม" state="readonly" [value]="feeNotice" />
+    <div>
+      <p class="extend-form__label">ไฟล์แจ้งชำระค่าธรรมเนียม</p>
+      <button type="button" class="overview__file" (click)="downloadFeeNotice()">
+        <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+        {{ feeNoticeFile }}
+      </button>
+    </div>
+    <app-thai-date-field label="ภายในวันที่" state="readonly" [value]="feeNoticeDue" />
+    <div>
+      <p class="extend-form__label">ผลการชำระค่าธรรมเนียม</p>
+      <div class="extend-form__choices">
+        <span>
+          <img [src]="feePaid ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ชำระค่าธรรมเนียมแล้ว
+        </span>
+      </div>
+    </div>
+    <app-thai-date-field label="ชำระเมื่อวันที่" state="readonly" [value]="feePaidOn" />
+    <app-input-field class="block wide" kind="text" label="จำนวนเงิน" state="readonly" [value]="feeAmount || '—'" />
+    <app-data-table class="fill index wide" [columns]="extendColumns" [rows]="feeProofRows" />
+  </div>
+  <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
+  <div class="letter-form">
+    <app-thai-date-field label="วันที่หนังสือ" state="readonly" [value]="coverDate" />
+    <app-thai-date-field label="เลขที่หนังสือ" state="readonly" [value]="coverNo" />
+    <app-input-field class="block wide" kind="text" label="เรียน" state="readonly" [value]="coverTo" />
+    <app-input-field class="block wide" kind="text" label="เรื่อง" state="readonly" [value]="coverSubject" />
+    <app-input-field class="block wide" kind="text" label="อ้างอิง" state="readonly" [value]="coverRef" />
+    <app-input-field class="block wide" kind="text" label="สิ่งที่แนบมาด้วย" state="readonly" [value]="coverEnclosed" />
+    <app-input-field class="block wide" kind="textarea" label="รายละเอียด" state="readonly" [value]="coverDetail" />
+    <app-input-field class="block wide" kind="text" label="มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา" state="readonly" [value]="coverPurpose" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์ตราประทับบริษัท" state="readonly" [value]="coverSeal" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์หนังสือนำส่งฉบับจริง" state="readonly" [value]="coverLetterFile" />
+  </div>
+</ng-template>
+<ng-template #requestExtraRead>
+  <ng-container *ngTemplateOutlet="caseOverview" />
+  <div class="extend-form">
+    <div>
+      <p class="extend-form__label">ดำเนินการ</p>
+      <div class="extend-form__choices">
+        <span>
+          <img [src]="supplementKind === 'fix' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ส่งคำขอที่แก้ไข
+        </span>
+        <span>
+          <img [src]="supplementKind === 'extend' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ขอขยายเวลา
+        </span>
+      </div>
+    </div>
+    @if (supplementKind === 'extend') {
+      <app-input-field class="block" kind="textarea" label="หมายเหตุความจำเป็นในการขอขยายเวลา" state="readonly" [value]="extendReason" />
+      <div class="extend-form__date">
+        <app-thai-date-field label="วันที่ครบกำหนดส่งใหม่" state="readonly" [value]="extendNewDue" />
+      </div>
+      <p class="extend-form__label">แนบไฟล์ประกอบการขอขยายเวลา</p>
+      <app-data-table class="fill index" [columns]="extendColumns" [rows]="extendFileRows" />
+    } @else {
+      <div class="supplement-files">
+        @for (task of supplementTasks; track task.title) {
+          <app-input-field class="block" kind="text" [label]="task.title" state="readonly" [value]="supplementFiles[task.title] || '—'" />
+        }
+      </div>
+    }
+  </div>
+  <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
+  <div class="letter-form">
+    <app-thai-date-field label="วันที่หนังสือ" state="readonly" [value]="coverDate" />
+    <app-thai-date-field label="เลขที่หนังสือ" state="readonly" [value]="coverNo" />
+    <app-input-field class="block wide" kind="text" label="เรียน" state="readonly" [value]="coverTo" />
+    <app-input-field class="block wide" kind="text" label="เรื่อง" state="readonly" [value]="coverSubject" />
+    <app-input-field class="block wide" kind="text" label="อ้างอิง" state="readonly" [value]="coverRef" />
+    <app-input-field class="block wide" kind="text" label="สิ่งที่แนบมาด้วย" state="readonly" [value]="coverEnclosed" />
+    <app-input-field class="block wide" kind="textarea" label="รายละเอียด" state="readonly" [value]="coverDetail" />
+    <app-input-field class="block wide" kind="text" label="มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา" state="readonly" [value]="coverPurpose" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์ตราประทับบริษัท" state="readonly" [value]="coverSeal" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์หนังสือนำส่งฉบับจริง" state="readonly" [value]="coverLetterFile" />
+  </div>
+</ng-template>
+<ng-template #requestExtra>
+  <ng-container *ngTemplateOutlet="caseOverview" />
+  <div class="extend-form">
+    <div>
+      <p class="extend-form__label">ดำเนินการ <span>*</span></p>
+      <div class="extend-form__choices">
+        <button type="button" (click)="setSupplementKind('fix')">
+          <img [src]="supplementKind === 'fix' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ส่งคำขอที่แก้ไข
+        </button>
+        <button type="button" (click)="setSupplementKind('extend')">
+          <img [src]="supplementKind === 'extend' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ขอขยายเวลา
+        </button>
+      </div>
+    </div>
+    @if (supplementKind === 'extend') {
+      <app-input-field class="block" kind="textarea" label="หมายเหตุความจำเป็นในการขอขยายเวลา" [value]="extendReason" (valueChange)="setExtendReason($event)" />
+      <div class="extend-form__date">
+        <app-thai-date-field label="วันที่ครบกำหนดส่งใหม่" [required]="true" [value]="extendNewDue" (valueChange)="setExtendDue($event)" />
+      </div>
+      <app-file-field label="แนบไฟล์ประกอบการขอขยายเวลา" [required]="true" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpeg,.jpg,.png,.tiff" note="เฉพาะนามสกุล doc, docx, xls, xlsx, ppt, pptx, pdf, jpeg, jpg, png, tiff" (valueChange)="addExtendFile($event)" />
+      <app-data-table class="fill index" [columns]="extendColumns" [rows]="extendFileRows" />
+    } @else {
+      <p class="status-note">แนบไฟล์ที่เจ้าหน้าที่ขอ แล้วส่งภายใน {{ supplementDue }}</p>
+      <div class="supplement-files">
+        @for (task of supplementTasks; track task.title) {
+          <app-file-field [label]="task.title" [required]="true" [accept]="task.accept.includes('Excel') ? '.pdf,.xls,.xlsx' : '.pdf'" [note]="'รูปแบบที่รับ ' + task.accept" [value]="supplementFiles[task.title] || ''" (valueChange)="setSupplementFile(task.title, $event)" />
+        }
+      </div>
+    }
+  </div>
+</ng-template>
 <ng-template #caseOverview>
   <dl class="overview">
     <div>
@@ -567,14 +722,6 @@
       <div>
         <dt>วันที่ยื่นคำขอ</dt>
         <dd>{{ filedOn }}</dd>
-      </div>
-      <div>
-        <dt>ผู้ยื่นคำขอ</dt>
-        <dd>
-          @for (party of applicants; track party.name; let last = $last) {
-            {{ party.name }}@if (!last) {, }
-          }
-        </dd>
       </div>
     }
     @if (reviewOverview) {
