@@ -1,0 +1,52 @@
+<div class="fill-upload" (click)="close()">
+  @if (processing) {
+    <section role="dialog" aria-modal="true" aria-labelledby="fill-upload-title" (click)="$event.stopPropagation()">
+      <h2 id="fill-upload-title">กำลังประมวลผลไฟล์...</h2>
+      <div class="fill-upload__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="progress" aria-labelledby="fill-upload-title">
+        <span class="fill-upload__bar" [style.width.%]="progress"></span>
+      </div>
+      <ol class="fill-steps">
+        @for (label of steps; track label; let i = $index) {
+          <li class="fill-step" [class.fill-step--done]="i < active" [class.fill-step--on]="i === active">
+            <span class="fill-step__mark" aria-hidden="true">
+              @if (i < active) {
+                <svg viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7" /></svg>
+              } @else if (i === active) {
+                <svg viewBox="0 0 24 24"><path d="M7 4h10M7 20h10M8 4c0 4.2 4 5.2 4 8s-4 3.8-4 8M16 4c0 4.2-4 5.2-4 8s4 3.8 4 8" /></svg>
+              } @else {
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" /></svg>
+              }
+            </span>
+            {{ label }}
+          </li>
+        }
+      </ol>
+      <p class="fill-upload__hint">ระบบไม่บันทึกข้อมูลจริงจนกว่าคุณจะกดบันทึกร่าง</p>
+    </section>
+  } @else {
+  <section role="dialog" aria-modal="true" aria-labelledby="fill-upload-title" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <h2 id="fill-upload-title">อัปโหลดไฟล์</h2>
+        <p>ระบบจะอ่านไฟล์ที่คุณกรอกไว้ แล้วนำข้อมูลมาใส่ในฟอร์มให้ คุณตรวจสอบและแก้ไขได้ก่อนยื่น</p>
+        <p class="fill-upload__tmpl">ดาวน์โหลด <button type="button" class="tmpl" (click)="downloadTemplate($event)">แบบฟอร์ม {{ code }}</button></p>
+      </div>
+      <button type="button" class="fill-upload__close" aria-label="ปิด" (click)="close()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </header>
+    <div class="fill-upload__drop" [class.fill-upload__drop--over]="over" (click)="pick.click()" (dragover)="allowDrop($event)" (dragleave)="over = false" (drop)="$event.preventDefault(); take($event.dataTransfer?.files ?? null)">
+      <strong>{{ picked || 'ลากไฟล์มาวางที่นี่' }}</strong>
+      <span>รองรับไฟล์ DOCX · ไม่เกิน 50 MB</span>
+      @if (error) {
+        <span class="fill-upload__error">{{ error }}</span>
+      }
+      <span class="fill-upload__actions">
+        <app-button type="primary" label="เลือกไฟล์" />
+      </span>
+    </div>
+    <input #pick class="fill-upload__file" type="file" accept=".docx" (change)="take($any($event.target).files)" />
+    <p class="fill-upload__note">ข้อมูลที่ระบบกรอกให้ยังเป็นร่าง คุณแก้ไขได้ทุกช่องก่อนยื่น</p>
+  </section>
+  }
+</div>

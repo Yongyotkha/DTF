@@ -55,6 +55,10 @@
   flex-direction: row-reverse;
 }
 
+:host(.soft-shadow) .btn {
+  box-shadow: var(--shadow-card);
+}
+
 /* เลือกประเภทการยื่นคำขอ, สอบถาม AI 3507:72747 */
 :host(.ask-ai) .btn {
   height: 35px;
@@ -91,6 +95,33 @@
 .btn--primary[data-state='pressed'],
 .btn--primary:active:not(:disabled) {
   background: var(--color-primary-pressed);
+}
+
+:host(.login-submit) .btn {
+  transition:
+    background-color var(--motion-state),
+    color var(--motion-state),
+    border-color var(--motion-state),
+    box-shadow var(--motion-state),
+    transform 180ms ease;
+}
+
+:host(.login-submit) .btn--primary:hover:not(:disabled),
+:host(.login-submit) .btn--primary[data-state='hover'] {
+  background: var(--color-primary-pressed);
+}
+
+:host(.login-submit) .btn--primary:active:not(:disabled),
+:host(.login-submit) .btn--primary[data-state='pressed'] {
+  background: var(--color-primary-pressed);
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host(.login-submit) .btn--primary:active:not(:disabled),
+  :host(.login-submit) .btn--primary[data-state='pressed'] {
+    transform: none;
+  }
 }
 
 .btn--secondary {
@@ -150,8 +181,10 @@
 }
 
 .btn--pill {
-  border-color: var(--color-border);
-  color: var(--color-primary);
+  border-radius: 50px;
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+  font-weight: 700;
 }
 
 .btn--pill[data-state='hover'],

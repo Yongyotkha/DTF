@@ -8,7 +8,6 @@
         <article>
           <span class="mark"><img [src]="card.icon" width="48" height="48" alt="" /></span>
           <h2>{{ card.title }}</h2>
-          <p class="audience">{{ card.audience }}</p>
           <p class="body">{{ card.body }}</p>
           <a [routerLink]="['/register', card.kind, 1]">
             {{ card.action }}
@@ -16,6 +15,9 @@
           </a>
         </article>
       }
+    </div>
+    <div class="back">
+      <app-button type="outline" label="กลับหน้าเข้าสู่ระบบ" (click)="goLogin()" />
     </div>
   </section>
 </div>

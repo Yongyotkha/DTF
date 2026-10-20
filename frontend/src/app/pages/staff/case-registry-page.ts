@@ -7,12 +7,14 @@ import { SearchOption } from '../../search-frame/search-frame';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus } from '../requests/case-status';
+import { archiveCases } from '../requests/request-cases';
 import { thaitrMeasures } from './thaitr-measures';
 
 type Band = 'all' | 'measure' | 'doing' | 'wait' | 'cancel';
 
 type RegistryCase = {
   code: string;
+  ref: string;
   goods: string;
   origin: string;
   measure: string;
@@ -23,6 +25,7 @@ type RegistryCase = {
   status: string;
   tone: StatusTone;
   live: boolean;
+  internal: boolean;
 };
 
 const measureCodes: SearchOption[] = [
@@ -51,6 +54,7 @@ const years: SearchOption[] = Array.from({ length: 2569 - 2533 + 1 }, (_, index)
 
 const catalog: RegistryCase[] = thaitrMeasures.map((item) => ({
   code: item.code,
+  ref: '',
   goods: item.goods,
   origin: item.origin,
   measure: item.measure,
@@ -61,7 +65,15 @@ const catalog: RegistryCase[] = thaitrMeasures.map((item) => ({
   status: item.status,
   tone: toneOf(item.status),
   live: false,
+  internal: false,
 }));
+
+function shortMeasure(value: string): 'AD' | 'AC' | 'SG' | 'CVD' {
+  if (value.startsWith('SG')) return 'SG';
+  if (value.startsWith('AC') || value.includes('หลบเลี่ยง')) return 'AC';
+  if (value.includes('CVD') || value.includes('อุดหนุน')) return 'CVD';
+  return 'AD';
+}
 
 function toneOf(status: string): StatusTone {
   if (status === 'ใช้มาตรการ' || status === 'ยื่นแบบ') return 'success';
@@ -126,6 +138,7 @@ export class CaseRegistryPage {
     const status = caseStatusLabel(readCaseStatus());
     const live: RegistryCase = {
       code: filingRefId,
+      ref: filingRefId,
       goods: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน',
       origin: 'เวียดนามและอียิปต์',
       measure: 'AD',
@@ -136,8 +149,24 @@ export class CaseRegistryPage {
       status,
       tone: caseStatusTone(readCaseStatus()),
       live: true,
+      internal: true,
     };
-    return [live, ...catalog];
+    const samples: RegistryCase[] = archiveCases.map((item) => ({
+      code: item.code,
+      ref: item.ref,
+      goods: item.goods,
+      origin: item.origins?.join(' ') || '—',
+      measure: shortMeasure(`${item.measure} ${item.kind}`),
+      side: 'ใช้',
+      hs: '',
+      year: item.created.slice(-4),
+      date: item.created,
+      status: item.status,
+      tone: item.tone,
+      live: false,
+      internal: true,
+    }));
+    return [live, ...samples, ...catalog];
   }
 
   protected get statuses(): string[] {
@@ -148,6 +177,7 @@ export class CaseRegistryPage {
     const rows = this.rows.filter((row) => this.matches(row));
     return [...rows].sort((a, b) => {
       if (a.live !== b.live) return a.live ? -1 : 1;
+      if (a.internal !== b.internal) return a.internal ? -1 : 1;
       if (this.sort.startsWith('date')) {
         const diff = stamp(a.date) - stamp(b.date);
         return this.sort.endsWith('new') ? -diff : diff;
@@ -193,7 +223,7 @@ export class CaseRegistryPage {
   }
 
   protected published(row: RegistryCase): boolean {
-    return !row.live;
+    return !row.internal;
   }
 
   protected publicUrl(row: RegistryCase): string {
@@ -267,17 +297,18 @@ export class CaseRegistryPage {
   }
 
   protected open(row: RegistryCase): void {
-    if (!row.live) return;
-    const role = this.accounts.role;
-    if (role === 'staff') {
-      void this.router.navigateByUrl('/staff/filing');
-      return;
-    }
-    if (role === 'head' || role === 'officer') {
-      void this.router.navigateByUrl('/officer/filing');
-      return;
-    }
-    void this.router.navigateByUrl('/director/filing');
+    if (!row.internal) return;
+    const filing = ({
+      director: '/director/filing',
+      head: '/head/filing',
+      staff: '/staff/filing',
+      officer: '/officer/filing',
+      bureau: '/bureau/filing',
+      committee: '/committee/filing',
+      interest: '/interest/filing',
+      external: '/external/filing',
+    } as Record<string, string>)[this.accounts.role] ?? '/director/filing';
+    void this.router.navigate([filing], { queryParams: row.live ? {} : { case: row.code } });
   }
 
   protected exportRows(): void {
@@ -313,7 +344,7 @@ export class CaseRegistryPage {
     if (this.toYear && (!year || year > Number(this.toYear))) return false;
     const text = this.query.trim().toLowerCase();
     if (!text) return true;
-    const bag = `${row.code} ${row.goods} ${row.origin} ${row.measure} ${row.status} ${this.sideLabel(row)}`.toLowerCase();
+    const bag = `${row.ref} ${row.code} ${row.goods} ${row.origin} ${row.measure} ${row.status} ${this.sideLabel(row)}`.toLowerCase();
     if (bag.includes(text)) return true;
     const compact = text.replace(/\s/g, '');
     return /^\d{4,}$/.test(compact) && row.hs.replace(/\D/g, '').includes(compact);

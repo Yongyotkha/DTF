@@ -7,6 +7,7 @@ type Field = 'province' | 'district' | 'subdistrict' | 'postcode';
   selector: 'app-address-select',
   templateUrl: './address-select.html',
   styleUrl: './address-select.css',
+  host: { '[class.split]': 'postcodeHidden' },
 })
 export class AddressSelect implements OnInit, OnChanges {
   @Input() province = '';
@@ -21,6 +22,11 @@ export class AddressSelect implements OnInit, OnChanges {
   @Input() districtMessage = '';
   @Input() subdistrictMessage = '';
   @Input() postcodeMessage = '';
+  @Input() lang: 'th' | 'en' = 'th';
+  @Input() postcodeHidden = false;
+  @Input() subdistrictHidden = false;
+  @Input() provinceLabel = 'จังหวัด';
+  @Input() districtLabel = 'อำเภอ/เขต';
   @Output() provinceChange = new EventEmitter<string>();
   @Output() districtChange = new EventEmitter<string>();
   @Output() subdistrictChange = new EventEmitter<string>();
@@ -60,26 +66,26 @@ export class AddressSelect implements OnInit, OnChanges {
   }
 
   protected provinceNames(): string[] {
-    return this.shown(this.address.provinces().map((item) => item.name.th), this.provinceQuery());
+    return this.shown(this.address.provinces().map((item) => item.name[this.lang]), this.provinceQuery());
   }
 
   protected districtNames(): string[] {
     return this.shown(
-      this.address.districtOptions(this.province).map((item) => item.name.th),
+      this.address.districtOptions(this.province, this.lang).map((item) => item.name[this.lang]),
       this.districtQuery(),
     );
   }
 
   protected subdistrictNames(): string[] {
     return this.shown(
-      this.address.subdistrictOptions(this.province, this.district).map((item) => item.name.th),
+      this.address.subdistrictOptions(this.province, this.district, this.lang).map((item) => item.name[this.lang]),
       this.subdistrictQuery(),
     );
   }
 
   protected postcodeNames(): string[] {
     const zips = this.address
-      .subdistrictOptions(this.province, this.district)
+      .subdistrictOptions(this.province, this.district, this.lang)
       .map((item) => String(item.zip_code));
     return this.shown([...new Set(zips)], this.postcodeQuery());
   }
@@ -176,7 +182,7 @@ export class AddressSelect implements OnInit, OnChanges {
   private chooseSubdistrict(value: string): void {
     if (value === this.subdistrict) return;
     this.subdistrictChange.emit(value);
-    const match = this.address.subdistrictOptions(this.province, this.district).find((item) => item.name.th === value);
+    const match = this.address.subdistrictOptions(this.province, this.district, this.lang).find((item) => item.name[this.lang] === value);
     this.postcodeChange.emit(match ? String(match.zip_code) : '');
   }
 
@@ -184,10 +190,10 @@ export class AddressSelect implements OnInit, OnChanges {
     if (value === this.postcode && this.subdistrict) return;
     this.postcodeChange.emit(value);
     const matches = this.address
-      .subdistrictOptions(this.province, this.district)
+      .subdistrictOptions(this.province, this.district, this.lang)
       .filter((item) => String(item.zip_code) === value);
-    if (matches.length === 1) this.subdistrictChange.emit(matches[0].name.th);
-    else if (!matches.some((item) => item.name.th === this.subdistrict)) this.subdistrictChange.emit('');
+    if (matches.length === 1) this.subdistrictChange.emit(matches[0].name[this.lang]);
+    else if (!matches.some((item) => item.name[this.lang] === this.subdistrict)) this.subdistrictChange.emit('');
   }
 
   private sync(field: Field, value: string): void {
@@ -229,10 +235,10 @@ export class AddressSelect implements OnInit, OnChanges {
   }
 
   private isProvince(value: string): boolean {
-    return this.address.provinces().some((item) => item.name.th === value);
+    return this.address.provinces().some((item) => item.name[this.lang] === value);
   }
 
   private isDistrict(value: string): boolean {
-    return this.address.districtOptions(this.province).some((item) => item.name.th === value);
+    return this.address.districtOptions(this.province, this.lang).some((item) => item.name[this.lang] === value);
   }
 }

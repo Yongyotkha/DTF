@@ -9,8 +9,11 @@ const reviewUntilKey = 'dft-por1-review-until';
 const approvalUntilKey = 'dft-por1-approval-until';
 const approvedByKey = 'dft-por1-approved-by';
 const consultKey = 'dft-por1-consult';
+const consultJobKey = 'dft-por1-consult-jobs';
+const filingGateKey = 'dft-por1-filing-gate';
 
-export type ConsultRequest = { topic: string; detail: string; when: string };
+export type ConsultWay = 'phone' | 'online' | 'onsite';
+export type ConsultRequest = { topic: string; detail: string; when: string; channel?: ConsultWay; by?: string; at?: string };
 export type ConsultNote = {
   from: 'applicant' | 'officer';
   text: string;
@@ -25,6 +28,9 @@ const rosterKey = 'dft-por1-assignees';
 const etrKey = 'dft-por1-etr';
 const linksKey = 'dft-por1-links';
 const docKey = 'dft-por1-doc-notice';
+const noteKey = 'dft-por1-notes';
+const noteReadKey = 'dft-por1-note-reads';
+const laterPhaseKey = 'dft-por1-later-phase';
 const workDraftKey = 'dft-por1-work-drafts';
 const madeDocKey = 'dft-por1-made-docs';
 
@@ -117,7 +123,7 @@ export type ConsultPlan = {
 };
 
 /** ระยะรอผลตรวจสอบหลังยื่นแต่ละครั้ง */
-export const reviewWaitMs = 60_000;
+export const reviewWaitMs = 10_000;
 
 export type RoundState = 'review' | 'revision';
 export type RoundFinding = { place: string; title: string; detail: string; action: 'เพิ่มเอกสาร' | 'ปรับข้อมูล' };
@@ -188,9 +194,48 @@ export function acceptedAssignees(value: WorkAssignment): string[] {
   return [...new Set(names)];
 }
 
+export type FilingGate = { state: 'pending' | 'rejected'; at: string; owners: string[]; by?: string; reason?: string };
+
+export function readFilingGate(): FilingGate | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(filingGateKey) || 'null') as FilingGate | null;
+    if (!value || (value.state !== 'pending' && value.state !== 'rejected') || !Array.isArray(value.owners)) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+export function writeFilingGate(gate: FilingGate | null): void {
+  if (!gate) sessionStorage.removeItem(filingGateKey);
+  else sessionStorage.setItem(filingGateKey, JSON.stringify(gate));
+}
+
+/** เจ้าหน้าที่ที่ได้รับมอบหมายในคำขอปรึกษา หรือหัวหน้ากลุ่มถ้ากลุ่มนั้นทำงานเอง */
+export function consultFilingOwners(): string[] {
+  let jobs: { group?: string; officers?: { name?: string }[] }[] = [];
+  try {
+    const value = JSON.parse(sessionStorage.getItem(consultJobKey) || '[]') as { group?: string; officers?: { name?: string }[] }[];
+    jobs = Array.isArray(value) ? value : [];
+  } catch {
+    jobs = [];
+  }
+  const names: string[] = [];
+  for (const job of jobs) {
+    const officers = (job.officers ?? []).map((officer) => officer.name || '').filter((name) => !!name);
+    if (officers.length) names.push(...officers);
+    else if (job.group) {
+      const head = groupHead(job.group);
+      if (head) names.push(head);
+    }
+  }
+  return [...new Set(names)];
+}
+
 export function caseStatusLabel(status: CaseStatus): string {
   if (status === 'review') return 'อยู่ระหว่างตรวจสอบ';
   if (status === 'revision') return 'กรุณาแก้ไขข้อมูล';
+  if (status === 'consult' && readFilingGate()?.state === 'rejected') return 'ยังไม่ผ่าน';
   if (status === 'consult' && !readConsultAssigned()) {
     const step = readConsultStep();
     if (step === 'receive' || step === 'forward') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
@@ -198,7 +243,7 @@ export function caseStatusLabel(status: CaseStatus): string {
     return 'รอผู้อำนวยการมอบหมายกลุ่ม';
   }
   if (status === 'consult') return 'รอนัดพบเจ้าหน้าที่';
-  if (status === 'approval') return 'รอผู้รับมอบหมายอนุมัติ';
+  if (status === 'approval') return readFilingGate()?.state === 'pending' ? 'ส่งมาขออนุมัติ' : 'รอผู้รับมอบหมายอนุมัติ';
   if (status === 'official') return 'ยื่นแบบ';
   if (status === 'cancelled') return 'ยกเลิก';
   return 'ร่าง';
@@ -569,6 +614,77 @@ export type DocNotice = {
 
 export type InquiryPayFile = { name: string; title: string; sentOn: string };
 
+export type InquiryQuestionId = 'importer' | 'domestic' | 'exporter';
+
+export type InquiryLoopKind = 'form' | 'extend-ask' | 'extend-reply' | 'answer' | 'revise' | 'revised';
+
+/** เอกสารหนึ่งฉบับในวงรอบแบบสอบถาม สร้างซ้ำได้จนกว่าจะผ่าน */
+export type InquiryLoopDoc = {
+  kind: InquiryLoopKind;
+  at: string;
+  docId: string;
+  round: number;
+};
+
+/** แบบสอบถามหลังเปิดไต่สวน: ผู้นำเข้า อุตสาหกรรมภายใน ผู้ส่งออก */
+export type InquiryQuestion = {
+  id: InquiryQuestionId;
+  sent: boolean;
+  revise: boolean;
+  received: boolean;
+  passed: boolean;
+  formDocId: string;
+  answerDocId: string;
+  reviseDocId: string;
+  papers: InquiryLoopDoc[];
+};
+
+export type InquiryIssued = { party: string; name: string; title: string; sentOn: string; docId: string };
+
+export function defaultInquiryQuestions(): InquiryQuestion[] {
+  return [
+    { id: 'importer', sent: false, revise: false, received: false, passed: false, formDocId: '', answerDocId: '', reviseDocId: '', papers: [] },
+    { id: 'domestic', sent: false, revise: false, received: false, passed: false, formDocId: '', answerDocId: '', reviseDocId: '', papers: [] },
+    { id: 'exporter', sent: false, revise: false, received: false, passed: false, formDocId: '', answerDocId: '', reviseDocId: '', papers: [] },
+  ];
+}
+
+function readInquiryQuestions(value: unknown): InquiryQuestion[] {
+  const saved = Array.isArray(value) ? value : [];
+  return defaultInquiryQuestions().map((item) => {
+    const found = saved.find((row) => row && typeof row === 'object' && (row as { id?: string }).id === item.id) as Partial<InquiryQuestion> | undefined;
+    if (!found) return { ...item };
+    const text = (value: unknown) => typeof value === 'string' ? value : '';
+    const kinds = new Set(['form', 'extend-ask', 'extend-reply', 'answer', 'revise', 'revised']);
+    const papers = Array.isArray(found.papers)
+      ? found.papers.flatMap((paper) => {
+          if (!paper || typeof paper !== 'object') return [];
+          const row = paper as Partial<InquiryLoopDoc>;
+          if (typeof row.kind !== 'string' || !kinds.has(row.kind) || typeof row.docId !== 'string' || !row.docId) return [];
+          return [{ kind: row.kind as InquiryLoopKind, at: text(row.at), docId: row.docId, round: typeof row.round === 'number' ? row.round : 1 }];
+        })
+      : [];
+    const formDocId = text(found.formDocId);
+    const answerDocId = text(found.answerDocId);
+    const reviseDocId = text(found.reviseDocId);
+    if (!papers.length && formDocId) papers.push({ kind: 'form', at: '', docId: formDocId, round: 1 });
+    if (answerDocId && !papers.some((paper) => paper.docId === answerDocId)) papers.push({ kind: 'answer', at: '', docId: answerDocId, round: 1 });
+    if (reviseDocId && !papers.some((paper) => paper.docId === reviseDocId)) papers.push({ kind: 'revise', at: '', docId: reviseDocId, round: 1 });
+    const passed = found.passed === true || (found.received === true && papers.some((paper) => paper.kind === 'answer' || paper.kind === 'revised'));
+    return {
+      id: item.id,
+      sent: papers.some((paper) => paper.kind === 'form') || found.sent === true,
+      revise: papers.some((paper) => paper.kind === 'revise') && !passed,
+      received: passed,
+      passed,
+      formDocId: papers.filter((paper) => paper.kind === 'form').at(-1)?.docId || formDocId,
+      answerDocId: papers.filter((paper) => paper.kind === 'answer' || paper.kind === 'revised').at(-1)?.docId || answerDocId,
+      reviseDocId: papers.filter((paper) => paper.kind === 'revise').at(-1)?.docId || reviseDocId,
+      papers,
+    };
+  });
+}
+
 /** เปิดไต่สวนมาตรา 39 หลังคณะกรรมการรับคำขอฉบับสมบูรณ์ */
 export type InquiryRecord = {
   agendaAt: string;
@@ -589,6 +705,14 @@ export type InquiryRecord = {
   agendaFiles: { name: string; title: string; sentOn: string; docId: string }[];
   returned: boolean;
   sentBy: string;
+  noticeOn: string;
+  noticeSent: boolean;
+  hearing: '' | 'hold' | 'skip';
+  hearingOn: string;
+  hearingPlace: string;
+  hearingDocId: string;
+  noticeFiles: InquiryIssued[];
+  questions: InquiryQuestion[];
 };
 
 /** ผลการพิจารณาของคณะกรรมการ หลังคำขอครบถ้วนถูกต้อง */
@@ -662,6 +786,111 @@ export function readDocNotice(): DocNotice | null {
   } catch {
     return null;
   }
+}
+
+export type CaseNoteFile = { name: string; title: string };
+
+/** บันทึกข้อความในเคส เห็นได้เฉพาะผู้เขียน หรือทุกคนที่เปิดเคสนี้ */
+export type CaseNote = {
+  id: string;
+  at: string;
+  authorId: string;
+  author: string;
+  scope: 'self' | 'case';
+  text: string;
+  files: CaseNoteFile[];
+};
+
+export function readCaseNotes(): CaseNote[] {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(noteKey) || '[]') as CaseNote[];
+    if (!Array.isArray(value)) return [];
+    return value.flatMap((item) => {
+      if (!item || typeof item.id !== 'string' || typeof item.text !== 'string' || !item.text.trim()) return [];
+      const scope = item.scope === 'case' ? 'case' : 'self';
+      return [{
+        id: item.id,
+        at: typeof item.at === 'string' ? item.at : '',
+        authorId: typeof item.authorId === 'string' ? item.authorId : '',
+        author: typeof item.author === 'string' && item.author ? item.author : 'เจ้าหน้าที่',
+        scope,
+        text: item.text.trim(),
+        files: Array.isArray(item.files)
+          ? item.files.flatMap((file) => {
+              if (!file || typeof file.name !== 'string' || !file.name) return [];
+              return [{ name: file.name, title: typeof file.title === 'string' && file.title ? file.title : file.name }];
+            })
+          : [],
+      }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function writeCaseNotes(rows: CaseNote[]): void {
+  if (!rows.length) sessionStorage.removeItem(noteKey);
+  else sessionStorage.setItem(noteKey, JSON.stringify(rows));
+}
+
+export function readNoteReads(username: string): string[] {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(noteReadKey) || '{}') as Record<string, unknown>;
+    const rows = value?.[username];
+    return Array.isArray(rows) ? rows.filter((item) => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export type LaterPhase = {
+  visit: boolean;
+  prelim: boolean;
+  draftFinal: boolean;
+  finalResult: boolean;
+  measures: boolean;
+  marks: Record<string, string>;
+  notes: Record<string, string>;
+};
+
+export function readLaterPhase(): LaterPhase {
+  const empty: LaterPhase = { visit: false, prelim: false, draftFinal: false, finalResult: false, measures: false, marks: {}, notes: {} };
+  try {
+    const value = JSON.parse(sessionStorage.getItem(laterPhaseKey) || 'null') as Partial<LaterPhase> | null;
+    if (!value || typeof value !== 'object') return empty;
+    const marks = value.marks && typeof value.marks === 'object' ? value.marks : {};
+    const notes = value.notes && typeof value.notes === 'object' ? value.notes : {};
+    const textMap = (raw: object) => Object.fromEntries(Object.entries(raw).filter((entry) => typeof entry[0] === 'string' && typeof entry[1] === 'string'));
+    return {
+      visit: value.visit === true,
+      prelim: value.prelim === true,
+      draftFinal: value.draftFinal === true,
+      finalResult: value.finalResult === true,
+      measures: value.measures === true,
+      marks: textMap(marks),
+      notes: textMap(notes),
+    };
+  } catch {
+    return empty;
+  }
+}
+
+export function writeLaterPhase(phase: LaterPhase): void {
+  sessionStorage.setItem(laterPhaseKey, JSON.stringify(phase));
+}
+
+export function writeNoteReads(username: string, ids: string[]): void {
+  if (!username) return;
+  const current = (() => {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(noteReadKey) || '{}') as Record<string, string[]>;
+      return value && typeof value === 'object' ? value : {};
+    } catch {
+      return {};
+    }
+  })();
+  current[username] = ids;
+  sessionStorage.setItem(noteReadKey, JSON.stringify(current));
 }
 
 export function writeDocNotice(notice: DocNotice | null): void {
@@ -769,6 +998,25 @@ function readInquiry(value: InquiryRecord | null | undefined): InquiryRecord | n
       : [],
     returned: value.returned === true || (decide === 'return' && typeof value.closeNote === 'string' && !!value.closeNote.trim() && typeof value.sentBy === 'string' && !!value.sentBy),
     sentBy: typeof value.sentBy === 'string' ? value.sentBy : '',
+    noticeOn: typeof value.noticeOn === 'string' ? value.noticeOn : '',
+    noticeSent: value.noticeSent === true,
+    hearing: value.hearing === 'hold' || value.hearing === 'skip' ? value.hearing : '',
+    hearingOn: typeof value.hearingOn === 'string' ? value.hearingOn : '',
+    hearingPlace: typeof value.hearingPlace === 'string' ? value.hearingPlace : '',
+    hearingDocId: typeof value.hearingDocId === 'string' ? value.hearingDocId : '',
+    noticeFiles: Array.isArray(value.noticeFiles)
+      ? value.noticeFiles.flatMap((file) => {
+          if (!file || typeof file.party !== 'string' || !file.party || typeof file.docId !== 'string') return [];
+          return [{
+            party: file.party,
+            name: typeof file.name === 'string' && file.name ? file.name : file.party,
+            title: typeof file.title === 'string' && file.title ? file.title : file.party,
+            sentOn: typeof file.sentOn === 'string' ? file.sentOn : '',
+            docId: file.docId,
+          }];
+        })
+      : [],
+    questions: readInquiryQuestions(value.questions),
   };
 }
 
@@ -862,6 +1110,8 @@ export function startFilingCase(): void {
 }
 
 export function caseStatusTone(status: CaseStatus): StatusTone {
+  if (status === 'consult' && readFilingGate()?.state === 'rejected') return 'danger';
+  if (status === 'approval' && readFilingGate()?.state === 'pending') return 'warning';
   if (status === 'review' || status === 'consult' || status === 'approval') return 'info';
   if (status === 'revision') return 'warning';
   if (status === 'official') return 'success';

@@ -19,7 +19,7 @@ function readSidebar(): 'expanded' | 'collapsed' | null {
 
 @Injectable({ providedIn: 'root' })
 export class SidebarState {
-  readonly preference = signal<'expanded' | 'collapsed' | null>(readSidebar());
+  readonly preference = signal<'expanded' | 'collapsed' | null>(readSidebar() ?? 'collapsed');
   readonly narrow = signal(typeof matchMedia === 'function' && matchMedia(narrowQuery).matches);
   readonly drawer = signal(false);
   readonly mounted = signal(false);
@@ -50,7 +50,7 @@ export class SidebarState {
 type NavMenu = { title: string; items: string[] };
 
 const applicantMenus: NavMenu[] = [
-  { title: 'คำขอ', items: ['ยื่นคำขอ', 'รายการยื่นคำขอ'] },
+  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
   { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่'] },
 ];
 
@@ -75,6 +75,7 @@ const headMenus: NavMenu[] = [
     id: 'sidebar',
     role: 'navigation',
     '[class.side-nav--collapsed]': 'collapsed()',
+    '[class.side-nav--icons]': 'layoutCompact()',
     '[class.side-nav--open]': 'drawerOpen()',
     '[class.side-nav--quiet]': 'quiet()',
     'aria-label': 'เมนูหลัก',
@@ -89,13 +90,17 @@ export class SideNav implements OnInit, OnDestroy {
   protected menuList(): NavMenu[] {
     const role = this.accounts.role;
     if (role === 'officer') return [];
+    if (role === 'interest') return applicantMenus;
     if (role === 'head') return headMenus;
     if (role === 'director') return directorMenus;
-    if (role === 'staff' || this.kind === 'staff') return intakeMenus;
+    if (role === 'bureau' || role === 'committee' || role === 'external' || role === 'staff' || this.kind === 'staff') return intakeMenus;
     return applicantMenus;
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
   private readonly submenu = signal<string | null>(null);
+  protected readonly layoutCompact = signal(false);
+  private compactTimer = 0;
+  private compactReady = false;
 
   constructor(
     private readonly state: SidebarState,
@@ -103,7 +108,23 @@ export class SideNav implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly accounts: Accounts,
     private readonly host: ElementRef<HTMLElement>,
-  ) {}
+  ) {
+    effect(() => {
+      const collapsed = this.state.collapsed();
+      window.clearTimeout(this.compactTimer);
+      if (!this.compactReady) {
+        this.compactReady = true;
+        this.layoutCompact.set(collapsed);
+        return;
+      }
+      const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!collapsed || reduce) {
+        this.layoutCompact.set(collapsed);
+        return;
+      }
+      this.compactTimer = window.setTimeout(() => this.layoutCompact.set(true), 180);
+    });
+  }
 
   protected readonly version = '0.1.0';
 
@@ -122,6 +143,7 @@ export class SideNav implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.clearTimeout(this.compactTimer);
     this.state.mounted.set(false);
     this.state.drawer.set(false);
   }
@@ -180,7 +202,14 @@ export class SideNav implements OnInit, OnDestroy {
 
   protected pick(label: string): void {
     const role = this.accounts.role;
-    const internal = role === 'staff' || role === 'director' || role === 'head' || role === 'officer';
+    const internal = role === 'staff' || role === 'director' || role === 'head' || role === 'officer' || role === 'bureau' || role === 'committee' || role === 'external';
+    if (role === 'interest' && (label === 'ยื่นคำขอ' || label === 'รายการยื่นคำขอ')) {
+      void this.router.navigateByUrl('/interest/filing');
+      this.chosen.emit(label);
+      this.submenu.set(null);
+      if (this.state.narrow()) this.closeDrawer(false);
+      return;
+    }
     if (label === 'ยื่นคำขอ' && !internal) void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
     if (label === 'รายการยื่นคำขอ') void this.router.navigate(internal ? ['/cases'] : ['/requests']);
     if (label === 'ยื่นคำร้องขอพบเจ้าหน้าที่' || label === 'รายการยื่นคำร้องขอพบเจ้าหน้าที่') {

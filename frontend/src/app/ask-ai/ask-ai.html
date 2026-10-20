@@ -1,10 +1,10 @@
 @if (shown()) {
   @if (chat.mode() !== 'closed') {
-    <section class="ask-panel" [class.ask-panel--floating]="chat.mode() === 'floating'" [class.ask-panel--expanded]="chat.mode() === 'expanded'" [class.ask-panel--shot]="chat.capturing()" aria-label="แชทถาม AI">
+    <section class="ask-panel" [class.ask-panel--floating]="chat.mode() === 'floating'" [class.ask-panel--expanded]="chat.mode() === 'expanded'" [class.ask-panel--shot]="chat.capturing()" [class.ask-panel--movable]="movable()" [class.ask-panel--dragged]="movable() && place()" [class.ask-panel--dragging]="dragging()" [style.left.px]="movable() ? place()?.x : null" [style.top.px]="movable() ? place()?.y : null" aria-label="แชทถาม AI">
       @if (resizable()) {
         <button type="button" class="ask-panel__resize" aria-label="ปรับความกว้างแผงผู้ช่วย" [attr.aria-valuemin]="320" [attr.aria-valuemax]="560" [attr.aria-valuenow]="workspace.splitWidth()" (pointerdown)="resizeStart($event)" (keydown)="resizeKey($event)"></button>
       }
-      <header>
+      <header (pointerdown)="dragStart($event)">
         <div class="ask-panel__who">
           <img src="assets/icons/chat-avatar.svg" width="40" height="40" alt="" />
           <span>
@@ -18,14 +18,6 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
             </button>
           }
-          @if (chat.mode() === 'floating') {
-            <button type="button" aria-label="ขยายเป็นแผงขวา" (click)="grow()">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9V5h4M15 5h4v4M5 15v4h4M15 19h4v-4" /></svg>
-            </button>
-          }
-          <button type="button" aria-label="เปิดหน้าทำงาน" (click)="openWorkspace()">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9h6v6H9z" /></svg>
-          </button>
           <button type="button" aria-label="ปิดแชท" (click)="dismiss()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" /></svg>
           </button>
@@ -35,7 +27,7 @@
     </section>
   }
   @if (chat.mode() === 'closed') {
-    <button type="button" class="ask-launcher" aria-expanded="false" aria-label="สอบถาม AI" (click)="chat.show()">
+    <button type="button" class="ask-launcher" [class.ask-launcher--placed]="launcherPlace()" [class.ask-launcher--dragging]="launcherDragging()" [style.left.px]="launcherPlace()?.x" [style.top.px]="launcherPlace()?.y" aria-expanded="false" aria-label="สอบถาม AI" (pointerdown)="launcherDrag($event)" (click)="openChat($event)">
       <img src="assets/icons/chat-avatar.svg" width="36" height="36" alt="" />
       <span>แชทถาม AI<small>DFT Assistant</small></span>
     </button>

@@ -21,10 +21,13 @@ export class MenuGroup {
 
   constructor(private readonly host: ElementRef<HTMLElement>) {}
 
-  protected get icon(): 'request' | 'investigate' | 'petition' | '' {
+  protected get icon(): 'request' | 'investigate' | 'petition' | 'tasks' | 'archive' | 'settings' | '' {
     if (this.title === 'คำขอ') return 'request';
     if (this.title === 'กระบวนการไต่สวน') return 'investigate';
     if (this.title === 'คำร้อง') return 'petition';
+    if (this.title === 'ระบบ Task Management') return 'tasks';
+    if (this.title === 'จัดเก็บเอกสารอิเล็กทรอนิกส์') return 'archive';
+    if (this.title === 'ตั้งค่าระบบ') return 'settings';
     return '';
   }
 

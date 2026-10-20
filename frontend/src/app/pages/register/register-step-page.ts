@@ -10,7 +10,7 @@ import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 import { EmailField } from '../../fields/email-field';
 import { FileField } from '../../fields/file-field';
-import { emailOk, fieldMessage, fileOk, passwordOk, personNameOk, phoneOk, prefixOk, textOk, thaiDateOk, thaiIdOk, usernameOk } from '../../fields/field-rules';
+import { emailOk, englishPrefixes as englishPrefixOptions, fieldMessage, fileOk, latinNameOk, passwordOk, personNameOk, phoneOk, prefixOk, textOk, thaiDateOk, thaiIdOk, usernameOk } from '../../fields/field-rules';
 import { IdNumberField } from '../../fields/id-number-field';
 import { PhoneField } from '../../fields/phone-field';
 import { PrefixField } from '../../fields/prefix-field';
@@ -50,10 +50,12 @@ const titles: Record<Kind, string> = {
 const details: Record<Kind, Field[]> = {
   corporate: [
     { key: 'country', label: 'ประเทศ', required: true, placeholder: 'ประเทศไทย' },
+    { key: 'taxId', label: 'เลขประจำตัวผู้เสียภาษี', required: true, placeholder: '0105538041238' },
     { key: 'regno', label: 'เลขทะเบียนนิติบุคคล', required: true, placeholder: '0105538041238' },
-    { key: 'name', label: 'ชื่อนิติบุคคล', required: true, placeholder: 'บริษัท ดาต้า มายนิ่ง จำกัด' },
+    { key: 'registered', label: 'วันที่จดทะเบียนนิติบุคคล', kind: 'date', required: true, placeholder: '30/04/2538' },
+    { key: 'name', label: 'ชื่อนิติบุคคล (ภาษาไทย)', required: true, placeholder: 'บริษัท ดาต้า มายนิ่ง จำกัด' },
+    { key: 'nameEn', label: 'ชื่อนิติบุคคล (ภาษาอังกฤษ)', required: true, placeholder: 'Data Mining Co., Ltd.' },
     { key: 'cert', label: 'หนังสือรับรองนิติบุคคล', required: true },
-    { key: 'registered', label: 'วันที่จดทะเบียน', kind: 'date', required: true, placeholder: '30/04/2538' },
     { key: 'phone', label: 'หมายเลขโทรศัพท์', required: true, placeholder: '02-348-8700' },
     { key: 'email', label: 'อีเมล', required: true, placeholder: 'support@datamining.co.th' },
     { key: 'address', label: 'ที่อยู่', required: true, placeholder: 'เลขที่ 102 ถนน ณ ระนอง' },
@@ -61,22 +63,46 @@ const details: Record<Kind, Field[]> = {
     { key: 'district', label: 'อำเภอ/เขต', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
     { key: 'subdistrict', label: 'ตำบล/แขวง', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
     { key: 'postcode', label: 'รหัสไปรษณีย์', required: true, placeholder: '10110' },
+    { key: 'addressEn', label: 'ที่อยู่ (ภาษาอังกฤษ)', required: true, placeholder: '102 Naradhiwas Rajanagarindra Road' },
+    { key: 'provinceEn', label: 'จังหวัด (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Bangkok' },
+    { key: 'districtEn', label: 'อำเภอ/เขต (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
+    { key: 'subdistrictEn', label: 'ตำบล/แขวง (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
+    { key: 'postcodeEn', label: 'รหัสไปรษณีย์ (ภาษาอังกฤษ)', required: true, placeholder: '10110' },
+    { key: 'addressCert', label: 'ที่อยู่ตามหนังสือรับรอง', required: true, placeholder: 'เลขที่ 102 ถนน ณ ระนอง' },
+    { key: 'provinceCert', label: 'จังหวัดตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'กรุงเทพมหานคร' },
+    { key: 'districtCert', label: 'อำเภอ/เขตตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
+    { key: 'subdistrictCert', label: 'ตำบล/แขวงตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
+    { key: 'postcodeCert', label: 'รหัสไปรษณีย์ตามหนังสือรับรอง', required: true, placeholder: '10110' },
     { key: 'consent', label: 'หนังสือยินยอมให้ใช้ข้อมูล', required: true },
   ],
   individual: [
     { key: 'identity', label: 'ยืนยันตัวตน', required: true, placeholder: 'บัตรประจำตัวประชาชน' },
     { key: 'prefix', label: 'คำนำหน้า', kind: 'dropdown', required: true, placeholder: 'เลือก' },
-    { key: 'name', label: 'ชื่อ', required: true, placeholder: 'ระบุ' },
-    { key: 'middle', label: 'ชื่อกลาง', placeholder: 'ระบุ' },
-    { key: 'surname', label: 'นามสกุล', required: true, placeholder: 'ระบุ' },
-    { key: 'birth', label: 'วัน/เดือน/ปี เกิด', kind: 'date', required: true, placeholder: '22/09/2569' },
-    { key: 'phone', label: 'หมายเลขโทรศัพท์', required: true, placeholder: 'ระบุ' },
+    { key: 'name', label: 'ชื่อ (ไทย)', required: true, placeholder: 'ระบุ' },
+    { key: 'surname', label: 'นามสกุล (ไทย)', required: true, placeholder: 'ระบุ' },
+    { key: 'prefixEn', label: 'คำนำหน้า', kind: 'dropdown', required: true, placeholder: 'เลือก' },
+    { key: 'givenEn', label: 'ชื่อ (ภาษาอังกฤษ)', required: true, placeholder: 'ระบุ' },
+    { key: 'surnameEn', label: 'นามสกุล (ภาษาอังกฤษ)', required: true, placeholder: 'ระบุ' },
+    { key: 'cardNo', label: 'หมายเลขบัตร', required: true, placeholder: '1103700123456' },
+    { key: 'nationality', label: 'สัญชาติ', required: true, placeholder: 'ไทย' },
+    { key: 'birth', label: 'วันเดือนปีเกิด', kind: 'date', required: true, placeholder: '22/09/2569' },
+    { key: 'cardIssued', label: 'วันที่ออกบัตร', kind: 'date', required: true, placeholder: '22/09/2569' },
+    { key: 'cardExpiry', label: 'วันที่หมดอายุ', kind: 'date', required: true, placeholder: '22/09/2574' },
+    { key: 'issueProvince', label: 'จังหวัด ที่ออกบัตร', kind: 'dropdown', required: true, placeholder: 'เลือก' },
+    { key: 'issueDistrict', label: 'อำเภอ/เขต ที่ออกบัตร', kind: 'dropdown', required: true, placeholder: 'เลือก' },
+    { key: 'phone', label: 'โทรศัพท์', required: true, placeholder: 'ระบุ' },
+    { key: 'mobile', label: 'โทรศัพท์มือถือ', required: true, placeholder: 'ระบุ' },
     { key: 'email', label: 'อีเมล', required: true, placeholder: 'ระบุ' },
     { key: 'address', label: 'ที่อยู่', required: true, placeholder: 'เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน' },
     { key: 'province', label: 'จังหวัด', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'district', label: 'อำเภอ/เขต', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'subdistrict', label: 'ตำบล/แขวง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'postcode', label: 'รหัสไปรษณีย์', required: true, placeholder: 'รหัสไปรษณีย์' },
+    { key: 'addressEn', label: 'ที่อยู่ (ภาษาอังกฤษ)', required: true, placeholder: 'House No., Building, Soi, Road' },
+    { key: 'provinceEn', label: 'จังหวัด (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Bangkok' },
+    { key: 'districtEn', label: 'อำเภอ/เขต (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
+    { key: 'subdistrictEn', label: 'ตำบล/แขวง (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
+    { key: 'postcodeEn', label: 'รหัสไปรษณีย์ (ภาษาอังกฤษ)', required: true, placeholder: '10110' },
   ],
   association: [
     { key: 'country', label: 'ประเทศ', required: true, placeholder: 'ประเทศไทย' },
@@ -88,19 +114,39 @@ const details: Record<Kind, Field[]> = {
     { key: 'signature', label: 'แนบลายเซ็น' },
     { key: 'phone', label: 'หมายเลขโทรศัพท์', required: true, placeholder: 'ระบุ' },
     { key: 'email', label: 'อีเมล', required: true, placeholder: 'ระบุ' },
+    { key: 'consent', label: 'หนังสือยินยอมให้ใช้ข้อมูล', required: true },
     { key: 'address', label: 'ที่อยู่', required: true, placeholder: 'เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน' },
     { key: 'province', label: 'จังหวัด', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'district', label: 'อำเภอ/เขต', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'subdistrict', label: 'ตำบล/แขวง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'postcode', label: 'รหัสไปรษณีย์', required: true, placeholder: 'รหัสไปรษณีย์' },
-    { key: 'consent', label: 'หนังสือยินยอมให้ใช้ข้อมูล', required: true },
+    { key: 'addressEn', label: 'ที่อยู่ (ภาษาอังกฤษ)', required: true, placeholder: 'House No., Building, Soi, Road' },
+    { key: 'provinceEn', label: 'จังหวัด (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Bangkok' },
+    { key: 'districtEn', label: 'อำเภอ/เขต (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
+    { key: 'subdistrictEn', label: 'ตำบล/แขวง (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
+    { key: 'postcodeEn', label: 'รหัสไปรษณีย์ (ภาษาอังกฤษ)', required: true, placeholder: '10110' },
+    { key: 'addressCert', label: 'ที่อยู่ตามหนังสือรับรอง', required: true, placeholder: 'เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน' },
+    { key: 'provinceCert', label: 'จังหวัดตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
+    { key: 'districtCert', label: 'อำเภอ/เขตตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
+    { key: 'subdistrictCert', label: 'ตำบล/แขวงตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
+    { key: 'postcodeCert', label: 'รหัสไปรษณีย์ตามหนังสือรับรอง', required: true, placeholder: 'รหัสไปรษณีย์' },
   ],
+};
+
+const certFromThai: Record<string, string> = {
+  address: 'addressCert',
+  province: 'provinceCert',
+  district: 'districtCert',
+  subdistrict: 'subdistrictCert',
+  postcode: 'postcodeCert',
 };
 
 const corporateSample: Record<string, string> = {
   country: 'ประเทศไทย',
+  taxId: '0105538041238',
   regno: '0105538041238',
   name: 'บริษัท ดาต้า มายนิ่ง จำกัด',
+  nameEn: 'Data Mining Co., Ltd.',
   cert: 'หนังสือรับรองนิติบุคคล.pdf',
   registered: '30/04/2538',
   phone: '02-348-8700',
@@ -110,6 +156,16 @@ const corporateSample: Record<string, string> = {
   district: 'คลองเตย',
   subdistrict: 'คลองเตย',
   postcode: '10110',
+  addressEn: '102 Naradhiwas Rajanagarindra Road',
+  provinceEn: 'Bangkok',
+  districtEn: 'Khlong Toei',
+  subdistrictEn: 'Khlong Toei',
+  postcodeEn: '10110',
+  addressCert: 'เลขที่ 102 ถนน ณ ระนอง',
+  provinceCert: 'กรุงเทพมหานคร',
+  districtCert: 'คลองเตย',
+  subdistrictCert: 'คลองเตย',
+  postcodeCert: '10110',
   consent: 'หนังสือยินยอมให้ใช้ข้อมูล.pdf',
   authority: 'นายสุรช ล่ำซำ ลงลายมือชื่อและประทับตราสำคัญของบริษัท',
   password: 'Dft@2569',
@@ -132,6 +188,21 @@ const access: Field[] = [
   { key: 'confirm', label: 'ยืนยันรหัสผ่าน', required: true, inputType: 'password', placeholder: '123456' },
 ];
 
+const proxyFields: Field[] = [
+  { key: 'proxyName', label: 'ผู้รับมอบอำนาจ', required: true, placeholder: 'นายสมชาย ใจดี' },
+  { key: 'proxyStart', label: 'วันที่เริ่มต้นกระทำการแทน', kind: 'date', required: true, placeholder: '15/10/2569' },
+  { key: 'proxyPowers', label: 'อำนาจกระทำการแทน', required: true },
+  { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ', required: true },
+  { key: 'proxySign', label: 'ลายเซ็นผู้รับมอบอำนาจ', required: true },
+  { key: 'proxyKind', label: 'ประเภทการมอบอำนาจ', required: true },
+  { key: 'proxySeal', label: 'ประเภทการแสดงตราประทับบริษัทและลายเซ็น', required: true },
+];
+
+const proxyDirectory: Record<string, string> = {
+  '1103700123458': 'นายสมชาย ใจดี',
+  AB1234567: 'นางสาวมาลี ศรีสุข',
+};
+
 @Component({
   selector: 'app-register-step',
   imports: [TopHeader, Steps, Tabs, InputField, DftButton, DataTable, DftModal, RouterLink, AddressSelect, EmailField, PhoneField, IdNumberField, ThaiDateField, FileField, PrefixField, StatusTag],
@@ -139,6 +210,7 @@ const access: Field[] = [
   styleUrl: './register-step-page.css',
 })
 export class RegisterStepPage implements OnInit, OnDestroy {
+  protected readonly englishPrefixes = englishPrefixOptions;
   protected readonly agreement = agreementText;
   protected kind: Kind = 'corporate';
   protected step = 1;
@@ -164,7 +236,18 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   private otpResentTimer?: ReturnType<typeof setTimeout>;
   protected readonly checkingRegno = signal(false);
   protected readonly regnoCheck = signal<'idle' | 'success' | 'error'>('idle');
+  protected readonly checkingProxy = signal(false);
+  protected readonly proxyCheck = signal<'idle' | 'success' | 'error'>('idle');
+  protected readonly proxySample = signal(false);
+  protected readonly proxyPowerOptions = [
+    { key: 'file', label: 'ยื่นคำขอและเอกสารประกอบคำขอ' },
+    { key: 'edit', label: 'เปลี่ยนแปลง/แก้ไขข้อความหรือเอกสารตามคำขอ' },
+    { key: 'contact', label: 'ให้ข้อมูลเพิ่มเติมและติดต่อประสานงานกับเจ้าหน้าที่กองปกป้องและตอบโต้ทางการค้า กรมการค้าต่างประเทศ' },
+    { key: 'full', label: 'ดำเนินการใด ๆ แทนผู้มอบอำนาจตลอดกระบวนการยื่นคำขอและกระบวนการโต้แย้งระหว่างเสร็จสิ้น' },
+    { key: 'other', label: 'อื่น ๆ' },
+  ];
   private regnoTimer?: ReturnType<typeof setTimeout>;
+  private proxyTimer?: ReturnType<typeof setTimeout>;
   private importUrl = '';
   private readonly touched = signal<Readonly<Record<string, boolean>>>({});
   protected failed = false;
@@ -206,6 +289,11 @@ export class RegisterStepPage implements OnInit, OnDestroy {
         Object.assign(this.draft.values, corporateSample);
       }
       if (kind === 'corporate') {
+        for (const key of ['taxId', 'nameEn', 'addressEn', 'provinceEn', 'districtEn', 'subdistrictEn', 'postcodeEn', 'addressCert', 'provinceCert', 'districtCert', 'subdistrictCert', 'postcodeCert']) {
+          if (!this.draft.values[key]) this.draft.values[key] = corporateSample[key];
+        }
+      }
+      if (kind === 'corporate') {
         if (!this.draft.values['password']) this.draft.values['password'] = corporateSample['password'];
         if (!this.draft.values['confirm']) this.draft.values['confirm'] = corporateSample['confirm'];
       }
@@ -216,6 +304,11 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       this.directors.set(kind === 'corporate' ? this.draft.directors.map((row) => ({ ...row })) : []);
       if ((kind === 'corporate' || kind === 'association') && !this.draft.values['country']) {
         this.draft.values['country'] = 'ประเทศไทย';
+      }
+      if ((kind === 'corporate' || kind === 'individual' || kind === 'association') && !this.draft.values['proxy']) this.draft.values['proxy'] = 'no';
+      if ((kind === 'corporate' || kind === 'association') && !this.draft.values['certSame']) {
+        this.draft.values['certSame'] = 'yes';
+        this.copyCertAddress();
       }
       if (kind === 'individual' && !this.draft.values['identity']) {
         this.draft.values['identity'] = 'บัตรประจำตัวประชาชน';
@@ -229,6 +322,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
     this.clearImport();
     clearTimeout(this.regnoTimer);
+    clearTimeout(this.proxyTimer);
     clearInterval(this.otpClock);
     clearTimeout(this.otpResentTimer);
   }
@@ -259,7 +353,14 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   }
 
   protected get fields(): Field[] {
-    if (this.step === 2) return details[this.kind];
+    if (this.step === 2) {
+      const hideCert = (this.kind === 'corporate' || this.kind === 'association') && this.value('certSame') !== 'no';
+      const base = hideCert
+        ? details[this.kind].filter((field) => !Object.values(certFromThai).includes(field.key))
+        : details[this.kind];
+      if ((this.kind === 'corporate' || this.kind === 'individual' || this.kind === 'association') && this.value('proxy') === 'yes') return [...base, ...proxyFields];
+      return base;
+    }
     if (this.step === 3) return access;
     return [];
   }
@@ -338,6 +439,17 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     if (key === 'regno') this.regnoCheck.set('idle');
     this.draft.values[key] = value;
     if (key === 'regno' && this.step >= 3) this.assignUsername();
+    const certKey = certFromThai[key];
+    if (certKey && (this.kind === 'corporate' || this.kind === 'association') && this.value('certSame') !== 'no') this.draft.values[certKey] = value;
+  }
+
+  protected setCertSame(value: 'yes' | 'no'): void {
+    this.setValue('certSame', value);
+    if (value === 'yes') this.copyCertAddress();
+  }
+
+  private copyCertAddress(): void {
+    for (const [thai, cert] of Object.entries(certFromThai)) this.draft.values[cert] = this.value(thai);
   }
 
   protected usernameState(): InputState {
@@ -380,6 +492,84 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     if (this.regnoCheck() === 'success') return 'ตรวจสอบข้อมูลแล้ว';
     if (this.regnoCheck() === 'error') return this.value('regno').trim() ? 'เลขทะเบียนไม่ถูกต้อง' : 'โปรดกรอกข้อมูลให้ครบถ้วน';
     return this.message('regno');
+  }
+
+  protected setProxy(value: 'yes' | 'no'): void {
+    this.setValue('proxy', value);
+  }
+
+  protected grantorName(): string {
+    return [this.value('prefix'), this.value('name'), this.value('surname')].filter((part) => part && part !== 'เลือก').join(' ');
+  }
+
+  protected setProxyQuery(value: string): void {
+    this.proxyCheck.set('idle');
+    this.setValue('proxyQuery', value);
+  }
+
+  protected proxyQueryState(): InputState {
+    if (this.checkingProxy()) return 'loading';
+    if (this.proxyCheck() === 'success') return 'success';
+    if (this.proxyCheck() === 'error') return 'error';
+    return 'default';
+  }
+
+  protected proxyQueryHelper(): string {
+    if (this.checkingProxy()) return 'กำลังค้นหา';
+    if (this.proxyCheck() === 'success') return 'พบข้อมูลผู้รับมอบอำนาจ';
+    if (this.proxyCheck() === 'error') return this.value('proxyQuery').trim() ? 'ไม่พบข้อมูลผู้รับมอบอำนาจ' : 'โปรดกรอกเลขที่ต้องการค้นหา';
+    return '';
+  }
+
+  protected searchProxy(): void {
+    const query = this.value('proxyQuery').trim();
+    this.touch('proxyQuery');
+    if (!query) {
+      this.checkingProxy.set(false);
+      this.proxyCheck.set('error');
+      return;
+    }
+    this.proxyCheck.set('idle');
+    this.checkingProxy.set(true);
+    clearTimeout(this.proxyTimer);
+    this.proxyTimer = setTimeout(() => {
+      const current = this.value('proxyQuery').trim();
+      const found = proxyDirectory[current] ?? proxyDirectory[current.toUpperCase()];
+      this.checkingProxy.set(false);
+      this.proxyCheck.set(found ? 'success' : 'error');
+      if (found) this.setValue('proxyName', found);
+    }, 600);
+  }
+
+  protected proxyPowerOn(key: string): boolean {
+    return this.value('proxyPowers').split('|').includes(key);
+  }
+
+  protected toggleProxyPower(key: string, checked: boolean): void {
+    const current = new Set(this.value('proxyPowers').split('|').filter(Boolean));
+    if (checked) current.add(key);
+    else current.delete(key);
+    this.setValue('proxyPowers', [...current].join('|'));
+    this.touch('proxyPowers');
+  }
+
+  protected showProxySample(): void {
+    this.proxySample.set(true);
+  }
+
+  protected proxySampleText(): string {
+    switch (this.value('proxySeal')) {
+      case 'seal':
+        return 'หนังสือนำส่งจะแสดงตราประทับบริษัท';
+      case 'sign':
+        return 'หนังสือนำส่งจะแสดงลายเซ็นผู้รับมอบอำนาจ';
+      case 'both':
+        return 'หนังสือนำส่งจะแสดงตราประทับบริษัทและลายเซ็นผู้รับมอบอำนาจ';
+      case 'none':
+        return 'ต้องแนบหนังสือนำส่งเองทุกครั้งที่ยื่นคำขอ';
+      default:
+        return 'โปรดเลือกประเภทการแสดงตราประทับและลายเซ็นก่อนดูตัวอย่าง';
+    }
   }
 
   protected checkRegno(): void {
@@ -531,7 +721,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
 
   private fieldOk(key: string): boolean {
     const value = this.value(key).trim();
-    if (key === 'middle' || key === 'signature') return !value || (key === 'middle' ? personNameOk(value) : fileOk(value, false));
+    if (key === 'signature') return !value || fileOk(value, false);
     const field = this.fields.find((item) => item.key === key);
     if (field && !field.required && !value) return true;
     if (!value && key !== 'province' && key !== 'district' && key !== 'subdistrict' && key !== 'postcode') return false;
@@ -540,7 +730,25 @@ export class RegisterStepPage implements OnInit, OnDestroy {
         return emailOk(value);
       case 'phone':
         return phoneOk(value);
+      case 'mobile':
+        return /^0[689]\d{8}$/.test(value.replace(/\D/g, ''));
+      case 'cardNo':
+        return this.value('identity') === 'หนังสือเดินทาง' ? /^[A-Za-z0-9]{5,20}$/.test(value) : thaiIdOk(value);
+      case 'cardIssued':
+        return thaiDateOk(value, 'untilToday');
+      case 'cardExpiry':
+        return thaiDateOk(value, 'any');
+      case 'givenEn':
+      case 'surnameEn':
+        return latinNameOk(value);
+      case 'nationality':
+        return textOk(value, 2);
+      case 'issueProvince':
+        return this.places.provinces().some((item) => item.name.th === value);
+      case 'issueDistrict':
+        return this.places.districtOptions(this.value('issueProvince')).some((item) => item.name.th === value);
       case 'regno':
+      case 'taxId':
         return this.value('country') === 'ต่างประเทศ' ? value.length >= 3 : thaiIdOk(value);
       case 'registered':
         return thaiDateOk(value, 'untilToday');
@@ -549,14 +757,38 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       case 'cert':
       case 'consent':
         return fileOk(value, true);
+      case 'proxyStart':
+        return thaiDateOk(value, 'any');
+      case 'proxyName':
+        return personNameOk(value);
+      case 'proxyPowers':
+        return value.split('|').some((item) => this.proxyPowerOptions.some((option) => option.key === item));
+      case 'proxyDoc':
+        return /\.(pdf|png|jpe?g|docx?)$/i.test(value);
+      case 'proxySign':
+        return /\.(png|jpe?g)$/i.test(value);
+      case 'proxyKind':
+        return value === 'act' || value === 'sub';
+      case 'proxySeal':
+        return value === 'seal' || value === 'sign' || value === 'both' || value === 'none';
       case 'prefix':
         return prefixOk(value);
+      case 'prefixEn':
+        return englishPrefixOptions.includes(value);
       case 'name':
+      case 'nameEn':
       case 'surname':
         return personNameOk(value);
       case 'address':
+      case 'addressEn':
+      case 'addressCert':
       case 'place':
         return textOk(value, 5);
+      case 'provinceEn':
+      case 'districtEn':
+      case 'subdistrictEn':
+      case 'postcodeEn':
+        return this.places.matches(this.value('provinceEn'), this.value('districtEn'), this.value('subdistrictEn'), this.value('postcodeEn'), 'en');
       case 'username':
         return usernameOk(value);
       case 'password':
@@ -568,6 +800,11 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       case 'subdistrict':
       case 'postcode':
         return this.places.matches(this.value('province'), this.value('district'), this.value('subdistrict'), this.value('postcode'));
+      case 'provinceCert':
+      case 'districtCert':
+      case 'subdistrictCert':
+      case 'postcodeCert':
+        return this.places.matches(this.value('provinceCert'), this.value('districtCert'), this.value('subdistrictCert'), this.value('postcodeCert'));
       default:
         return value.length > 0;
     }
@@ -587,7 +824,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     if (this.proceedState === 'disabled') return;
     if (this.fields.some((field) => this.stateOf(field) === 'error')) {
       if (this.step === 3) this.failed = true;
-      queueMicrotask(() => document.querySelector('.field--error, .upload--error, label.error')?.scrollIntoView({ block: 'center' }));
+      queueMicrotask(() => document.querySelector('.field--error, .upload--error, label.error, .choice.error')?.scrollIntoView({ block: 'center' }));
       return;
     }
     if (this.step === 3) this.accounts.save(this.value('username'), this.value('password'), this.kind, this.value('email'));

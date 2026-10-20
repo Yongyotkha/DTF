@@ -31,6 +31,8 @@ export class AskAi {
       const path = this.router.url.split('?')[0];
       this.path.set(path);
       this.chat.setPage(path);
+      this.launcherPlace.set(null);
+      this.launcherDragging.set(false);
     });
     effect(() => {
       const docked = this.shown() && this.chat.mode() === 'expanded' && this.workspace.band() === 'desktop';
@@ -43,13 +45,104 @@ export class AskAi {
     });
   }
 
+  protected readonly place = signal<{ x: number; y: number } | null>(null);
+  protected readonly dragging = signal(false);
+  protected readonly launcherPlace = signal<{ x: number; y: number } | null>(null);
+  protected readonly launcherDragging = signal(false);
+  private launcherMoved = false;
+
   protected resizable(): boolean {
     return this.workspace.band() === 'desktop' && this.chat.mode() === 'expanded';
   }
 
-  protected grow(): void {
-    this.workspace.openSplit();
-    this.chat.expand();
+  protected movable(): boolean {
+    return this.chat.mode() === 'floating' && this.workspace.band() !== 'mobile';
+  }
+
+  protected openChat(event: MouseEvent): void {
+    if (!this.launcherMoved) {
+      this.chat.show();
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    this.launcherMoved = false;
+  }
+
+  protected launcherDrag(event: PointerEvent): void {
+    if (event.button !== 0) return;
+    const button = event.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+    const originX = event.clientX;
+    const originY = event.clientY;
+    const startX = rect.left;
+    const startY = rect.top;
+    const width = rect.width;
+    const height = rect.height;
+    this.launcherMoved = false;
+    button.setPointerCapture(event.pointerId);
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== event.pointerId) return;
+      const dx = ev.clientX - originX;
+      const dy = ev.clientY - originY;
+      if (Math.hypot(dx, dy) <= 4) return;
+      this.launcherMoved = true;
+      this.launcherDragging.set(true);
+      const maxX = Math.max(0, window.innerWidth - width);
+      const maxY = Math.max(0, window.innerHeight - height);
+      this.launcherPlace.set({
+        x: Math.min(maxX, Math.max(0, startX + dx)),
+        y: Math.min(maxY, Math.max(0, startY + dy)),
+      });
+    };
+    const stop = (ev: PointerEvent) => {
+      if (ev.pointerId !== event.pointerId) return;
+      this.launcherDragging.set(false);
+      button.removeEventListener('pointermove', move);
+      button.removeEventListener('pointerup', stop);
+      button.removeEventListener('pointercancel', stop);
+    };
+    button.addEventListener('pointermove', move);
+    button.addEventListener('pointerup', stop);
+    button.addEventListener('pointercancel', stop);
+  }
+
+  protected dragStart(event: PointerEvent): void {
+    if (!this.movable()) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button')) return;
+    const header = event.currentTarget as HTMLElement;
+    const panel = header.closest('.ask-panel') as HTMLElement | null;
+    if (!panel) return;
+    event.preventDefault();
+    header.setPointerCapture(event.pointerId);
+    const rect = panel.getBoundingClientRect();
+    const originX = event.clientX;
+    const originY = event.clientY;
+    const startX = rect.left;
+    const startY = rect.top;
+    const width = rect.width;
+    const height = rect.height;
+    this.dragging.set(true);
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== event.pointerId) return;
+      const maxX = Math.max(0, window.innerWidth - width);
+      const maxY = Math.max(0, window.innerHeight - height);
+      this.place.set({
+        x: Math.min(maxX, Math.max(0, startX + ev.clientX - originX)),
+        y: Math.min(maxY, Math.max(0, startY + ev.clientY - originY)),
+      });
+    };
+    const stop = (ev: PointerEvent) => {
+      if (ev.pointerId !== event.pointerId) return;
+      this.dragging.set(false);
+      header.removeEventListener('pointermove', move);
+      header.removeEventListener('pointerup', stop);
+      header.removeEventListener('pointercancel', stop);
+    };
+    header.addEventListener('pointermove', move);
+    header.addEventListener('pointerup', stop);
+    header.addEventListener('pointercancel', stop);
   }
 
   protected shrink(): void {
@@ -104,13 +197,5 @@ export class AskAi {
     if (this.workspace.band() === 'desktop') return;
     event.preventDefault();
     this.dismiss();
-  }
-
-  protected openWorkspace(): void {
-    const path = this.path();
-    if (!path.startsWith('/ai-workspace')) this.chat.returnPath.set(path || '/requests');
-    this.workspace.leaveSplit();
-    this.chat.mode.set('closed');
-    void this.router.navigate(['/ai-workspace']);
   }
 }

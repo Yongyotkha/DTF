@@ -34,6 +34,7 @@ export class InputField {
   @Input() size: InputSize = 'md';
   @Input() label = 'Label';
   @Input() required = false;
+  @Input() labelled = true;
   @Input() optional = false;
   @Input() value = '';
   @Input() placeholder = '';
@@ -41,9 +42,14 @@ export class InputField {
   @Input() calendar = false;
   @Input() dateLimit: DateLimit = 'any';
   @Input() inputType: 'text' | 'password' | 'email' = 'text';
+  @Input() mark: '' | 'card' | 'lock' = '';
+  @Input() reveal = false;
+  protected readonly passwordVisible = signal(false);
   @Output() valueChange = new EventEmitter<string>();
   @Output() blurred = new EventEmitter<void>();
   @Input() helper = '';
+  @Input() rows = 3;
+  @Input() grow = false;
   @Input() digitsOnly = false;
   @Input() maxLength = 0;
   @Input() counter = '';
@@ -79,6 +85,17 @@ export class InputField {
 
   protected get locked(): boolean {
     return this.state === 'disabled' || this.state === 'readonly' || this.state === 'loading';
+  }
+
+  protected shownType(): 'text' | 'password' | 'email' {
+    if (this.reveal && this.inputType === 'password' && this.passwordVisible()) return 'text';
+    return this.inputType;
+  }
+
+  protected togglePassword(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.passwordVisible.update((open) => !open);
   }
 
   protected changed(event: Event): void {

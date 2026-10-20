@@ -10,7 +10,7 @@ export class MenuItem implements AfterViewInit, OnDestroy {
   @Input() level: 'main' | 'sub' = 'main';
   @Input() state: 'default' | 'active' = 'default';
   @Input() expanded = false;
-  @Input() icon: 'request' | 'investigate' | 'petition' | 'guide' | 'home' | '' = '';
+  @Input() icon: 'request' | 'investigate' | 'petition' | 'guide' | 'home' | 'tasks' | 'archive' | 'settings' | '' = '';
   @Input() chevron = false;
   @Input() compact = false;
   @Input() controls = '';
@@ -29,6 +29,9 @@ export class MenuItem implements AfterViewInit, OnDestroy {
     if (this.icon === 'investigate') return { src: 'assets/icons/menu-investigate.svg', width: 20, height: 20 };
     if (this.icon === 'petition') return { src: 'assets/icons/menu-petition.svg', width: 18, height: 22 };
     if (this.icon === 'guide') return { src: 'assets/icons/menu-guide.svg', width: 22, height: 20 };
+    if (this.icon === 'tasks') return { src: 'assets/icons/menu-task-list.svg', width: 24, height: 24 };
+    if (this.icon === 'archive') return { src: 'assets/icons/menu-folder.svg', width: 24, height: 24 };
+    if (this.icon === 'settings') return { src: 'assets/icons/menu-settings.svg', width: 24, height: 24 };
     return null;
   }
 

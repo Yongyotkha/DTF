@@ -6,22 +6,26 @@ const lastKey = 'dft-last-account';
 const trustKey = 'dft-trusted-device';
 const trustSpan = 30 * 24 * 60 * 60 * 1000;
 
-export type AccountRole = 'corporate' | 'individual' | 'association' | 'staff' | 'director' | 'head' | 'officer';
+export type AccountRole = 'corporate' | 'individual' | 'association' | 'staff' | 'director' | 'head' | 'officer' | 'bureau' | 'committee' | 'interest' | 'external';
 
 type Account = { password: string; role: AccountRole; email?: string; person?: string; personTitle?: string };
 
 export type SavedLogin = { username: string; password: string; email: string };
 
-const roles: AccountRole[] = ['corporate', 'individual', 'association', 'staff', 'director', 'head', 'officer'];
+const roles: AccountRole[] = ['corporate', 'individual', 'association', 'staff', 'director', 'head', 'officer', 'bureau', 'committee', 'interest', 'external'];
 
 export const roleHome: Record<AccountRole, string> = {
-  corporate: '/home',
-  individual: '/home',
-  association: '/home',
+  corporate: '/requests',
+  individual: '/requests',
+  association: '/requests',
   staff: '/staff',
   director: '/director',
   head: '/head',
   officer: '/officer',
+  bureau: '/bureau',
+  committee: '/committee',
+  interest: '/interest',
+  external: '/external',
 };
 
 export type DemoLogin = { username: string; label: string; password: string; email: string; group: string };
@@ -35,7 +39,20 @@ const demoMenu: { username: string; group: string }[] = [
   { username: '1000000000108', group: 'หัวหน้ากลุ่ม' },
   { username: '1000000000109', group: 'หัวหน้ากลุ่ม' },
   { username: '1000000000110', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)' },
+  { username: '1000000000112', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)' },
   { username: '1000000000111', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)' },
+  { username: '1000000000113', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)' },
+  { username: '1000000000114', group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาดอุดหนุน (CVD)' },
+  { username: '1000000000115', group: 'กลุ่มงานมาตรการป้องกัน (SG)' },
+  { username: '1000000000116', group: 'กลุ่มงานมาตรการป้องกัน (SG)' },
+  { username: '1000000000117', group: 'กลุ่มงานมาตรการป้องกัน (SG)' },
+  { username: '1000000000118', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
+  { username: '1000000000119', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
+  { username: '1000000000120', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
+  { username: '1000000000121', group: 'กลุ่ม บท.' },
+  { username: '1000000000122', group: 'คณะกรรมการ ทตอ.' },
+  { username: '1000000000123', group: 'ผู้มีส่วนได้เสีย' },
+  { username: '1000000000124', group: 'หน่วยงานภายนอก' },
 ];
 
 export const roleLabel: Record<AccountRole, string> = {
@@ -46,6 +63,10 @@ export const roleLabel: Record<AccountRole, string> = {
   director: 'ผู้อำนวยการ',
   head: 'หัวหน้ากลุ่ม',
   officer: 'เจ้าหน้าที่ คต.',
+  bureau: 'เจ้าหน้าที่ บท.',
+  committee: 'คณะกรรมการ ทตอ.',
+  interest: 'ผู้มีส่วนได้เสีย',
+  external: 'หน่วยงานภายนอก',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -65,10 +86,24 @@ export class Accounts {
     ['1000000000108', { password: 'Kanokorn@2569', role: 'head', person: 'นางกนกอร ไทยรัก', personTitle: 'กลุ่ม SG' }],
     ['1000000000109', { password: 'Piyaporn@2569', role: 'head', person: 'นางสาวปิยาภรณ์ นิลชู', personTitle: 'กลุ่มวิเคราะห์' }],
     ['1000000000110', { password: 'Jareena@2569', role: 'officer', person: 'นางสาวจรีณา กิจส่งเสริมกุล', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000112', { password: 'Officer@2569', role: 'officer', person: 'นางสาวศศิธร พงษ์พิพัฒน์', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
     ['1000000000111', { password: 'Kuljira@2569', role: 'officer', person: 'นางสาวกุลจิรา ปานทอง', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000113', { password: 'Officer@2569', role: 'officer', person: 'นางสาวมัลลิกา ทองคำ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000114', { password: 'Officer@2569', role: 'officer', person: 'นายอนุชา ศรีเมือง', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000115', { password: 'Officer@2569', role: 'officer', person: 'นางสาวอรทัย บุญส่ง', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000116', { password: 'Officer@2569', role: 'officer', person: 'นางสาวพิมพ์ใจ สุขเจริญ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000117', { password: 'Officer@2569', role: 'officer', person: 'นายธนพล แก้วกล้า', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000118', { password: 'Officer@2569', role: 'officer', person: 'นางสาวสุภาพร แสงอรุณ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000119', { password: 'Officer@2569', role: 'officer', person: 'นางสาวชลธิชา วัฒนกิจ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000120', { password: 'Officer@2569', role: 'officer', person: 'นายภูมิพัฒน์ อินทรสุข', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000121', { password: 'Bureau@2569', role: 'bureau', person: 'นางสาวจิราภรณ์ ศรีสุข', personTitle: 'กลุ่ม บท.' }],
+    ['1000000000122', { password: 'Committee@2569', role: 'committee', person: 'นายประเสริฐ ธรรมรักษ์', personTitle: 'ประธานคณะกรรมการ ทตอ.' }],
+    ['1000000000123', { password: 'Interest@2569', role: 'interest', person: 'บริษัท ไทยสตีล อิมปอร์ต จำกัด', personTitle: 'ผู้มีส่วนได้เสีย' }],
+    ['1000000000124', { password: 'External@2569', role: 'external', person: 'กรมโรงงานอุตสาหกรรม', personTitle: 'หน่วยงานที่เกี่ยวข้อง' }],
   ]);
   private signedIn: AccountRole | '' = '';
   private person = '';
+  private userId = '';
 
   constructor() {
     const saved = sessionStorage.getItem(storageKey);
@@ -81,9 +116,10 @@ export class Accounts {
     }
     const session = sessionStorage.getItem(sessionKey);
     if (!session) return;
-    const current = JSON.parse(session) as { role?: string; person?: string };
+    const current = JSON.parse(session) as { username?: string; role?: string; person?: string };
     if (current.role && roles.includes(current.role as AccountRole)) this.signedIn = current.role as AccountRole;
     this.person = typeof current.person === 'string' ? current.person : '';
+    this.userId = typeof current.username === 'string' ? current.username : '';
   }
 
   save(username: string, password: string, role: AccountRole, email = ''): void {
@@ -140,7 +176,8 @@ export class Accounts {
     if (!account || account.password !== password) return null;
     this.signedIn = account.role;
     this.person = account.person ?? '';
-    sessionStorage.setItem(sessionKey, JSON.stringify({ username: username.trim(), role: account.role, person: this.person }));
+    this.userId = username.trim();
+    sessionStorage.setItem(sessionKey, JSON.stringify({ username: this.userId, role: account.role, person: this.person }));
     return account.role;
   }
 
@@ -156,6 +193,7 @@ export class Accounts {
   signOut(): void {
     this.signedIn = '';
     this.person = '';
+    this.userId = '';
     sessionStorage.removeItem(sessionKey);
   }
 
@@ -167,7 +205,12 @@ export class Accounts {
     return this.person;
   }
 
+  get username(): string {
+    return this.userId;
+  }
+
   get displayName(): string {
+    if (this.userId === '1000000000101') return 'เจ้าหน้าที่กลุ่ม บท';
     if (this.person) return this.person;
     return this.signedIn ? roleLabel[this.signedIn] : roleLabel.corporate;
   }

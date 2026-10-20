@@ -6,7 +6,8 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { assignmentReachesOfficer, groupHead, groupMembers, staffPeople, workGroups } from './staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep } from '../requests/case-status';
+import { archiveCases, findListedCase } from '../requests/request-cases';
+import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
 
 type Bucket = 'in' | 'pending' | 'out' | 'follow' | 'group';
 type WorkKind = 'request' | 'job' | 'track';
@@ -64,6 +65,7 @@ export class StaffHomePage implements OnDestroy {
   protected readonly officerUnit = filingUnit;
   protected readonly applicantName = 'บมจ. สหวิริยาสตีลอินดัสตรี';
   protected awaitingApproval = readCaseStatus() === 'approval';
+  protected filingGate: FilingGate | null = readFilingGate();
   protected awaitingConsult = false;
   protected consultAssigned = false;
   protected consultStep: ConsultStep = 'receive';
@@ -106,10 +108,13 @@ export class StaffHomePage implements OnDestroy {
 
   protected get deskStats(): { id: DeskFilter; label: string; count: number }[] {
     if (this.role === 'officer') {
+      const owned = this.consultOfficerAssignment();
       const consultOpen = readCaseStatus() === 'consult' && !!readConsult();
-      const mine = consultOpen
-        ? (this.officerOwnsConsult() ? 1 : 0)
-        : (assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned) ? 1 : 0);
+      const mine = owned
+        ? 1
+        : consultOpen
+          ? (this.officerOwnsConsult() ? 1 : 0)
+          : (assignmentReachesOfficer(readWorkAssignment(), this.consultAssigned) ? 1 : 0);
       return [
         { id: 'in', label: 'งานรับเข้า', count: mine },
         { id: 'wait', label: 'รอมอบหมาย', count: 0 },
@@ -148,6 +153,74 @@ export class StaffHomePage implements OnDestroy {
 
   protected toggleJob(code: string): void {
     this.openCode = this.openCode === code ? '' : code;
+  }
+
+  protected boardLane = '';
+  protected groupFilter = '';
+  protected boardView: 'board' | 'list' = 'board';
+
+  private taskRows(): TaskCase[] {
+    const text = this.query.trim();
+    const source = this.role === 'officer'
+      ? [...this.officerJobs('in'), ...this.officerJobs('doing')]
+      : this.directorCatalog();
+    const seen = new Set<string>();
+    const rows: TaskCase[] = [];
+    for (const row of source) {
+      const key = row.code + row.title;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (this.groupFilter && row.group !== this.groupFilter) continue;
+      const haystack = `${row.code} ${row.title} ${row.sender} ${row.product} ${row.status} ${row.group}`;
+      if (text && !haystack.includes(text)) continue;
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  protected get taskGroups(): string[] {
+    const source = this.role === 'officer'
+      ? [...this.officerJobs('in'), ...this.officerJobs('doing')]
+      : this.directorCatalog();
+    return [...new Set(source.map((row) => row.group).filter(Boolean))];
+  }
+
+  private laneOf(row: TaskCase): 'in' | 'late' | 'out' | 'active' {
+    if (row.bucket === 'out') return 'out';
+    if (row.bucket === 'pending' || row.bucket === 'follow') return 'late';
+    if (row.bucket === 'doing' || row.bucket === 'group') return 'active';
+    return 'in';
+  }
+
+  protected get summaryStats(): { id: '' | 'in' | 'late' | 'out'; label: string; hint: string; count: number }[] {
+    const rows = this.taskRows();
+    const count = (id: 'in' | 'late' | 'out' | 'active') => rows.filter((row) => this.laneOf(row) === id).length;
+    return [
+      { id: 'in', label: 'งานรับเข้า', hint: 'งานใหม่ที่รอดำเนินการ', count: count('in') },
+      { id: 'late', label: 'งานค้าง', hint: 'ใกล้ครบกำหนด / เกินกำหนด', count: count('late') },
+      { id: 'out', label: 'งานออก', hint: 'งานที่ดำเนินการแล้ว', count: count('out') },
+      { id: '', label: 'งานทั้งหมด', hint: 'ทุกสถานะ', count: rows.length },
+    ];
+  }
+
+  protected pickSummary(id: '' | 'in' | 'late' | 'out'): void {
+    this.boardLane = this.boardLane === id ? '' : id;
+  }
+
+  protected get boardColumns(): { id: string; label: string; rows: TaskCase[] }[] {
+    const rows = this.taskRows();
+    const columns = [
+      { id: 'in', label: 'งานรับเข้า' },
+      { id: 'late', label: 'งานค้าง' },
+      { id: 'out', label: 'งานออก' },
+      { id: 'active', label: 'งานทั้งหมด' },
+    ];
+    return columns
+      .filter((column) => !this.boardLane || this.boardLane === column.id)
+      .map((column) => ({
+        ...column,
+        rows: column.id === 'active' ? rows : rows.filter((row) => this.laneOf(row) === column.id),
+      }));
   }
 
   protected get deskRows(): TaskCase[] {
@@ -189,6 +262,22 @@ export class StaffHomePage implements OnDestroy {
     return readCaseStatus() === 'consult' && !!readConsult() && (this.consultStep === 'receive' || this.consultStep === 'forward');
   }
 
+  private consultOfficerAssignment(): { reply?: string; result?: unknown } | undefined {
+    const me = this.accounts.personName;
+    if (!me) return undefined;
+    try {
+      const jobs = JSON.parse(sessionStorage.getItem('dft-por1-consult-jobs') || '[]') as { officers?: { name?: string; reply?: string; result?: unknown }[] }[];
+      if (!Array.isArray(jobs)) return undefined;
+      for (const job of jobs) {
+        const mine = job.officers?.find((officer) => officer.name === me);
+        if (mine) return mine;
+      }
+    } catch {
+      return undefined;
+    }
+    return undefined;
+  }
+
   private officerOwnsConsult(): boolean {
     if (readCaseStatus() !== 'consult' || !readConsult() || this.consultStep !== 'member' || !this.consultAssigned) return false;
     const me = this.accounts.personName;
@@ -199,6 +288,13 @@ export class StaffHomePage implements OnDestroy {
 
   private officerJobs(filter: DeskFilter): TaskCase[] {
     if (filter !== 'in' && filter !== 'doing') return [];
+    if (filter === 'in' && this.awaitingApproval && this.canApprove) return [{ ...this.liveJob('ส่งมาขออนุมัติ', 'warning'), title: 'ขอคำปรึกษา' }];
+    const owned = this.consultOfficerAssignment();
+    if (owned) {
+      const status = owned.result ? 'รายงานผล' : owned.reply === 'accept' ? 'กำลังดำเนินงาน' : owned.reply === 'return' ? 'ส่งคืน' : 'งานรับใหม่';
+      const tone = owned.result || owned.reply === 'accept' ? 'success' as const : owned.reply === 'return' ? 'danger' as const : 'warning' as const;
+      return [{ ...this.liveJob(status, tone), title: 'ขอคำปรึกษา' }];
+    }
     if (readCaseStatus() === 'consult' && readConsult()) {
       return this.officerOwnsConsult() ? [this.liveJob(assignmentStepLabel(readWorkAssignment()), assignmentStepTone(readWorkAssignment()))] : [];
     }
@@ -284,6 +380,118 @@ export class StaffHomePage implements OnDestroy {
         tone: 'danger',
       },
     );
+    rows.push(
+      {
+        code: 'AC1002',
+        title: 'หลบเลี่ยงมาตรการ',
+        kind: 'request',
+        bucket: 'in',
+        product: 'หลอดหรือท่อทำด้วยเหล็ก จากจีน',
+        sender: 'ผู้ผลิตในประเทศ',
+        group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
+        at: '21/10/2567',
+        status: 'เปิดการไต่สวน',
+        due: '',
+        tone: 'success',
+      },
+      {
+        code: 'AC1001',
+        title: 'หลบเลี่ยงมาตรการ',
+        kind: 'request',
+        bucket: 'out',
+        product: 'เหล็กแผ่นรีดร้อนเจือ จากจีน',
+        sender: 'SSI, G Steel, GJS, SPM',
+        group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
+        at: '29/05/2566',
+        status: 'ประกาศผลชั้นที่สุด',
+        due: '',
+        tone: 'success',
+      },
+      {
+        code: 'SG1006',
+        title: 'มาตรการปกป้อง',
+        kind: 'request',
+        bucket: 'doing',
+        product: 'ฟอยล์อะลูมิเนียม',
+        sender: 'อุตสาหกรรมภายใน',
+        group: 'กลุ่มงานมาตรการป้องกัน (SG)',
+        at: '02/06/2563',
+        status: 'ร่างผลการไต่สวน',
+        due: '',
+        tone: 'warning',
+      },
+      {
+        code: 'SG1003',
+        title: 'ทบทวนมาตรการปกป้อง',
+        kind: 'request',
+        bucket: 'out',
+        product: 'เหล็กแผ่นรีดร้อนเจืออื่น ครั้งที่ 2',
+        sender: 'ผู้ผลิตในประเทศ',
+        group: 'กลุ่มงานมาตรการป้องกัน (SG)',
+        at: '03/07/2561',
+        status: 'ประกาศผลการทบทวน',
+        due: '',
+        tone: 'success',
+      },
+      {
+        code: 'SG1008',
+        title: 'มาตรการปกป้อง',
+        kind: 'request',
+        bucket: 'in',
+        product: 'สินค้าพอลิโพรพิลีน (PP)',
+        sender: 'ผู้ผลิตในประเทศ',
+        group: 'กลุ่มงานมาตรการป้องกัน (SG)',
+        at: '01/03/2568',
+        status: 'ยื่นคำขอ',
+        due: '',
+        tone: 'info',
+      },
+      {
+        code: 'AD1022',
+        title: 'ทบทวนมาตรา 56',
+        kind: 'request',
+        bucket: 'out',
+        product: 'เหล็ก GL จากจีนและเกาหลี',
+        sender: 'WCP',
+        group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
+        at: '24/03/2568',
+        status: 'ประกาศผลการทบทวน',
+        due: '',
+        tone: 'success',
+      },
+      {
+        code: 'AD1019',
+        title: 'ทบทวนมาตรา 57',
+        kind: 'request',
+        bucket: 'out',
+        product: 'ยางใน จากจีน',
+        sender: 'ผู้ผลิตยางในในประเทศ',
+        group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
+        at: '31/05/2567',
+        status: 'ประกาศผลการทบทวน',
+        due: '',
+        tone: 'success',
+      },
+    );
+    const seen = new Set(rows.map((row) => row.code));
+    for (const item of archiveCases) {
+      if (seen.has(item.code)) continue;
+      seen.add(item.code);
+      const done = item.status.includes('ประกาศ') || item.status.includes('ผล');
+      rows.push({
+        code: item.code,
+        title: item.kind,
+        kind: 'request',
+        bucket: done ? 'out' : 'in',
+        product: item.goods,
+        sender: item.applicant || 'ผู้ยื่นคำขอ',
+        group: item.measure.startsWith('SG') ? 'กลุ่มงานมาตรการป้องกัน (SG)' : 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
+        at: item.created,
+        status: item.status,
+        due: '',
+        tone: item.tone,
+      });
+    }
     return rows;
   }
 
@@ -357,6 +565,7 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected approverNames(): string[] {
+    if (this.filingGate?.state === 'pending' && this.filingGate.owners.length) return this.filingGate.owners;
     return acceptedAssignees(readWorkAssignment());
   }
 
@@ -366,12 +575,16 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected jobLabel(row: TaskCase): string {
-    if (row.code === this.filingRef && this.canApprove) return 'อนุมัติการยื่นแบบ';
+    if (row.code === this.filingRef && this.canApprove) return this.filingGate?.state === 'pending' ? 'ตรวจสอบคำขอ' : 'อนุมัติการยื่นแบบ';
     if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') return 'มอบหมายกลุ่ม';
     return 'ดูคำขอ';
   }
 
   protected jobClick(row: TaskCase): void {
+    if (row.code === this.filingRef && this.canApprove && this.filingGate?.state === 'pending') {
+      this.openFiling();
+      return;
+    }
     if (row.code === this.filingRef && this.canApprove) {
       this.approveFiling();
       return;
@@ -381,7 +594,7 @@ export class StaffHomePage implements OnDestroy {
       this.assignOpen = true;
       return;
     }
-    this.openFiling();
+    this.openFiling(row.code !== this.filingRef && findListedCase(row.code) && !findListedCase(row.code)?.draft ? row.code : '');
   }
 
   protected get headsThisGroup(): boolean {
@@ -490,8 +703,10 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected approveFiling(): void {
-    if (readCaseStatus() !== 'approval' || !this.canApprove) return;
+    if (readCaseStatus() !== 'approval' || !this.canApprove || this.filingGate?.state === 'pending') return;
     writeApprovedBy(this.accounts.personName);
+    writeFilingGate(null);
+    this.filingGate = null;
     writeCaseStatus('official');
     this.awaitingApproval = false;
   }
@@ -539,8 +754,9 @@ export class StaffHomePage implements OnDestroy {
     if (group) this.consultGroup = group;
     if (!this.consultMember) this.consultMember = this.consultMembers[0]?.name ?? '';
     this.consultTopic = request?.topic ?? '';
-    this.consultWhen = request?.when ?? '';
+    this.consultWhen = request?.channel === 'phone' ? 'โทรศัพท์' : request?.channel === 'online' ? 'Online' : request?.channel === 'onsite' ? 'OnSite' : (request?.when ?? '');
     this.awaitingApproval = readCaseStatus() === 'approval';
+    this.filingGate = readFilingGate();
     if (!this.awaitingConsult) this.assignOpen = false;
   }
 
@@ -552,8 +768,18 @@ export class StaffHomePage implements OnDestroy {
     void this.router.navigate(['/cases']);
   }
 
-  protected openFiling(): void {
-    void this.router.navigate([this.role === 'director' ? '/director/filing' : '/officer/filing']);
+  protected openFiling(code = ''): void {
+    const filing = ({
+      director: '/director/filing',
+      head: '/head/filing',
+      staff: '/staff/filing',
+      officer: '/officer/filing',
+      bureau: '/bureau/filing',
+      committee: '/committee/filing',
+      interest: '/interest/filing',
+      external: '/external/filing',
+    } as Record<string, string>)[this.role] ?? '/officer/filing';
+    void this.router.navigate([filing], { queryParams: code ? { case: code } : {} });
   }
 
   private assignedConsultJob(group: string): TaskCase {
@@ -577,7 +803,7 @@ export class StaffHomePage implements OnDestroy {
     if (code === this.filingRef) {
       if (this.role === 'staff' && this.consultIntakeOpen) return;
       if (this.role === 'head' && this.consultStep === 'group') return;
-      if (this.role === 'head') void this.router.navigateByUrl('/officer/filing');
+      if (this.role === 'head') void this.router.navigateByUrl('/head/filing');
       return;
     }
     const base = this.role === 'staff' ? '/staff/tasks' : `/${this.role}/tasks`;

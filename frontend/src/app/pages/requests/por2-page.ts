@@ -1,9 +1,16 @@
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { ChangeDetectorRef, Component } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
+import { FilingTabs } from './filing-tabs';
+import { FilledUpload } from './filled-upload';
+import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extract';
 import { SideNav } from '../../menu-bar/side-nav';
-import { StepsMenu, StepsMenuSection } from '../../steps-menu/steps-menu';
+import { StatusTag } from '../../status-tag/status-tag';
+import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
+import { cvdChosen, filingMeasureTitle } from './filing-intent';
+import { findListedCase } from './request-cases';
+import { scrollFormToTop } from './form-scroll';
 
 type DocItem = { key: string; title: string; hint?: string; required?: boolean; excel?: boolean };
 
@@ -77,12 +84,13 @@ function blankApplicant(open = true): Applicant {
 
 @Component({
   selector: 'app-por2-page',
-  imports: [TopHeader, SideNav, DftButton, StepsMenu],
+  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, FilledUpload, FilingTabs],
   templateUrl: './por2-page.html',
-  styleUrl: './por2-page.css',
+  styleUrl: './por1-page.css',
 })
 export class Por2Page {
-  protected measure = '';
+  protected readonly filingTitle = filingMeasureTitle();
+  protected measure = cvdChosen() ? 'subsidy' : '';
   protected role = '';
   protected step = 'มาตรการและประเภทการยื่น';
   protected goods = '';
@@ -105,6 +113,11 @@ export class Por2Page {
   protected roleTitle = '';
   protected signedOn = '';
   protected reviewOpen = false;
+  protected viewing = false;
+  protected returnCase = '';
+  protected caseRef = '';
+  protected uploadOpen = false;
+  protected readOn = false;
   protected readonly behalfLeft = behalfLeft;
   protected readonly behalfRight = behalfRight;
   protected readonly mainDocs = mainDocs;
@@ -150,33 +163,84 @@ export class Por2Page {
     },
   ];
 
-  constructor(private readonly router: Router) {}
-
-  protected syncStep(): void {
-    for (const section of this.menu) {
-      for (const item of section.items) {
-        if (item.state === 'onclick') {
-          this.show(item.label);
-          return;
-        }
-      }
-    }
+  constructor(
+    private readonly view: ChangeDetectorRef,
+    route: ActivatedRoute,
+  ) {
+    const code = route.snapshot.queryParamMap.get('case') ?? '';
+    this.returnCase = /^[A-Za-z0-9]+$/.test(code) ? code : '';
+    this.viewing = route.snapshot.queryParamMap.get('view') === '1' && !!this.returnCase;
+    if (!this.viewing) return;
+    const item = findListedCase(this.returnCase);
+    if (!item) return;
+    this.caseRef = item.ref;
+    this.measure = 'dumping';
+    this.goods = item.goods;
+    this.notice = `ประกาศทบทวนมาตรา 56 ${item.goods}`.slice(0, 200);
+    this.aim = 'rate';
+    this.evidence = [];
+    this.evidenceReady = false;
+    this.applicants = [{ ...blankApplicant(true), filing: 'self', name: item.applicant || '', nation: item.applicant?.includes('ในประเทศ') ? 'ไทย' : '' }];
   }
 
-  protected back(): void {
-    const labels = this.labels();
-    const index = labels.indexOf(this.step);
-    if (index <= 0) {
-      void this.router.navigate(['/requests']);
-      return;
+  protected openFilledUpload(): void {
+    this.uploadOpen = true;
+  }
+  protected readSpots: { contact: string[]; body: string[] } = { contact: ['ข้อมูลและเอกสารประกอบ'], body: ['สินค้า ประกาศ และเหตุที่เปลี่ยนแปลง'] };
+
+  protected applyRead(): void {
+    const host = this as unknown as { applicants?: object[] };
+    if (host.applicants?.length) {
+      fillApplicant(host.applicants[0]);
+      host.applicants = [...host.applicants];
     }
-    this.show(labels[index - 1]);
+    fillKnown(this);
+    const bag = this as unknown as Record<string, unknown>;
+    if (typeof bag['goods'] === 'string' && typeof bag['notice'] !== 'string') bag['goods'] = 'เหล็กแผ่น';
+    if (bag['measure'] === '') bag['measure'] = 'dumping';
+    if (bag['filing'] === '') bag['filing'] = 'self';
+    this.readOn = true;
+    this.view.detectChanges();
   }
 
-  protected next(): void {
+  protected bad(key: string): boolean {
+    if (!this.readOn) return false;
+    const people = (this as unknown as { applicants?: Record<string, string>[] }).applicants;
+    const person = people?.[0];
+    const picked = person && Object.prototype.hasOwnProperty.call(person, key) ? person[key] : (this as unknown as Record<string, unknown>)[key];
+    return valueIsWrong(key, String(picked ?? ''));
+  }
+
+  protected readHint(key: string): string {
+    return this.bad(key) ? wrongHint(key) : '';
+  }
+
+  protected badSection(id: string): boolean {
+    const contact = this.bad('phone') || this.bad('email') || this.bad('agentPhone');
+    const body = this.bad('notice') || this.bad('stopReason') || this.bad('tradeName') || this.bad('goods');
+    if (this.readSpots.contact.includes(id)) return contact;
+    if (this.readSpots.body.includes(id)) return body;
+    return false;
+  }
+
+  protected get sectionIssue(): string {
+    const bag = this as unknown as { section?: string; step?: string };
+    const id = bag.section ?? bag.step ?? '';
+    if (!this.badSection(id)) return '';
+    if (this.readSpots.contact.includes(id)) return 'อ่านเบอร์โทรและอีเมลจากไฟล์ได้ไม่ถูกต้อง';
+    return 'ข้อมูลส่วนนี้ไม่ตรงกับไฟล์ต้นฉบับ';
+  }
+
+
+  protected open(label: string, event?: Event): void {
+    this.show(label);
+    this.view.detectChanges();
+    scrollFormToTop(event);
+  }
+
+  protected filled(label: string): boolean {
     const labels = this.labels();
-    const index = labels.indexOf(this.step);
-    if (index < labels.length - 1) this.show(labels[index + 1]);
+    return labels.indexOf(label) <= labels.indexOf(this.step);
   }
 
   protected addApplicant(): void {

@@ -8,4 +8,5 @@ import { Component, Input } from '@angular/core';
 export class AuthShell {
   @Input() center = false;
   @Input() copyright = false;
+  @Input() look: 'plain' | 'showcase' = 'plain';
 }

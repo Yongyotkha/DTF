@@ -4,106 +4,599 @@
     <app-side-nav open="คำขอ" active="รายการยื่นคำขอ" />
     <main>
       <header class="head">
-        <div>
+        <div class="head__lead">
+          <a
+            class="head__back"
+            [routerLink]="fixesOnly ? ['/requests', code] : '/requests'"
+            [attr.aria-label]="fixesOnly ? 'กลับหน้ารายละเอียด' : 'กลับหน้ารายการ'"
+          >
+            <img src="assets/icons/arrow-left.svg" width="24" height="24" alt="" />
+          </a>
+          <h1>{{ fixesOnly ? 'รายการที่ต้องแก้ไข' : title }}</h1>
           <p class="crumb">
             <a routerLink="/requests">รายการยื่นคำขอ</a>
             <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
-            <span>รายละเอียด</span>
-          </p>
-          <h1>{{ title }}</h1>
-        </div>
-        <button type="button" class="chat" (click)="openChat()">
-          <img src="assets/icons/case-support.svg" width="24" height="24" alt="" />
-          แชทกับเจ้าหน้าที่
-        </button>
-      </header>
-      <div class="workspace">
-        <app-stepper-1 [current]="stepIndex" [steps]="steps" />
-        <section class="sheet">
-          <div class="sections" role="tablist">
-            @for (item of sections; track item) {
-              <button type="button" role="tab" [class.sections__on]="section === item" [attr.aria-selected]="section === item" (click)="section = item">{{ item }}</button>
+            @if (fixesOnly) {
+              <a [routerLink]="['/requests', code]">รายละเอียด</a>
+              <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+              <span class="crumb__on" aria-current="page">รายการที่ต้องแก้ไข</span>
+            } @else {
+              <span class="crumb__on" aria-current="page">รายละเอียด</span>
             }
-          </div>
-          @if (section === 'รายละเอียด') {
-            <h2>รายละเอียดสินค้า</h2>
-            <dl>
-              @for (fact of facts; track fact.label) {
-                <div>
-                  <dt>{{ fact.label }}</dt>
-                  <dd>{{ fact.value }}</dd>
-                </div>
-              }
-            </dl>
-            <h2>เอกสารอ้างอิง</h2>
-            <ul>
-              @for (file of files; track file) {
-                <li>
-                  <span class="file">
-                    <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
-                    {{ file }}
-                    <button type="button" class="download">
-                      <img src="assets/icons/case-download.svg" width="16" height="16" alt="" />
-                      ดาวน์โหลด
-                    </button>
-                  </span>
-                  <button type="button" class="more" aria-label="เปิดเอกสาร">
+          </p>
+        </div>
+      </header>
+      <div class="panel">
+      @if (fixesOnly && !reviewPassed && !reviewWaiting) {
+        <div class="sheet sheet--tight">
+          <article class="result" aria-label="ผลการตรวจสอบคำขอ">
+            <span class="result__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 6.5v8" /><circle cx="12" cy="17.5" r="1.2" fill="currentColor" stroke="none" /></svg>
+            </span>
+            <div>
+              <p class="result__title">ผลการตรวจสอบ : <span>ไม่ผ่าน</span></p>
+              <p>ต้องแก้ไข {{ reviewFixCount }} รายการก่อนยื่นคำขอ</p>
+              <p class="result__dates">วันที่ยื่นครั้งแรก {{ resultFiledOn }} · วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ ({{ reviewAmendMonths }} เดือน) {{ resultAmendUntil }}</p>
+            </div>
+            <div class="result__act">
+              <app-button class="icon-before" type="outline" label="แก้ไขคำขอ" [routerLink]="revisePath" [queryParams]="reviseQuery" (click)="reviseFiling()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+              </app-button>
+            </div>
+          </article>
+          <h2 class="forms__title">รายละเอียด</h2>
+          <section class="fixes" aria-label="รายการที่ต้องแก้ไข">
+            <ol>
+              @for (item of fixItems; track item.title; let i = $index) {
+                <li [class.fixes__open]="openFixTitle === item.title">
+                  <span class="fixes__no">{{ i + 1 }}</span>
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.place }}</small>
+                    @if (openFixTitle === item.title) {
+                      <p>{{ item.detail }}</p>
+                    }
+                  </div>
+                  <button type="button" class="more" [attr.aria-expanded]="openFixTitle === item.title" [attr.aria-label]="openFixTitle === item.title ? 'หุบรายละเอียด' : 'เปิดรายละเอียด'" (click)="toggleFix(item.title)">
                     <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
                   </button>
                 </li>
               }
-            </ul>
-          } @else if (section === 'ผลการตรวจสอบ' || section === 'การไต่สวน' || section === 'ผู้มีส่วนได้เสีย') {
-            <h2>{{ section }}</h2>
-            <p class="status-note">{{ statusNote }}</p>
+            </ol>
+          </section>
+        </div>
+      } @else {
+      <section class="progress">
+        <p>ขั้นตอน {{ stepIndex }} จาก {{ steps.length }} - อยู่ระหว่าง{{ currentLabel }}</p>
+        <ol [style.--step-count]="steps.length">
+          @for (step of steps; track step.number; let i = $index) {
+            <li [class.progress__on]="i + 1 === stepIndex" [class.progress__done]="i + 1 < stepIndex" [class.progress__open]="i + 1 <= stepIndex" (click)="openStep(i + 1)">
+              <span>
+                @if (i + 1 < stepIndex) {
+                  <img src="assets/icons/step-check.svg" width="16" height="16" alt="" />
+                } @else {
+                  {{ step.number }}
+                }
+              </span>
+              {{ step.label }}
+            </li>
+          }
+        </ol>
+      </section>
+      @if (caseNote) {
+        <dl class="overview">
+          <div>
+            <dt>ผู้ยื่นคำขอ</dt>
+            <dd>{{ caseApplicant }}</dd>
+          </div>
+          <div>
+            <dt>แหล่งกำเนิด</dt>
+            <dd>{{ caseOrigins.join(' ') }}</dd>
+          </div>
+          <div class="wide">
+            <dt>สาระสำคัญ</dt>
+            <dd>{{ caseNote }}</dd>
+          </div>
+        </dl>
+      }
+      <div class="sheet">
+        <header class="stage">
+          <h2>{{ viewLabel }}</h2>
+          <app-status-tag [tone]="stageDone ? 'success' : 'info'" [label]="stageStatus" />
+          @if (caseFormRoute) {
+            <div class="stage__act">
+              <app-button type="outline" label="ดูแบบฟอร์ม" (click)="openFormView(caseFormRoute, $event)" />
+            </div>
+          }
+          @if (viewLabel === 'ยื่นคำขอ' && !listed) {
+            <div class="stage__act">
+              @if (!reviewPassed && !reviewPending) {
+                <app-button class="icon-before" type="outline" label="ขอปรึกษา" (click)="openConsult()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
+                </app-button>
+              }
+              @if (officialLocked) {
+                <app-button class="icon-before" type="primary" label="ยื่นคำขอแบบทางการ" state="disabled">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
+                </app-button>
+              } @else if (reviewWaiting) {
+                <app-button class="icon-before" type="primary" label="ยื่นส่งแบบทางการ" state="disabled">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
+                </app-button>
+              } @else {
+                <app-button class="icon-before" type="primary" label="ยื่นส่งแบบทางการ" (click)="submitOfficial()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
+                </app-button>
+              }
+            </div>
+          }
+        </header>
+        @if (viewLabel === 'ตรวจสอบข้อมูล' && (reviewPassed || officialReview)) {
+          <article class="officer" aria-label="รอเจ้าหน้าที่ตรวจสอบ">
+            <div class="officer__row">
+              <span class="officer__mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.25" /><path d="M12 8.5V12l2.75 1.75" /></svg>
+              </span>
+              <div>
+                <h3>รอเจ้าหน้าที่ตรวจสอบ</h3>
+                <p>เจ้าหน้าที่ได้รับคำขอของคุณแล้ว และกำลังตรวจสอบข้อมูลและเอกสาร</p>
+              </div>
+            </div>
+            <p class="officer__note">คุณไม่ต้องดำเนินการใด ๆ ในตอนนี้ หากต้องการข้อมูลเพิ่มเติม ระบบจะแจ้งทางอีเมลและแสดงรายการที่หน้านี้</p>
+          </article>
+        } @else if (supplement && viewLabel === 'ตรวจสอบข้อมูล') {
+          <article class="extra" aria-label="เจ้าหน้าที่ขอข้อมูลเพิ่มเติม">
+            <div class="extra__lead">
+              <span class="extra__mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 7v6.5" /><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none" /></svg>
+              </span>
+              <div>
+                <h3>เจ้าหน้าที่ขอข้อมูลเพิ่มเติม</h3>
+                <p>เจ้าหน้าที่ตรวจสอบคำขอของคุณแล้ว พบว่าต้องการข้อมูลเพิ่มเติม กรุณาส่งภายใน {{ supplementDue }}</p>
+              </div>
+              <app-button type="primary" label="ยื่นข้อมูลเพิ่มเติม" (click)="openSupplement()" />
+            </div>
+            <dl class="extra__facts">
+              @for (fact of supplementFacts; track fact.label) {
+                <div>
+                  <dt>{{ fact.label }}</dt>
+                  <dd [class.extra__due]="fact.due">{{ fact.value }}</dd>
+                </div>
+              }
+            </dl>
+          </article>
+          <h2 id="supplement-tasks" class="forms__title">รายละเอียดที่ต้องดำเนินการ <span class="count">{{ supplementTasks.length }}</span></h2>
+          @for (task of supplementTasks; track task.title; let i = $index) {
+            <article class="extra__task" [class.extra__task--open]="supplementOpen[task.title]">
+              <span class="extra__no">{{ i + 1 }}</span>
+              <div>
+                <div class="extra__head">
+                  <div>
+                    <h3>{{ task.title }}</h3>
+                    <p class="extra__pills">
+                      <span class="extra__form">{{ task.kind }}</span>
+                      <span class="extra__ask">{{ task.ask }}</span>
+                    </p>
+                  </div>
+                  <button type="button" class="more" [attr.aria-expanded]="!!supplementOpen[task.title]" [attr.aria-label]="supplementOpen[task.title] ? 'หุบรายละเอียด' : 'ขยายรายละเอียด'" (click)="toggleSupplement(task.title)">
+                    <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+                  </button>
+                </div>
+                @if (supplementOpen[task.title]) {
+                <div class="extra__body">
+                  <p class="extra__label">เหตุผลจากเจ้าหน้าที่</p>
+                  <p>{{ task.reason }}</p>
+                  <p class="extra__label">สิ่งที่ต้องดำเนินการ</p>
+                  <ul class="extra__steps">
+                    @for (step of task.steps; track step) {
+                      <li>{{ step }}</li>
+                    }
+                  </ul>
+                  <p class="extra__meta"><span>ไฟล์ที่ต้องการ</span> {{ task.file }}</p>
+                  <p class="extra__meta"><span>รูปแบบที่รับ</span> {{ task.accept }}</p>
+                </div>
+                }
+              </div>
+            </article>
+          }
+        } @else if (viewLabel === 'ตรวจสอบข้อมูล' && !listed) {
+          <div class="alert">
+            <p>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5 21 20H3L12 4.5z" /><path d="M12 10v5M12 17.5v.5" /></svg>
+              ปร. 4 ต้องแนบเอกสารเพิ่มเติม
+            </p>
+            <app-button type="outline" size="sm" label="ไปที่ ปร. 4" (click)="openForm('/requests/por-4')" />
+          </div>
+          <ul class="stats">
+            @for (stat of reviewStats; track stat.label) {
+              <li [attr.data-tone]="stat.tone">
+                <strong>{{ stat.value }}</strong>
+                {{ stat.label }}
+              </li>
+            }
+          </ul>
+          <article class="review">
+            <header>
+              <span>ปร. 3</span>
+              <div>
+                <p>ขอทบทวนการใช้อากรตอบโต้ต่อไป</p>
+                <p>ผลการตรวจสอบรายเอกสาร</p>
+              </div>
+              <app-status-tag tone="info" label="อยู่ระหว่างตรวจสอบ" />
+            </header>
             <ul>
-              @for (file of files; track file) {
+              @for (item of reviewItems; track item) {
+                <li>
+                  <span><img src="assets/icons/step-check.svg" width="16" height="16" alt="" /></span>
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          </article>
+        } @else if (viewLabel === 'ยื่นคำขอ') {
+          <dl class="overview">
+            <div>
+              <dt>เลขที่คำขอ</dt>
+              <dd>{{ requestRef }}</dd>
+            </div>
+            <div>
+              <dt>เลขเคส</dt>
+              <dd>{{ code }}</dd>
+            </div>
+            <div>
+              <dt>ประเภทมาตรการ</dt>
+              <dd>{{ measureLabel }}</dd>
+            </div>
+            <div>
+              <dt>ชื่อสินค้า</dt>
+              <dd>{{ goodsName }}</dd>
+            </div>
+            <div>
+              <dt>แบบฟอร์มที่ยื่น</dt>
+              <dd class="chips">
+                @if (listed) {
+                  <span class="chip">{{ caseKind }}</span>
+                } @else {
+                  @for (form of filedForms; track form.code) {
+                    <span class="chip">{{ form.label }}</span>
+                  }
+                }
+              </dd>
+            </div>
+            @if (shownCountries.length) {
+            <div>
+              <dt>แหล่งกำเนิดสินค้า</dt>
+              <dd class="chips">
+                @for (name of shownCountries; track name) {
+                  <span class="chip">{{ name }}</span>
+                }
+              </dd>
+            </div>
+            }
+            <div>
+              <dt>ครั้งที่ยื่น</dt>
+              <dd>{{ filingRound }} ครั้ง</dd>
+            </div>
+            <div>
+              <dt>วันที่ยื่นคำขอ</dt>
+              <dd>{{ filedOn }}</dd>
+            </div>
+            @if (shownApplicants.length) {
+            <div>
+              <dt>ผู้ยื่นคำขอ</dt>
+              <dd>
+                @for (party of shownApplicants; track party.name; let last = $last) {
+                  {{ party.name }}@if (!last) {, }
+                }
+              </dd>
+            </div>
+            }
+          </dl>
+          @if (reviewPassed) {
+            <article class="result result--pass" aria-label="ผลการตรวจสอบคำขอ">
+              <span class="result__mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12.5 9.2 17 19 7" /></svg>
+              </span>
+              <div>
+                <p class="result__title">ผลการตรวจสอบ : <span>ผ่าน</span></p>
+                <p>ตรวจสอบครบถ้วนแล้ว</p>
+                <p class="result__dates">วันที่ยื่นครั้งแรก {{ reviewFiledOn }}</p>
+              </div>
+              <div class="result__act">
+                <app-button class="icon-before" type="outline" label="แก้ไขคำขอ" [routerLink]="revisePath" [queryParams]="reviseQuery" (click)="reviseFiling()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                </app-button>
+              </div>
+            </article>
+          } @else if (reviewWaiting) {
+            <article class="pending" aria-label="สถานะการตรวจสอบคำขอ">
+              <div class="pending__lead">
+                <span class="pending__mark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 12.5 9.2 17 19 7" /></svg>
+                </span>
+                <div>
+                  <h3>ได้รับเอกสารเรียบร้อย</h3>
+                  <p>คำขอเลขที่อ้างอิง {{ reviewRef }} ครั้งที่ {{ filingRound }} อยู่ระหว่างตรวจสอบ</p>
+                  <p class="pending__clock">รอผลภายใน 10 วินาที · เหลือเวลา {{ reviewClock }}</p>
+                  <p>วันที่ยื่นครั้งแรก {{ reviewPendingFiledOn }} · วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ ({{ reviewAmendMonths }} เดือน) {{ reviewPendingUntil }}</p>
+                </div>
+              </div>
+            </article>
+          } @else if (!listed) {
+          <article class="result" aria-label="ผลการตรวจสอบคำขอ">
+            <span class="result__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 6.5v8" /><circle cx="12" cy="17.5" r="1.2" fill="currentColor" stroke="none" /></svg>
+            </span>
+            <div>
+              <p class="result__title">ผลการตรวจสอบ : <span>ไม่ผ่าน</span></p>
+              <p>ต้องแก้ไข {{ reviewFixCount }} รายการก่อนยื่นคำขอ</p>
+              <p class="result__dates">วันที่ยื่นครั้งแรก {{ resultFiledOn }} · วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ ({{ reviewAmendMonths }} เดือน) {{ resultAmendUntil }}</p>
+            </div>
+            <div class="result__act">
+              <app-button class="icon-before" type="outline" label="แก้ไขคำขอ" [routerLink]="revisePath" [queryParams]="reviseQuery" (click)="reviseFiling()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+              </app-button>
+            </div>
+          </article>
+          <section class="fixes" [attr.aria-label]="reviewPending ? 'รายการที่ไม่ผ่าน' : 'รายการที่ต้องแก้ไข'">
+            <h2 class="forms__title">
+              @if (reviewPending) {
+                รายการที่ไม่ผ่าน
+              } @else {
+                รายการที่ต้องแก้ไข
+                @if (!fixesOpen) {
+                  <button type="button" class="link" (click)="showMoreFixes()">ดูเพิ่มเติม</button>
+                }
+              }
+            </h2>
+            <ol>
+              @for (item of shownFixes(); track item.title; let i = $index) {
+                <li [class.fixes__open]="reviewPending || openFixTitle === item.title">
+                  <span class="fixes__no">{{ i + 1 }}</span>
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.place }}</small>
+                    @if (reviewPending || openFixTitle === item.title) {
+                      <p>{{ item.detail }}</p>
+                    }
+                  </div>
+                  @if (!reviewPending) {
+                    <button type="button" class="more" [attr.aria-expanded]="openFixTitle === item.title" [attr.aria-label]="openFixTitle === item.title ? 'หุบรายละเอียด' : 'เปิดรายละเอียด'" (click)="toggleFix(item.title)">
+                      <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+                    </button>
+                  }
+                </li>
+              }
+            </ol>
+          </section>
+          }
+          @if (listed) {
+            @if (systemForms.length) {
+              <h2 class="forms__title">แบบฟอร์มในระบบ <span class="count">{{ systemForms.length }}</span></h2>
+              <p class="status-note">กรอกในแบบฟอร์มของระบบแล้ว เปิดดูได้จากปุ่มด้านขวา</p>
+              <ul>
+                @for (form of systemForms; track form.code) {
+                  <li>
+                    <span class="file">
+                      <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                      แบบ {{ form.code }} · {{ form.file }}
+                    </span>
+                    <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(form.route, $event)" />
+                  </li>
+                }
+              </ul>
+            }
+            @if (plainFiles.length) {
+              <h2 class="forms__title">ไฟล์ประกอบ <span class="count">{{ plainFiles.length }}</span></h2>
+              <ul>
+                @for (file of plainFiles; track file) {
+                  <li>
+                    <span class="file">
+                      <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                      {{ file }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+          <h2 class="forms__title">ผู้ยื่นคำขอ <span class="count">{{ shownApplicants.length }}</span></h2>
+          <ul class="parties">
+            @for (party of shownApplicants; track party.name) {
+              <li>
+                <strong>{{ party.name }}</strong>
+                <span>{{ party.address }}</span>
+                <span>โทร {{ party.phone }}</span>
+                <span>ผู้แทน: {{ party.agent }}</span>
+              </li>
+            }
+          </ul>
+          <h2 class="forms__title">เอกสารอ้างอิง <span class="count">{{ refCount }}</span></h2>
+          @for (group of refDocs; track group.group) {
+            <p class="docs__group">แบบฟอร์ม {{ group.group }}</p>
+            <ul>
+              @for (file of group.files; track file) {
                 <li>
                   <span class="file">
                     <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
                     {{ file }}
                   </span>
+                  <button type="button" class="download" aria-label="ดาวน์โหลด">
+                    <img src="assets/icons/case-download.svg" width="16" height="16" alt="" />
+                  </button>
                 </li>
               }
             </ul>
-          } @else if (section === 'ประวัติ') {
-            <div class="history">
-              <h2>ประวัติการดำเนินการ</h2>
-              <ul>
-                @for (item of history; track $index) {
-                  <li [class.history__open]="$index === openHistory">
-                    <div class="history__head">
-                      <span>
-                        <strong>{{ item.title }}</strong>
-                        <span>{{ item.detail }}</span>
-                        <time>{{ item.when }}</time>
-                      </span>
-                      <button type="button" class="more" [attr.aria-expanded]="$index === openHistory" [attr.aria-label]="$index === openHistory ? 'หุบประวัติ' : 'เปิดประวัติ'" (click)="toggleHistory($index)">
-                        <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
-                      </button>
-                    </div>
-                    @if ($index === openHistory && item.docs.length) {
-                      <ul class="history__docs">
-                        @for (doc of item.docs; track doc) {
-                          <li>
-                            <button type="button" class="history__doc" (click)="openFailed()">
-                              <span>{{ doc }}</span>
-                              <span class="badge badge--fail">
-                                <img src="assets/icons/review-fail.svg" width="18" height="18" alt="" />
-                                ไม่ผ่าน
-                              </span>
-                            </button>
-                          </li>
-                        }
-                      </ul>
-                    }
-                  </li>
-                }
-              </ul>
-            </div>
           }
-        </section>
+          }
+        } @else {
+          <p class="status-note">{{ stageSummary }}</p>
+          @if (stageFiles.length) {
+            <h2 class="forms__title">เอกสารในขั้นนี้ <span class="count">{{ stageFiles.length }}</span></h2>
+            <ul>
+              @for (file of stageFiles; track file) {
+                <li>
+                  <span class="file">
+                    <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                    {{ file }}
+                  </span>
+                  @if (formRoute(file); as route) {
+                    <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+        @if (history.length > 1) {
+          <section class="history" aria-label="ผลการดำเนินการ">
+            <h2>ผลการดำเนินการ</h2>
+            <ol>
+              @for (item of history; track item.title) {
+                <li [class.history__open]="historyOpen[item.title]">
+                  <div class="history__head" (click)="openHistoryStep(item.title)">
+                    <span>
+                      <strong>{{ item.title }}</strong>
+                      <span>{{ item.detail }}</span>
+                    </span>
+                    @if (item.when) {
+                      <time>{{ item.when }}</time>
+                    }
+                    <button type="button" class="more" [attr.aria-expanded]="historyOpen[item.title]" [attr.aria-label]="historyOpen[item.title] ? 'หุบเอกสาร' : 'เปิดเอกสาร'" (click)="$event.stopPropagation(); toggleHistory(item.title)">
+                      <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+                    </button>
+                  </div>
+                  @if (historyOpen[item.title] && item.docs.length) {
+                    <ul class="history__docs">
+                      @for (doc of item.docs; track doc) {
+                        <li>
+                          <span>{{ doc }}</span>
+                          @if (formRoute(doc); as route) {
+                            <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </li>
+              }
+            </ol>
+          </section>
+        }
+      </div>
+      }
       </div>
     </main>
   </div>
 </div>
+@if (consultOpen) {
+  <div class="sample sample--submit sample--check" (click)="closeConsult()">
+    <section role="dialog" aria-modal="true" aria-labelledby="consult-title" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2 id="consult-title">ยื่นคำร้องขอปรึกษา</h2>
+        <button type="button" class="submit__close submit__close--icon" aria-label="ปิด" (click)="closeConsult()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+      <div class="ask">
+        <label>
+          <span>เรื่อง<span class="req">*</span></span>
+          <input type="text" [value]="consultTopic" (input)="consultTopic = $any($event.target).value" />
+        </label>
+        <label>
+          <span>รายละเอียด<span class="req">*</span></span>
+          <textarea rows="4" [value]="consultDetail" (input)="consultDetail = $any($event.target).value"></textarea>
+        </label>
+        <div class="ask-way">
+          <span>ช่องทางที่ต้องการปรึกษา<span class="req">*</span></span>
+          <div class="slip-choices" role="radiogroup" aria-label="ช่องทางที่ต้องการปรึกษา">
+            <button type="button" role="radio" [attr.aria-checked]="consultChannel === 'phone'" (click)="pickConsultChannel('phone')"><img [src]="consultChannel === 'phone' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />โทรศัพท์</button>
+            <button type="button" role="radio" [attr.aria-checked]="consultChannel === 'online'" (click)="pickConsultChannel('online')"><img [src]="consultChannel === 'online' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />Online</button>
+            <button type="button" role="radio" [attr.aria-checked]="consultChannel === 'onsite'" (click)="pickConsultChannel('onsite')"><img [src]="consultChannel === 'onsite' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />OnSite</button>
+          </div>
+        </div>
+      </div>
+      <div class="submit__actions">
+        <app-button class="icon-before" type="primary" label="ส่งคำร้อง" [state]="consultReady ? 'default' : 'disabled'" (click)="sendConsult()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </app-button>
+      </div>
+    </section>
+  </div>
+}
+@if (consultSent && sentConsult) {
+  <div class="sample sample--submit sample--check" (click)="closeConsultSent()">
+    <section role="dialog" aria-modal="true" aria-labelledby="consult-sent-title" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2 id="consult-sent-title">รายละเอียดการยื่นคำร้องขอปรึกษา</h2>
+        <button type="button" class="submit__close submit__close--icon" aria-label="ปิด" (click)="closeConsultSent()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+      <div class="consult-sent">
+        <article class="consult-wait">
+          <span class="consult-wait__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.25" /><path d="M12 8.5V12l2.75 1.75" /></svg>
+          </span>
+          <div>
+            <h3>รอเจ้าหน้าที่รับเรื่อง</h3>
+            <p>เจ้าหน้าที่กำลังรับเรื่องคำร้องของคุณ ระบบจะแจ้งเตือนทางอีเมลเมื่อมีความคืบหน้า</p>
+          </div>
+        </article>
+        <ol class="consult-steps" aria-label="สถานะการปรึกษา">
+          <li class="consult-steps__done">
+            <span>
+              <img src="assets/icons/step-check.svg" width="16" height="16" alt="" />
+            </span>
+            <strong>ยื่นคำร้องแล้ว</strong>
+          </li>
+          <li class="consult-steps__on">
+            <span>2</span>
+            <strong>เจ้าหน้าที่รับเรื่อง</strong>
+          </li>
+          <li>
+            <span>3</span>
+            <strong>นัดหมายที่ปรึกษาสำเร็จ</strong>
+          </li>
+        </ol>
+        <dl class="consult-slip">
+          <div>
+            <dt>สถานะปัจจุบัน</dt>
+              <dd><app-status-tag tone="warning" label="รอเจ้าหน้าที่รับเรื่อง" /></dd>
+          </div>
+          <div class="consult-slip__pair">
+            <div>
+              <dt>เลขที่คำขอ</dt>
+              <dd>{{ requestRef }}</dd>
+            </div>
+            <div>
+              <dt>วันที่ยื่น</dt>
+              <dd>{{ sentConsult.filedOn }}</dd>
+            </div>
+          </div>
+          <div>
+            <dt>เรื่อง</dt>
+            <dd>{{ sentConsult.topic }}</dd>
+          </div>
+          <div>
+            <dt>รายละเอียด</dt>
+            <dd>{{ sentConsult.detail }}</dd>
+          </div>
+          <div>
+            <dt>ช่องทางที่ต้องการปรึกษา</dt>
+            <dd>{{ consultChannelLabel }}</dd>
+          </div>
+        </dl>
+      </div>
+      <div class="submit__actions consult-sent__actions">
+        <button type="button" class="consult-cancel" (click)="cancelConsult()">ยกเลิกคำร้อง</button>
+        <app-button type="primary" label="ตกลง" (click)="closeConsultSent()" />
+      </div>
+    </section>
+  </div>
+}
+@if (filedOpen) {
+  <div class="notice">
+    <app-modal kind="success" heading="ยื่นคำขอสำเร็จ" detail="คำขอเข้าสู่ขั้นตอนที่ 2 ตรวจสอบข้อมูล" (choose)="finishOfficial()" />
+  </div>
+}
