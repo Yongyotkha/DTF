@@ -168,9 +168,11 @@
                       </svg>
                     </button>
                   </td>
-                  <td class="mono">{{ row.live ? row.code : '—' }}</td>
+                  <td class="mono">{{ row.ref || '—' }}</td>
                   <td>
-                    @if (published(row)) {
+                    @if (row.internal && !row.live) {
+                      <span class="mono">{{ row.code }}</span>
+                    } @else if (published(row)) {
                       <a class="case-link" [href]="publicUrl(row)" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'เปิด ' + row.code + ' บน thaitr'">
                         {{ row.code }}
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5H19V10M19 5L10 14M17 13.5V18A1 1 0 0 1 16 19H6A1 1 0 0 1 5 18V8A1 1 0 0 1 6 7H10.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -195,8 +197,8 @@
                   </td>
                   <td class="mono">{{ row.date }}</td>
                   <td class="col-act">
-                    @if (row.live) {
-                      <app-button type="outline" size="sm" label="เปิดคำขอ" (click)="open(row)" />
+                    @if (row.internal) {
+                      <app-button type="outline" size="sm" label="เปิดแบบฟอร์ม" (click)="open(row)" />
                     } @else {
                       <a class="link-btn" [href]="publicUrl(row)" target="_blank" rel="noopener noreferrer">
                         ดูเพิ่มเติม

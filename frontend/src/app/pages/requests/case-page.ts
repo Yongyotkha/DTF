@@ -6,8 +6,9 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { formOf } from './form-catalog';
+import { formCodeIn } from './case-form';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
-import { findListedCase, stepLabel } from './request-cases';
+import { documentsForStage, findListedCase, ListedCase, stageResult, stepLabel } from './request-cases';
 
 @Component({
   selector: 'app-case-page',
@@ -19,7 +20,14 @@ export class CasePage implements OnDestroy {
   protected readonly title: string;
   protected readonly code: string;
   protected readonly requestRef: string;
-  protected readonly showcase: boolean;
+  protected readonly goodsName: string;
+  protected readonly measureLabel: string;
+  protected readonly caseApplicant: string;
+  protected readonly caseOrigins: string[];
+  protected readonly caseNote: string;
+  protected readonly caseKind: string;
+  protected readonly listed: ListedCase | undefined;
+  protected historyOpen: Record<string, boolean> = {};
   protected readonly reviewPassed: boolean;
   protected readonly reviewPending: boolean;
   protected readonly supplement: boolean;
@@ -214,16 +222,18 @@ export class CasePage implements OnDestroy {
     const item = findListedCase(code);
     this.code = item?.code ?? code;
     this.requestRef = item?.ref || '—';
+    this.goodsName = item?.goods || 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน';
+    this.measureLabel = item?.measure || 'AD (ตอบโต้การทุ่มตลาด)';
+    this.caseApplicant = item?.applicant || '';
+    this.caseOrigins = item?.origins ?? [];
+    this.caseNote = item?.note || '';
+    this.caseKind = item?.kind || '';
+    this.listed = item;
     this.reviewRef = this.requestRef;
-    this.showcase = this.code === 'AD1039';
     this.reviewPassed = this.code === 'AD1024';
     this.reviewPending = this.code === 'AD1054';
     this.supplement = this.code === 'AD1005';
-    this.title = this.showcase
-      ? `${this.requestRef} เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน`
-      : item
-        ? `${item.ref} ${item.goods}`
-        : this.requestRef;
+    this.title = item ? `${item.ref} ${item.goods}` : this.requestRef;
     this.statusNote = item ? `${item.status} · ${item.kind}` : 'ไม่พบคำขอ';
     this.filingRound = item?.round ?? 1;
     this.filedOn = item?.created || '—';
@@ -241,7 +251,7 @@ export class CasePage implements OnDestroy {
     }));
     this.facts = item
       ? [
-          { label: 'ประเภทมาตรการ', value: 'AD (ตอบโต้การทุ่มตลาด)' },
+          { label: 'ประเภทมาตรการ', value: item.measure },
           { label: 'เลขคำขอ', value: item.ref },
           { label: 'ชื่อสินค้า', value: item.goods },
           { label: 'ประเภทการยื่น', value: item.kind },
@@ -251,12 +261,16 @@ export class CasePage implements OnDestroy {
     this.files = item?.documents ?? [];
     this.history = (item?.steps ?? [])
       .filter((step) => step.state !== 'todo')
-      .map((step) => ({
-        title: step.name,
-        detail: item?.goods ?? '',
-        when: step.date ? `วันที่ ${step.date}` : '',
-        docs: [],
-      }));
+      .map((step) => {
+        const label = stepLabel(step.name);
+        return {
+          title: label,
+          detail: item ? stageResult(item, label, step.state === 'done') : '',
+          when: step.date ? `วันที่ ${step.date}` : '',
+          docs: item ? documentsForStage(item, label) : [],
+        };
+      });
+    this.historyOpen = Object.fromEntries(this.history.map((item) => [item.title, true]));
     if (this.reviewPending && !this.fixesOnly) this.startReviewClock();
   }
 
@@ -267,6 +281,18 @@ export class CasePage implements OnDestroy {
   protected get currentLabel(): string {
     const step = this.steps[this.stepIndex - 1];
     return step ? step.label : '';
+  }
+
+  protected get shownApplicants(): { name: string; address: string; phone: string; agent: string }[] {
+    if (this.caseApplicant) return [{ name: this.caseApplicant, address: '', phone: '', agent: '' }];
+    if (this.listed) return [];
+    return this.applicants;
+  }
+
+  protected get shownCountries(): string[] {
+    if (this.caseOrigins.length) return this.caseOrigins;
+    if (this.listed) return [];
+    return this.countries;
   }
 
   protected get viewLabel(): string {
@@ -280,6 +306,63 @@ export class CasePage implements OnDestroy {
 
   protected get stageDone(): boolean {
     return this.viewStep < this.stepIndex;
+  }
+
+  protected get stageSummary(): string {
+    if (!this.listed) return this.statusNote;
+    return stageResult(this.listed, this.viewLabel, this.stageDone);
+  }
+
+  protected get stageFiles(): string[] {
+    if (!this.listed) return this.files;
+    return documentsForStage(this.listed, this.viewLabel);
+  }
+
+  protected get systemForms(): { code: string; title: string; route: string; file: string }[] {
+    const seen = new Set<string>();
+    const rows: { code: string; title: string; route: string; file: string }[] = [];
+    for (const file of this.files) {
+      const code = formCodeIn(file);
+      if (!code || seen.has(code)) continue;
+      const form = formOf(code);
+      if (!form?.route) continue;
+      seen.add(code);
+      rows.push({ code, title: form.title, route: form.route, file });
+    }
+    return rows;
+  }
+
+  protected get plainFiles(): string[] {
+    const codes = new Set(this.systemForms.map((form) => form.code));
+    return this.files.filter((file) => {
+      const code = formCodeIn(file);
+      return !code || !codes.has(code);
+    });
+  }
+
+  protected get caseFormRoute(): string {
+    return this.systemForms[0]?.route || (this.listed?.measure.startsWith('SG') ? '/requests/sg' : '');
+  }
+
+  protected formRoute(file: string): string {
+    const code = formCodeIn(file);
+    return code ? formOf(code)?.route ?? '' : '';
+  }
+
+  protected openHistoryStep(title: string): void {
+    const index = this.steps.findIndex((step) => step.label === title);
+    if (index >= 0) this.openStep(index + 1);
+  }
+
+  protected openFormView(route: string, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    void this.router.navigate([route], { queryParams: { case: this.code, view: '1' } });
+  }
+
+  protected toggleHistory(title: string): void {
+    this.historyOpen = { ...this.historyOpen, [title]: !this.historyOpen[title] };
+    this.view.detectChanges();
   }
 
   protected get stageStatus(): string {

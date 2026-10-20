@@ -15,11 +15,166 @@ import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workG
 import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, readFilingGate, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeCaseStatus, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, type AssignFile, type AssignReply, type AssignSlip, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultRequest, type FilingGate, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
+import { caseFormExtra } from './case-form';
+import { cvdChosen } from './filing-intent';
+import { findListedCase, type ListedCase } from './request-cases';
 import { readParty, readText, valueIsWrong, wrongHint } from './form-extract';
 import { scrollFormToTop } from './form-scroll';
 
-type InquiryStep = 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote' | 'notice' | 'hearing' | 'questions' | 'visit';
-type ReviewTab = 'form' | 'assign' | 'docs' | 'inquiry' | 'prelim' | 'draftFinal' | 'finalResult' | 'link';
+type InquiryStep = 'agenda' | 'decide' | 'letter' | 'fee' | 'proof' | 'vote' | 'notice' | 'sign' | 'letters' | 'news' | 'hearing' | 'questions' | 'visit';
+type ReviewTab = 'form' | 'assign' | 'docs' | 'inquiry' | 'prelim' | 'draftFinal' | 'finalResult' | 'measures' | 'link';
+type FlowStep = { id: string; label: string; detail: string; yes?: string; no?: string };
+type FlowField = { label: string; long?: boolean; date?: boolean };
+
+const flowCatalog: Record<'prelim' | 'draftFinal' | 'finalResult' | 'measures', FlowStep[]> = {
+  prelim: [
+    { id: 'prelim-analyse', label: 'ประมวลผลขั้นต้น', detail: 'เจ้าหน้าที่วิเคราะห์ข้อมูลการไต่สวน AI ช่วยสืบค้นและร่างสรุป' },
+    { id: 'prelim-committee', label: 'วินิจฉัยผลขั้นต้น', detail: 'คณะกรรมการพิจารณาวินิจฉัยผลการไต่สวนขั้นต้น' },
+    { id: 'prelim-announce', label: 'ออกประกาศ', detail: 'ออกประกาศผลการไต่สวนขั้นต้น งานสารบรรณลงทะเบียนรับเลข แล้วอัปเดต e-TR' },
+    { id: 'prelim-notify', label: 'แจ้งผู้มีส่วนได้เสีย', detail: 'แจ้งอีเมลผู้มีส่วนได้เสียหลังประกาศผลขั้นต้น' },
+    { id: 'prelim-hearing', label: 'Hearing', detail: 'ผู้มีส่วนได้เสียขอทราบข้อเท็จจริง ส่งความเห็น หรือขอจัด hearing ภายใน 30 วัน ถ้า e-Office ตีกลับ ให้แก้ในระบบนี้ก่อนส่งใหม่', yes: 'เข้า Hearing', no: 'ไม่เข้า' },
+    { id: 'prelim-again', label: 'ส่งคณะกรรมการอีกครั้ง', detail: 'ถ้าส่งกลับ คณะกรรมการวินิจฉัยผลขั้นต้นใหม่ ถ้าไม่ส่งจึงไป Proposed Final', yes: 'ส่งอีกครั้ง', no: 'ไป Proposed Final' },
+  ],
+  draftFinal: [
+    { id: 'draft-proposed', label: 'Proposed Final', detail: 'ส่งข้อเสนอผลการตัดสินชั้นที่สุดให้ผู้มีส่วนได้เสีย' },
+    { id: 'draft-comments', label: 'รวบรวมความคิดเห็น', detail: 'รวบรวมความคิดเห็นและข้อโต้แย้งที่ส่งกลับมา' },
+    { id: 'draft-sub', label: 'ประชุมอนุ', detail: 'ตัดสินว่าต้องจัดประชุมอนุที่เกี่ยวข้องหรือไม่', yes: 'จัดประชุม', no: 'ไม่จัด' },
+    { id: 'draft-agenda', label: 'ร่างวาระและประชุมอนุ', detail: 'AI ช่วยร่างวาระ แล้วอนุที่เกี่ยวข้องประชุม' },
+    { id: 'draft-substance', label: 'สาระสำคัญของร่าง', detail: 'ถ้าความเห็นเปลี่ยนสาระสำคัญ ให้ปรับร่างและเปิดรับฟังอีกครั้ง', yes: 'เปลี่ยนสาระสำคัญ', no: 'ไม่เปลี่ยน' },
+    { id: 'draft-revise', label: 'ปรับร่าง', detail: 'ปรับ Draft ผลการตัดสินชั้นที่สุด แล้วเปิดรับฟังอีกครั้ง' },
+    { id: 'draft-pack', label: 'เอกสารผลชั้นที่สุด', detail: 'จัดทำเอกสารเปิดเผยและไม่เปิดเผย พร้อมช่วงให้แสดงความเห็น' },
+  ],
+  finalResult: [
+    { id: 'final-announce', label: 'ประกาศผลชั้นที่สุด', detail: 'ออกประกาศผลการตัดสินชั้นที่สุด' },
+    { id: 'final-disclose', label: 'การเปิดเผย', detail: 'ถ้าเปิดเผยจึงแจ้งอีเมลผู้มีส่วนได้เสีย', yes: 'เปิดเผย', no: 'ไม่เปิดเผย' },
+    { id: 'final-saraban', label: 'สารบรรณและ e-TR', detail: 'งานสารบรรณลงทะเบียนรับเลข แล้วอัปเดต e-TR' },
+    { id: 'final-publish', label: 'เผยแพร่', detail: 'เก็บข้อมูล เผยแพร่บนเว็บไซต์กอง และส่งเข้า ThaiTR' },
+  ],
+  measures: [
+    { id: 'm56', label: 'มาตรา 56', detail: 'ทบทวนความจำเป็นในการใช้บังคับอากร ถ้ามีเหตุจึงเสนอคณะกรรมการปรับอัตราหรือยุติ ถ้าไม่มีเหตุใช้มาตรการเดิมต่อ', yes: 'มีเหตุให้ทบทวน', no: 'ใช้มาตรการเดิม' },
+    { id: 'm57', label: 'มาตรา 57', detail: 'ทบทวนก่อนครบกำหนด ถ้าเข้าเงื่อนไขจึงตรวจการทุ่มตลาดและความเสียหายที่อาจเกิดซ้ำ ถ้าไม่เข้าเงื่อนไขมาตรการสิ้นสุดตามกฎหมาย', yes: 'เข้าเงื่อนไข', no: 'สิ้นสุดตามกฎหมาย' },
+    { id: 'm58', label: 'มาตรา 58', detail: 'ทบทวนผู้ส่งออกหรือผู้ผลิตรายใหม่ ถ้าเข้าเกณฑ์จึงตรวจความเกี่ยวข้องและพิจารณาหลักประกัน', yes: 'เข้าเกณฑ์', no: 'ไม่เข้าเกณฑ์' },
+    { id: 'm59', label: 'มาตรา 59', detail: 'ขอคืนอากร ถ้าส่วนเหลื่อมต่ำกว่าอากรหรือไม่มีส่วนเหลื่อมจึงตรวจหลักฐานผู้นำเข้าและพิจารณาคืน', yes: 'เข้าเงื่อนไขคืนอากร', no: 'ไม่เข้าเงื่อนไข' },
+  ],
+};
+
+const flowFields: Record<string, FlowField[]> = {
+  'prelim-analyse': [
+    { label: 'วันที่', date: true },
+    { label: 'ปริมาณนำเข้า', long: true },
+    { label: 'ผลกระทบด้านราคา', long: true },
+    { label: 'ผลประกอบการ', long: true },
+    { label: 'สรุปผลการไต่สวนขั้นต้น', long: true },
+  ],
+  'prelim-committee': [
+    { label: 'วันที่ประชุม', date: true },
+    { label: 'ระเบียบวาระ', long: true },
+    { label: 'มติที่ประชุม', long: true },
+    { label: 'รายงานการประชุม', long: true },
+  ],
+  'prelim-announce': [
+    { label: 'ที่' },
+    { label: 'วันที่', date: true },
+    { label: 'เรื่อง' },
+    { label: 'ผลการไต่สวนขั้นต้น', long: true },
+    { label: 'เลขสารบรรณ' },
+  ],
+  'prelim-notify': [
+    { label: 'วันที่', date: true },
+    { label: 'เรียน' },
+    { label: 'เรื่อง' },
+    { label: 'เนื้อความ', long: true },
+  ],
+  'prelim-hearing': [
+    { label: 'ผู้ขอ' },
+    { label: 'วันที่ขอ', date: true },
+    { label: 'ช่องทาง' },
+  ],
+  'prelim-again': [
+    { label: 'เหตุผล', long: true },
+  ],
+  'draft-proposed': [
+    { label: 'ที่' },
+    { label: 'วันที่', date: true },
+    { label: 'เรียน' },
+    { label: 'เรื่อง' },
+    { label: 'ข้อเสนอผลชั้นที่สุด', long: true },
+    { label: 'วันเริ่มให้ความเห็น', date: true },
+    { label: 'วันสิ้นสุดให้ความเห็น', date: true },
+  ],
+  'draft-comments': [
+    { label: 'ผู้ส่งความเห็น' },
+    { label: 'วันที่', date: true },
+    { label: 'สรุปข้อโต้แย้ง', long: true },
+  ],
+  'draft-sub': [
+    { label: 'วันที่ประชุม', date: true },
+    { label: 'เหตุผล', long: true },
+  ],
+  'draft-agenda': [
+    { label: 'ครั้งที่ประชุม' },
+    { label: 'วันที่ประชุม', date: true },
+    { label: 'ระเบียบวาระ', long: true },
+    { label: 'มติที่ประชุม', long: true },
+  ],
+  'draft-substance': [
+    { label: 'เหตุผล', long: true },
+  ],
+  'draft-revise': [
+    { label: 'เรื่องที่ปรับ' },
+    { label: 'ร่างใหม่', long: true },
+  ],
+  'draft-pack': [
+    { label: 'ฉบับเปิดเผย', long: true },
+    { label: 'ฉบับไม่เปิดเผย', long: true },
+    { label: 'วันเริ่มให้ความเห็น', date: true },
+    { label: 'วันสิ้นสุดให้ความเห็น', date: true },
+  ],
+  'final-announce': [
+    { label: 'ที่' },
+    { label: 'วันที่', date: true },
+    { label: 'เรื่อง' },
+    { label: 'ผลการตัดสินชั้นที่สุด', long: true },
+  ],
+  'final-disclose': [
+    { label: 'เรียน' },
+    { label: 'เนื้อหาที่แจ้ง', long: true },
+  ],
+  'final-saraban': [
+    { label: 'เลขรับสารบรรณ' },
+    { label: 'วันที่รับ', date: true },
+    { label: 'เลข e-TR' },
+  ],
+  'final-publish': [
+    { label: 'วันที่เผยแพร่', date: true },
+    { label: 'เว็บไซต์กอง' },
+    { label: 'เลข ThaiTR' },
+  ],
+  m56: [
+    { label: 'วันที่', date: true },
+    { label: 'เรื่อง' },
+    { label: 'ผลการตรวจหลักฐาน', long: true },
+    { label: 'ข้อเสนอต่อคณะกรรมการ', long: true },
+  ],
+  m57: [
+    { label: 'วันที่', date: true },
+    { label: 'เรื่อง' },
+    { label: 'ผลการตรวจการทุ่มตลาดและความเสียหาย', long: true },
+    { label: 'ข้อเสนอต่อคณะกรรมการ', long: true },
+  ],
+  m58: [
+    { label: 'วันที่', date: true },
+    { label: 'เรื่อง' },
+    { label: 'ผลการตรวจความเกี่ยวข้อง', long: true },
+    { label: 'หลักประกัน', long: true },
+  ],
+  m59: [
+    { label: 'วันที่', date: true },
+    { label: 'เรื่อง' },
+    { label: 'ผลการตรวจส่วนเหลื่อม', long: true },
+    { label: 'หลักฐานผู้นำเข้า', long: true },
+  ],
+};
 type TocLink = { id: string; label: string; anchor?: string };
 type TocGroup = { label: string; items: TocLink[] };
 type HistoryItem = { phase: string; title: string; when: string; detail: string; label: string; tone: 'neutral' | 'info' | 'warning' | 'success' };
@@ -189,6 +344,204 @@ const agendaSections: { id: string; label: string; labels: string[] }[] = [
   { id: 'resolution', label: 'มติที่ประชุม', labels: ['มติที่ประชุม'] },
 ];
 
+const inquiryPack: { step: 'agenda' | 'notice' | 'sign' | 'letters' | 'news' | 'hearing' | 'visit'; group: string; kind: string }[] = [
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'บันทึกขออนุมัติวาระ ทตอ. เปิดไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'วาระการประชุม ทตอ. เปิดไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'เอกสารแนบวาระ ทตอ. เปิดไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'Chairman’s Note เปิดไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'มติที่ประชุม ทตอ. เปิดไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'รายงานการประชุม ทตอ. เปิดไต่สวน' },
+  { step: 'notice', group: 'ประกาศเปิดไต่สวน', kind: 'บันทึกให้ กม. ตรวจร่างประกาศ' },
+  { step: 'notice', group: 'ประกาศเปิดไต่สวน', kind: 'ร่างประกาศกรมเปิดไต่สวน' },
+  { step: 'notice', group: 'ประกาศเปิดไต่สวน', kind: 'ร่างประกาศ ทตอ. เรียกเก็บอากร' },
+  { step: 'notice', group: 'ประกาศเปิดไต่สวน', kind: 'บันทึก กม. แจ้งตรวจร่างประกาศแล้ว' },
+  { step: 'notice', group: 'ประกาศเปิดไต่สวน', kind: 'ประกาศกรมเปิดไต่สวนที่ กม. ตรวจสอบแล้ว' },
+  { step: 'notice', group: 'ประกาศเปิดไต่สวน', kind: 'ประกาศ ทตอ. เรียกเก็บอากรที่ กม. ตรวจสอบแล้ว' },
+  { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'บันทึก อธ. ลงนามประกาศกรมเปิดไต่สวน' },
+  { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'ประกาศกรมเปิดไต่สวนที่ลงนามแล้ว' },
+  { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'บันทึกปลัดเรียน รมว. ลงนามประกาศ ทตอ.' },
+  { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'ประกาศ ทตอ. เรียกเก็บอากรที่ลงนามแล้ว' },
+  { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'บันทึก อธ. ส่งประกาศลงราชกิจจานุเบกษา' },
+  { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'หนังสือส่งราชกิจจานุเบกษา' },
+  { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'หนังสือราชกิจจานุเบกษาแจ้งลงประกาศแล้ว' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'บันทึกเรียน อธ. แจ้งเปิดไต่สวน' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือถึงสถานทูตเปิดไต่สวน' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือถึงผู้ส่งออกเปิดไต่สวน' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือถึง สพต./สคต. เปิดไต่สวน' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งกรมศุลกากรเปิดไต่สวน' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งผู้นำเข้าเปิดไต่สวน' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งอุตสาหกรรมภายในเปิดไต่สวน' },
+  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งสมาคมเปิดไต่สวน' },
+  { step: 'news', group: 'ข่าวหนังสือพิมพ์', kind: 'ข่าวหนังสือพิมพ์ภาษาไทย' },
+  { step: 'news', group: 'ข่าวหนังสือพิมพ์', kind: 'ข่าวหนังสือพิมพ์ภาษาอังกฤษ' },
+  { step: 'hearing', group: 'แถลงการณ์', kind: 'หนังสือขอให้จัดแถลงการณ์เปิดไต่สวน' },
+  { step: 'hearing', group: 'แถลงการณ์', kind: 'บันทึกขออนุมัติจัดแถลงการณ์' },
+  { step: 'hearing', group: 'แถลงการณ์', kind: 'หนังสือแจ้งผู้เข้าร่วมแถลงการณ์' },
+  { step: 'hearing', group: 'แถลงการณ์', kind: 'บันทึกรายงานผลการแถลงการณ์' },
+  { step: 'hearing', group: 'แถลงการณ์', kind: 'สรุปผลการแถลงการณ์และรายชื่อผู้เข้าร่วม' },
+  { step: 'visit', group: 'ตรวจในประเทศ', kind: 'บันทึกขออนุมัติตรวจข้อมูลในประเทศ' },
+  { step: 'visit', group: 'ตรวจในประเทศ', kind: 'หนังสือแจ้งขอตรวจข้อมูลในประเทศ' },
+  { step: 'visit', group: 'ตรวจในประเทศ', kind: 'บันทึกถึง สล. ยกเว้นการสแกนเข้างาน' },
+  { step: 'visit', group: 'ตรวจในประเทศ', kind: 'บันทึกรายงานผลการตรวจข้อมูลในประเทศ' },
+  { step: 'visit', group: 'ตรวจต่างประเทศ', kind: 'หนังสือแจ้งขอตรวจข้อมูลผู้ส่งออก' },
+  { step: 'visit', group: 'ตรวจต่างประเทศ', kind: 'หนังสือยินยอมตรวจข้อมูลจากผู้ส่งออก' },
+  { step: 'visit', group: 'ตรวจต่างประเทศ', kind: 'บันทึกขออนุมัติเดินทางตรวจข้อมูลต่างประเทศ' },
+  { step: 'visit', group: 'ตรวจต่างประเทศ', kind: 'บันทึกแจ้งรัฐบาลประเทศผู้ส่งออก' },
+  { step: 'visit', group: 'ตรวจต่างประเทศ', kind: 'บันทึกแจ้ง สพต./สคต. วันตรวจข้อมูล' },
+];
+
+const prelimPack: { step: 'sub' | 'tdc' | 'bond' | 'bondLetters' | 'dept' | 'deptLetters' | 'hearing'; group: string; kind: string }[] = [
+  { step: 'sub', group: 'วาระอนุผลขั้นต้น', kind: 'บันทึกขออนุมัติวาระอนุพิจารณาผลขั้นต้น' },
+  { step: 'sub', group: 'วาระอนุผลขั้นต้น', kind: 'วาระการประชุมอนุพิจารณาผลขั้นต้น' },
+  { step: 'sub', group: 'วาระอนุผลขั้นต้น', kind: 'เอกสารแนบวาระอนุผลขั้นต้น' },
+  { step: 'sub', group: 'วาระอนุผลขั้นต้น', kind: 'มติที่ประชุมอนุพิจารณาผลขั้นต้น' },
+  { step: 'sub', group: 'วาระอนุผลขั้นต้น', kind: 'รายงานการประชุมอนุพิจารณาผลขั้นต้น' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลขั้นต้น', kind: 'บันทึกขออนุมัติวาระ ทตอ. พิจารณาผลขั้นต้น' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลขั้นต้น', kind: 'วาระการประชุม ทตอ. พิจารณาผลขั้นต้น' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลขั้นต้น', kind: 'เอกสารแนบวาระ ทตอ. ผลขั้นต้น' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลขั้นต้น', kind: 'Chairman’s Note ผลขั้นต้น' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลขั้นต้น', kind: 'มติที่ประชุม ทตอ. พิจารณาผลขั้นต้น' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลขั้นต้น', kind: 'รายงานการประชุม ทตอ. พิจารณาผลขั้นต้น' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'ร่างประกาศ ทตอ. เรียกเก็บหลักประกันอากร' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'บันทึกให้ กม. ตรวจร่างประกาศหลักประกันอากร' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'บันทึก กม. แจ้งตรวจร่างประกาศหลักประกันอากรแล้ว' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'บันทึกปลัดเรียน รมว. ลงนามประกาศหลักประกันอากร' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'ประกาศ ทตอ. เรียกเก็บหลักประกันอากรที่ลงนามแล้ว' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'บันทึก อธ. ส่งประกาศหลักประกันอากรลงราชกิจจานุเบกษา' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'หนังสือส่งราชกิจจานุเบกษาประกาศหลักประกันอากร' },
+  { step: 'bond', group: 'ประกาศหลักประกันอากร', kind: 'หนังสือราชกิจจานุเบกษาแจ้งลงประกาศหลักประกันอากรแล้ว' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'บันทึก อธ. ลงนามหนังสือแจ้งหลักประกันอากร' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'หนังสือแจ้งสถานทูตเรียกเก็บหลักประกันอากร' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'หนังสือแจ้งผู้ส่งออกเรียกเก็บหลักประกันอากร' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'หนังสือแจ้ง สพต./สคต. เรียกเก็บหลักประกันอากร' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'หนังสือแจ้งกรมศุลกากรเรียกเก็บหลักประกันอากร' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'หนังสือแจ้งผู้นำเข้าเรียกเก็บหลักประกันอากร' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'หนังสือแจ้งอุตสาหกรรมภายในเรียกเก็บหลักประกันอากร' },
+  { step: 'bondLetters', group: 'หนังสือแจ้งหลักประกัน', kind: 'หนังสือแจ้งสมาคมเรียกเก็บหลักประกันอากร' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'ร่างประกาศกรมผลการไต่สวนขั้นต้น' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'บันทึกให้ กม. ตรวจร่างประกาศกรมผลขั้นต้น' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'บันทึก กม. แจ้งตรวจร่างประกาศกรมผลขั้นต้นแล้ว' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'บันทึก อธ. ลงนามประกาศกรมผลขั้นต้น' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'ประกาศกรมผลการไต่สวนขั้นต้นที่ลงนามแล้ว' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'หนังสือส่งราชกิจจานุเบกษาประกาศกรมผลขั้นต้น' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'หนังสือราชกิจจานุเบกษาแจ้งลงประกาศกรมผลขั้นต้นแล้ว' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'Disclosures ฉบับปกปิดผลขั้นต้น' },
+  { step: 'dept', group: 'ประกาศกรมผลขั้นต้น', kind: 'Disclosures ฉบับเปิดเผยผลขั้นต้น' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรม', kind: 'บันทึก อธ. ลงนามหนังสือแจ้งประกาศกรมผลขั้นต้น' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรม', kind: 'หนังสือแจ้งสถานทูตผลขั้นต้น' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรม', kind: 'หนังสือแจ้งผู้ส่งออกผลขั้นต้น' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรม', kind: 'หนังสือแจ้งผู้นำเข้าผลขั้นต้น' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรม', kind: 'หนังสือแจ้งอุตสาหกรรมภายในผลขั้นต้น' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรม', kind: 'หนังสือแจ้งสมาคมผลขั้นต้น' },
+  { step: 'hearing', group: 'แถลงการณ์ผลขั้นต้น', kind: 'หนังสือขอให้จัดแถลงการณ์ผลขั้นต้น' },
+  { step: 'hearing', group: 'แถลงการณ์ผลขั้นต้น', kind: 'บันทึกขออนุมัติจัดแถลงการณ์ผลขั้นต้น' },
+  { step: 'hearing', group: 'แถลงการณ์ผลขั้นต้น', kind: 'หนังสือแจ้งผู้เข้าร่วมแถลงการณ์ผลขั้นต้น' },
+  { step: 'hearing', group: 'แถลงการณ์ผลขั้นต้น', kind: 'บันทึกรายงานผลการแถลงการณ์ผลขั้นต้น' },
+  { step: 'hearing', group: 'แถลงการณ์ผลขั้นต้น', kind: 'สรุปผลการแถลงการณ์ผลขั้นต้น' },
+];
+
+const draftFinalPack: { step: 'sub' | 'tdc' | 'letters' | 'hearing'; group: string; kind: string }[] = [
+  { step: 'sub', group: 'วาระอนุร่างผลสิ้นสุด', kind: 'บันทึกขออนุมัติวาระอนุพิจารณาร่างผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุร่างผลสิ้นสุด', kind: 'วาระการประชุมอนุพิจารณาร่างผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุร่างผลสิ้นสุด', kind: 'เอกสารแนบวาระอนุร่างผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุร่างผลสิ้นสุด', kind: 'มติที่ประชุมอนุพิจารณาร่างผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุร่างผลสิ้นสุด', kind: 'รายงานการประชุมอนุพิจารณาร่างผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ร่างผลสิ้นสุด', kind: 'บันทึกขออนุมัติวาระ ทตอ. พิจารณาร่างผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ร่างผลสิ้นสุด', kind: 'วาระการประชุม ทตอ. พิจารณาร่างผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ร่างผลสิ้นสุด', kind: 'เอกสารแนบวาระ ทตอ. ร่างผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ร่างผลสิ้นสุด', kind: 'มติที่ประชุม ทตอ. พิจารณาร่างผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ร่างผลสิ้นสุด', kind: 'Chairman’s Note ร่างผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ร่างผลสิ้นสุด', kind: 'รายงานการประชุม ทตอ. พิจารณาร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'บันทึก อธ. ขออนุมัติ Disclosures และลงนามหนังสือแจ้งร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'หนังสือแจ้งสถานทูตร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'หนังสือแจ้งผู้ส่งออกร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'Disclosures ฉบับปกปิดร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'Disclosures ฉบับเปิดเผยร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'หนังสือแจ้งผู้นำเข้าร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'หนังสือแจ้งอุตสาหกรรมภายในร่างผลสิ้นสุด' },
+  { step: 'letters', group: 'แจ้งร่างผลสิ้นสุด', kind: 'หนังสือแจ้งสมาคมร่างผลสิ้นสุด' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'เอกสารความเห็นฉบับเปิดเผยจากผู้นำเข้า' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'เอกสารความเห็นฉบับเปิดเผยจากอุตสาหกรรมภายใน' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'เอกสารความเห็นฉบับเปิดเผยจากผู้ส่งออก' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'เอกสารความเห็นฉบับเปิดเผยจากสมาคม' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'เอกสารความเห็นฉบับเปิดเผยจากสถานทูต' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'เอกสารความเห็นฉบับปกปิดร่างผลสิ้นสุด' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'บันทึกรายงานผลการแถลงการณ์ร่างผลสิ้นสุด' },
+  { step: 'hearing', group: 'แถลงการณ์ร่างผลสิ้นสุด', kind: 'สรุปผลการแถลงการณ์ร่างผลสิ้นสุด' },
+];
+
+const finalResultPack: { step: 'sub' | 'tdc' | 'duty' | 'dutyLetters' | 'dept' | 'deptLetters'; group: string; kind: string }[] = [
+  { step: 'sub', group: 'วาระอนุผลสิ้นสุด', kind: 'บันทึกขออนุมัติวาระอนุพิจารณาผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุผลสิ้นสุด', kind: 'วาระการประชุมอนุพิจารณาผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุผลสิ้นสุด', kind: 'เอกสารแนบวาระอนุผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุผลสิ้นสุด', kind: 'มติที่ประชุมอนุพิจารณาผลสิ้นสุด' },
+  { step: 'sub', group: 'วาระอนุผลสิ้นสุด', kind: 'รายงานการประชุมอนุพิจารณาผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลสิ้นสุด', kind: 'บันทึกขออนุมัติวาระ ทตอ. พิจารณาผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลสิ้นสุด', kind: 'วาระการประชุม ทตอ. พิจารณาผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลสิ้นสุด', kind: 'เอกสารแนบวาระ ทตอ. ผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลสิ้นสุด', kind: 'มติที่ประชุม ทตอ. พิจารณาผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลสิ้นสุด', kind: 'Chairman’s Note ผลสิ้นสุด' },
+  { step: 'tdc', group: 'วาระ ทตอ. ผลสิ้นสุด', kind: 'รายงานการประชุม ทตอ. พิจารณาผลสิ้นสุด' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'ร่างประกาศ ทตอ. เรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'บันทึกให้ กม. ตรวจร่างประกาศเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'บันทึก กม. แจ้งตรวจร่างประกาศเรียกเก็บอากรผลสิ้นสุดแล้ว' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'บันทึกปลัดเรียน รมว. ลงนามประกาศเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'ประกาศ ทตอ. เรียกเก็บอากรผลสิ้นสุดที่ลงนามแล้ว' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'บันทึก อธ. ส่งประกาศเรียกเก็บอากรผลสิ้นสุดลงราชกิจจานุเบกษา' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'หนังสือส่งราชกิจจานุเบกษาประกาศเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'duty', group: 'ประกาศเรียกเก็บอากร', kind: 'หนังสือราชกิจจานุเบกษาแจ้งลงประกาศเรียกเก็บอากรผลสิ้นสุดแล้ว' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'บันทึก อธ. ลงนามหนังสือแจ้งเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'หนังสือแจ้งสถานทูตเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'หนังสือแจ้งผู้ส่งออกเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'หนังสือแจ้งกรมศุลกากรเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'หนังสือแจ้งสถานทูตไทยเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'หนังสือแจ้งผู้นำเข้าเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'หนังสือแจ้งอุตสาหกรรมภายในเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dutyLetters', group: 'หนังสือแจ้งอากร', kind: 'หนังสือแจ้งสมาคมเรียกเก็บอากรผลสิ้นสุด' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'ร่างประกาศกรมผลการไต่สวนขั้นสุดท้าย' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'บันทึกให้ กม. ตรวจร่างประกาศกรมผลสิ้นสุด' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'บันทึก กม. แจ้งตรวจร่างประกาศกรมผลสิ้นสุดแล้ว' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'บันทึก อธ. ลงนามประกาศกรมผลสิ้นสุด' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'ประกาศกรมผลการไต่สวนขั้นสุดท้ายที่ลงนามแล้ว' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'หนังสือส่งราชกิจจานุเบกษาประกาศกรมผลสิ้นสุด' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'หนังสือราชกิจจานุเบกษาแจ้งลงประกาศกรมผลสิ้นสุดแล้ว' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'Disclosures ฉบับปกปิดผลสิ้นสุด' },
+  { step: 'dept', group: 'ประกาศกรมผลสิ้นสุด', kind: 'Disclosures ฉบับเปิดเผยผลสิ้นสุด' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรมผลสิ้นสุด', kind: 'บันทึก อธ. ลงนามหนังสือแจ้งประกาศกรมผลสิ้นสุด' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรมผลสิ้นสุด', kind: 'หนังสือแจ้งสถานทูตผลสิ้นสุด' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรมผลสิ้นสุด', kind: 'หนังสือแจ้งผู้ส่งออกผลสิ้นสุด' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรมผลสิ้นสุด', kind: 'หนังสือแจ้งผู้นำเข้าผลสิ้นสุด' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรมผลสิ้นสุด', kind: 'หนังสือแจ้งอุตสาหกรรมภายในผลสิ้นสุด' },
+  { step: 'deptLetters', group: 'หนังสือแจ้งประกาศกรมผลสิ้นสุด', kind: 'หนังสือแจ้งสมาคมผลสิ้นสุด' },
+];
+
+const measurePack: { step: 'm56' | 'm57' | 'm58' | 'm59'; group: string; kind: string }[] = [
+  { step: 'm56', group: 'มาตรา 56', kind: 'บันทึกขออนุมัติวาระทบทวนมาตรา 56' },
+  { step: 'm56', group: 'มาตรา 56', kind: 'วาระการประชุม ทตอ. ทบทวนมาตรา 56' },
+  { step: 'm56', group: 'มาตรา 56', kind: 'เอกสารแนบวาระมาตรา 56' },
+  { step: 'm56', group: 'มาตรา 56', kind: 'มติที่ประชุม ทตอ. มาตรา 56' },
+  { step: 'm56', group: 'มาตรา 56', kind: 'รายงานการประชุม ทตอ. มาตรา 56' },
+  { step: 'm56', group: 'มาตรา 56', kind: 'หนังสือแจ้งผลการทบทวนมาตรา 56' },
+  { step: 'm57', group: 'มาตรา 57', kind: 'บันทึกขออนุมัติวาระทบทวนมาตรา 57' },
+  { step: 'm57', group: 'มาตรา 57', kind: 'วาระการประชุม ทตอ. ทบทวนมาตรา 57' },
+  { step: 'm57', group: 'มาตรา 57', kind: 'เอกสารแนบวาระมาตรา 57' },
+  { step: 'm57', group: 'มาตรา 57', kind: 'มติที่ประชุม ทตอ. มาตรา 57' },
+  { step: 'm57', group: 'มาตรา 57', kind: 'รายงานการประชุม ทตอ. มาตรา 57' },
+  { step: 'm57', group: 'มาตรา 57', kind: 'หนังสือแจ้งผลการทบทวนมาตรา 57' },
+  { step: 'm58', group: 'มาตรา 58', kind: 'บันทึกขออนุมัติวาระทบทวนมาตรา 58' },
+  { step: 'm58', group: 'มาตรา 58', kind: 'บันทึกตรวจความเกี่ยวข้องผู้ผลิตรายใหม่' },
+  { step: 'm58', group: 'มาตรา 58', kind: 'วาระการประชุม ทตอ. ทบทวนมาตรา 58' },
+  { step: 'm58', group: 'มาตรา 58', kind: 'มติที่ประชุม ทตอ. มาตรา 58' },
+  { step: 'm58', group: 'มาตรา 58', kind: 'รายงานการประชุม ทตอ. มาตรา 58' },
+  { step: 'm58', group: 'มาตรา 58', kind: 'หนังสือแจ้งผลการทบทวนมาตรา 58' },
+  { step: 'm59', group: 'มาตรา 59', kind: 'บันทึกขออนุมัติวาระพิจารณาคืนอากร' },
+  { step: 'm59', group: 'มาตรา 59', kind: 'บันทึกตรวจหลักฐานผู้นำเข้าขอคืนอากร' },
+  { step: 'm59', group: 'มาตรา 59', kind: 'วาระการประชุม ทตอ. มาตรา 59' },
+  { step: 'm59', group: 'มาตรา 59', kind: 'มติที่ประชุม ทตอ. มาตรา 59' },
+  { step: 'm59', group: 'มาตรา 59', kind: 'รายงานการประชุม ทตอ. มาตรา 59' },
+  { step: 'm59', group: 'มาตรา 59', kind: 'หนังสือแจ้งผลการคืนอากร' },
+];
+
 function agendaFieldList(): { label: string; value: string; long?: boolean }[] {
   return [
     field('ครั้งที่ประชุม', '1/2562'),
@@ -322,10 +675,10 @@ export class Por1Page {
   private readonly view = inject(ChangeDetectorRef);
   private guideField = '';
   protected readonly toc = toc;
-  protected readonly refId = filingRefId;
+  protected refId = filingRefId;
   protected section = '1';
   protected anchor = 'part-1-1';
-  protected measure = 'dumping';
+  protected measure = cvdChosen() ? 'subsidy' : 'dumping';
   protected filing: 'self' | 'all' | 'part' = 'part';
   protected nationality = 'ไทย';
   protected readonly nationalities = ['ไทย'];
@@ -683,7 +1036,47 @@ export class Por1Page {
   protected readonly reviewRole = (this.route.snapshot.data['review'] as string) || '';
   protected readonly staffGroups = staffGroups;
   protected reviewTab: ReviewTab = 'form';
-  protected laterPhase: LaterPhase = { visit: false, prelim: false, draftFinal: false, finalResult: false };
+  protected laterPhase: LaterPhase = { visit: false, prelim: false, draftFinal: false, finalResult: false, measures: false, marks: {}, notes: {} };
+  protected flowPick: Record<string, '' | 'yes' | 'no'> = {};
+  protected flowView = '';
+  protected flowValues: Record<string, string> = {};
+  protected partyName = '';
+  protected partyOrg = '';
+  protected partyCount = '';
+  protected hearingMemo = '';
+  protected hearingPeople = '';
+  protected hearingOffice: '' | 'approve' | 'return' = '';
+  protected visitDomestic = false;
+  protected visitForeign = false;
+  protected normalValue = '';
+  protected exportPrice = '';
+  protected dumpingMargin = '';
+  protected visitRows: { name: string; normalValue: string; exportPrice: string; compare: string; margin: string }[] = [
+    { name: 'ผู้ผลิตและผู้ส่งออกเวียดนาม', normalValue: '', exportPrice: '', compare: '', margin: '' },
+    { name: 'ผู้ผลิตและผู้ส่งออกอียิปต์', normalValue: '', exportPrice: '', compare: '', margin: '' },
+  ];
+  protected injuryVolume = '';
+  protected injuryPrice = '';
+  protected injuryPerformance = '';
+  protected injuryCustoms = '';
+  protected injuryLink = '';
+  protected visitDataOk: '' | 'yes' | 'no' = '';
+  protected visitMoreNote = '';
+  protected prelimPart: 'sub' | 'tdc' | 'bond' | 'bondLetters' | 'dept' | 'deptLetters' | 'hearing' | 'close' = 'sub';
+  protected prelimOn = '20/08/2562';
+  protected prelimHearing: '' | 'yes' | 'no' = '';
+  protected prelimAgain: '' | 'yes' | 'no' = '';
+  protected draftPart: 'sub' | 'tdc' | 'letters' | 'hearing' | 'close' = 'sub';
+  protected draftOn = '15/10/2562';
+  protected draftSubstance: '' | 'yes' | 'no' = '';
+  protected finalPart: 'sub' | 'tdc' | 'duty' | 'dutyLetters' | 'dept' | 'deptLetters' | 'close' = 'sub';
+  protected finalOn = '20/12/2562';
+  protected measurePart: 'm56' | 'm57' | 'm58' | 'm59' | 'close' = 'm56';
+  protected measureOn = '15/06/2563';
+  protected measure56: '' | 'yes' | 'no' = '';
+  protected measure57: '' | 'yes' | 'no' = '';
+  protected measure58: '' | 'yes' | 'no' = '';
+  protected measure59: '' | 'yes' | 'no' = '';
   protected workDocs: WorkDraft[] = defaultWorkDrafts();
   protected madeDocs: MadeDoc[] = [];
   protected editingId = '';
@@ -1019,14 +1412,15 @@ export class Por1Page {
   }
 
   protected get formLocked(): boolean {
-    return !!this.reviewRole || this.caseStatus === 'review' || this.caseStatus === 'approval' || this.caseStatus === 'official' || ((this.caseStatus === 'consult' || this.caseStatus === 'revision') && !this.revising);
+    return this.formView || !!this.reviewRole || this.caseStatus === 'review' || this.caseStatus === 'approval' || this.caseStatus === 'official' || ((this.caseStatus === 'consult' || this.caseStatus === 'revision') && !this.revising);
   }
 
   protected get showForm(): boolean {
-    return !!this.reviewRole || this.caseStatus === 'draft' || this.caseStatus === 'cancelled' || this.viewingForm || this.revising;
+    return this.formView || !!this.reviewRole || this.caseStatus === 'draft' || this.caseStatus === 'cancelled' || this.viewingForm || this.revising;
   }
 
   protected get tracking(): boolean {
+    if (this.formView) return false;
     return this.caseStatus === 'review' || this.caseStatus === 'revision' || this.caseStatus === 'consult' || this.caseStatus === 'approval' || this.caseStatus === 'official';
   }
 
@@ -2100,6 +2494,10 @@ export class Por1Page {
 
   protected showReviewTab(tab: ReviewTab): boolean {
     if (!this.reviewRole) return false;
+    if (this.reviewRole === 'bureau') return tab === 'form' || tab === 'docs' || tab === 'inquiry';
+    if (this.reviewRole === 'committee') return tab === 'inquiry' || tab === 'prelim' || tab === 'draftFinal' || tab === 'finalResult' || tab === 'measures';
+    if (this.reviewRole === 'interest') return tab === 'inquiry';
+    if (this.reviewRole === 'external') return tab === 'docs' || tab === 'inquiry';
     if (tab === 'assign') {
       if (this.reviewRole === 'officer') return !!this.myConsultOfficer();
       return this.reviewRole === 'staff' || this.reviewRole === 'director' || this.reviewRole === 'head';
@@ -2116,6 +2514,7 @@ export class Por1Page {
       { id: 'prelim', label: 'ผลขั้นต้น' },
       { id: 'draftFinal', label: 'ร่างผลสิ้นสุด' },
       { id: 'finalResult', label: 'ผลสิ้นสุด' },
+      { id: 'measures', label: 'ทบทวนและคืนอากร' },
       { id: 'link', label: 'เชื่อมโยงระบบ' },
     ];
     return tabs.filter((tab) => this.showReviewTab(tab.id));
@@ -2124,6 +2523,7 @@ export class Por1Page {
   protected pickReviewTab(tab: ReviewTab): void {
     if (!this.showReviewTab(tab) || this.reviewLocked(tab)) return;
     this.reviewTab = tab;
+    this.flowView = '';
     if (tab === 'inquiry') this.placeInquiry();
   }
 
@@ -2132,11 +2532,13 @@ export class Por1Page {
   }
 
   protected reviewLocked(tab: ReviewTab): boolean {
+    if (this.reviewRole === 'bureau' || this.reviewRole === 'committee' || this.reviewRole === 'interest' || this.reviewRole === 'external') return false;
     if (tab === 'inquiry') return !this.docsPassed;
     if (tab === 'link') return this.inquiryOpen !== 'open';
     if (tab === 'prelim') return !this.laterPhase.visit;
     if (tab === 'draftFinal') return !this.laterPhase.prelim;
     if (tab === 'finalResult') return !this.laterPhase.draftFinal;
+    if (tab === 'measures') return !this.laterPhase.finalResult;
     return false;
   }
 
@@ -2149,6 +2551,7 @@ export class Por1Page {
     if (tab === 'prelim') return this.laterPhase.prelim ? 'done' : 'work';
     if (tab === 'draftFinal') return this.laterPhase.draftFinal ? 'done' : 'work';
     if (tab === 'finalResult') return this.laterPhase.finalResult ? 'done' : 'work';
+    if (tab === 'measures') return this.laterPhase.measures ? 'done' : 'work';
     return this.etrDone ? 'done' : 'work';
   }
 
@@ -2159,6 +2562,7 @@ export class Por1Page {
       if (tab === 'prelim') return 'รอตรวจสอบและประกาศ';
       if (tab === 'draftFinal') return 'รอผลขั้นต้น';
       if (tab === 'finalResult') return 'รอร่างผลสิ้นสุด';
+      if (tab === 'measures') return 'รอผลชั้นที่สุด';
       if (tab === 'link') return 'ยังไม่เริ่มดำเนินการ';
     }
     return '';
@@ -2198,9 +2602,235 @@ export class Por1Page {
   }
 
   protected passVisit(): void {
-    if (!this.inquiryQuestionsDone || this.laterPhase.visit) return;
-    this.laterPhase = { ...this.laterPhase, visit: true };
+    if (!this.inquiryQuestionsDone || this.laterPhase.visit || !this.visitReady) return;
+    const first = this.visitRows[0];
+    this.laterPhase = {
+      ...this.laterPhase,
+      visit: true,
+      notes: {
+        ...this.laterPhase.notes,
+        visit: JSON.stringify({
+          domestic: true,
+          foreign: this.visitForeign,
+          normalValue: first?.normalValue.trim() || '',
+          exportPrice: first?.exportPrice.trim() || '',
+          margin: first?.margin.trim() || '',
+          parties: this.visitRows,
+          volume: this.injuryVolume.trim(),
+          price: this.injuryPrice.trim(),
+          performance: this.injuryPerformance.trim(),
+          customs: this.injuryCustoms.trim(),
+          link: this.injuryLink.trim(),
+          complete: 'yes',
+        }),
+      },
+    };
     writeLaterPhase(this.laterPhase);
+  }
+
+  protected saveVisitMore(): void {
+    if (this.visitDataOk !== 'no' || !this.visitMoreNote.trim()) return;
+    this.keepNote('visit-more', this.visitMoreNote.trim());
+    this.notice = 'saved';
+  }
+
+  protected flowTab(tab: ReviewTab): tab is 'prelim' | 'draftFinal' | 'finalResult' | 'measures' {
+    return tab === 'prelim' || tab === 'draftFinal' || tab === 'finalResult' || tab === 'measures';
+  }
+
+  protected flowSteps(tab: ReviewTab): FlowStep[] {
+    return this.flowTab(tab) ? flowCatalog[tab] : [];
+  }
+
+  protected flowCursor(tab: ReviewTab): string {
+    const steps = this.flowSteps(tab);
+    return steps.find((step) => !this.laterPhase.marks[step.id])?.id ?? steps.at(-1)?.id ?? '';
+  }
+
+  protected flowShown(tab: ReviewTab): FlowStep | null {
+    const steps = this.flowSteps(tab);
+    const id = this.flowView && steps.some((step) => step.id === this.flowView) ? this.flowView : this.flowCursor(tab);
+    return steps.find((step) => step.id === id) ?? null;
+  }
+
+  protected flowDot(tab: ReviewTab, id: string): string {
+    if (this.laterPhase.marks[id]) return 'assets/icons/por1-dot-done.svg';
+    if (this.flowCursor(tab) === id) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
+  protected flowMarkLabel(step: FlowStep): string {
+    const mark = this.laterPhase.marks[step.id];
+    if (mark === 'skip') return 'ข้ามขั้น';
+    if (mark === 'yes') return step.yes || 'ใช่';
+    if (mark === 'no') return step.no || 'ไม่';
+    return 'บันทึกแล้ว';
+  }
+
+  protected openFlowStep(tab: ReviewTab, id: string): void {
+    const steps = this.flowSteps(tab);
+    const index = steps.findIndex((step) => step.id === id);
+    const pending = steps.findIndex((step) => !this.laterPhase.marks[step.id]);
+    if (index < 0 || (pending !== -1 && index > pending)) return;
+    this.flowView = id;
+    this.flowValues = Object.fromEntries(this.flowSaved(id).map((row) => [row.label, row.value]));
+  }
+
+  protected flowFieldsOf(id: string): FlowField[] {
+    return flowFields[id] ?? [];
+  }
+
+  protected flowSaved(id: string): { label: string; value: string }[] {
+    const raw = this.laterPhase.notes[id];
+    if (!raw) return [];
+    try {
+      const value = JSON.parse(raw) as { label?: string; value?: string }[];
+      if (Array.isArray(value)) return value.flatMap((item) => item?.label && item.value ? [{ label: item.label, value: item.value }] : []);
+    } catch {
+      return [{ label: 'เนื้อความ', value: raw }];
+    }
+    return [{ label: 'เนื้อความ', value: raw }];
+  }
+
+  protected flowReady(step: FlowStep): boolean {
+    if (step.yes && !this.flowPick[step.id]) return false;
+    return this.flowFieldsOf(step.id).every((field) => !!this.flowValues[field.label]?.trim());
+  }
+
+  protected setFlowValue(label: string, value: string): void {
+    this.flowValues = { ...this.flowValues, [label]: value };
+  }
+
+  protected pickFlow(id: string, value: 'yes' | 'no'): void {
+    this.flowPick = { ...this.flowPick, [id]: value };
+  }
+
+  protected saveFlowStep(tab: ReviewTab, id: string): void {
+    if (!this.flowTab(tab) || this.flowCursor(tab) !== id) return;
+    const step = this.flowSteps(tab).find((item) => item.id === id);
+    if (!step) return;
+    const choice = step.yes ? this.flowPick[id] : 'done';
+    if (!choice || !this.flowReady(step)) return;
+    const marks = { ...this.laterPhase.marks, [id]: choice };
+    const packed = this.flowFieldsOf(id).map((field) => ({ label: field.label, value: this.flowValues[field.label].trim() }));
+    const notes = { ...this.laterPhase.notes, [id]: JSON.stringify(packed) };
+    if (id === 'prelim-again' && choice === 'yes') {
+      for (const key of ['prelim-committee', 'prelim-announce', 'prelim-notify', 'prelim-hearing', 'prelim-again']) delete marks[key];
+    }
+    if (id === 'draft-sub' && choice === 'no') marks['draft-agenda'] = 'skip';
+    if (id === 'draft-substance' && choice === 'no') marks['draft-revise'] = 'skip';
+    const phase: LaterPhase = { ...this.laterPhase, marks, notes };
+    if (id === 'prelim-again' && choice === 'no') phase.prelim = true;
+    if (id === 'draft-pack') phase.draftFinal = true;
+    if (id === 'final-publish') phase.finalResult = true;
+    if (['m56', 'm57', 'm58', 'm59'].every((key) => marks[key])) phase.measures = true;
+    this.laterPhase = phase;
+    this.flowView = '';
+    this.flowValues = {};
+    writeLaterPhase(phase);
+  }
+
+  protected get aiChecks(): { label: string; pass: boolean; detail: string }[] {
+    const required = !!this.company.trim() && !!this.address.trim();
+    const related = !!this.phone.trim() && !!this.measure;
+    return [
+      { label: 'Required ความครบถ้วน', pass: required, detail: required ? 'ชื่อผู้ยื่นและที่อยู่ครบ' : 'ยังขาดชื่อผู้ยื่นหรือที่อยู่' },
+      { label: 'Related ความสอดคล้อง', pass: related, detail: related ? 'มาตรการและโทรศัพท์อ้างอิงครบ' : 'มาตรการหรือโทรศัพท์ยังไม่ครบ' },
+      { label: 'Recheck ตามเงื่อนไข', pass: !this.consultGate, detail: this.consultGate ? `แก้ ${this.revisionCount} รอบและอัปโหลด ${this.uploadPercent}% ต้องปรึกษาเจ้าหน้าที่` : 'ยังไม่เข้าเงื่อนไขที่ต้องปรึกษาเจ้าหน้าที่' },
+    ];
+  }
+
+  protected get aiReady(): boolean {
+    return this.aiChecks.every((item) => item.pass);
+  }
+
+  private restoreWorkNotes(): void {
+    const visit = this.laterPhase.notes['visit'];
+    if (visit) {
+      try {
+        const parsed = JSON.parse(visit) as { domestic?: boolean; foreign?: boolean; normalValue?: string; exportPrice?: string; margin?: string; parties?: { name?: string; normalValue?: string; exportPrice?: string; compare?: string; margin?: string }[]; volume?: string; price?: string; performance?: string; customs?: string; link?: string; complete?: string };
+        this.visitDomestic = parsed.domestic === true;
+        this.visitForeign = parsed.foreign === true;
+        this.normalValue = parsed.normalValue || '';
+        this.exportPrice = parsed.exportPrice || '';
+        this.dumpingMargin = parsed.margin || '';
+        if (Array.isArray(parsed.parties) && parsed.parties.length) {
+          this.visitRows = parsed.parties.flatMap((row) => {
+            if (!row || typeof row.name !== 'string' || !row.name) return [];
+            return [{ name: row.name, normalValue: row.normalValue || '', exportPrice: row.exportPrice || '', compare: row.compare || '', margin: row.margin || '' }];
+          });
+        } else if (parsed.normalValue || parsed.exportPrice || parsed.margin) {
+          this.visitRows = [{ name: 'ผู้ผลิตและผู้ส่งออก', normalValue: parsed.normalValue || '', exportPrice: parsed.exportPrice || '', compare: '', margin: parsed.margin || '' }];
+        }
+        this.injuryVolume = parsed.volume || '';
+        this.injuryPrice = parsed.price || '';
+        this.injuryPerformance = parsed.performance || '';
+        this.injuryCustoms = parsed.customs || '';
+        this.injuryLink = parsed.link || '';
+        this.visitDataOk = parsed.complete === 'yes' ? 'yes' : '';
+        this.visitMoreNote = this.laterPhase.notes['visit-more'] || '';
+      } catch {
+        this.visitDomestic = this.laterPhase.visit;
+      }
+    }
+    this.prelimOn = this.laterPhase.notes['prelim-on'] || this.prelimOn;
+    this.draftOn = this.laterPhase.notes['draft-on'] || this.draftOn;
+    this.finalOn = this.laterPhase.notes['final-on'] || this.finalOn;
+    this.measureOn = this.laterPhase.notes['measure-on'] || this.measureOn;
+    const mark = (id: string) => this.laterPhase.marks[id] === 'yes' || this.laterPhase.marks[id] === 'no' ? this.laterPhase.marks[id] : '';
+    this.measure56 = mark('m56');
+    this.measure57 = mark('m57');
+    this.measure58 = mark('m58');
+    this.measure59 = mark('m59');
+    this.draftSubstance = this.laterPhase.notes['draft-substance'] === 'yes' || this.laterPhase.notes['draft-substance'] === 'no' ? this.laterPhase.notes['draft-substance'] : '';
+    this.prelimHearing = this.laterPhase.notes['prelim-hearing'] === 'yes' || this.laterPhase.notes['prelim-hearing'] === 'no' ? this.laterPhase.notes['prelim-hearing'] : '';
+    this.prelimAgain = this.laterPhase.notes['prelim-again'] === 'yes' || this.laterPhase.notes['prelim-again'] === 'no' ? this.laterPhase.notes['prelim-again'] : '';
+    this.hearingMemo = this.laterPhase.notes['hearing-memo'] || '';
+    this.hearingPeople = this.laterPhase.notes['hearing-people'] || '';
+    const office = this.laterPhase.notes['hearing-office'];
+    this.hearingOffice = office === 'approve' || office === 'return' ? office : '';
+  }
+
+  private keepNote(key: string, value: string): void {
+    this.laterPhase = { ...this.laterPhase, notes: { ...this.laterPhase.notes, [key]: value } };
+    writeLaterPhase(this.laterPhase);
+  }
+
+  protected saveCaseSplit(): void {
+    this.keepNote('case-split', `แตกเคสจากสรุปประชุมรายเดือน เลขสารบรรณ ${this.filingSaraban} Ref e-TR ${this.etrRefNo}`);
+  }
+
+  protected get interestParties(): { name: string; org: string; count: string }[] {
+    try {
+      const value = JSON.parse(this.laterPhase.notes['interest'] || '[]') as { name?: string; org?: string; count?: string }[];
+      return Array.isArray(value) ? value.flatMap((item) => item?.name ? [{ name: item.name, org: item.org || '', count: item.count || '1' }] : []) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  protected addInterestParty(): void {
+    if (!this.partyName.trim()) return;
+    const rows = [...this.interestParties, { name: this.partyName.trim(), org: this.partyOrg.trim(), count: this.partyCount.trim() || '1' }];
+    this.partyName = '';
+    this.partyOrg = '';
+    this.partyCount = '';
+    this.keepNote('interest', JSON.stringify(rows));
+  }
+
+  protected saveHearingOffice(): void {
+    if (!this.hearingMemo.trim() || !this.hearingOffice || !this.hearingPeople.trim()) return;
+    this.keepNote('hearing-memo', this.hearingMemo.trim());
+    this.keepNote('hearing-office', this.hearingOffice);
+    this.keepNote('hearing-people', this.hearingPeople.trim());
+  }
+
+  protected reopenHearing(): void {
+    this.inquiryHearing = '';
+    this.inquiryHearingDraft = 'hold';
+    this.hearingOffice = '';
+    this.keepNote('hearing-office', '');
+    this.writeInquiry();
   }
 
   protected passLaterPhase(): void {
@@ -2406,17 +3036,22 @@ export class Por1Page {
     URL.revokeObjectURL(url);
   }
 
+  protected get canHandleCase(): boolean {
+    if (this.reviewRole === 'director' || this.reviewRole === 'staff' || this.reviewRole === 'committee') return true;
+    if (this.approverNames().includes(this.signedPerson)) return true;
+    if (this.myConsultOfficer()) return true;
+    return this.isMyGroupHead() && !!this.consultGroupJob();
+  }
+
   protected get canReviewDocs(): boolean {
     if (this.docSent) return false;
-    if (this.reviewRole === 'director' || this.reviewRole === 'staff') return true;
-    return this.etrAccepted && this.approverNames().includes(this.signedPerson);
+    return this.canHandleCase;
   }
 
   protected get docCanSend(): boolean {
     const dueOk = this.docAction === 'complete' || thaiDateOk(this.docDueOn, 'any');
     const letterOk = this.noticeLetter.every((item) => item.value.trim());
-    const gapsOk = this.docAction !== 'amend' || (this.docGaps.length > 0 && this.docGaps.every((gap) => gap.title.trim()));
-    return this.canReviewDocs && !!this.docNote.trim() && letterOk && gapsOk && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
+    return this.canReviewDocs && !!this.docNote.trim() && letterOk && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
   }
 
   protected suggestGaps(): void {
@@ -2566,10 +3201,10 @@ export class Por1Page {
   protected extraFiles: { kind: string; name: string; title: string; sentOn: string }[] = this.readExtraFiles();
 
   protected agencyFilesOpen = false;
-  protected filePop: 'agency' | 'notice' | '' = '';
+  protected filePop: 'agency' | 'notice' | 'committee' | 'inquiry' | 'prelim' | 'draft' | 'final' | '' = '';
   protected noticeFormOpen = false;
 
-  protected openAttach(target: 'agency' | 'notice'): void {
+  protected openAttach(target: 'agency' | 'notice' | 'committee' | 'inquiry' | 'prelim' | 'draft' | 'final'): void {
     this.filePop = target;
     this.agencyFilesOpen = true;
   }
@@ -2649,9 +3284,10 @@ export class Por1Page {
   }
 
   private pushExtraFiles(list: FileList | null | undefined): void {
-    const kind = this.workDocs[this.docPart]?.title;
+    const kind = this.filePop === 'committee' ? 'พิจารณาของคณะกรรมการ' : this.filePop === 'inquiry' ? 'เปิดไต่สวน' : this.filePop === 'prelim' ? 'ผลขั้นต้น' : this.filePop === 'draft' ? 'ร่างผลสิ้นสุด' : this.filePop === 'final' ? 'ผลสิ้นสุด' : this.workDocs[this.docPart]?.title;
     if (!kind || !list?.length) return;
-    const files = [...list].map((file) => ({ kind, name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: '20/05/2562' }));
+    const sentOn = this.filePop === 'committee' ? (this.committeeAt || '05/06/2562') : this.filePop === 'inquiry' ? (this.inquiryNoticeOn || '10/06/2562') : this.filePop === 'prelim' ? (this.prelimOn || '20/08/2562') : this.filePop === 'draft' ? (this.draftOn || '15/10/2562') : this.filePop === 'final' ? (this.finalOn || '20/12/2562') : '20/05/2562';
+    const files = [...list].map((file) => ({ kind, name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn }));
     this.extraFiles = [...this.extraFiles, ...files];
     this.writeExtraFiles();
   }
@@ -2677,6 +3313,14 @@ export class Por1Page {
   }
 
   protected downloadExtraFile(file: { name: string; title: string; sentOn: string }): void {
+    const sample = this.preSamples.find((item) => item.name === file.name);
+    if (sample) {
+      const link = document.createElement('a');
+      link.href = sample.href;
+      link.download = sample.name;
+      link.click();
+      return;
+    }
     const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(file.title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(file.title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p><p>ไฟล์แนบ ${this.escapeHtml(file.name)}</p></body></html>`;
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
     const link = document.createElement('a');
@@ -2724,6 +3368,59 @@ export class Por1Page {
     this.docPart = index;
     this.editingId = '';
     this.docShelf = index > this.workDocs.length ? 'committee' : 'files';
+  }
+
+  protected readonly preSamples = [
+    { name: 'แบบสอบถามเบื้องต้น-17.01.66.docx', title: 'แบบสอบถามเบื้องต้นถึงผู้ผลิตในประเทศ', href: 'assets/samples/pre-qn/แบบสอบถามเบื้องต้น-17.01.66.docx' },
+    { name: 'Pre-Qn_Exporter.docx', title: 'Pre-questionnaire ผู้ส่งออก', href: 'assets/samples/pre-qn/Pre-Qn_Exporter.docx' },
+    { name: 'Appendix_Pre-Qn_Exporter.xlsx', title: 'ภาคผนวก Pre-questionnaire', href: 'assets/samples/pre-qn/Appendix_Pre-Qn_Exporter.xlsx' },
+    { name: 'Pre-QN-Summary.xlsx', title: 'สรุปการเก็บข้อมูล Pre-questionnaire', href: 'assets/samples/pre-qn/Pre-QN-Summary.xlsx' },
+  ];
+
+  protected get preQuestionnaire(): boolean {
+    return this.workDocs[this.docPart]?.title === 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง';
+  }
+
+  protected usePreSamples(): void {
+    const kind = 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง';
+    const have = new Set(this.extrasOf(kind).map((file) => file.name));
+    const next = this.preSamples.filter((sample) => !have.has(sample.name)).map((sample) => ({ kind, name: sample.name, title: sample.title, sentOn: '28/05/2562' }));
+    if (!next.length) return;
+    this.extraFiles = [...this.extraFiles, ...next];
+    this.writeExtraFiles();
+  }
+
+  protected prePick: Record<string, boolean> = {};
+
+  protected togglePrePick(key: string): void {
+    this.prePick = { ...this.prePick, [key]: !this.prePick[key] };
+  }
+
+  protected get prePickedCount(): number {
+    return Object.values(this.prePick).filter(Boolean).length;
+  }
+
+  protected summarizePreQuestionnaire(): void {
+    const kind = 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง';
+    const forms = this.madeOf(kind).filter((item) => this.prePick[`form:${item.id}`] && !item.fields.some((field) => field.label === 'สรุปผลการวิเคราะห์'));
+    const files = this.extrasOf(kind).filter((file) => this.prePick[`file:${file.name}`]);
+    if (!forms.length && !files.length) return;
+    const sources = [...forms.map((item) => this.agencyLead(item)), ...files.map((file) => file.title || file.name)];
+    const fields = [
+      field('ชื่อแบบ', 'สรุปผลการวิเคราะห์ Pre-questionnaire'),
+      field('วันที่สรุป', '28/05/2562'),
+      field('รายการที่เลือกวิเคราะห์', sources.join('\n'), true),
+      field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'ผู้ตอบเป็นผู้ผลิตเหล็กแผ่นรีดร้อนในประเทศที่อยู่ในรายชื่อหลักจาก 4 หน่วยงาน', true),
+      field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'มีข้อมูลกำลังการผลิตและปริมาณการผลิตปี 2561 ถึงต้นปี 2562 จากรายการที่เลือก', true),
+      field('ส่วนที่ 3 ราคา', 'หลักฐานราคายังไม่ครอบคลุมช่วงปลายปี 2561 ถึงต้นปี 2562', true),
+      field('ส่วนที่ 4 ความเสียหาย', 'ปริมาณนำเข้ายังอธิบายความเชื่อมกับความเสียหายไม่ครบ', true),
+      field('ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น', 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบตามหนังสือมอบอำนาจ', true),
+      field('สรุปผลการวิเคราะห์', `วิเคราะห์จาก ${sources.length} รายการที่เลือก จุดที่ต้องติดตามต่อคือหลักฐานราคา ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น`, true),
+    ];
+    this.madeDocs = [...this.madeDocs, { id: `pre-summary-${Date.now()}`, kind, at: '28/05/2562', fields }];
+    writeMadeDocs(this.madeDocs);
+    this.prePick = {};
+    this.notice = 'assist';
   }
 
   protected assistDraft(): void {
@@ -2882,16 +3579,766 @@ export class Por1Page {
 
   protected get canRecordCommittee(): boolean {
     if (!(this.docSent && this.docAction === 'complete') || this.committeeSent) return false;
-    if (this.reviewRole === 'director') return true;
-    return this.approverNames().includes(this.signedPerson);
+    return this.canHandleCase;
+  }
+
+  protected get committeeForms(): { group: string; kind: string }[] {
+    if (this.committeeResult === 'reject') return [{ group: 'ไม่รับคำขอ', kind: 'หนังสือคืนคำขอ' }];
+    const rows = [
+      { group: 'วาระอนุคณะกรรมการเทคนิคเหล็กฯ', kind: 'บันทึกขออนุมัติวาระอนุคณะกรรมการเทคนิคเหล็กฯ' },
+      { group: 'วาระอนุคณะกรรมการเทคนิคเหล็กฯ', kind: 'วาระการประชุมอนุคณะกรรมการเทคนิคเหล็กฯ' },
+      { group: 'วาระอนุคณะกรรมการเทคนิคเหล็กฯ', kind: 'มติที่ประชุมอนุคณะกรรมการเทคนิคเหล็กฯ' },
+      { group: 'วาระอนุคณะกรรมการเทคนิคเหล็กฯ', kind: 'รายงานการประชุมอนุคณะกรรมการเทคนิคเหล็กฯ' },
+      { group: 'วาระคณะอนุกรรมการไต่สวน', kind: 'บันทึกขออนุมัติวาระคณะอนุกรรมการไต่สวน' },
+      { group: 'วาระคณะอนุกรรมการไต่สวน', kind: 'วาระการประชุมคณะอนุกรรมการไต่สวน' },
+      { group: 'วาระคณะอนุกรรมการไต่สวน', kind: 'มติที่ประชุมคณะอนุกรรมการไต่สวน' },
+      { group: 'วาระคณะอนุกรรมการไต่สวน', kind: 'รายงานการประชุมคณะอนุกรรมการไต่สวน' },
+      { group: 'แจ้งการรับคำขอ', kind: 'บันทึกแจ้งการรับคำขอ' },
+    ];
+    if (this.embassyNotice) rows.push({ group: 'แจ้งการรับคำขอ', kind: 'หนังสือแจ้งสถานทูตรับคำขอ' });
+    if (this.committeeFee === 'pay') rows.push({ group: 'แจ้งการรับคำขอ', kind: 'บันทึกถึงกองคลังรับชำระค่าธรรมเนียม' });
+    return rows;
+  }
+
+  protected committeeFormKind = '';
+  protected committeeDraft: { label: string; value: string; long?: boolean }[] = [];
+
+  protected committeeFormDone(kind: string): boolean {
+    return this.madeOf(kind).length > 0;
+  }
+
+  protected get committeeFormsReady(): boolean {
+    return this.committeeForms.every((item) => this.committeeFormDone(item.kind));
   }
 
   protected get committeeReady(): boolean {
     if (!thaiDateOk(this.committeeAt, 'any')) return false;
+    if (!this.committeeFormsReady) return false;
     if (this.committeeResult === 'reject') return !!this.committeeNote.trim();
-    if (this.embassyNotice && !this.embassyFiles.length) return false;
+    if (this.embassyNotice && !this.embassyFiles.length && !this.committeeFormDone('หนังสือแจ้งสถานทูตรับคำขอ')) return false;
     if (this.committeeFee === 'skip') return !!this.committeeNote.trim();
     return this.committeeFee === 'pay';
+  }
+
+  private inquiryCaseBody(kind: string): string {
+    if (this.sampleCase) {
+      const item = this.sampleCase;
+      const base = `ตามคำขอเลขที่อ้างอิง ${item.ref} ของ${item.applicant || 'ผู้ยื่นคำขอ'} ยื่นเมื่อ ${item.created} เรื่อง${item.kind} สินค้า${item.goods}`;
+      if (kind.includes('อังกฤษ')) return `${item.ref} ${item.goods}. Filed on ${item.created}.`;
+      return `${base}\nจึงจัดทำ${kind}`;
+    }
+    const base = `ตามคำขอเลขที่อ้างอิง ${this.refId} ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ยื่นเมื่อ 15/05/2562 และครบถ้วนถูกต้องเมื่อ 28/05/2562 ซึ่งอยู่ภายในกำหนด 4 เดือนที่ครบวันที่ 15/09/2562 ขอให้ไต่สวนการทุ่มตลาดเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากเวียดนามและอียิปต์ ผู้ยื่นและผู้ผลิตที่สนับสนุนมีปริมาณการผลิตรวมมากกว่าร้อยละ 25 ของสินค้าชนิดเดียวกันในประเทศ และมีหลักฐานเบื้องต้นเรื่องส่วนเหลื่อมการทุ่มตลาดและความเสียหายเพียงพอให้พิจารณาเปิดไต่สวน`;
+    if (measurePack.some((item) => item.kind === kind)) {
+      if (kind.includes('56')) return `${base}\nทบทวนความจำเป็นในการใช้บังคับอากรตามมาตรา 56 เคสนี้ไม่มีเหตุให้ปรับอัตราหรือยุติ จึงใช้มาตรการเดิมต่อไป`;
+      if (kind.includes('57')) return `${base}\nทบทวนก่อนครบกำหนดตามมาตรา 57 ตรวจว่าการทุ่มตลาดและความเสียหายอาจเกิดซ้ำหรือไม่`;
+      if (kind.includes('58') || kind.includes('รายใหม่')) return `${base}\nทบทวนผู้ส่งออกหรือผู้ผลิตรายใหม่ตามมาตรา 58 ตรวจความเกี่ยวข้องกับผู้ถูกเรียกเก็บอากรเดิมและพิจารณาหลักประกัน`;
+      if (kind.includes('59') || kind.includes('คืนอากร') || kind.includes('ผู้นำเข้าขอคืน')) return `${base}\nคำขอคืนอากรตามมาตรา 59 ตรวจหลักฐานว่าส่วนเหลื่อมต่ำกว่าอากรที่เรียกเก็บหรือไม่มีส่วนเหลื่อม`;
+      return `${base}\nจึงจัดทำ${kind}`;
+    }
+    if (finalResultPack.some((item) => item.kind === kind)) {
+      if (kind.includes('เอกสารแนบ')) return `${base}\nเอกสารแนบวาระผลสิ้นสุด\n1. ร่างผลสิ้นสุดและความเห็นของผู้มีส่วนได้เสีย\n2. ตาราง Normal Value, Export Price และ Dumping Margin ที่ใช้วินิจฉัย\n3. ผลการวิเคราะห์ความเสียหายและเหตุสัมพันธ์`;
+      if (kind.includes('เรียกเก็บอากร')) return `${base}\nจึงเรียกเก็บอากรตอบโต้การทุ่มตลาดตามมติผลการไต่สวนขั้นสุดท้าย อัตราเป็นไปตามมติที่ประชุม`;
+      if (kind.includes('Disclosures')) return `${base}\nเปิดเผยข้อเท็จจริงสำคัญของผลการไต่สวนขั้นสุดท้าย โดยแยกฉบับปกปิดและฉบับเปิดเผย`;
+      return `${base}\nจึงจัดทำ${kind} สำหรับผลการไต่สวนขั้นสุดท้าย`;
+    }
+    if (draftFinalPack.some((item) => item.kind === kind)) {
+      if (kind.includes('เอกสารแนบ')) return `${base}\nเอกสารแนบวาระร่างผลสิ้นสุด\n1. ผลการไต่สวนขั้นต้นและหลักประกันอากรชั่วคราว\n2. ความเห็นของผู้มีส่วนได้เสียหลังประกาศผลขั้นต้น\n3. ตาราง Normal Value, Export Price และ Dumping Margin ที่ปรับปรุงแล้ว`;
+      if (kind.includes('Disclosures')) return `${base}\nเปิดเผยข้อเท็จจริงสำคัญของร่างผลการไต่สวนขั้นสุดท้าย โดยแยกฉบับปกปิดและฉบับเปิดเผย`;
+      if (kind.includes('ความเห็น')) return `${base}\nความเห็นต่อร่างผลการไต่สวนขั้นสุดท้าย รับไว้ในเคสตามช่องทางที่ผู้มีส่วนได้เสียส่งมา`;
+      if (kind.includes('แถลงการณ์')) return `${base}\nสรุปการแถลงการณ์ร่างผลสิ้นสุดและรายชื่อผู้เข้าร่วม`;
+      return `${base}\nจึงจัดทำ${kind} สำหรับร่างผลการไต่สวนขั้นสุดท้าย และเปิดรับความเห็นจากผู้มีส่วนได้เสีย`;
+    }
+    if (prelimPack.some((item) => item.kind === kind)) {
+      if (kind.includes('เอกสารแนบ')) return `${base}\nเอกสารแนบวาระผลขั้นต้น\n1. ตารางเปรียบเทียบ Normal Value, Export Price และ Dumping Margin ของผู้ส่งออกเวียดนามและอียิปต์\n2. ปริมาณนำเข้า ผลกระทบด้านราคา ผลประกอบการ และข้อมูลศุลกากร\n3. เหตุสัมพันธ์ระหว่างสินค้านำเข้ากับความเสียหาย`;
+      if (kind.includes('หลักประกัน')) return `${base}\nจึงเรียกเก็บหลักประกันอากรชั่วคราวตามมติผลการไต่สวนขั้นต้น อัตราเป็นไปตามมติที่ประชุม และยังไม่ใช้อากรขั้นสุดท้าย`;
+      if (kind.includes('Disclosures')) return `${base}\nเปิดเผยข้อเท็จจริงสำคัญที่ใช้ในการไต่สวนขั้นต้น โดยแยกฉบับปกปิดและฉบับเปิดเผย`;
+      if (kind.includes('แถลงการณ์')) return `${base}\nผู้มีส่วนได้เสียขอจัดแถลงการณ์ผลขั้นต้นได้ภายใน 30 วันนับจากวันประกาศ`;
+      return `${base}\nจึงจัดทำ${kind} สำหรับผลการไต่สวนขั้นต้น`;
+    }
+    if (kind.includes('เอกสารแนบ')) return `${base}\nเอกสารแนบวาระ\n1. คำขอฉบับสมบูรณ์ ฉบับเปิดเผยและฉบับปกปิด\n2. ผลการตรวจสอบความครบถ้วนวันที่ 28/05/2562\n3. ผลการตรวจสอบสถานะอุตสาหกรรมภายใน\n4. หลักฐานเบื้องต้นเรื่องการทุ่มตลาดและความเสียหาย`;
+    if (kind.includes('เรียกเก็บอากร')) return `${base}\nจึงจัดทำประกาศเรียกเก็บหลักประกันอากรต่อไปตามมติคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน อัตราเป็นไปตามมติที่ประชุม`;
+    if (kind.includes('อังกฤษ')) return 'The Department of Foreign Trade has opened an anti-dumping investigation on hot-rolled steel in coils and not in coils originating in Vietnam and Egypt. Application REF256205150001 was filed on 15 May 2019 and found complete on 28 May 2019.';
+    if (kind.includes('ข่าว')) return `${base} กรมการค้าต่างประเทศจึงเปิดไต่สวน และแจ้งผู้มีส่วนได้เสียให้ทราบ`;
+    if (kind.includes('แถลงการณ์') || kind.includes('ผู้เข้าร่วม')) return `${base}\nผู้มีส่วนได้เสียขอจัดแถลงการณ์ได้ภายใน 30 วันนับจากวันประกาศ`;
+    if (kind.includes('ตรวจ') || kind.includes('สล.') || kind.includes('ยินยอม') || kind.includes('เดินทาง') || kind.includes('รัฐบาล')) return `${base}\nตรวจอุตสาหกรรมในประเทศก่อนเพื่อจัดทำ Normal Value, Export Price และ Dumping Margin การตรวจต่างประเทศทำเมื่อบริษัทและรัฐบาลประเทศผู้ส่งออกยินยอม`;
+    return `${base} จึงจัดทำ${kind} ตามพระราชบัญญัติการตอบโต้การทุ่มตลาดและการอุดหนุนซึ่งสินค้าจากต่างประเทศ พ.ศ. 2542 มาตรา 39`;
+  }
+
+  private inquiryAgendaText(): string {
+    return [
+      'ระเบียบวาระที่ 3.3 การพิจารณาเปิดไต่สวนตอบโต้การทุ่มตลาด',
+      'สินค้า เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากเวียดนามและอียิปต์',
+      'ผู้ยื่นคำขอ บริษัท สหวิริยาสตีลอินดัสตรี จำกัด',
+      'วันที่ยื่นคำขอ 15/05/2562 วันที่คำขอครบถ้วน 28/05/2562 วันครบกำหนด 4 เดือน 15/09/2562',
+      'ข้อเสนอฝ่ายเลขานุการ เห็นควรเปิดไต่สวน',
+    ].join('\n');
+  }
+
+  private prelimAgendaText(): string {
+    return [
+      'ระเบียบวาระพิจารณาผลการไต่สวนขั้นต้น',
+      'สินค้า เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากเวียดนามและอียิปต์',
+      'ผู้ยื่นคำขอ บริษัท สหวิริยาสตีลอินดัสตรี จำกัด',
+      this.injuryVolume || 'ปริมาณนำเข้าจากเวียดนามและอียิปต์เพิ่มขึ้นในช่วงที่ขอไต่สวน',
+      this.injuryPrice || 'ราคาขายในประเทศถูกกดจากสินค้านำเข้า',
+      'ข้อเสนอฝ่ายเลขานุการ เห็นควรออกประกาศผลการไต่สวนขั้นต้นและเรียกเก็บหลักประกันอากรชั่วคราวตามอัตราที่ที่ประชุมกำหนด',
+    ].join('\n');
+  }
+
+  private draftAgendaText(): string {
+    return [
+      'ระเบียบวาระพิจารณาร่างผลการไต่สวนขั้นสุดท้าย',
+      'สินค้า เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากเวียดนามและอียิปต์',
+      'ผู้ยื่นคำขอ บริษัท สหวิริยาสตีลอินดัสตรี จำกัด',
+      'ต่อเนื่องจากผลการไต่สวนขั้นต้นเมื่อ 20/08/2562',
+      'ข้อเสนอฝ่ายเลขานุการ เห็นชอบร่างผลสิ้นสุดและเปิดรับความเห็นจากผู้มีส่วนได้เสีย',
+    ].join('\n');
+  }
+
+  private finalAgendaText(): string {
+    return [
+      'ระเบียบวาระพิจารณาผลการไต่สวนขั้นสุดท้าย',
+      'สินค้า เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากเวียดนามและอียิปต์',
+      'ผู้ยื่นคำขอ บริษัท สหวิริยาสตีลอินดัสตรี จำกัด',
+      'ต่อเนื่องจากร่างผลสิ้นสุดเมื่อ 15/10/2562',
+      'ข้อเสนอฝ่ายเลขานุการ เห็นชอบผลสิ้นสุดและเรียกเก็บอากรตามอัตราที่ที่ประชุมกำหนด',
+    ].join('\n');
+  }
+
+  private inquiryDraft(kind: string): { label: string; value: string; long?: boolean }[] | null {
+    const measure = measurePack.some((item) => item.kind === kind);
+    const final = !measure && finalResultPack.some((item) => item.kind === kind);
+    const draft = !measure && !final && draftFinalPack.some((item) => item.kind === kind);
+    const prelim = !measure && !final && !draft && prelimPack.some((item) => item.kind === kind);
+    if (!measure && !final && !draft && !prelim && !inquiryPack.some((item) => item.kind === kind)) return null;
+    const signer = this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล';
+    const meetOn = measure ? (this.measureOn || '15/06/2563') : final ? (this.finalOn || '20/12/2562') : draft ? (this.draftOn || '15/10/2562') : prelim ? (this.prelimOn || '20/08/2562') : (this.inquiryAgendaAt || '10/06/2562');
+    const noticeOn = meetOn;
+    const agenda = measure ? `ระเบียบวาระ${kind.includes('56') ? 'ทบทวนมาตรา 56' : kind.includes('57') ? 'ทบทวนมาตรา 57' : kind.includes('58') ? 'ทบทวนมาตรา 58' : 'พิจารณาคืนอากรมาตรา 59'}\nสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์\nผู้ยื่นคำขอ บริษัท สหวิริยาสตีลอินดัสตรี จำกัด` : final ? this.finalAgendaText() : draft ? this.draftAgendaText() : prelim ? this.prelimAgendaText() : this.inquiryAgendaText();
+    const resolution = measure
+      ? (kind.includes('56') ? 'ไม่มีเหตุให้ทบทวน ใช้มาตรการเดิมต่อไป' : kind.includes('57') ? 'เข้าเงื่อนไขการทบทวนก่อนครบกำหนด และให้ตรวจการทุ่มตลาดและความเสียหายที่อาจเกิดซ้ำ' : kind.includes('58') ? 'ไม่เข้าเกณฑ์ผู้ส่งออกหรือผู้ผลิตรายใหม่' : 'ไม่เข้าเงื่อนไขการคืนอากร')
+      : final
+        ? 'เห็นชอบผลการไต่สวนขั้นสุดท้าย และให้เรียกเก็บอากรตามอัตราที่ที่ประชุมกำหนด'
+        : draft
+          ? 'เห็นชอบร่างผลการไต่สวนขั้นสุดท้าย และให้เปิดรับความเห็นจากผู้มีส่วนได้เสีย'
+          : prelim
+            ? 'เห็นชอบผลการไต่สวนขั้นต้น และให้เรียกเก็บหลักประกันอากรชั่วคราวตามอัตราที่ที่ประชุมกำหนด'
+            : 'เปิดไต่สวน ตามพระราชบัญญัติการตอบโต้การทุ่มตลาดและการอุดหนุนซึ่งสินค้าจากต่างประเทศ พ.ศ. 2542 มาตรา 39';
+    const report = measure
+      ? `ที่ประชุมเมื่อ ${meetOn} มีมติเกี่ยวกับ${kind}`
+      : final
+        ? `ที่ประชุมเมื่อ ${meetOn} มีมติเห็นชอบผลสิ้นสุดคำขอเลขที่อ้างอิง ${this.refId}`
+        : draft
+          ? `ที่ประชุมเมื่อ ${meetOn} มีมติเห็นชอบร่างผลสิ้นสุดคำขอเลขที่อ้างอิง ${this.refId}`
+          : prelim
+            ? `ที่ประชุมเมื่อ ${meetOn} มีมติเห็นชอบผลการไต่สวนขั้นต้นคำขอเลขที่อ้างอิง ${this.refId}`
+            : `ที่ประชุมครั้งที่ 1/2562 เมื่อ ${meetOn} เวลา 09.30 น. ณ ห้องประชุม กรมการค้าต่างประเทศ มีมติเปิดไต่สวนคำขอเลขที่อ้างอิง ${this.refId}`;
+    const body = this.inquiryCaseBody(kind);
+    if (kind.includes('ข่าวหนังสือพิมพ์')) {
+      return [
+        field('วันที่', noticeOn),
+        field('ภาษา', kind.includes('อังกฤษ') ? 'อังกฤษ' : 'ไทย'),
+        field('หัวข่าว', kind.includes('อังกฤษ') ? 'DFT opens anti-dumping investigation on hot-rolled steel from Vietnam and Egypt' : 'กรมการค้าต่างประเทศเปิดไต่สวนการทุ่มตลาดเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
+        field('เนื้อข่าว', body, true),
+      ];
+    }
+    if (kind.startsWith('วาระการประชุม') || kind.startsWith('มติที่ประชุม') || kind.startsWith('รายงานการประชุม')) {
+      return [
+        field('ครั้งที่', '1/2562'),
+        field('วันที่ประชุม', meetOn),
+        field('ระเบียบวาระ', agenda, true),
+        field('มติที่ประชุม', resolution, true),
+        field('รายงานการประชุม', report, true),
+      ];
+    }
+    if (kind.startsWith('Chairman')) {
+      return [
+        field('วันที่', meetOn),
+        field('เรื่อง', final ? 'Chairman’s Note ผลสิ้นสุด' : draft ? 'Chairman’s Note ร่างผลสิ้นสุด' : prelim ? 'Chairman’s Note ผลขั้นต้น' : 'Chairman’s Note เปิดไต่สวน'),
+        field('เนื้อความ', `${agenda}\n${body}`, true),
+        field('ลงชื่อ', signer),
+      ];
+    }
+    if (kind.includes('ประกาศ') && !kind.startsWith('บันทึก') && !kind.startsWith('หนังสือ')) {
+      return [
+        field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+        field('วันที่', noticeOn),
+        field('เรื่อง', kind),
+        field('เนื้อประกาศ', body, true),
+        field('ลงชื่อ', signer),
+      ];
+    }
+    return [
+      field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+      field('วันที่', kind.includes('วาระ') || kind.includes('เอกสารแนบ') ? meetOn : noticeOn),
+      field('เรื่อง', kind),
+      field('เรียน', this.packAddressee(kind)),
+      field('เนื้อความ', body, true),
+      field('ลงชื่อ', signer),
+    ];
+  }
+
+  protected openCommitteeForm(kind: string): void {
+    const saved = this.madeOf(kind).at(-1);
+    const meeting = kind.startsWith('วาระ') || kind.startsWith('มติ') || kind.startsWith('รายงาน');
+    const news = kind.includes('ข่าวหนังสือพิมพ์');
+    const announce = kind.includes('ประกาศ');
+    const seeded = this.inquiryDraft(kind);
+    const fresh = seeded ?? (meeting
+      ? [
+          field('ครั้งที่', '1/2562'),
+          field('วันที่ประชุม', this.committeeAt || this.inquiryNoticeOn),
+          field('ระเบียบวาระ', '', true),
+          field('มติที่ประชุม', '', true),
+          field('รายงานการประชุม', '', true),
+        ]
+      : news
+      ? [
+          field('วันที่', this.inquiryNoticeOn || this.committeeAt),
+          field('ภาษา', kind.includes('อังกฤษ') ? 'อังกฤษ' : 'ไทย'),
+          field('หัวข่าว', kind),
+          field('เนื้อข่าว', '', true),
+        ]
+      : announce
+      ? [
+          field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+          field('วันที่', this.inquiryNoticeOn || this.committeeAt),
+          field('เรื่อง', kind),
+          field('เนื้อประกาศ', '', true),
+          field('ลงชื่อ', this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+        ]
+      : [
+          field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+          field('วันที่', this.committeeAt),
+          field('เรื่อง', kind),
+          field('เรียน', this.packAddressee(kind)),
+          field('เนื้อความ', '', true),
+          field('ลงชื่อ', this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+        ]);
+    this.committeeDraft = fresh.map((item) => ({ ...item, value: saved?.fields.find((field) => field.label === item.label)?.value ?? item.value }));
+    this.committeeFormKind = kind;
+  }
+
+  protected assistCommitteeForm(): void {
+    const kind = this.committeeFormKind;
+    const seed = this.inquiryDraft(kind);
+    if (seed) {
+      this.committeeDraft = this.committeeDraft.map((item) => item.value.trim() ? item : { ...item, value: seed.find((row) => row.label === item.label)?.value ?? item.value });
+      return;
+    }
+    this.committeeDraft = this.committeeDraft.map((item) => {
+      if (item.value.trim()) return item;
+      if (item.label === 'ระเบียบวาระ') return { ...item, value: `พิจารณารับคำขอเลขที่อ้างอิง ${this.refId}` };
+      if (item.label === 'มติที่ประชุม') return { ...item, value: this.committeeResult === 'reject' ? 'ไม่รับคำขอ' : 'รับคำขอและแจ้งชำระค่าธรรมเนียม' };
+      if (item.label === 'รายงานการประชุม') return { ...item, value: `ที่ประชุมมีมติเกี่ยวกับ${kind}` };
+      if (item.label === 'เนื้อความ' || item.label === 'เนื้อประกาศ' || item.label === 'เนื้อข่าว') return { ...item, value: `ตามคำขอเลขที่อ้างอิง ${this.refId} จึงจัดทำ${kind}` };
+      return item;
+    });
+  }
+
+  protected setCommitteeDraft(index: number, value: string): void {
+    this.committeeDraft = this.committeeDraft.map((item, itemIndex) => itemIndex === index ? { ...item, value } : item);
+  }
+
+  private packAddressee(kind: string): string {
+    if (kind.includes('กม.')) return 'ผู้อำนวยการกองกฎหมาย';
+    if (kind.includes('ราชกิจจา')) return 'ผู้อำนวยการสำนักพิมพ์คณะรัฐมนตรีและราชกิจจานุเบกษา';
+    if (kind.includes('สล.')) return 'เลขานุการกรมการค้าต่างประเทศ';
+    if (kind.includes('ปลัด') || kind.includes('รมว.')) return 'ปลัดกระทรวงพาณิชย์';
+    if (kind.includes('อธ.')) return 'อธิบดีกรมการค้าต่างประเทศ';
+    if (kind.includes('สถานทูตไทย')) return 'สถานเอกอัครราชทูตไทย';
+    if (kind.includes('สถานทูต') || kind.includes('รัฐบาล')) return 'สถานเอกอัครราชทูตประเทศผู้ส่งออก';
+    if (kind.includes('ผู้ส่งออก')) return 'ผู้ส่งออกที่ถูกกล่าวหา';
+    if (kind.includes('สพต') || kind.includes('สคต')) return 'สำนักงานพาณิชย์ในต่างประเทศ';
+    if (kind.includes('ศุลกากร')) return 'อธิบดีกรมศุลกากร';
+    if (kind.includes('ผู้นำเข้า')) return 'ผู้นำเข้าและผู้ใช้';
+    if (kind.includes('อุตสาหกรรมภายใน')) return 'ผู้ผลิตในประเทศ';
+    if (kind.includes('สมาคม')) return 'สมาคมการค้า';
+    if (kind.includes('ขออนุมัติ') || kind.includes('ในประเทศ')) return kind.includes('ในประเทศ') && !kind.includes('ขออนุมัติ') ? 'ผู้ผลิตในประเทศ' : 'อธิบดีกรมการค้าต่างประเทศ';
+    if (kind.includes('ยินยอม')) return 'อธิบดีกรมการค้าต่างประเทศ';
+    if (kind.includes('กองคลัง')) return 'ผู้อำนวยการกองคลัง';
+    if (kind.includes('แถลงการณ์') || kind.includes('ผู้เข้าร่วม')) return 'ผู้มีส่วนได้เสียที่ขอแถลงการณ์';
+    if (kind.includes('Disclosures')) return 'ผู้มีส่วนได้เสีย';
+    return 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด';
+  }
+
+  protected readonly inquiryFacts: { label: string; value: string; wide?: boolean }[] = [
+    { label: 'ผู้ยื่นคำขอ', value: 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด' },
+    { label: 'สินค้า', value: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน' },
+    { label: 'แหล่งกำเนิด', value: 'เวียดนาม และอียิปต์' },
+    { label: 'วันที่ยื่นคำขอ', value: '15/05/2562' },
+    { label: 'วันที่ครบถ้วน', value: '28/05/2562' },
+    { label: 'ครบกำหนด 4 เดือน', value: '15/09/2562' },
+    { label: 'ข้อกฎหมาย', value: 'พระราชบัญญัติการตอบโต้การทุ่มตลาดและการอุดหนุนซึ่งสินค้าจากต่างประเทศ พ.ศ. 2542 มาตรา 39', wide: true },
+  ];
+
+  protected inquiryFormsOf(step: string): { group: string; kind: string }[] {
+    return inquiryPack.filter((item) => item.step === step);
+  }
+
+  protected get inquiryDocStep(): boolean {
+    return this.inquiryPart === 'agenda' || this.inquiryPart === 'notice' || this.inquiryPart === 'sign' || this.inquiryPart === 'letters' || this.inquiryPart === 'news';
+  }
+
+  protected inquiryStepTitle(): string {
+    return this.inquiryNav.find((step) => step.id === this.inquiryPart)?.label ?? 'แบบฟอร์มเปิดไต่สวน';
+  }
+
+  protected inquiryStepHint(): string {
+    if (this.inquiryPart === 'agenda') return 'บันทึกขออนุมัติวาระ วาระการประชุม เอกสารแนบ Chairman’s Note มติที่ประชุม และรายงานการประชุม';
+    if (this.inquiryPart === 'notice') return 'ร่างประกาศกรม ร่างประกาศเรียกเก็บอากรต่อไป และบันทึกให้กองกฎหมายตรวจร่าง';
+    if (this.inquiryPart === 'sign') return 'ลงนามประกาศ ส่งราชกิจจานุเบกษา และเก็บหนังสือแจ้งว่าลงประกาศแล้ว';
+    if (this.inquiryPart === 'letters') return 'แจ้งสถานทูต ผู้ส่งออก สพต./สคต. กรมศุลกากร ผู้นำเข้า อุตสาหกรรมภายใน และสมาคม';
+    return 'ข่าวภาษาไทยและภาษาอังกฤษหลังประกาศเปิดไต่สวน';
+  }
+
+  protected inquiryPackDone(step: string): boolean {
+    const rows = this.inquiryFormsOf(step);
+    return rows.length > 0 && rows.every((item) => this.committeeFormDone(item.kind));
+  }
+
+  protected fillInquiryPack(): void {
+    if (this.reviewTab === 'prelim') {
+      this.fillPrelimPack();
+      this.notice = 'assist';
+      return;
+    }
+    if (this.reviewTab === 'draftFinal') {
+      this.fillDraftPack();
+      this.notice = 'assist';
+      return;
+    }
+    if (this.reviewTab === 'finalResult') {
+      this.fillFinalPack();
+      this.notice = 'assist';
+      return;
+    }
+    if (this.reviewTab === 'measures') {
+      this.fillMeasurePack();
+      this.notice = 'assist';
+      return;
+    }
+    const rows = this.inquiryFormsOf(this.inquiryPart);
+    const at = this.inquiryPart === 'agenda' || this.inquiryPart === 'hearing' || this.inquiryPart === 'visit' ? (this.inquiryAgendaAt || '10/06/2562') : (this.inquiryNoticeOn || '25/06/2562');
+    rows.forEach((row, index) => {
+      if (this.committeeFormDone(row.kind)) return;
+      const fields = this.inquiryDraft(row.kind);
+      if (!fields) return;
+      this.madeDocs = [...this.madeDocs, { id: `inquiry-${Date.now()}-${index}`, kind: row.kind, at, fields }];
+    });
+    writeMadeDocs(this.madeDocs);
+    if (this.inquiryPart === 'agenda') this.inquiryFields = agendaFieldList();
+    if (this.inquiryPart === 'visit') this.fillVisitData();
+    this.notice = 'assist';
+  }
+
+  protected readonly prelimNav: { id: 'sub' | 'tdc' | 'bond' | 'bondLetters' | 'dept' | 'deptLetters' | 'hearing' | 'close'; label: string; group: string }[] = [
+    { id: 'sub', label: 'วาระอนุ', group: 'ผลขั้นต้น' },
+    { id: 'tdc', label: 'วาระ ทตอ.', group: 'ผลขั้นต้น' },
+    { id: 'bond', label: 'ประกาศหลักประกันอากร', group: 'ผลขั้นต้น' },
+    { id: 'bondLetters', label: 'หนังสือแจ้งหลักประกัน', group: 'ผลขั้นต้น' },
+    { id: 'dept', label: 'ประกาศกรม', group: 'ผลขั้นต้น' },
+    { id: 'deptLetters', label: 'หนังสือแจ้งประกาศ', group: 'ผลขั้นต้น' },
+    { id: 'hearing', label: 'แถลงการณ์', group: 'หลังประกาศ' },
+    { id: 'close', label: 'ไปร่างผลสิ้นสุด', group: 'หลังประกาศ' },
+  ];
+
+  protected prelimFormsOf(step: string): { group: string; kind: string }[] {
+    return prelimPack.filter((item) => item.step === step);
+  }
+
+  protected prelimStepTitle(): string {
+    return this.prelimNav.find((step) => step.id === this.prelimPart)?.label ?? 'ผลขั้นต้น';
+  }
+
+  protected prelimStepHint(): string {
+    if (this.prelimPart === 'sub') return 'บันทึกขออนุมัติวาระ วาระ เอกสารแนบ มติ และรายงานของอนุคณะกรรมการไต่สวน';
+    if (this.prelimPart === 'tdc') return 'บันทึกขออนุมัติวาระ วาระ เอกสารแนบ Chairman’s Note มติ และรายงานของ ทตอ.';
+    if (this.prelimPart === 'bond') return 'ร่างประกาศเรียกเก็บหลักประกันอากร ตรวจร่าง ลงนาม และราชกิจจานุเบกษา';
+    if (this.prelimPart === 'bondLetters') return 'แจ้งสถานทูต ผู้ส่งออก สพต./สคต. กรมศุลกากร ผู้นำเข้า อุตสาหกรรมภายใน และสมาคม';
+    if (this.prelimPart === 'dept') return 'ร่างประกาศกรม ลงนาม ราชกิจจานุเบกษา และ Disclosures ฉบับปกปิดกับฉบับเปิดเผย';
+    if (this.prelimPart === 'deptLetters') return 'แจ้งสถานทูต ผู้ส่งออก ผู้นำเข้า อุตสาหกรรมภายใน และสมาคม';
+    return 'หนังสือขอจัด บันทึกอนุมัติ หนังสือแจ้งผู้เข้าร่วม และรายงานผลการแถลงการณ์';
+  }
+
+  protected prelimPackDone(step: string): boolean {
+    const rows = this.prelimFormsOf(step);
+    return rows.length > 0 && rows.every((item) => this.committeeFormDone(item.kind));
+  }
+
+  protected get prelimExtraForms(): MadeDoc[] {
+    return this.madeDocs.filter((item) => item.fields.some((field) => field.label === 'ขั้นตอน' && field.value === 'ผลขั้นต้น'));
+  }
+
+  protected get prelimFiles(): { kind: string; name: string; title: string; sentOn: string }[] {
+    return this.extrasOf('ผลขั้นต้น');
+  }
+
+  protected setPrelimOn(value: string): void {
+    this.prelimOn = value;
+    this.keepNote('prelim-on', value);
+  }
+
+  protected openNewPrelimForm(): void {
+    this.committeeDraft = [
+      field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+      field('วันที่', this.prelimOn),
+      field('เรื่อง', ''),
+      field('เรียน', ''),
+      field('เนื้อความ', '', true),
+      field('ลงชื่อ', this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+      field('ขั้นตอน', 'ผลขั้นต้น'),
+    ];
+    this.committeeFormKind = 'สร้างแบบฟอร์มผลขั้นต้น';
+  }
+
+  private fillPrelimPack(): void {
+    const rows = this.prelimFormsOf(this.prelimPart);
+    rows.forEach((row, index) => {
+      if (this.committeeFormDone(row.kind)) return;
+      const fields = this.inquiryDraft(row.kind);
+      if (!fields) return;
+      this.madeDocs = [...this.madeDocs, { id: `prelim-${Date.now()}-${index}`, kind: row.kind, at: this.prelimOn || '20/08/2562', fields }];
+    });
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected closePrelim(): void {
+    if (this.prelimAgain !== 'yes' && this.prelimAgain !== 'no') return;
+    const notes = { ...this.laterPhase.notes, 'prelim-hearing': this.prelimHearing, 'prelim-again': this.prelimAgain, 'prelim-on': this.prelimOn };
+    if (this.prelimAgain === 'yes') {
+      this.laterPhase = { ...this.laterPhase, prelim: false, notes };
+      writeLaterPhase(this.laterPhase);
+      this.notice = 'saved';
+      return;
+    }
+    this.laterPhase = { ...this.laterPhase, prelim: true, notes };
+    writeLaterPhase(this.laterPhase);
+    this.notice = 'saved';
+  }
+
+  protected readonly draftNav: { id: 'sub' | 'tdc' | 'letters' | 'hearing' | 'close'; label: string; group: string }[] = [
+    { id: 'sub', label: 'วาระอนุ', group: 'ร่างผลสิ้นสุด' },
+    { id: 'tdc', label: 'วาระ ทตอ.', group: 'ร่างผลสิ้นสุด' },
+    { id: 'letters', label: 'แจ้งผู้มีส่วนได้เสีย', group: 'ร่างผลสิ้นสุด' },
+    { id: 'hearing', label: 'แถลงการณ์', group: 'หลังแจ้งร่าง' },
+    { id: 'close', label: 'ไปผลสิ้นสุด', group: 'หลังแจ้งร่าง' },
+  ];
+
+  protected draftFormsOf(step: string): { group: string; kind: string }[] {
+    return draftFinalPack.filter((item) => item.step === step);
+  }
+
+  protected draftStepTitle(): string {
+    return this.draftNav.find((step) => step.id === this.draftPart)?.label ?? 'ร่างผลสิ้นสุด';
+  }
+
+  protected draftStepHint(): string {
+    if (this.draftPart === 'sub') return 'บันทึกขออนุมัติวาระ วาระ เอกสารแนบ มติ และรายงานของอนุคณะกรรมการไต่สวน';
+    if (this.draftPart === 'tdc') return 'บันทึกขออนุมัติวาระ วาระ เอกสารแนบ มติ Chairman’s Note และรายงานของ ทตอ.';
+    if (this.draftPart === 'letters') return 'หนังสือแจ้งสถานทูตและผู้ส่งออก Disclosures ฉบับปกปิดกับฉบับเปิดเผย และหนังสือถึงผู้นำเข้า อุตสาหกรรมภายใน สมาคม';
+    return 'ความเห็นฉบับเปิดเผยและฉบับปกปิด รายงานแถลงการณ์ และรายชื่อผู้เข้าร่วม';
+  }
+
+  protected draftPackDone(step: string): boolean {
+    const rows = this.draftFormsOf(step);
+    return rows.length > 0 && rows.every((item) => this.committeeFormDone(item.kind));
+  }
+
+  protected get draftExtraForms(): MadeDoc[] {
+    return this.madeDocs.filter((item) => item.fields.some((field) => field.label === 'ขั้นตอน' && field.value === 'ร่างผลสิ้นสุด'));
+  }
+
+  protected get draftFiles(): { kind: string; name: string; title: string; sentOn: string }[] {
+    return this.extrasOf('ร่างผลสิ้นสุด');
+  }
+
+  protected setDraftOn(value: string): void {
+    this.draftOn = value;
+    this.keepNote('draft-on', value);
+  }
+
+  protected openNewDraftForm(): void {
+    this.committeeDraft = [
+      field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+      field('วันที่', this.draftOn),
+      field('เรื่อง', ''),
+      field('เรียน', ''),
+      field('เนื้อความ', '', true),
+      field('ลงชื่อ', this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+      field('ขั้นตอน', 'ร่างผลสิ้นสุด'),
+    ];
+    this.committeeFormKind = 'สร้างแบบฟอร์มร่างผลสิ้นสุด';
+  }
+
+  private fillDraftPack(): void {
+    const rows = this.draftFormsOf(this.draftPart);
+    rows.forEach((row, index) => {
+      if (this.committeeFormDone(row.kind)) return;
+      const fields = this.inquiryDraft(row.kind);
+      if (!fields) return;
+      this.madeDocs = [...this.madeDocs, { id: `draft-${Date.now()}-${index}`, kind: row.kind, at: this.draftOn || '15/10/2562', fields }];
+    });
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected closeDraft(): void {
+    if (this.draftSubstance !== 'yes' && this.draftSubstance !== 'no') return;
+    const notes = { ...this.laterPhase.notes, 'draft-substance': this.draftSubstance, 'draft-on': this.draftOn };
+    if (this.draftSubstance === 'yes') {
+      this.laterPhase = { ...this.laterPhase, draftFinal: false, notes };
+      writeLaterPhase(this.laterPhase);
+      this.notice = 'saved';
+      return;
+    }
+    this.laterPhase = { ...this.laterPhase, draftFinal: true, notes };
+    writeLaterPhase(this.laterPhase);
+    this.notice = 'saved';
+  }
+
+  protected readonly finalNav: { id: 'sub' | 'tdc' | 'duty' | 'dutyLetters' | 'dept' | 'deptLetters' | 'close'; label: string; group: string }[] = [
+    { id: 'sub', label: 'วาระอนุ', group: 'ผลสิ้นสุด' },
+    { id: 'tdc', label: 'วาระ ทตอ.', group: 'ผลสิ้นสุด' },
+    { id: 'duty', label: 'ประกาศเรียกเก็บอากร', group: 'ผลสิ้นสุด' },
+    { id: 'dutyLetters', label: 'หนังสือแจ้งอากร', group: 'ผลสิ้นสุด' },
+    { id: 'dept', label: 'ประกาศกรม', group: 'ผลสิ้นสุด' },
+    { id: 'deptLetters', label: 'หนังสือแจ้งประกาศ', group: 'ผลสิ้นสุด' },
+    { id: 'close', label: 'ปิดงาน', group: 'หลังประกาศ' },
+  ];
+
+  protected finalFormsOf(step: string): { group: string; kind: string }[] {
+    return finalResultPack.filter((item) => item.step === step);
+  }
+
+  protected finalStepTitle(): string {
+    return this.finalNav.find((step) => step.id === this.finalPart)?.label ?? 'ผลสิ้นสุด';
+  }
+
+  protected finalStepHint(): string {
+    if (this.finalPart === 'sub') return 'บันทึกขออนุมัติวาระ วาระ เอกสารแนบ มติ และรายงานของอนุคณะกรรมการไต่สวน';
+    if (this.finalPart === 'tdc') return 'บันทึกขออนุมัติวาระ วาระ เอกสารแนบ มติ Chairman’s Note และรายงานของ ทตอ.';
+    if (this.finalPart === 'duty') return 'ร่างประกาศเรียกเก็บอากร ตรวจร่าง ลงนาม และราชกิจจานุเบกษา';
+    if (this.finalPart === 'dutyLetters') return 'แจ้งสถานทูต ผู้ส่งออก กรมศุลกากร สถานทูตไทย ผู้นำเข้า อุตสาหกรรมภายใน และสมาคม';
+    if (this.finalPart === 'dept') return 'ร่างประกาศกรม ลงนาม ราชกิจจานุเบกษา และ Disclosures ฉบับปกปิดกับฉบับเปิดเผย';
+    return 'แจ้งสถานทูต ผู้ส่งออก ผู้นำเข้า อุตสาหกรรมภายใน และสมาคม';
+  }
+
+  protected finalPackDone(step: string): boolean {
+    const rows = this.finalFormsOf(step);
+    return rows.length > 0 && rows.every((item) => this.committeeFormDone(item.kind));
+  }
+
+  protected get finalExtraForms(): MadeDoc[] {
+    return this.madeDocs.filter((item) => item.fields.some((field) => field.label === 'ขั้นตอน' && field.value === 'ผลสิ้นสุด'));
+  }
+
+  protected get finalFiles(): { kind: string; name: string; title: string; sentOn: string }[] {
+    return this.extrasOf('ผลสิ้นสุด');
+  }
+
+  protected setFinalOn(value: string): void {
+    this.finalOn = value;
+    this.keepNote('final-on', value);
+  }
+
+  protected openNewFinalForm(): void {
+    this.committeeDraft = [
+      field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+      field('วันที่', this.finalOn),
+      field('เรื่อง', ''),
+      field('เรียน', ''),
+      field('เนื้อความ', '', true),
+      field('ลงชื่อ', this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+      field('ขั้นตอน', 'ผลสิ้นสุด'),
+    ];
+    this.committeeFormKind = 'สร้างแบบฟอร์มผลสิ้นสุด';
+  }
+
+  private fillFinalPack(): void {
+    const rows = this.finalFormsOf(this.finalPart);
+    rows.forEach((row, index) => {
+      if (this.committeeFormDone(row.kind)) return;
+      const fields = this.inquiryDraft(row.kind);
+      if (!fields) return;
+      this.madeDocs = [...this.madeDocs, { id: `final-${Date.now()}-${index}`, kind: row.kind, at: this.finalOn || '20/12/2562', fields }];
+    });
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected closeFinal(): void {
+    this.laterPhase = { ...this.laterPhase, finalResult: true, notes: { ...this.laterPhase.notes, 'final-on': this.finalOn } };
+    writeLaterPhase(this.laterPhase);
+    this.notice = 'saved';
+  }
+
+  protected readonly measureNav: { id: 'm56' | 'm57' | 'm58' | 'm59' | 'close'; label: string; hint: string }[] = [
+    { id: 'm56', label: 'มาตรา 56', hint: 'ทบทวนความจำเป็นในการใช้บังคับอากร ถ้าไม่มีเหตุให้ใช้มาตรการเดิมต่อ' },
+    { id: 'm57', label: 'มาตรา 57', hint: 'ทบทวนก่อนครบกำหนด ถ้าเข้าเงื่อนไขจึงตรวจการทุ่มตลาดและความเสียหายที่อาจเกิดซ้ำ' },
+    { id: 'm58', label: 'มาตรา 58', hint: 'ผู้ส่งออกหรือผู้ผลิตรายใหม่ ตรวจความเกี่ยวข้องและพิจารณาหลักประกัน' },
+    { id: 'm59', label: 'มาตรา 59', hint: 'ขอคืนอากรเมื่อส่วนเหลื่อมต่ำกว่าอากรหรือไม่มีส่วนเหลื่อม' },
+    { id: 'close', label: 'สรุปผล', hint: 'บันทึกผลทั้งสี่มาตรา' },
+  ];
+
+  protected measureFormsOf(step: string): { group: string; kind: string }[] {
+    return measurePack.filter((item) => item.step === step);
+  }
+
+  protected measureChoice(step: 'm56' | 'm57' | 'm58' | 'm59'): '' | 'yes' | 'no' {
+    if (step === 'm56') return this.measure56;
+    if (step === 'm57') return this.measure57;
+    if (step === 'm58') return this.measure58;
+    return this.measure59;
+  }
+
+  protected setMeasureChoice(step: 'm56' | 'm57' | 'm58' | 'm59', value: 'yes' | 'no'): void {
+    if (step === 'm56') this.measure56 = value;
+    else if (step === 'm57') this.measure57 = value;
+    else if (step === 'm58') this.measure58 = value;
+    else this.measure59 = value;
+  }
+
+  protected measureYes(step: 'm56' | 'm57' | 'm58' | 'm59'): string {
+    if (step === 'm56') return 'มีเหตุให้ทบทวน';
+    if (step === 'm57') return 'เข้าเงื่อนไข';
+    if (step === 'm58') return 'เข้าเกณฑ์รายใหม่';
+    return 'เข้าเงื่อนไขคืนอากร';
+  }
+
+  protected measureNo(step: 'm56' | 'm57' | 'm58' | 'm59'): string {
+    if (step === 'm56') return 'ใช้มาตรการเดิม';
+    if (step === 'm57') return 'สิ้นสุดตามกฎหมาย';
+    if (step === 'm58') return 'ไม่เข้าเกณฑ์';
+    return 'ไม่เข้าเงื่อนไข';
+  }
+
+  protected measurePackDone(step: string): boolean {
+    const rows = this.measureFormsOf(step);
+    return rows.length > 0 && rows.every((item) => this.committeeFormDone(item.kind));
+  }
+
+  protected setMeasureOn(value: string): void {
+    this.measureOn = value;
+    this.keepNote('measure-on', value);
+  }
+
+  private fillMeasurePack(): void {
+    const rows = this.measureFormsOf(this.measurePart);
+    rows.forEach((row, index) => {
+      if (this.committeeFormDone(row.kind)) return;
+      const fields = this.inquiryDraft(row.kind);
+      if (!fields) return;
+      this.madeDocs = [...this.madeDocs, { id: `measure-${Date.now()}-${index}`, kind: row.kind, at: this.measureOn || '15/06/2563', fields }];
+    });
+    writeMadeDocs(this.madeDocs);
+  }
+
+  protected closeMeasures(): void {
+    if (!this.measure56 || !this.measure57 || !this.measure58 || !this.measure59) return;
+    const marks = { ...this.laterPhase.marks, m56: this.measure56, m57: this.measure57, m58: this.measure58, m59: this.measure59 };
+    this.laterPhase = { ...this.laterPhase, measures: true, marks, notes: { ...this.laterPhase.notes, 'measure-on': this.measureOn } };
+    writeLaterPhase(this.laterPhase);
+    this.notice = 'saved';
+  }
+
+  protected setVisitRow(index: number, key: 'normalValue' | 'exportPrice' | 'compare' | 'margin', value: string): void {
+    this.visitRows = this.visitRows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row);
+    const first = this.visitRows[0];
+    if (first) {
+      this.normalValue = first.normalValue;
+      this.exportPrice = first.exportPrice;
+      this.dumpingMargin = first.margin;
+    }
+  }
+
+  protected questionOpen(id: string): boolean {
+    return (this.laterPhase.notes['qn-open'] || '').split(',').includes(id);
+  }
+
+  protected publishQuestion(id: string): void {
+    const ids = new Set((this.laterPhase.notes['qn-open'] || '').split(',').filter(Boolean));
+    ids.add(id);
+    this.keepNote('qn-open', [...ids].join(','));
+    this.notice = 'assist';
+  }
+
+  private fillVisitData(): void {
+    this.visitDomestic = true;
+    this.visitRows = [
+      { name: 'ผู้ผลิตและผู้ส่งออกเวียดนาม', normalValue: 'ราคาขายเหล็กแผ่นรีดร้อนในประเทศเวียดนามตามคำตอบแบบสอบถาม', exportPrice: 'ราคาส่งออกมายังประเทศไทยตามคำตอบแบบสอบถาม', compare: 'ปรับระดับการค้าและเงื่อนไขการขายให้เทียบกันได้', margin: 'ส่วนเหลื่อมการทุ่มตลาดของผู้ส่งออกเวียดนามจากการเปรียบเทียบอย่างเป็นธรรม' },
+      { name: 'ผู้ผลิตและผู้ส่งออกอียิปต์', normalValue: 'ราคาขายเหล็กแผ่นรีดร้อนในประเทศอียิปต์ตามคำตอบแบบสอบถาม', exportPrice: 'ราคาส่งออกมายังประเทศไทยตามคำตอบแบบสอบถาม', compare: 'ปรับระดับการค้าและเงื่อนไขการขายให้เทียบกันได้', margin: 'ส่วนเหลื่อมการทุ่มตลาดของผู้ส่งออกอียิปต์จากการเปรียบเทียบอย่างเป็นธรรม' },
+    ];
+    this.normalValue = this.visitRows[0].normalValue;
+    this.exportPrice = this.visitRows[0].exportPrice;
+    this.dumpingMargin = this.visitRows[0].margin;
+    this.injuryVolume = 'ปริมาณนำเข้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ในช่วงที่ขอไต่สวนสูงกว่าช่วงก่อนยื่นคำขอ';
+    this.injuryPrice = 'ราคาขายในประเทศของอุตสาหกรรมภายในถูกกดจากสินค้านำเข้า';
+    this.injuryPerformance = 'ผลประกอบการของผู้ยื่น บริษัท สหวิริยาสตีลอินดัสตรี จำกัด และผู้ผลิตที่สนับสนุน ลดลงในช่วงเดียวกัน';
+    this.injuryCustoms = 'ตรวจข้อมูลกรมศุลกากรทั้งปริมาณ มูลค่า พิกัดสินค้า และอากรขาเข้าแล้ว การใช้สิทธิ FTA ไม่ได้เปลี่ยนฐานการเปรียบเทียบของเคสนี้';
+    this.injuryLink = 'ปริมาณนำเข้าที่เพิ่มขึ้นเกิดในช่วงเดียวกับราคาที่ถูกกดและความเสียหายของอุตสาหกรรมภายใน';
+    this.visitDataOk = 'yes';
+  }
+
+  protected get visitReady(): boolean {
+    const rowsReady = this.visitRows.every((row) => row.normalValue.trim() && row.exportPrice.trim() && row.compare.trim() && row.margin.trim());
+    const injuryReady = !!this.injuryVolume.trim() && !!this.injuryPrice.trim() && !!this.injuryPerformance.trim() && !!this.injuryCustoms.trim() && !!this.injuryLink.trim();
+    return this.visitDomestic && rowsReady && injuryReady && this.visitDataOk === 'yes';
+  }
+
+  protected get inquiryExtraForms(): MadeDoc[] {
+    return this.madeDocs.filter((item) => item.fields.some((field) => field.label === 'ขั้นตอน' && field.value === 'เปิดไต่สวน'));
+  }
+
+  protected get inquiryFiles(): { kind: string; name: string; title: string; sentOn: string }[] {
+    return this.extrasOf('เปิดไต่สวน');
+  }
+
+  protected openNewInquiryForm(): void {
+    this.committeeDraft = [
+      field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+      field('วันที่', this.inquiryNoticeOn || this.committeeAt),
+      field('เรื่อง', ''),
+      field('เรียน', ''),
+      field('เนื้อความ', '', true),
+      field('ลงชื่อ', this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+      field('ขั้นตอน', 'เปิดไต่สวน'),
+    ];
+    this.committeeFormKind = 'สร้างแบบฟอร์มเปิดไต่สวน';
+  }
+
+  protected openNewCommitteeForm(): void {
+    this.committeeDraft = [
+      field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+      field('วันที่', this.committeeAt),
+      field('เรื่อง', ''),
+      field('เรียน', ''),
+      field('เนื้อความ', '', true),
+      field('ลงชื่อ', this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล'),
+      field('ขั้นตอน', 'พิจารณาของคณะกรรมการ'),
+    ];
+    this.committeeFormKind = 'สร้างแบบฟอร์ม';
+  }
+
+  protected get committeeExtraForms(): MadeDoc[] {
+    return this.madeDocs.filter((item) => item.fields.some((field) => field.label === 'ขั้นตอน' && field.value === 'พิจารณาของคณะกรรมการ'));
+  }
+
+  protected get committeeFiles(): { kind: string; name: string; title: string; sentOn: string }[] {
+    return this.extrasOf('พิจารณาของคณะกรรมการ');
+  }
+
+  protected saveCommitteeForm(): void {
+    const creating = this.committeeFormKind === 'สร้างแบบฟอร์ม' || this.committeeFormKind === 'สร้างแบบฟอร์มเปิดไต่สวน' || this.committeeFormKind === 'สร้างแบบฟอร์มผลขั้นต้น' || this.committeeFormKind === 'สร้างแบบฟอร์มร่างผลสิ้นสุด' || this.committeeFormKind === 'สร้างแบบฟอร์มผลสิ้นสุด';
+    const stage = this.committeeFormKind === 'สร้างแบบฟอร์มเปิดไต่สวน' ? 'เปิดไต่สวน' : this.committeeFormKind === 'สร้างแบบฟอร์มผลขั้นต้น' ? 'ผลขั้นต้น' : this.committeeFormKind === 'สร้างแบบฟอร์มร่างผลสิ้นสุด' ? 'ร่างผลสิ้นสุด' : this.committeeFormKind === 'สร้างแบบฟอร์มผลสิ้นสุด' ? 'ผลสิ้นสุด' : 'พิจารณาของคณะกรรมการ';
+    const kind = creating ? this.committeeDraft.find((item) => item.label === 'เรื่อง')?.value.trim() || '' : this.committeeFormKind;
+    if (!kind || this.committeeDraft.some((item) => item.label !== 'ขั้นตอน' && !item.value.trim())) return;
+    const fields = this.committeeDraft.map((item) => ({ ...item }));
+    if (creating && !fields.some((item) => item.label === 'ขั้นตอน')) fields.push(field('ขั้นตอน', stage));
+    const at = fields.find((item) => item.label === 'วันที่' || item.label === 'วันที่ประชุม')?.value || this.committeeAt;
+    const existing = creating ? undefined : this.madeOf(kind).at(-1);
+    if (existing) this.madeDocs = this.madeDocs.map((item) => item.id === existing.id ? { ...item, fields, at } : item);
+    else this.madeDocs = [...this.madeDocs, { id: `committee-${Date.now()}`, kind, at, fields }];
+    writeMadeDocs(this.madeDocs);
+    this.committeeFormKind = '';
   }
 
   protected addEmbassyFiles(event: Event): void {
@@ -3045,12 +4492,10 @@ export class Por1Page {
   }
 
   private placeInquiry(): void {
-    if (!this.inquiryAgendaDone) this.inquiryPart = 'agenda';
-    else if (!this.inquiryDecide) this.inquiryPart = 'decide';
-    else if (this.inquiryDecide === 'return') this.inquiryPart = 'letter';
-    else if (!this.inquiryFeeSent) this.inquiryPart = 'fee';
-    else if (!this.inquiryPayAck) this.inquiryPart = 'proof';
-    else if (this.inquiryOpen !== 'open') this.inquiryPart = 'vote';
+    if (this.inquiryDecide === 'return' && !this.inquiryReturned) this.inquiryPart = 'letter';
+    else if (!this.inquiryAgendaDone) this.inquiryPart = 'agenda';
+    else if (!this.inquiryOpen) this.inquiryPart = 'vote';
+    else if (this.inquiryOpen === 'close') this.inquiryPart = 'vote';
     else if (!this.inquiryNoticeSent) this.inquiryPart = 'notice';
     else if (!this.inquiryHearing) this.inquiryPart = 'hearing';
     else if (!this.inquiryQuestionsDone) this.inquiryPart = 'questions';
@@ -3059,33 +4504,30 @@ export class Por1Page {
 
   protected get inquiryNav(): { id: InquiryStep; label: string; done: boolean; group: string }[] {
     const steps: { id: InquiryStep; label: string; done: boolean; group: string }[] = [
-      { id: 'agenda', label: 'วาระพิจารณา', done: this.inquiryAgendaDone, group: '' },
-      { id: 'decide', label: 'พิจารณาคำขอ', done: this.inquiryDecide !== '', group: '' },
+      { id: 'agenda', label: 'วาระ ทตอ.', done: this.inquiryAgendaDone, group: 'เปิดไต่สวน' },
+      { id: 'vote', label: 'มติเปิดไต่สวน', done: this.inquiryOpen !== '', group: 'เปิดไต่สวน' },
     ];
-    if (this.inquiryDecide === 'return') steps.push({ id: 'letter', label: 'หนังสือคืนคำขอ', done: this.inquiryReturned, group: '' });
-    if (this.inquiryDecide === 'take') {
+    if (this.inquiryDecide === 'return') steps.push({ id: 'letter', label: 'หนังสือคืนคำขอ', done: this.inquiryReturned, group: 'เปิดไต่สวน' });
+    if (this.inquiryOpen !== 'close') {
       steps.push(
-        { id: 'fee', label: 'แจ้งชำระค่าธรรมเนียม', done: this.inquiryFeeSent, group: '' },
-        { id: 'proof', label: 'หลักฐานการชำระ', done: this.inquiryPayAck, group: '' },
-        { id: 'vote', label: 'มติเปิดไต่สวน', done: this.inquiryOpen !== '', group: '' },
+        { id: 'notice', label: 'ประกาศเปิดไต่สวน', done: this.inquiryPackDone('notice'), group: 'เปิดไต่สวน' },
+        { id: 'sign', label: 'ลงนามและราชกิจจานุเบกษา', done: this.inquiryPackDone('sign'), group: 'เปิดไต่สวน' },
+        { id: 'letters', label: 'หนังสือแจ้งผู้เกี่ยวข้อง', done: this.inquiryPackDone('letters'), group: 'เปิดไต่สวน' },
+        { id: 'news', label: 'ข่าวหนังสือพิมพ์', done: this.inquiryPackDone('news'), group: 'เปิดไต่สวน' },
       );
     }
     if (this.inquiryOpen === 'open') {
       steps.push(
-        { id: 'notice', label: 'ประกาศและแจ้งผู้เกี่ยวข้อง', done: this.inquiryNoticeSent, group: '' },
         { id: 'hearing', label: 'แถลงการณ์', done: this.inquiryHearing !== '', group: 'ข้อมูลไต่สวน' },
         { id: 'questions', label: 'แบบสอบถาม', done: this.inquiryQuestionsDone, group: 'ข้อมูลไต่สวน' },
-        { id: 'visit', label: 'ตรวจสถานประกอบการ', done: this.laterPhase.visit, group: 'ตรวจสถานประกอบการ' },
+        { id: 'visit', label: 'ตรวจสถานประกอบการ', done: this.laterPhase.visit, group: 'ข้อมูลไต่สวน' },
       );
     }
     return steps;
   }
 
   protected openInquiryStep(id: InquiryStep): void {
-    const steps = this.inquiryNav;
-    const index = steps.findIndex((step) => step.id === id);
-    const pending = steps.findIndex((step) => !step.done);
-    if (index < 0 || (pending !== -1 && index > pending)) return;
+    if (!this.inquiryNav.some((step) => step.id === id)) return;
     this.inquiryPart = id;
   }
 
@@ -3218,11 +4660,12 @@ export class Por1Page {
   }
 
   protected saveInquiryOpen(): void {
-    if (!this.inquiryPayAck || this.inquiryOpen) return;
-    if (this.inquiryDecide !== 'take') return;
+    if (this.inquiryOpen) return;
+    if (!thaiDateOk(this.inquiryOpenAt, 'any')) return;
     const choice = this.inquiryOpenDraft;
     if (choice === 'close' && !this.inquiryCloseNote.trim()) return;
     if (choice !== 'open' && choice !== 'close') return;
+    if (!this.inquiryDecide) this.inquiryDecide = 'take';
     this.inquiryOpen = choice;
     if (choice === 'open') {
       const [day, month, year] = this.inquiryOpenAt.split('/');
@@ -3314,7 +4757,7 @@ export class Por1Page {
     });
     this.inquiryNoticeSent = true;
     this.writeInquiry();
-    this.inquiryPart = 'notice';
+    this.inquiryPart = 'news';
   }
 
   protected saveInquiryHearing(): void {
@@ -3625,6 +5068,10 @@ export class Por1Page {
       this.caseStatus = 'revision';
     }
     this.notice = send ? 'docs' : 'saved';
+    if (send) {
+      this.noticeFormOpen = false;
+      this.editingId = '';
+    }
   }
 
   private issueNotice(): void {
@@ -4099,6 +5546,72 @@ export class Por1Page {
     void this.router.navigateByUrl('/requests');
   }
 
+  private applyCaseForm(): void {
+    const item = findListedCase(this.returnCase);
+    if (!item) return;
+    const extra = caseFormExtra(item);
+    this.formRef = item.ref;
+    this.company = item.applicant || this.company;
+    this.address = '';
+    this.phone = '';
+    this.fax = '';
+    this.email = '';
+    this.agent = '';
+    this.agentPhone = '';
+    this.agentFax = '';
+    this.agentEmail = '';
+    if (item.applicant?.includes('ในประเทศ')) this.nationality = 'ไทย';
+    const goods = item.goods.replace(/\s+/g, ' ').trim();
+    this.goodsDetail = goods.length > 200 ? goods.slice(0, 200) : goods;
+    this.relatedImport = '';
+    this.priorAid = '';
+    this.outsideProducer = '';
+    this.channelDetail = '';
+    this.originDetail = '';
+    this.factoryNote = '';
+    this.thirdReason = '';
+    this.thaiDetail = '';
+    this.specialDetail = '';
+    this.compareReason = '';
+    this.originPeriod = '';
+    this.thaiPeriod = '';
+    this.currency = '';
+    this.exportDetail = '';
+    this.explainDetail = '';
+    this.originCosts = [emptyCost()];
+    this.thaiCosts = [emptyCost()];
+    this.docs = [];
+    this.exportDocs = [];
+    this.marginDocs = [];
+    this.subsidyDocs = [];
+    this.explainDocs = [];
+    this.otherDocs = [];
+    for (const key of Object.keys(this.sheets) as (keyof typeof this.sheets)[]) this.sheets[key] = [];
+    this.notes = Object.fromEntries(Object.keys(this.notes).map((key) => [key, '']));
+    for (const key of Object.keys(this.groups)) this.groups[key] = [];
+    for (const key of Object.keys(this.files)) this.files[key] = '';
+    this.ack = false;
+    this.signer = '';
+    this.signedOn = '';
+    this.signatureName = '';
+    this.signatureUrl = '';
+    this.letterDate = item.created || this.letterDate;
+    this.letterSubject = `ขอให้พิจารณาดำเนินการสินค้า${item.goods}`;
+    this.letterBody = `${item.applicant || 'ผู้ยื่นคำขอ'} ขอนำส่งแบบ ปร. 1 สินค้า${item.goods} ต่อกรมการค้าต่างประเทศ`;
+    this.letterPurpose = `ขอให้พิจารณา${item.kind} สินค้า${item.goods}`;
+    this.replyLetterBody = this.letterBody;
+    if (item.origins?.length) {
+      this.countries.splice(0, this.countries.length, ...item.origins);
+      this.exportCountry = item.origins[0];
+    }
+    this.makers = [party(item.applicant || 'ผู้ผลิตในประเทศ')];
+    const known = extra.exporters;
+    for (const block of this.parties) {
+      if (block.key === 'exporters' || block.key === 'producers') block.rows = known.length ? known.map((name) => party(name)) : [emptyParty()];
+      else block.rows = [emptyParty()];
+    }
+  }
+
   protected openStored(round: FilingRound): void {
     this.openedRound = round;
     this.viewingForm = false;
@@ -4541,6 +6054,7 @@ export class Por1Page {
   }
 
   protected confirmOfficial(): void {
+    if (!this.aiReady) return;
     const fromConsult = this.caseStatus === 'consult';
     const owners = fromConsult ? consultFilingOwners() : [];
     this.officialOpen = false;
@@ -4874,8 +6388,8 @@ export class Por1Page {
     if (this.failed(item)) return false;
     const id = item.id;
     const anchor = item.anchor ?? '';
-    if (id.startsWith('7') && this.measure !== 'subsidy') return true;
-    if (id === 'other') return true;
+    if (id.startsWith('7') && this.measure !== 'subsidy') return !this.formView;
+    if (id === 'other') return this.formView ? this.otherDocs.length > 0 : true;
     if (id === '1' && anchor === 'part-1-1') {
       if (!this.hasText(this.company) || !this.hasText(this.nationality) || !this.hasText(this.address) || !this.hasText(this.phone)) return false;
       return !this.onBehalf || (this.hasText(this.agent) && this.makers.every((row) => this.hasText(row.name)));
@@ -4939,6 +6453,13 @@ export class Por1Page {
   }
 
   private returnCase = '';
+  protected formView = false;
+  protected formRef = '';
+  private sampleCase: ListedCase | null = null;
+
+  protected get formCase(): string {
+    return this.returnCase;
+  }
 
   protected fixReason(anchor: string): string {
     return this.failSpots().find((spot) => spot.anchors.includes(anchor))?.reason ?? '';
@@ -5068,6 +6589,199 @@ export class Por1Page {
     this.consultFiles = [{ name: 'คำสั่งมอบหมาย.pdf', title: 'คำสั่งมอบหมายงาน' }];
   }
 
+  private presentCase(): void {
+    const packs = [...inquiryPack, ...prelimPack, ...draftFinalPack, ...finalResultPack, ...measurePack];
+    let changed = false;
+    packs.forEach((item, index) => {
+      if (this.committeeFormDone(item.kind)) return;
+      const fields = this.inquiryDraft(item.kind);
+      if (!fields) return;
+      const measure = measurePack.some((row) => row.kind === item.kind);
+      const final = !measure && finalResultPack.some((row) => row.kind === item.kind);
+      const draft = !measure && !final && draftFinalPack.some((row) => row.kind === item.kind);
+      const prelim = !measure && !final && !draft && prelimPack.some((row) => row.kind === item.kind);
+      const at = measure ? (this.measureOn || '15/06/2563') : final ? (this.finalOn || '20/12/2562') : draft ? (this.draftOn || '15/10/2562') : prelim ? (this.prelimOn || '20/08/2562') : (item.step === 'agenda' || item.step === 'hearing' || item.step === 'visit' ? (this.inquiryAgendaAt || '10/06/2562') : (this.inquiryNoticeOn || '25/06/2562'));
+      this.madeDocs = [...this.madeDocs, { id: `present-${index}`, kind: item.kind, at, fields }];
+      changed = true;
+    });
+    this.inquiryQuestions = defaultInquiryQuestions().map((item) => {
+      const label = this.inquiryQuestionLabel(item.id);
+      const formId = `present-form-${item.id}`;
+      const answerId = `present-answer-${item.id}`;
+      for (const paper of [
+        { id: formId, kind: `แบบสอบถาม${label}`, at: '01/07/2562' },
+        { id: answerId, kind: `คำตอบแบบสอบถาม${label} ฉบับเปิดเผย`, at: '20/07/2562' },
+      ]) {
+        if (this.madeDocs.some((doc) => doc.id === paper.id)) continue;
+        this.madeDocs = [...this.madeDocs, { id: paper.id, kind: paper.kind, at: paper.at, fields: [{ label: 'เรื่อง', value: paper.kind }, { label: 'วันที่', value: paper.at }, { label: 'เนื้อความ', value: `จำลองข้อมูล${paper.kind} ของคำขอเลขที่อ้างอิง ${this.refId}`, long: true }] }];
+        changed = true;
+      }
+      return { ...item, sent: true, received: true, passed: true, formDocId: formId, answerDocId: answerId, papers: [{ kind: 'form' as const, at: '01/07/2562', docId: formId, round: 1 }, { kind: 'answer' as const, at: '20/07/2562', docId: answerId, round: 1 }] };
+    });
+    if (changed) writeMadeDocs(this.madeDocs);
+    this.docAction = 'complete';
+    this.docSent = true;
+    this.docSentBy = this.docSentBy || this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล';
+    if (this.committeeResult !== 'reject') {
+      this.committeeResult = 'take';
+      if (!this.committeeFee) this.committeeFee = 'pay';
+      this.committeeSent = true;
+      this.committeeSentBy = this.committeeSentBy || this.docSentBy;
+    }
+    this.inquiryAgendaDone = true;
+    this.inquiryDecide = 'take';
+    this.inquiryFeeSent = true;
+    this.inquiryPaySent = true;
+    this.inquiryPayAck = true;
+    if (!this.inquiryPayFiles.length) this.inquiryPayFiles = [{ name: 'หลักฐานชำระค่าธรรมเนียม.pdf', title: 'หลักฐานชำระค่าธรรมเนียมคำขอ', sentOn: '18/06/2562' }];
+    this.inquiryOpen = 'open';
+    this.inquiryCaseId = this.inquiryCaseId || 'AD256206100001';
+    this.inquiryNoticeSent = true;
+    this.inquiryHearing = 'hold';
+    this.inquiryHearingPlace = this.inquiryHearingPlace || 'ห้องประชุม กรมการค้าต่างประเทศ';
+    this.hearingMemo = 'ผู้มีส่วนได้เสียเข้าฟังความคิดเห็นครบตามนัด';
+    this.hearingPeople = '12';
+    this.hearingOffice = 'approve';
+    this.fillVisitData();
+    this.visitForeign = true;
+    this.prelimHearing = 'yes';
+    this.prelimAgain = 'no';
+    this.draftSubstance = 'no';
+    this.measure56 = 'no';
+    this.measure57 = 'yes';
+    this.measure58 = 'no';
+    this.measure59 = 'no';
+    this.laterPhase = {
+      ...this.laterPhase,
+      visit: true,
+      prelim: true,
+      draftFinal: true,
+      finalResult: true,
+      measures: true,
+      marks: { ...this.laterPhase.marks, m56: 'no', m57: 'yes', m58: 'no', m59: 'no' },
+      notes: {
+        ...this.laterPhase.notes,
+        visit: JSON.stringify({
+          domestic: true,
+          foreign: true,
+          normalValue: this.normalValue,
+          exportPrice: this.exportPrice,
+          margin: this.dumpingMargin,
+          parties: this.visitRows,
+          volume: this.injuryVolume,
+          price: this.injuryPrice,
+          performance: this.injuryPerformance,
+          customs: this.injuryCustoms,
+          link: this.injuryLink,
+          complete: 'yes',
+        }),
+        'qn-open': 'importer,domestic,exporter',
+        'prelim-on': this.prelimOn,
+        'prelim-hearing': 'yes',
+        'prelim-again': 'no',
+        'draft-on': this.draftOn,
+        'draft-substance': 'no',
+        'final-on': this.finalOn,
+        'measure-on': this.measureOn,
+        'hearing-memo': this.hearingMemo,
+        'hearing-office': 'approve',
+        'hearing-people': this.hearingPeople,
+      },
+    };
+    writeLaterPhase(this.laterPhase);
+    this.inquirySentBy = this.signedPerson || this.directorName;
+    writeDocNotice(this.docPayload(true));
+    if (this.reviewTab === 'inquiry') this.placeInquiry();
+  }
+
+  private presentStaffCase(item: ListedCase): void {
+    this.sampleCase = item;
+    this.refId = item.ref;
+    this.returnCase = item.code;
+    this.applyCaseForm();
+    for (const form of this.caseForms) form.measure = this.staffMeasureLabel(item);
+    const statutory = /56|57|58|59/.test(`${item.measure} ${item.kind}`);
+    const packs = statutory
+      ? [...inquiryPack, ...prelimPack, ...draftFinalPack, ...finalResultPack, ...measurePack]
+      : [...inquiryPack, ...prelimPack, ...draftFinalPack, ...finalResultPack];
+    this.madeDocs = packs.map((row, index) => ({
+      id: `sample-${item.code}-${index}`,
+      kind: row.kind,
+      at: item.created,
+      fields: this.inquiryDraft(row.kind) ?? [
+        { label: 'เรื่อง', value: row.kind },
+        { label: 'เนื้อความ', value: this.inquiryCaseBody(row.kind), long: true },
+      ],
+    }));
+    this.docAction = 'complete';
+    this.docSent = true;
+    this.docSentBy = this.signedPerson || 'นางสาวจรีณา กิจส่งเสริมกุล';
+    this.committeeResult = 'take';
+    this.committeeFee = 'pay';
+    this.committeeSent = true;
+    this.committeeSentBy = this.docSentBy;
+    this.inquiryAgendaDone = true;
+    this.inquiryDecide = 'take';
+    this.inquiryFeeSent = true;
+    this.inquiryPaySent = true;
+    this.inquiryPayAck = true;
+    this.inquiryPayFiles = [{ name: 'หลักฐานชำระค่าธรรมเนียม.pdf', title: 'หลักฐานชำระค่าธรรมเนียมคำขอ', sentOn: item.created }];
+    this.inquiryOpen = 'open';
+    this.inquiryCaseId = item.code;
+    this.inquiryNoticeSent = true;
+    this.inquiryHearing = 'hold';
+    this.inquiryHearingPlace = 'ห้องประชุม กรมการค้าต่างประเทศ';
+    const exporters = caseFormExtra(item).exporters;
+    this.visitRows = (exporters.length ? exporters : ['ผู้ส่งออกในแฟ้ม']).map((name) => ({
+      name,
+      normalValue: 'ราคาในประเทศตามแบบสอบถามในแฟ้ม',
+      exportPrice: 'ราคาส่งออกตามแบบสอบถามในแฟ้ม',
+      compare: 'ปรับระดับการค้าให้เทียบกันได้',
+      margin: 'ส่วนเหลื่อมเป็นไปตามมติที่ประชุม',
+    }));
+    this.visitDomestic = true;
+    this.normalValue = this.visitRows[0].normalValue;
+    this.exportPrice = this.visitRows[0].exportPrice;
+    this.dumpingMargin = this.visitRows[0].margin;
+    this.injuryVolume = `ปริมาณนำเข้าสินค้า${item.goods} ตามสถิติในแฟ้ม`;
+    this.injuryPrice = 'ราคาในประเทศถูกกดจากสินค้านำเข้าตามข้อเท็จจริงในแฟ้ม';
+    this.injuryPerformance = `ผลประกอบการของ${item.applicant || 'ผู้ยื่นคำขอ'} ในช่วงเดียวกัน`;
+    this.injuryCustoms = 'ตรวจข้อมูลกรมศุลกากรตามแฟ้มแล้ว';
+    this.injuryLink = 'ปริมาณนำเข้าและความเสียหายเกิดในช่วงเดียวกันตามแฟ้ม';
+    this.visitDataOk = 'yes';
+    this.visitForeign = true;
+    this.prelimHearing = 'yes';
+    this.prelimAgain = 'no';
+    this.draftSubstance = 'no';
+    this.measure56 = item.measure.includes('56') || item.kind.includes('56') ? 'yes' : 'no';
+    this.measure57 = item.measure.includes('57') || item.kind.includes('57') ? 'yes' : 'no';
+    this.measure58 = 'no';
+    this.measure59 = 'no';
+    this.laterPhase = {
+      visit: true,
+      prelim: true,
+      draftFinal: true,
+      finalResult: true,
+      measures: statutory,
+      marks: statutory ? { m56: this.measure56, m57: this.measure57, m58: 'no', m59: 'no' } : {},
+      notes: {
+        'qn-open': 'importer,domestic,exporter',
+        'prelim-hearing': 'yes',
+        'prelim-again': 'no',
+        'draft-substance': 'no',
+      },
+    };
+    if (this.reviewTab === 'inquiry') this.placeInquiry();
+  }
+
+  private staffMeasureLabel(item: ListedCase): string {
+    if (item.measure.startsWith('SG')) return 'มาตรการ SG';
+    if (item.measure.startsWith('AC') || item.kind.includes('หลบเลี่ยง')) return 'มาตรการ AC';
+    if (item.measure.includes('56')) return 'มาตรา 56';
+    if (item.measure.includes('57')) return 'มาตรา 57';
+    return 'มาตรการ AD';
+  }
+
   private seedResultDraft(): void {
     const mine = this.myConsultOfficer();
     if (mine?.reply === 'accept' && !mine.result) {
@@ -5081,6 +6795,7 @@ export class Por1Page {
     this.caseNotes = readCaseNotes();
     this.noteReads = readNoteReads(this.accounts.username);
     this.laterPhase = readLaterPhase();
+    this.restoreWorkNotes();
     this.loadDocNotice();
     this.loadWorkDrafts();
     this.loadMadeDocs();
@@ -5092,7 +6807,7 @@ export class Por1Page {
     if (this.reviewRole) {
       this.viewingForm = true;
       this.ensureAssignment();
-      this.reviewTab = 'form';
+      this.reviewTab = this.reviewRole === 'external' ? 'docs' : this.reviewRole === 'bureau' || this.reviewRole === 'committee' || this.reviewRole === 'interest' ? 'inquiry' : 'form';
       this.ensureReceipt();
       this.seedConsultDraft();
       this.seedResultDraft();
@@ -5110,7 +6825,12 @@ export class Por1Page {
     if (!this.reviewRole && this.route.snapshot.queryParamMap.get('consult') === '1') this.openConsult();
     const caseCode = this.route.snapshot.queryParamMap.get('case') ?? '';
     if (/^[A-Za-z0-9]+$/.test(caseCode)) this.returnCase = caseCode;
+    this.formView = this.route.snapshot.queryParamMap.get('view') === '1' && !!this.returnCase;
+    if (this.formView) this.applyCaseForm();
     if (!this.reviewRole && this.route.snapshot.queryParamMap.get('revise') === '1') this.startRevise();
+    const staffCase = this.reviewRole && !this.formView ? findListedCase(this.returnCase) : undefined;
+    if (staffCase && !staffCase.draft) this.presentStaffCase(staffCase);
+    else if (this.reviewRole && !this.formView) this.presentCase();
     if (this.caseStatus === 'consult' && this.consultAssigned && this.consultByChat) this.openTalk();
     if (this.caseStatus === 'consult' && !this.consultAssigned) this.watchAssign();
     this.watchApproval();

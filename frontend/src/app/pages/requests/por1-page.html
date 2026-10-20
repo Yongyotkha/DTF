@@ -23,12 +23,16 @@
               <button type="button" class="head__back" aria-label="กลับหน้ารายการ" (click)="leaveFiling()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
               </button>
-              <h1>ยื่นคำขอ</h1>
-              @if (!tracking) {
+              <h1>{{ formView ? 'แบบ ปร. 1' : 'ยื่นคำขอ' }}</h1>
+              @if (formView) {
+                <app-status-tag tone="info" label="ดูแบบฟอร์ม" />
+              } @else if (!tracking) {
                 <app-status-tag [tone]="caseTone" [label]="caseLabel" />
               }
             </div>
-            @if (!showStatus && tracking) {
+            @if (formView) {
+              <p>เลขที่อ้างอิง {{ formRef }} · เคส {{ formCase }}</p>
+            } @else if (!showStatus && tracking) {
               <p>เลขที่อ้างอิง {{ refId }}</p>
             } @else if (!tracking) {
               <p>แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</p>
@@ -65,6 +69,8 @@
             }
             <span class="head__split" aria-hidden="true"></span>
             <app-status-tag [tone]="caseTone" [label]="caseLabel" />
+          } @else if (formView) {
+            <app-button type="outline" label="กลับไปที่คำขอ" (click)="leaveFiling()" />
           } @else {
             <span class="head__split" aria-hidden="true"></span>
             <app-button type="outline" label="บันทึกร่าง" [state]="caseStatus === 'cancelled' ? 'disabled' : 'default'" (click)="saveDraft()" />
@@ -1743,11 +1749,24 @@
                         <app-button class="icon-before" type="primary" label="แนบไฟล์" (click)="openAttach('agency')">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
                         </app-button>
+                        @if (preQuestionnaire) {
+                          <app-button class="icon-before" type="outline" label="ใช้ไฟล์ตัวอย่าง" (click)="usePreSamples()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 13h6M9 17h4" /></svg>
+                          </app-button>
+                        }
+                        @if (preQuestionnaire) {
+                          <app-button class="ask-ai icon-before" type="primary" label="ช่วยวิเคราะห์" [state]="prePickedCount ? 'default' : 'disabled'" (click)="summarizePreQuestionnaire()">
+                            <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                          </app-button>
+                        }
                         <app-button class="icon-before" type="primary" label="เพิ่มแบบฟอร์ม" (click)="openAgencyForm()">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                         </app-button>
                       </div>
                     </header>
+                    @if (preQuestionnaire) {
+                      <p class="link-detail">แนบไฟล์คำตอบที่ส่งกลับมา แล้วเลือก checkbox รายการที่ต้องการให้ AI วิเคราะห์</p>
+                    }
                     @if (!madeOf(workDocs[docPart].title).length && !extrasOf(workDocs[docPart].title).length) {
                       <p class="consult-blank">ยังไม่มีแบบฟอร์มหรือไฟล์แนบ</p>
                     } @else {
@@ -1755,6 +1774,9 @@
                         <table>
                           <thead>
                             <tr>
+                              @if (preQuestionnaire) {
+                                <th class="col-no">เลือก</th>
+                              }
                               <th class="col-no">ลำดับ</th>
                               <th>เรื่อง</th>
                               <th class="col-fit">วันที่บันทึก</th>
@@ -1764,8 +1786,15 @@
                           <tbody>
                             @for (item of madeOf(workDocs[docPart].title); track item.id; let n = $index) {
                               <tr>
+                                @if (preQuestionnaire) {
+                                  <td class="col-no">
+                                    @if (!item.fields.some((field) => field.label === 'สรุปผลการวิเคราะห์')) {
+                                      <input type="checkbox" [attr.aria-label]="'เลือก ' + agencyLead(item)" [checked]="prePick['form:' + item.id]" (change)="togglePrePick('form:' + item.id)" />
+                                    }
+                                  </td>
+                                }
                                 <td class="col-no">{{ n + 1 }}</td>
-                                <td>{{ agencyLead(item) }}</td>
+                                <td>{{ agencyLead(item) }}@if (item.fields.some((field) => field.label === 'สรุปผลการวิเคราะห์')) { <app-status-tag variant="soft" tone="success" label="สรุปผล" /> }</td>
                                 <td class="col-fit">{{ item.at }}</td>
                                 <td class="col-act">
                                   <div class="made-actions">
@@ -1784,8 +1813,13 @@
                             }
                             @for (file of extrasOf(workDocs[docPart].title); track $index; let n = $index) {
                               <tr>
+                                @if (preQuestionnaire) {
+                                  <td class="col-no">
+                                    <input type="checkbox" [attr.aria-label]="'เลือก ' + (file.title || file.name)" [checked]="prePick['file:' + file.name]" (change)="togglePrePick('file:' + file.name)" />
+                                  </td>
+                                }
                                 <td class="col-no">{{ madeOf(workDocs[docPart].title).length + n + 1 }}</td>
-                                <td>{{ file.title || file.name }}</td>
+                                <td>{{ file.title || file.name }}@if (preQuestionnaire) { <app-status-tag variant="soft" tone="info" label="คำตอบกลับ" /> }</td>
                                 <td class="col-fit">{{ file.sentOn }}</td>
                                 <td class="col-act">
                                   <div class="made-actions">
@@ -2362,6 +2396,74 @@
                             <textarea rows="3" maxlength="500" [value]="committeeNote" (input)="committeeNote = $any($event.target).value"></textarea>
                           </label>
                         }
+                        <div class="reply-bar">
+                          <div>
+                            <h3>แบบฟอร์มตามขั้นตอนรับคำขอ</h3>
+                            <p class="link-detail">บันทึกวาระ มติ รายงาน และหนังสือแจ้งการรับคำขอให้ครบก่อนบันทึกผลการพิจารณา</p>
+                          </div>
+                          <div class="doc-tools">
+                            <app-button class="icon-before" type="primary" label="แนบไฟล์" (click)="openAttach('committee')">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+                            </app-button>
+                            <app-button class="icon-before" type="primary" label="สร้างแบบฟอร์ม" (click)="openNewCommitteeForm()">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                            </app-button>
+                          </div>
+                        </div>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th class="col-no">ลำดับ</th>
+                                <th>กลุ่ม</th>
+                                <th>แบบฟอร์ม</th>
+                                <th class="col-fit">สถานะ</th>
+                                <th class="col-act">การจัดการ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (item of committeeForms; track item.kind; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ n + 1 }}</td>
+                                  <td>{{ item.group }}</td>
+                                  <td>{{ item.kind }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" [attr.aria-label]="committeeFormDone(item.kind) ? 'แก้ไข' : 'ทำแบบฟอร์ม'" (click)="openCommitteeForm(item.kind)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              }
+                              @for (item of committeeExtraForms; track item.id; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ committeeForms.length + n + 1 }}</td>
+                                  <td>แบบฟอร์มเพิ่มเติม</td>
+                                  <td>{{ item.kind }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" tone="success" label="บันทึก" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" aria-label="ดู" (click)="viewingMade = item">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              }
+                              @for (file of committeeFiles; track file.name; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ committeeForms.length + committeeExtraForms.length + n + 1 }}</td>
+                                  <td>ไฟล์แนบ</td>
+                                  <td>{{ file.title || file.name }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" tone="info" label="ไฟล์แนบ" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('พิจารณาของคณะกรรมการ', n)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
                         <footer class="doc-foot">
                           <app-button type="primary" label="บันทึกผลการพิจารณา" [state]="canRecordCommittee && committeeReady ? 'default' : 'disabled'" (click)="saveCommittee()" />
                         </footer>
@@ -2370,6 +2472,41 @@
                   }
                 </div>
               </div>
+            </div>
+          }
+          @if (committeeFormKind) {
+            <div class="assign-pop" (click)="committeeFormKind = ''">
+              <section class="assign-dialog agency-dialog" role="dialog" aria-modal="true" aria-labelledby="committee-form-title" (click)="$event.stopPropagation()">
+                <header>
+                  <div>
+                    <h2 id="committee-form-title">{{ committeeFormKind }}</h2>
+                    <p>กรอกแบบฟอร์มแล้วบันทึก</p>
+                  </div>
+                  <div class="doc-tools">
+                    <app-button class="ask-ai icon-before" type="primary" label="ช่วยสร้าง" (click)="assistCommitteeForm()">
+                      <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                    </app-button>
+                    <button type="button" aria-label="ปิด" (click)="committeeFormKind = ''">✕</button>
+                  </div>
+                </header>
+                <div class="agency-dialog__body">
+                  <div class="draft-form">
+                    @for (item of committeeDraft; track item.label; let i = $index) {
+                      @if (item.label === 'ขั้นตอน') {
+                      } @else if (item.label === 'วันที่' || item.label.startsWith('วันที่')) {
+                        <app-thai-date-field [label]="item.label" [required]="true" [value]="item.value" (valueChange)="setCommitteeDraft(i, $event)" />
+                      } @else {
+                        <app-input-field class="block" [class.wide]="item.long" [kind]="item.long ? 'textarea' : 'text'" [grow]="!!item.long" [rows]="item.long ? 4 : 3" [label]="item.label" [required]="true" [value]="item.value" (valueChange)="setCommitteeDraft(i, $event)" />
+                      }
+                    }
+                  </div>
+                </div>
+                <footer>
+                  <app-button class="icon-before" type="primary" label="บันทึก" [state]="committeeDraft.every((item) => item.value.trim()) ? 'default' : 'disabled'" (click)="saveCommitteeForm()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+                  </app-button>
+                </footer>
+              </section>
             </div>
           }
           @if (reviewTab === 'inquiry') {
@@ -2389,6 +2526,16 @@
               @if (!inquiryReached) {
                 <p>คณะกรรมการไม่รับคำขอฉบับสมบูรณ์ จึงไม่เข้าขั้นตอนเปิดไต่สวน</p>
               } @else {
+                <section class="notice-form" aria-label="สารบรรณและ e-TR">
+                  <p>เลขสารบรรณ {{ filingSaraban }} · Ref e-TR {{ etrRefNo }}</p>
+                  @if (laterPhase.notes['case-split']) {
+                    <p>{{ laterPhase.notes['case-split'] }}</p>
+                  } @else {
+                    <footer class="doc-foot">
+                      <app-button type="primary" label="แตกเคสจากสรุปประชุมรายเดือน" (click)="saveCaseSplit()" />
+                    </footer>
+                  }
+                </section>
                 <div class="sheet__split">
                   <nav class="toc" aria-label="กระบวนการเปิดไต่สวน">
                     @for (step of inquiryNav; track step.id; let i = $index) {
@@ -2396,100 +2543,161 @@
                         <p class="toc__group">{{ step.group }}</p>
                       }
                       <button type="button" class="toc__child" [class.toc__on]="inquiryPart === step.id" [attr.aria-current]="inquiryPart === step.id ? 'true' : null" (click)="openInquiryStep(step.id)">
-                        <img [src]="step.done ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                        <img [src]="step.done ? 'assets/icons/por1-dot-done.svg' : inquiryPart === step.id ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
                         {{ step.label }}
                       </button>
                     }
                   </nav>
                   <div class="receipt__view">
-                    @if (inquiryPart === 'agenda') {
-                      <section class="notice-form" aria-label="วาระพิจารณา">
-                        <div class="reply-bar">
-                          <div>
-                            <h3>วาระพิจารณาคำขอ</h3>
-                            <p class="link-detail">เลือกส่วนวาระทีละรายการ กรอกให้ครบแล้วบันทึก ระบบสร้างวาระทั้งฉบับ</p>
-                          </div>
-                          <app-button class="ask-ai icon-before" type="primary" label="ช่วยร่างวาระ" [state]="inquiryDecide ? 'disabled' : 'default'" (click)="fillInquiryAgenda()">
-                            <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
-                          </app-button>
-                        </div>
-                        <div class="sheet__split">
-                          <nav class="toc" aria-label="ส่วนของวาระ">
-                            @for (section of agendaSections; track section.id; let i = $index) {
-                              <button type="button" class="toc__child" [class.toc__on]="agendaPart === i" [attr.aria-current]="agendaPart === i ? 'true' : null" (click)="agendaPart = i">
-                                <img [src]="agendaSectionDone(i) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                                {{ section.label }}
-                              </button>
-                            }
-                          </nav>
-                          <div class="receipt__view">
-                            <h3>{{ agendaSections[agendaPart].label }}</h3>
-                            @if (agendaPart === 0) {
-                              <div class="notice-date">
-                                <app-thai-date-field label="วันที่ประชุม" [required]="true" [value]="inquiryAgendaAt" [state]="inquiryDecide ? 'readonly' : 'default'" (valueChange)="inquiryAgendaAt = $event" />
-                              </div>
-                            }
-                            @if (agendaPart === 5) {
-                              <p class="link-detail">มติบันทึกหลังที่ประชุม หากยังไม่ประชุม ให้เว้นว่างได้</p>
-                            }
-                            <div class="draft-form">
-                              @for (row of agendaFieldsOf(); track row.item.label) {
-                                <app-input-field class="block" [class.wide]="row.item.long" [kind]="row.item.long ? 'textarea' : 'text'" [label]="row.item.label" [required]="row.item.label !== 'มติที่ประชุม'" [editable]="!inquiryDecide" [state]="inquiryDecide ? 'readonly' : 'default'" [value]="row.item.value" (valueChange)="setInquiryField(row.index, $event)" />
-                              }
+                    @if (inquiryDocStep) {
+                      <section class="notice-form" [attr.aria-label]="inquiryStepTitle()">
+                        <dl class="job__detail">
+                          @for (fact of inquiryFacts; track fact.label) {
+                            <div [class.wide]="fact.wide">
+                              <dt>{{ fact.label }}</dt>
+                              <dd>{{ fact.value }}</dd>
                             </div>
-                            @if (!inquiryDecide) {
-                              <footer class="doc-foot">
-                                <app-button type="primary" label="บันทึกวาระ" [state]="agendaReady ? 'default' : 'disabled'" (click)="saveInquiryAgenda()" />
-                              </footer>
-                            }
+                          }
+                        </dl>
+                        @if (inquiryPart === 'agenda') {
+                          <div class="notice-date">
+                            <app-thai-date-field label="วันที่ประชุม" [required]="true" [value]="inquiryAgendaAt" [state]="inquiryAgendaDone ? 'readonly' : 'default'" (valueChange)="inquiryAgendaAt = $event" />
                           </div>
-                        </div>
+                        } @else {
+                          <div class="notice-date">
+                            <app-thai-date-field label="วันที่ประกาศ" [required]="true" [value]="inquiryNoticeOn" [state]="inquiryNoticeSent ? 'readonly' : 'default'" (valueChange)="inquiryNoticeOn = $event" />
+                          </div>
+                        }
                         <div class="reply-bar">
                           <div>
-                            <p class="slip-file-label">ไฟล์วาระพิจารณาคำขอ</p>
-                            <p class="link-detail">กดบันทึกแล้วระบบสร้างไฟล์วาระจากแบบด้านบน</p>
+                            <h3>{{ inquiryStepTitle() }}</h3>
+                            <p class="link-detail">{{ inquiryStepHint() }}</p>
+                          </div>
+                          <div class="doc-tools">
+                            <app-button class="icon-before" type="primary" label="แนบไฟล์" (click)="openAttach('inquiry')">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+                            </app-button>
+                            <app-button class="icon-before" type="primary" label="สร้างแบบฟอร์ม" (click)="openNewInquiryForm()">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                            </app-button>
                           </div>
                         </div>
-                        <div class="table-wrap slip-files">
+                        <div class="table-wrap consult-table pack-table">
                           <table>
                             <thead>
                               <tr>
                                 <th class="col-no">ลำดับ</th>
-                                <th>วันที่ส่ง</th>
-                                <th>ไฟล์แนบ</th>
-                                <th>ชื่อเอกสาร</th>
-                                <th>การจัดการ</th>
+                                <th>แบบฟอร์ม</th>
+                                <th class="col-fit">สถานะ</th>
+                                <th class="col-act">การจัดการ</th>
                               </tr>
                             </thead>
                             <tbody>
-                              @for (file of inquiryAgendaFiles; track file.name; let n = $index) {
+                              @for (item of inquiryFormsOf(inquiryPart); track item.kind; let n = $index) {
                                 <tr>
                                   <td class="col-no">{{ n + 1 }}</td>
-                                  <td>{{ file.sentOn }}</td>
-                                  <td>{{ file.name }}</td>
-                                  <td>{{ file.title }}</td>
-                                  <td>
-                                    <div class="made-actions">
-                                      <button type="button" class="office-view" (click)="openEmbassyFile(file)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-                                        ดู
-                                      </button>
-                                      <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
-                                        ดาวน์โหลด
-                                      </button>
-                                      @if (!inquiryDecide) {
-                                        <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeAgendaFile(n)">
-                                          <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
-                                        </button>
-                                      }
-                                    </div>
+                                  <td>{{ item.kind }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" aria-label="ทำแบบฟอร์ม" (click)="openCommitteeForm(item.kind)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              }
+                              @for (item of inquiryExtraForms; track item.id; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ inquiryFormsOf(inquiryPart).length + n + 1 }}</td>
+                                  <td>{{ item.kind }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" tone="success" label="บันทึก" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" aria-label="ดู" (click)="viewingMade = item">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              }
+                              @for (file of inquiryFiles; track file.name; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ inquiryFormsOf(inquiryPart).length + inquiryExtraForms.length + n + 1 }}</td>
+                                  <td>{{ file.title || file.name }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" tone="info" label="ไฟล์แนบ" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('เปิดไต่สวน', n)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                    </button>
                                   </td>
                                 </tr>
                               }
                             </tbody>
                           </table>
                         </div>
+                        @if (inquiryPart === 'agenda' && inquiryAgendaFiles.length) {
+                          <p class="slip-file-label">ไฟล์วาระทั้งฉบับ</p>
+                          <div class="table-wrap consult-table pack-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="col-no">ลำดับ</th>
+                                  <th>ชื่อเอกสาร</th>
+                                  <th class="col-fit">วันที่</th>
+                                  <th class="col-act">การจัดการ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (file of inquiryAgendaFiles; track file.name; let n = $index) {
+                                  <tr>
+                                    <td class="col-no">{{ n + 1 }}</td>
+                                    <td>{{ file.title || file.name }}</td>
+                                    <td class="col-fit">{{ file.sentOn }}</td>
+                                    <td class="col-act">
+                                      <button type="button" class="office-view" aria-label="ดู" (click)="openEmbassyFile(file)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                      </button>
+                                      <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadEmbassyFile(file)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                      </button>
+                                      @if (!inquiryDecide) {
+                                        <button type="button" class="office-view" aria-label="ลบ" (click)="removeAgendaFile(n)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                        </button>
+                                      }
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        }
+                        @if (inquiryPart === 'letters') {
+                          @if (inquiryReferral) {
+                            <p class="link-detail">ลิงก์ผู้มีส่วนได้เสีย {{ inquiryReferral }}</p>
+                          }
+                          <h3>ลงทะเบียนผู้มีส่วนได้เสีย</h3>
+                          <div class="draft-form">
+                            <app-input-field class="block" kind="text" label="ชื่อ" [required]="true" [value]="partyName" (valueChange)="partyName = $event" />
+                            <app-input-field class="block" kind="text" label="หน่วยงาน" [required]="false" [value]="partyOrg" (valueChange)="partyOrg = $event" />
+                            <app-input-field class="block" kind="text" label="จำนวนคน" [required]="false" [value]="partyCount" (valueChange)="partyCount = $event" />
+                          </div>
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="บันทึกผู้ลงทะเบียน" [state]="partyName.trim() ? 'default' : 'disabled'" (click)="addInterestParty()" />
+                          </footer>
+                          @for (party of interestParties; track party.name) {
+                            <p>{{ party.name }}@if (party.org) { · {{ party.org }} } · {{ party.count }} คน</p>
+                          }
+                        }
+                        <footer class="doc-foot">
+                          <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
+                          @if (inquiryPart === 'agenda' && !inquiryAgendaDone) {
+                            <app-button type="primary" label="บันทึกวาระ" [state]="agendaReady ? 'default' : 'disabled'" (click)="saveInquiryAgenda()" />
+                          }
+                          @if (inquiryPart === 'news' && !inquiryNoticeSent) {
+                            <app-button type="primary" label="สร้างเอกสารและแจ้งประกาศ" [state]="inquiryOpen === 'open' ? 'default' : 'disabled'" (click)="saveInquiryNotice()" />
+                          }
+                        </footer>
+                        @if (inquiryPart === 'news' && inquiryNoticeSent) {
+                          <p>สร้างเอกสารครบเมื่อ {{ inquiryNoticeOn }} แล้ว ขั้นต่อไปคือแถลงการณ์ แบบสอบถาม และตรวจสถานประกอบการ</p>
+                        }
                       </section>
                     } @else if (inquiryPart === 'decide') {
                       <section class="notice-form" aria-label="พิจารณาคำขอ">
@@ -2610,7 +2818,8 @@
                       </section>
                     } @else if (inquiryPart === 'vote') {
                       <section class="notice-form" aria-label="มติเปิดไต่สวน">
-                        <h3>คณะกรรมการเปิดไต่สวน</h3>
+                        <h3>มติคณะกรรมการ ทตอ. เปิดไต่สวน</h3>
+                        <p class="link-detail">การรับคำขอและค่าธรรมเนียมคำขออยู่ที่ขั้นพิจารณาของคณะกรรมการฯ ขั้นนี้คือมติเปิดหรือไม่เปิดไต่สวน</p>
                         @if (!inquiryOpen) {
                           <div class="notice-date">
                             <app-thai-date-field label="วันที่คณะกรรมการเปิดไต่สวน" [required]="true" [value]="inquiryOpenAt" (valueChange)="inquiryOpenAt = $event" />
@@ -2636,7 +2845,7 @@
                           <p>Case ID {{ inquiryCaseId }}</p>
                           <p>สถานะเปิดการไต่สวน ขั้นต่อไปคือประกาศกรม แจ้งผู้เกี่ยวข้อง และออกข่าวหนังสือพิมพ์</p>
                           <footer class="doc-foot">
-                            <app-button type="primary" label="ไปประกาศและแจ้งผู้เกี่ยวข้อง" (click)="openInquiryStep('notice')" />
+                            <app-button type="primary" label="ไปประกาศเปิดไต่สวน" (click)="openInquiryStep('notice')" />
                           </footer>
                         } @else {
                           <p>มีมติไม่เปิดไต่สวน แจ้งอีเมลผู้ยื่น บันทึกผล และปิดคำขอแล้ว</p>
@@ -2644,57 +2853,39 @@
                           @if (inquiryCloseNote) { <p>{{ inquiryCloseNote }}</p> }
                         }
                       </section>
-                    } @else if (inquiryPart === 'notice') {
-                      <section class="notice-form" aria-label="ประกาศและแจ้งผู้เกี่ยวข้อง">
-                        <h3>ประกาศและแจ้งผู้เกี่ยวข้อง</h3>
-                        <p class="link-detail">ระบบสร้างประกาศ หนังสือแจ้ง และข่าวหนังสือพิมพ์จากข้อมูลเคส แล้วให้ดาวน์โหลดออกจากระบบ</p>
-                        <div class="notice-date">
-                          <app-thai-date-field label="วันที่ประกาศ" [required]="true" [value]="inquiryNoticeOn" [state]="inquiryNoticeSent ? 'readonly' : 'default'" (valueChange)="inquiryNoticeOn = $event" />
-                        </div>
-                        @if (inquiryReferral) {
-                          <p>ลิงก์สำหรับผู้มีส่วนได้เสีย {{ inquiryReferral }}</p>
-                        }
-                        <div class="table-wrap slip-files">
+                    } @else if (inquiryPart === 'hearing') {
+                      <section class="notice-form" aria-label="แถลงการณ์">
+                        <h3>แถลงการณ์เปิดไต่สวน</h3>
+                        <p class="link-detail">ผู้มีส่วนได้เสียขอจัดแถลงการณ์ได้ภายใน 30 วันนับจากวันประกาศ</p>
+                        <div class="table-wrap consult-table pack-table">
                           <table>
                             <thead>
                               <tr>
-                                <th>ผู้รับแจ้ง</th>
-                                <th>ช่องทาง</th>
-                                <th>สถานะ</th>
-                                <th>เอกสารจากระบบ</th>
+                                <th class="col-no">ลำดับ</th>
+                                <th>แบบฟอร์ม</th>
+                                <th class="col-fit">สถานะ</th>
+                                <th class="col-act">การจัดการ</th>
                               </tr>
                             </thead>
                             <tbody>
-                              @for (row of inquiryNotices; track row.name) {
+                              @for (item of inquiryFormsOf('hearing'); track item.kind; let n = $index) {
                                 <tr>
-                                  <td>{{ row.name }}</td>
-                                  <td>{{ row.channel }}</td>
-                                  <td><app-status-tag variant="soft" [tone]="noticeFile(row.name) ? 'success' : 'warning'" [label]="noticeFile(row.name) ? 'สร้างแล้ว' : 'รอสร้าง'" /></td>
-                                  <td>
-                                    @if (noticeFile(row.name); as file) {
-                                      <div class="made-actions">
-                                        <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
-                                        <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
-                                      </div>
-                                    }
+                                  <td class="col-no">{{ n + 1 }}</td>
+                                  <td>{{ item.kind }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" aria-label="ทำแบบฟอร์ม" (click)="openCommitteeForm(item.kind)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                    </button>
                                   </td>
                                 </tr>
                               }
                             </tbody>
                           </table>
                         </div>
-                        @if (!inquiryNoticeSent) {
-                          <footer class="doc-foot">
-                            <app-button type="primary" label="สร้างเอกสารและแจ้งประกาศ" (click)="saveInquiryNotice()" />
-                          </footer>
-                        } @else {
-                          <p>สร้างเอกสารครบเมื่อ {{ inquiryNoticeOn }} แล้ว ขั้นต่อไปคือพิจารณาจัดแถลงการณ์ภายใน 30 วัน</p>
-                        }
-                      </section>
-                    } @else if (inquiryPart === 'hearing') {
-                      <section class="notice-form" aria-label="แถลงการณ์">
-                        <h3>แถลงการณ์เปิดไต่สวน</h3>
-                        <p class="link-detail">ผู้มีส่วนได้เสียขอจัดแถลงการณ์ได้ภายใน 30 วันนับจากวันประกาศ ระบบสร้างหนังสือแจ้งหรือบันทึกไม่จัดจากข้อมูลนี้</p>
+                        <footer class="doc-foot">
+                          <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
+                        </footer>
                         @if (!inquiryHearing) {
                           <div class="slip-line">
                             <span>การจัดแถลงการณ์<span class="req">*</span></span>
@@ -2714,6 +2905,31 @@
                           </footer>
                         } @else if (inquiryHearing === 'hold') {
                           <p>จัดแถลงการณ์วันที่ {{ inquiryHearingOn }} {{ inquiryHearingPlace }} ระบบสร้างหนังสือแจ้งผู้เข้าร่วมแล้ว</p>
+                          @if (laterPhase.notes['hearing-office'] === 'approve') {
+                            <p>e-Office อนุมัติแล้ว ผู้เข้าร่วม {{ laterPhase.notes['hearing-people'] }} คน</p>
+                            <p>{{ laterPhase.notes['hearing-memo'] }}</p>
+                          } @else if (laterPhase.notes['hearing-office'] === 'return') {
+                            <p>e-Office ตีกลับ ให้แก้ในระบบนี้ก่อนส่งใหม่</p>
+                            <footer class="doc-foot">
+                              <app-button type="primary" label="เปิดให้แก้แล้วส่งใหม่" (click)="reopenHearing()" />
+                            </footer>
+                          } @else {
+                            <label class="assign-remark">
+                              <span>บันทึกสรุปคำขอ hearing<span class="req">*</span></span>
+                              <textarea rows="3" [value]="hearingMemo" (input)="hearingMemo = $any($event.target).value"></textarea>
+                            </label>
+                            <app-input-field class="block" kind="text" label="จำนวนคนเข้าร่วม" [required]="true" [value]="hearingPeople" (valueChange)="hearingPeople = $event" />
+                            <div class="slip-line">
+                              <span>ผลจาก e-Office<span class="req">*</span></span>
+                              <div class="slip-choices">
+                                <button type="button" (click)="hearingOffice = 'approve'"><img [src]="hearingOffice === 'approve' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />อนุมัติ</button>
+                                <button type="button" (click)="hearingOffice = 'return'"><img [src]="hearingOffice === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ตีกลับ</button>
+                              </div>
+                            </div>
+                            <footer class="doc-foot">
+                              <app-button type="primary" label="บันทึกผล e-Office" [state]="hearingMemo.trim() && hearingOffice && hearingPeople.trim() ? 'default' : 'disabled'" (click)="saveHearingOffice()" />
+                            </footer>
+                          }
                         } @else {
                           <p>ไม่จัดแถลงการณ์ ระบบสร้างบันทึกแล้ว ขั้นต่อไปคือแบบสอบถาม</p>
                         }
@@ -2756,6 +2972,14 @@
                               @if (inquiryLoop === 'form') {
                                 @for (part of questionnaireParts(row.id); track part) {
                                   <p class="link-detail">{{ part }}</p>
+                                }
+                              }
+                              @if (papersOf(row, 'answer').length || papersOf(row, 'revised').length) {
+                                <p class="link-detail">{{ questionOpen(row.id) ? 'เผยแพร่ความเห็นฉบับเปิดเผยแล้ว' : 'มีคำตอบแล้ว เผยแพร่เฉพาะฉบับเปิดเผย' }}</p>
+                                @if (!questionOpen(row.id)) {
+                                  <footer class="doc-foot">
+                                    <app-button type="outline" label="เผยแพร่ฉบับเปิดเผย" (click)="publishQuestion(row.id)" />
+                                  </footer>
                                 }
                               }
                               @if (!row.passed) {
@@ -2816,19 +3040,129 @@
                       </section>
                     } @else if (inquiryPart === 'visit') {
                       <section class="notice-form" aria-label="ตรวจสถานประกอบการ">
-                        <h3>ตรวจสถานประกอบการ</h3>
-                        <p class="link-detail">อยู่ในกลุ่มเปิดไต่สวน ทำหลังข้อมูลไต่สวนครบ</p>
-                        <ul class="note-phase">
-                          @for (item of phaseDocs(); track item) {
-                            <li>{{ item }}</li>
-                          }
-                        </ul>
+                        <h3>ไต่สวนเชิงลึกและตรวจสถานประกอบการ</h3>
+                        <p class="link-detail">ตรวจในประเทศให้เสร็จก่อนผลขั้นต้น การตรวจต่างประเทศทำเมื่อได้รับความยินยอม จากนั้นเปรียบเทียบราคาแยกตามผู้ส่งออกและวิเคราะห์ความเสียหาย</p>
+                        <div class="table-wrap consult-table pack-table">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th class="col-no">ลำดับ</th>
+                                <th>แบบฟอร์ม</th>
+                                <th class="col-fit">สถานะ</th>
+                                <th class="col-act">การจัดการ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (item of inquiryFormsOf('visit'); track item.kind; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ n + 1 }}</td>
+                                  <td>{{ item.kind }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                  <td class="col-act">
+                                    <button type="button" class="office-view" aria-label="ทำแบบฟอร์ม" (click)="openCommitteeForm(item.kind)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                        <footer class="doc-foot">
+                          <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
+                        </footer>
                         @if (!laterPhase.visit) {
+                          <div class="slip-line">
+                            <span>การตรวจ<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="visitDomestic = !visitDomestic"><img [src]="visitDomestic ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ตรวจในประเทศแล้ว</button>
+                              <button type="button" (click)="visitForeign = !visitForeign"><img [src]="visitForeign ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ตรวจต่างประเทศแล้ว</button>
+                            </div>
+                          </div>
+                          <h3>เปรียบเทียบราคาแยกตามผู้ส่งออก</h3>
+                          <div class="table-wrap consult-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>ผู้ส่งออก/ผู้ผลิต</th>
+                                  <th>Normal Value</th>
+                                  <th>Export Price</th>
+                                  <th>การเปรียบเทียบอย่างเป็นธรรม</th>
+                                  <th>Dumping Margin</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (row of visitRows; track row.name; let n = $index) {
+                                  <tr>
+                                    <td>{{ row.name }}</td>
+                                    <td><input type="text" aria-label="Normal Value" [value]="row.normalValue" (input)="setVisitRow(n, 'normalValue', $any($event.target).value)" /></td>
+                                    <td><input type="text" aria-label="Export Price" [value]="row.exportPrice" (input)="setVisitRow(n, 'exportPrice', $any($event.target).value)" /></td>
+                                    <td><input type="text" aria-label="การเปรียบเทียบอย่างเป็นธรรม" [value]="row.compare" (input)="setVisitRow(n, 'compare', $any($event.target).value)" /></td>
+                                    <td><input type="text" aria-label="Dumping Margin" [value]="row.margin" (input)="setVisitRow(n, 'margin', $any($event.target).value)" /></td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                          <h3>วิเคราะห์ความเสียหายและเหตุสัมพันธ์</h3>
+                          <div class="draft-form">
+                            <app-input-field class="block wide" kind="textarea" label="ปริมาณนำเข้า" [required]="true" [value]="injuryVolume" (valueChange)="injuryVolume = $event" />
+                            <app-input-field class="block wide" kind="textarea" label="ผลกระทบด้านราคา" [required]="true" [value]="injuryPrice" (valueChange)="injuryPrice = $event" />
+                            <app-input-field class="block wide" kind="textarea" label="ผลประกอบการ" [required]="true" [value]="injuryPerformance" (valueChange)="injuryPerformance = $event" />
+                            <app-input-field class="block wide" kind="textarea" label="ข้อมูลศุลกากร FTA และอากรขาเข้า" [required]="true" [value]="injuryCustoms" (valueChange)="injuryCustoms = $event" />
+                            <app-input-field class="block wide" kind="textarea" label="เหตุสัมพันธ์" [required]="true" [value]="injuryLink" (valueChange)="injuryLink = $event" />
+                          </div>
+                          <div class="slip-line">
+                            <span>ข้อมูลถูกต้องครบถ้วน<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="visitDataOk = 'yes'"><img [src]="visitDataOk === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ครบ</button>
+                              <button type="button" (click)="visitDataOk = 'no'"><img [src]="visitDataOk === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ยังไม่ครบ</button>
+                            </div>
+                          </div>
+                          @if (visitDataOk === 'no') {
+                            <label class="assign-remark">
+                              <span>รายการที่ขอให้ส่งเพิ่ม<span class="req">*</span></span>
+                              <textarea rows="3" [value]="visitMoreNote" (input)="visitMoreNote = $any($event.target).value"></textarea>
+                            </label>
+                            <p class="link-detail">ระบบบันทึกเพื่อแจ้งอีเมลผู้ยื่นและผู้มีส่วนได้เสีย แล้วยื่นเอกสารเพิ่มก่อนประมวลผลขั้นต้น</p>
+                            <footer class="doc-foot">
+                              <app-button type="primary" label="บันทึกขอข้อมูลเพิ่ม" [state]="visitMoreNote.trim() ? 'default' : 'disabled'" (click)="saveVisitMore()" />
+                            </footer>
+                          }
                           <footer class="doc-foot">
-                            <app-button type="primary" label="ผ่านขั้นนี้" (click)="passVisit()" />
+                            <app-button type="primary" label="บันทึกผลการไต่สวน" [state]="visitReady ? 'default' : 'disabled'" (click)="passVisit()" />
                           </footer>
                         } @else {
-                          <p>ตรวจสถานประกอบการเสร็จแล้ว ขั้นถัดไปคือลงมติขั้นต้น</p>
+                          <p>ตรวจในประเทศแล้ว{{ visitForeign ? ' และตรวจต่างประเทศแล้ว' : '' }} ข้อมูลครบแล้ว ขั้นถัดไปคือผลขั้นต้น</p>
+                          <div class="table-wrap consult-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>ผู้ส่งออก/ผู้ผลิต</th>
+                                  <th>Normal Value</th>
+                                  <th>Export Price</th>
+                                  <th>การเปรียบเทียบอย่างเป็นธรรม</th>
+                                  <th>Dumping Margin</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (row of visitRows; track row.name) {
+                                  <tr>
+                                    <td>{{ row.name }}</td>
+                                    <td>{{ row.normalValue }}</td>
+                                    <td>{{ row.exportPrice }}</td>
+                                    <td>{{ row.compare }}</td>
+                                    <td>{{ row.margin }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                          <p>ปริมาณนำเข้า {{ injuryVolume }}</p>
+                          <p>ผลกระทบด้านราคา {{ injuryPrice }}</p>
+                          <p>ผลประกอบการ {{ injuryPerformance }}</p>
+                          <p>ศุลกากร {{ injuryCustoms }}</p>
+                          <p>เหตุสัมพันธ์ {{ injuryLink }}</p>
                         }
                       </section>
                     }
@@ -2917,27 +3251,530 @@
               </div>
             </div>
           }
-          @if (reviewTab === 'prelim' || reviewTab === 'draftFinal' || reviewTab === 'finalResult') {
+          @if (reviewTab === 'prelim') {
+            <div class="assign-card">
+              <header class="assign-head">
+                <div>
+                  <h2>ผลขั้นต้น</h2>
+                  <p>วาระอนุ วาระ ทตอ. ประกาศหลักประกันอากร ประกาศกรม หนังสือแจ้ง และแถลงการณ์ภายใน 30 วัน</p>
+                </div>
+                @if (laterPhase.prelim) {
+                  <app-status-tag tone="success" label="ไปร่างผลสิ้นสุดแล้ว" />
+                } @else {
+                  <app-status-tag tone="warning" label="กำลังดำเนินการ" />
+                }
+              </header>
+              <dl class="job__detail">
+                @for (fact of inquiryFacts; track fact.label) {
+                  <div [class.wide]="fact.wide">
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <div class="sheet__split">
+                <nav class="toc" aria-label="ผลขั้นต้น">
+                  @for (step of prelimNav; track step.id; let i = $index) {
+                    @if (step.group && prelimNav[i - 1]?.group !== step.group) {
+                      <p class="toc__group">{{ step.group }}</p>
+                    }
+                    <button type="button" class="toc__child" [class.toc__on]="prelimPart === step.id" [attr.aria-current]="prelimPart === step.id ? 'true' : null" (click)="prelimPart = step.id">
+                      <img [src]="step.id === 'close' ? (laterPhase.prelim ? 'assets/icons/por1-dot-done.svg' : prelimPart === 'close' ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg') : prelimPackDone(step.id) ? 'assets/icons/por1-dot-done.svg' : prelimPart === step.id ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      {{ step.label }}
+                    </button>
+                  }
+                </nav>
+                <div class="receipt__view">
+                  @if (prelimPart === 'close') {
+                    <section class="notice-form" aria-label="ไปร่างผลสิ้นสุด">
+                      <h3>ไปร่างผลสิ้นสุด</h3>
+                      <p class="link-detail">ผู้มีส่วนได้เสียขอแถลงการณ์หรือส่งความเห็นได้ภายใน 30 วันนับจากวันประกาศ ถ้าไม่ส่งกลับคณะกรรมการจึงไปร่างผลสิ้นสุด</p>
+                      <div class="slip-line">
+                        <span>แถลงการณ์ผลขั้นต้น</span>
+                        <div class="slip-choices">
+                          <button type="button" (click)="prelimHearing = 'yes'"><img [src]="prelimHearing === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />เข้า Hearing</button>
+                          <button type="button" (click)="prelimHearing = 'no'"><img [src]="prelimHearing === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่เข้า</button>
+                        </div>
+                      </div>
+                      <div class="slip-line">
+                        <span>การส่งต่อ<span class="req">*</span></span>
+                        <div class="slip-choices">
+                          <button type="button" (click)="prelimAgain = 'yes'"><img [src]="prelimAgain === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ส่งคณะกรรมการอีกครั้ง</button>
+                          <button type="button" (click)="prelimAgain = 'no'"><img [src]="prelimAgain === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไปร่างผลสิ้นสุด</button>
+                        </div>
+                      </div>
+                      <footer class="doc-foot">
+                        <app-button type="primary" label="บันทึกการส่งต่อ" [state]="prelimAgain ? 'default' : 'disabled'" (click)="closePrelim()" />
+                      </footer>
+                    </section>
+                  } @else {
+                    <section class="notice-form" [attr.aria-label]="prelimStepTitle()">
+                      <div class="notice-date">
+                        <app-thai-date-field [label]="prelimPart === 'sub' || prelimPart === 'tdc' ? 'วันที่ประชุม' : 'วันที่ประกาศ'" [required]="true" [value]="prelimOn" (valueChange)="setPrelimOn($event)" />
+                      </div>
+                      <div class="reply-bar">
+                        <div>
+                          <h3>{{ prelimStepTitle() }}</h3>
+                          <p class="link-detail">{{ prelimStepHint() }}</p>
+                        </div>
+                        <div class="doc-tools">
+                          <app-button class="icon-before" type="primary" label="แนบไฟล์" (click)="openAttach('prelim')">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+                          </app-button>
+                          <app-button class="icon-before" type="primary" label="สร้างแบบฟอร์ม" (click)="openNewPrelimForm()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                          </app-button>
+                        </div>
+                      </div>
+                      <div class="table-wrap consult-table pack-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th class="col-no">ลำดับ</th>
+                              <th>แบบฟอร์ม</th>
+                              <th class="col-fit">สถานะ</th>
+                              <th class="col-act">การจัดการ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (item of prelimFormsOf(prelimPart); track item.kind; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ n + 1 }}</td>
+                                <td>{{ item.kind }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ทำแบบฟอร์ม" (click)="openCommitteeForm(item.kind)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                            @for (item of prelimExtraForms; track item.id; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ prelimFormsOf(prelimPart).length + n + 1 }}</td>
+                                <td>{{ item.kind }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" tone="success" label="บันทึก" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ดู" (click)="viewingMade = item">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                            @for (file of prelimFiles; track file.name; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ prelimFormsOf(prelimPart).length + prelimExtraForms.length + n + 1 }}</td>
+                                <td>{{ file.title || file.name }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" tone="info" label="ไฟล์แนบ" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('ผลขั้นต้น', n)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                      <footer class="doc-foot">
+                        <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
+                      </footer>
+                    </section>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else if (reviewTab === 'draftFinal') {
+            <div class="assign-card">
+              <header class="assign-head">
+                <div>
+                  <h2>ร่างผลสิ้นสุด</h2>
+                  <p>วาระอนุ วาระ ทตอ. แจ้งร่างให้ผู้มีส่วนได้เสีย Disclosures และแถลงการณ์</p>
+                </div>
+                @if (laterPhase.draftFinal) {
+                  <app-status-tag tone="success" label="ไปผลสิ้นสุดแล้ว" />
+                } @else {
+                  <app-status-tag tone="warning" label="กำลังดำเนินการ" />
+                }
+              </header>
+              <dl class="job__detail">
+                @for (fact of inquiryFacts; track fact.label) {
+                  <div [class.wide]="fact.wide">
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <div class="sheet__split">
+                <nav class="toc" aria-label="ร่างผลสิ้นสุด">
+                  @for (step of draftNav; track step.id; let i = $index) {
+                    @if (step.group && draftNav[i - 1]?.group !== step.group) {
+                      <p class="toc__group">{{ step.group }}</p>
+                    }
+                    <button type="button" class="toc__child" [class.toc__on]="draftPart === step.id" [attr.aria-current]="draftPart === step.id ? 'true' : null" (click)="draftPart = step.id">
+                      <img [src]="step.id === 'close' ? (laterPhase.draftFinal ? 'assets/icons/por1-dot-done.svg' : draftPart === 'close' ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg') : draftPackDone(step.id) ? 'assets/icons/por1-dot-done.svg' : draftPart === step.id ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      {{ step.label }}
+                    </button>
+                  }
+                </nav>
+                <div class="receipt__view">
+                  @if (draftPart === 'close') {
+                    <section class="notice-form" aria-label="ไปผลสิ้นสุด">
+                      <h3>ไปผลสิ้นสุด</h3>
+                      <p class="link-detail">ถ้าความเห็นเปลี่ยนสาระสำคัญ ให้ปรับร่างและเปิดรับฟังอีกครั้ง ถ้าไม่เปลี่ยนจึงไปผลสิ้นสุด</p>
+                      <div class="slip-line">
+                        <span>สาระสำคัญของร่าง<span class="req">*</span></span>
+                        <div class="slip-choices">
+                          <button type="button" (click)="draftSubstance = 'yes'"><img [src]="draftSubstance === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />เปลี่ยนสาระสำคัญ</button>
+                          <button type="button" (click)="draftSubstance = 'no'"><img [src]="draftSubstance === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไปผลสิ้นสุด</button>
+                        </div>
+                      </div>
+                      <footer class="doc-foot">
+                        <app-button type="primary" label="บันทึกการส่งต่อ" [state]="draftSubstance ? 'default' : 'disabled'" (click)="closeDraft()" />
+                      </footer>
+                    </section>
+                  } @else {
+                    <section class="notice-form" [attr.aria-label]="draftStepTitle()">
+                      <div class="notice-date">
+                        <app-thai-date-field [label]="draftPart === 'sub' || draftPart === 'tdc' ? 'วันที่ประชุม' : 'วันที่แจ้งร่าง'" [required]="true" [value]="draftOn" (valueChange)="setDraftOn($event)" />
+                      </div>
+                      <div class="reply-bar">
+                        <div>
+                          <h3>{{ draftStepTitle() }}</h3>
+                          <p class="link-detail">{{ draftStepHint() }}</p>
+                        </div>
+                        <div class="doc-tools">
+                          <app-button class="icon-before" type="primary" label="แนบไฟล์" (click)="openAttach('draft')">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+                          </app-button>
+                          <app-button class="icon-before" type="primary" label="สร้างแบบฟอร์ม" (click)="openNewDraftForm()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                          </app-button>
+                        </div>
+                      </div>
+                      <div class="table-wrap consult-table pack-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th class="col-no">ลำดับ</th>
+                              <th>แบบฟอร์ม</th>
+                              <th class="col-fit">สถานะ</th>
+                              <th class="col-act">การจัดการ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (item of draftFormsOf(draftPart); track item.kind; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ n + 1 }}</td>
+                                <td>{{ item.kind }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ทำแบบฟอร์ม" (click)="openCommitteeForm(item.kind)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                            @for (item of draftExtraForms; track item.id; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ draftFormsOf(draftPart).length + n + 1 }}</td>
+                                <td>{{ item.kind }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" tone="success" label="บันทึก" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ดู" (click)="viewingMade = item">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                            @for (file of draftFiles; track file.name; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ draftFormsOf(draftPart).length + draftExtraForms.length + n + 1 }}</td>
+                                <td>{{ file.title || file.name }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" tone="info" label="ไฟล์แนบ" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('ร่างผลสิ้นสุด', n)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                      <footer class="doc-foot">
+                        <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
+                      </footer>
+                    </section>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else if (reviewTab === 'finalResult') {
+            <div class="assign-card">
+              <header class="assign-head">
+                <div>
+                  <h2>ผลสิ้นสุด</h2>
+                  <p>วาระอนุ วาระ ทตอ. ประกาศเรียกเก็บอากร ประกาศกรม หนังสือแจ้ง และ Disclosures</p>
+                </div>
+                @if (laterPhase.finalResult) {
+                  <app-status-tag tone="success" label="ปิดงานแล้ว" />
+                } @else {
+                  <app-status-tag tone="warning" label="กำลังดำเนินการ" />
+                }
+              </header>
+              <dl class="job__detail">
+                @for (fact of inquiryFacts; track fact.label) {
+                  <div [class.wide]="fact.wide">
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <div class="sheet__split">
+                <nav class="toc" aria-label="ผลสิ้นสุด">
+                  @for (step of finalNav; track step.id; let i = $index) {
+                    @if (step.group && finalNav[i - 1]?.group !== step.group) {
+                      <p class="toc__group">{{ step.group }}</p>
+                    }
+                    <button type="button" class="toc__child" [class.toc__on]="finalPart === step.id" [attr.aria-current]="finalPart === step.id ? 'true' : null" (click)="finalPart = step.id">
+                      <img [src]="step.id === 'close' ? (laterPhase.finalResult ? 'assets/icons/por1-dot-done.svg' : finalPart === 'close' ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg') : finalPackDone(step.id) ? 'assets/icons/por1-dot-done.svg' : finalPart === step.id ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      {{ step.label }}
+                    </button>
+                  }
+                </nav>
+                <div class="receipt__view">
+                  @if (finalPart === 'close') {
+                    <section class="notice-form" aria-label="ปิดงานผลสิ้นสุด">
+                      <h3>ปิดงานผลสิ้นสุด</h3>
+                      <p class="link-detail">เมื่อประกาศและหนังสือแจ้งครบแล้ว ปิดงานนี้แล้วไปทบทวนมาตรการตามมาตรา 56 ถึง 59</p>
+                      <footer class="doc-foot">
+                        <app-button type="primary" label="บันทึกปิดงาน" (click)="closeFinal()" />
+                      </footer>
+                    </section>
+                  } @else {
+                    <section class="notice-form" [attr.aria-label]="finalStepTitle()">
+                      <div class="notice-date">
+                        <app-thai-date-field [label]="finalPart === 'sub' || finalPart === 'tdc' ? 'วันที่ประชุม' : 'วันที่ประกาศ'" [required]="true" [value]="finalOn" (valueChange)="setFinalOn($event)" />
+                      </div>
+                      <div class="reply-bar">
+                        <div>
+                          <h3>{{ finalStepTitle() }}</h3>
+                          <p class="link-detail">{{ finalStepHint() }}</p>
+                        </div>
+                        <div class="doc-tools">
+                          <app-button class="icon-before" type="primary" label="แนบไฟล์" (click)="openAttach('final')">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
+                          </app-button>
+                          <app-button class="icon-before" type="primary" label="สร้างแบบฟอร์ม" (click)="openNewFinalForm()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                          </app-button>
+                        </div>
+                      </div>
+                      <div class="table-wrap consult-table pack-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th class="col-no">ลำดับ</th>
+                              <th>แบบฟอร์ม</th>
+                              <th class="col-fit">สถานะ</th>
+                              <th class="col-act">การจัดการ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (item of finalFormsOf(finalPart); track item.kind; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ n + 1 }}</td>
+                                <td>{{ item.kind }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ทำแบบฟอร์ม" (click)="openCommitteeForm(item.kind)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                            @for (item of finalExtraForms; track item.id; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ finalFormsOf(finalPart).length + n + 1 }}</td>
+                                <td>{{ item.kind }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" tone="success" label="บันทึก" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ดู" (click)="viewingMade = item">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                            @for (file of finalFiles; track file.name; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ finalFormsOf(finalPart).length + finalExtraForms.length + n + 1 }}</td>
+                                <td>{{ file.title || file.name }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" tone="info" label="ไฟล์แนบ" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('ผลสิ้นสุด', n)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                      <footer class="doc-foot">
+                        <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
+                      </footer>
+                    </section>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else if (reviewTab === 'measures') {
+            <div class="assign-card">
+              <header class="assign-head">
+                <div>
+                  <h2>ทบทวนและคืนอากร</h2>
+                  <p>มาตรา 56 ถึง 59 แต่ละมาตรามีวาระ มติ และหนังสือแจ้งผล</p>
+                </div>
+                @if (laterPhase.measures) {
+                  <app-status-tag tone="success" label="บันทึกครบสี่มาตรา" />
+                } @else {
+                  <app-status-tag tone="warning" label="กำลังดำเนินการ" />
+                }
+              </header>
+              <div class="sheet__split">
+                <nav class="toc" aria-label="ทบทวนและคืนอากร">
+                  @for (step of measureNav; track step.id) {
+                    <button type="button" class="toc__child" [class.toc__on]="measurePart === step.id" [attr.aria-current]="measurePart === step.id ? 'true' : null" (click)="measurePart = step.id">
+                      <img [src]="step.id === 'close' ? (laterPhase.measures ? 'assets/icons/por1-dot-done.svg' : measurePart === 'close' ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg') : measurePackDone(step.id) ? 'assets/icons/por1-dot-done.svg' : measurePart === step.id ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                      {{ step.label }}
+                    </button>
+                  }
+                </nav>
+                <div class="receipt__view">
+                  @if (measurePart === 'close') {
+                    <section class="notice-form" aria-label="สรุปผลทบทวน">
+                      <h3>สรุปผล</h3>
+                      <p class="link-detail">บันทึกผลมาตรา 56 ถึง 59 ให้ครบ จึงปิดขั้นทบทวน</p>
+                      <p>มาตรา 56 {{ measure56 === 'yes' ? measureYes('m56') : measure56 === 'no' ? measureNo('m56') : 'ยังไม่บันทึก' }}</p>
+                      <p>มาตรา 57 {{ measure57 === 'yes' ? measureYes('m57') : measure57 === 'no' ? measureNo('m57') : 'ยังไม่บันทึก' }}</p>
+                      <p>มาตรา 58 {{ measure58 === 'yes' ? measureYes('m58') : measure58 === 'no' ? measureNo('m58') : 'ยังไม่บันทึก' }}</p>
+                      <p>มาตรา 59 {{ measure59 === 'yes' ? measureYes('m59') : measure59 === 'no' ? measureNo('m59') : 'ยังไม่บันทึก' }}</p>
+                      <footer class="doc-foot">
+                        <app-button type="primary" label="บันทึกผลทบทวน" [state]="measure56 && measure57 && measure58 && measure59 ? 'default' : 'disabled'" (click)="closeMeasures()" />
+                      </footer>
+                    </section>
+                  } @else {
+                    <section class="notice-form" [attr.aria-label]="measureNav.find((step) => step.id === measurePart)?.label">
+                      <h3>{{ measureNav.find((step) => step.id === measurePart)?.label }}</h3>
+                      <p class="link-detail">{{ measureNav.find((step) => step.id === measurePart)?.hint }}</p>
+                      <div class="notice-date">
+                        <app-thai-date-field label="วันที่พิจารณา" [required]="true" [value]="measureOn" (valueChange)="setMeasureOn($event)" />
+                      </div>
+                      @if (measurePart === 'm56' || measurePart === 'm57' || measurePart === 'm58' || measurePart === 'm59') {
+                        <div class="slip-line">
+                          <span>ผลการพิจารณา<span class="req">*</span></span>
+                          <div class="slip-choices">
+                            <button type="button" (click)="setMeasureChoice(measurePart, 'yes')"><img [src]="measureChoice(measurePart) === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />{{ measureYes(measurePart) }}</button>
+                            <button type="button" (click)="setMeasureChoice(measurePart, 'no')"><img [src]="measureChoice(measurePart) === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />{{ measureNo(measurePart) }}</button>
+                          </div>
+                        </div>
+                      }
+                      <div class="table-wrap consult-table pack-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th class="col-no">ลำดับ</th>
+                              <th>แบบฟอร์ม</th>
+                              <th class="col-fit">สถานะ</th>
+                              <th class="col-act">การจัดการ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (item of measureFormsOf(measurePart); track item.kind; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ n + 1 }}</td>
+                                <td>{{ item.kind }}</td>
+                                <td class="col-fit"><app-status-tag variant="soft" [tone]="committeeFormDone(item.kind) ? 'success' : 'warning'" [label]="committeeFormDone(item.kind) ? 'บันทึก' : 'ยังไม่ทำ'" /></td>
+                                <td class="col-act">
+                                  <button type="button" class="office-view" aria-label="ทำแบบฟอร์ม" (click)="openCommitteeForm(item.kind)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                      <footer class="doc-foot">
+                        <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
+                      </footer>
+                    </section>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else if (flowTab(reviewTab)) {
             <div class="assign-card">
               <header class="assign-head">
                 <div>
                   <h2>{{ reviewTabs().find((tab) => tab.id === reviewTab)?.label }}</h2>
-                  <p>เอกสารของขั้นนี้ตามขั้นตอนการไต่สวน</p>
+                  <p>ทำทีละขั้นตามลำดับในโฟลว์ วงกลมสีส้มคือขั้นที่กำลังทำ</p>
                 </div>
                 @if (reviewMark(reviewTab) === 'done') {
                   <app-status-tag tone="success" label="เสร็จสิ้น" />
+                } @else {
+                  <app-status-tag tone="warning" label="กำลังดำเนินการ" />
                 }
               </header>
-              <ul class="note-phase">
-                @for (item of phaseDocs(); track item) {
-                  <li>{{ item }}</li>
+              <div class="sheet__split">
+                <nav class="toc" [attr.aria-label]="reviewTabs().find((tab) => tab.id === reviewTab)?.label">
+                  @for (step of flowSteps(reviewTab); track step.id) {
+                    <button type="button" class="toc__child" [class.toc__on]="flowShown(reviewTab)?.id === step.id" [attr.aria-current]="flowShown(reviewTab)?.id === step.id ? 'true' : null" (click)="openFlowStep(reviewTab, step.id)">
+                      <img [src]="flowDot(reviewTab, step.id)" width="11" height="11" alt="" />
+                      {{ step.label }}
+                    </button>
+                  }
+                </nav>
+                @if (flowShown(reviewTab); as step) {
+                  <div class="receipt__view">
+                    <section class="notice-form" [attr.aria-label]="step.label">
+                      <h3>{{ step.label }}</h3>
+                      <p class="link-detail">{{ step.detail }}</p>
+                      @if (laterPhase.marks[step.id]) {
+                        <app-status-tag variant="soft" tone="success" [label]="flowMarkLabel(step)" />
+                        @for (field of flowSaved(step.id); track field.label) {
+                          <p><strong>{{ field.label }}</strong> {{ field.value }}</p>
+                        }
+                      } @else {
+                        <div class="draft-form">
+                          @for (field of flowFieldsOf(step.id); track field.label) {
+                            @if (field.date) {
+                              <app-thai-date-field [label]="field.label" [required]="true" [value]="flowValues[field.label] || ''" (valueChange)="setFlowValue(field.label, $event)" />
+                            } @else {
+                              <app-input-field class="block" [class.wide]="field.long" [kind]="field.long ? 'textarea' : 'text'" [grow]="!!field.long" [rows]="field.long ? 4 : 3" [label]="field.label" [required]="true" [value]="flowValues[field.label] || ''" (valueChange)="setFlowValue(field.label, $event)" />
+                            }
+                          }
+                        </div>
+                        @if (step.yes && step.no) {
+                          <div class="slip-line">
+                            <span>ผลการพิจารณา<span class="req">*</span></span>
+                            <div class="slip-choices">
+                              <button type="button" (click)="pickFlow(step.id, 'yes')"><img [src]="flowPick[step.id] === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />{{ step.yes }}</button>
+                              <button type="button" (click)="pickFlow(step.id, 'no')"><img [src]="flowPick[step.id] === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />{{ step.no }}</button>
+                            </div>
+                          </div>
+                        }
+                        @if (flowCursor(reviewTab) === step.id) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="บันทึกแบบฟอร์ม" [state]="flowReady(step) ? 'default' : 'disabled'" (click)="saveFlowStep(reviewTab, step.id)" />
+                          </footer>
+                        }
+                      }
+                    </section>
+                  </div>
                 }
-              </ul>
-              @if (reviewMark(reviewTab) !== 'done') {
-                <footer class="doc-foot">
-                  <app-button type="primary" label="ผ่านขั้นนี้" (click)="passLaterPhase()" />
-                </footer>
-              }
+              </div>
             </div>
           }
         </section>
@@ -2969,7 +3806,7 @@
                   @if (failed(item)) {
                     <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
                   } @else {
-                    <img [src]="filled(item) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
+                    <img [src]="(formView ? itemComplete(item) : filled(item)) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
                   }
                   {{ item.label }}
                 </button>
@@ -4542,16 +5379,23 @@
       } @else {
         <p class="submit__hint">ระบบจะบันทึกคำขอนี้เป็นสถานะยื่นแบบ</p>
       }
+      @for (item of aiChecks; track item.label) {
+        <p class="submit__hint">{{ item.label }} · {{ item.detail }}</p>
+      }
       <div class="submit__actions">
         <app-button class="icon-before" type="outline" label="กลับไปพิจารณา" (click)="officialOpen = false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
         </app-button>
-        @if (caseStatus === 'consult' && consultDutyAssigned) {
-          <app-button class="icon-before" type="primary" label="ส่งขออนุมัติ" (click)="confirmOfficial()">
+        @if (consultGate) {
+          <app-button class="icon-before" type="primary" label="ขอปรึกษาเจ้าหน้าที่" (click)="officialOpen = false; openConsult()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
+          </app-button>
+        } @else if (caseStatus === 'consult' && consultDutyAssigned) {
+          <app-button class="icon-before" type="primary" label="ส่งขออนุมัติ" [state]="aiReady ? 'default' : 'disabled'" (click)="confirmOfficial()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </app-button>
         } @else {
-          <app-button class="icon-before" type="primary" label="ยืนยันยื่นแบบทางการ" (click)="confirmOfficial()">
+          <app-button class="icon-before" type="primary" label="ยืนยันยื่นแบบทางการ" [state]="aiReady ? 'default' : 'disabled'" (click)="confirmOfficial()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
           </app-button>
         }
@@ -4728,7 +5572,7 @@
   </div>
 }
 
-@if (agencyFilesOpen && (filePop === 'notice' || workDocs[docPart])) {
+@if (agencyFilesOpen && (filePop === 'notice' || filePop === 'committee' || filePop === 'inquiry' || filePop === 'prelim' || filePop === 'draft' || filePop === 'final' || workDocs[docPart])) {
   <div class="assign-pop" (click)="closeAttach()">
     <section class="assign-dialog file-dialog" role="dialog" aria-modal="true" aria-labelledby="agency-file-title" (click)="$event.stopPropagation()">
       <header>
@@ -4764,6 +5608,141 @@
                     <td><input type="text" aria-label="ชื่อเอกสารใหม่" [value]="file.title" (input)="renameDocFile(n, $any($event.target).value)" /></td>
                     <td class="col-act">
                       <button type="button" class="office-view" aria-label="ลบ" (click)="removeDocFile(n)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (filePop === 'final' && finalFiles.length) {
+          <div class="table-wrap slip-files">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-no">ลำดับ</th>
+                  <th class="col-file">ชื่อเอกสาร</th>
+                  <th>ชื่อเอกสารใหม่</th>
+                  <th class="col-act">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (file of finalFiles; track file.name; let n = $index) {
+                  <tr>
+                    <td class="col-no">{{ n + 1 }}</td>
+                    <td class="col-file">{{ file.name }}</td>
+                    <td><input type="text" aria-label="ชื่อเอกสารใหม่" [value]="file.title" (input)="renameExtraFile('ผลสิ้นสุด', n, $any($event.target).value)" /></td>
+                    <td class="col-act">
+                      <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('ผลสิ้นสุด', n)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (filePop === 'draft' && draftFiles.length) {
+          <div class="table-wrap slip-files">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-no">ลำดับ</th>
+                  <th class="col-file">ชื่อเอกสาร</th>
+                  <th>ชื่อเอกสารใหม่</th>
+                  <th class="col-act">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (file of draftFiles; track file.name; let n = $index) {
+                  <tr>
+                    <td class="col-no">{{ n + 1 }}</td>
+                    <td class="col-file">{{ file.name }}</td>
+                    <td><input type="text" aria-label="ชื่อเอกสารใหม่" [value]="file.title" (input)="renameExtraFile('ร่างผลสิ้นสุด', n, $any($event.target).value)" /></td>
+                    <td class="col-act">
+                      <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('ร่างผลสิ้นสุด', n)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (filePop === 'prelim' && prelimFiles.length) {
+          <div class="table-wrap slip-files">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-no">ลำดับ</th>
+                  <th class="col-file">ชื่อเอกสาร</th>
+                  <th>ชื่อเอกสารใหม่</th>
+                  <th class="col-act">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (file of prelimFiles; track file.name; let n = $index) {
+                  <tr>
+                    <td class="col-no">{{ n + 1 }}</td>
+                    <td class="col-file">{{ file.name }}</td>
+                    <td><input type="text" aria-label="ชื่อเอกสารใหม่" [value]="file.title" (input)="renameExtraFile('ผลขั้นต้น', n, $any($event.target).value)" /></td>
+                    <td class="col-act">
+                      <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('ผลขั้นต้น', n)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (filePop === 'inquiry' && inquiryFiles.length) {
+          <div class="table-wrap slip-files">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-no">ลำดับ</th>
+                  <th class="col-file">ชื่อเอกสาร</th>
+                  <th>ชื่อเอกสารใหม่</th>
+                  <th class="col-act">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (file of inquiryFiles; track file.name; let n = $index) {
+                  <tr>
+                    <td class="col-no">{{ n + 1 }}</td>
+                    <td class="col-file">{{ file.name }}</td>
+                    <td><input type="text" aria-label="ชื่อเอกสารใหม่" [value]="file.title" (input)="renameExtraFile('เปิดไต่สวน', n, $any($event.target).value)" /></td>
+                    <td class="col-act">
+                      <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('เปิดไต่สวน', n)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (filePop === 'committee' && committeeFiles.length) {
+          <div class="table-wrap slip-files">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-no">ลำดับ</th>
+                  <th class="col-file">ชื่อเอกสาร</th>
+                  <th>ชื่อเอกสารใหม่</th>
+                  <th class="col-act">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (file of committeeFiles; track file.name; let n = $index) {
+                  <tr>
+                    <td class="col-no">{{ n + 1 }}</td>
+                    <td class="col-file">{{ file.name }}</td>
+                    <td><input type="text" aria-label="ชื่อเอกสารใหม่" [value]="file.title" (input)="renameExtraFile('พิจารณาของคณะกรรมการ', n, $any($event.target).value)" /></td>
+                    <td class="col-act">
+                      <button type="button" class="office-view" aria-label="ลบ" (click)="removeExtraFile('พิจารณาของคณะกรรมการ', n)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
                       </button>
                     </td>

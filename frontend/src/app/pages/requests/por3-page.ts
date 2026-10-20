@@ -8,7 +8,7 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
-import { filingMeasureTitle } from './filing-intent';
+import { filingMeasureTitle, cvdChosen } from './filing-intent';
 import { scrollFormToTop } from './form-scroll';
 @Component({
   selector: 'app-por3-page',
@@ -18,7 +18,7 @@ import { scrollFormToTop } from './form-scroll';
 })
 export class Por3Page {
   protected readonly filingTitle = filingMeasureTitle();
-  protected measure: 'dumping' | 'subsidy' = 'dumping';
+  protected measure: 'dumping' | 'subsidy' = cvdChosen() ? 'subsidy' : 'dumping';
   protected filing: 'self' | 'all' | 'part' = 'self';
   protected step = '1.1 ประเภทของการยื่นคำขอ';
   protected reviewOpen = false;

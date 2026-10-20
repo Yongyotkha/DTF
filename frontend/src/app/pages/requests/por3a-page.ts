@@ -8,7 +8,7 @@ import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extrac
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
-import { filingMeasureTitle, readFilingIntent } from './filing-intent';
+import { cvdChosen, filingMeasureTitle, readFilingIntent } from './filing-intent';
 import { scrollFormToTop } from './form-scroll';
 
 type TocItem = { id: string; label: string };
@@ -104,7 +104,7 @@ export class Por3aPage {
 
   constructor(private readonly view: ChangeDetectorRef) {
     const measure = readFilingIntent()?.measure;
-    this.agreement = measure === 'มาตราการ AD' ? 'dumping' : 'subsidy';
+    this.agreement = cvdChosen() || measure === 'มาตราการ CVD' ? 'subsidy' : 'dumping';
   }
 
   protected openFilledUpload(): void {

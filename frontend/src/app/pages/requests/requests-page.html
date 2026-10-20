@@ -29,6 +29,10 @@
                 </header>
                 <dl class="item__facts">
                   <div>
+                    <dt>มาตรการ</dt>
+                    <dd>{{ row.measure }}</dd>
+                  </div>
+                  <div>
                     <dt>แบบคำขอ</dt>
                     <dd>{{ row.kind }}</dd>
                   </div>
@@ -40,7 +44,12 @@
                     <dt>วันที่</dt>
                     <dd>{{ dateOnly(row.created) }}</dd>
                   </div>
+                  <div>
+                    <dt>เลขเคส</dt>
+                    <dd>{{ row.code }}</dd>
+                  </div>
                 </dl>
+                <p class="item__result">{{ row.result }}</p>
                 <div class="item__foot">
                   <div class="act">
                     <app-button type="outline" [label]="row.ready ? 'ดูรายละเอียด' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row, $event)" />

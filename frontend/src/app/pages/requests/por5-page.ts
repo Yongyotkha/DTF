@@ -7,7 +7,7 @@ import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extrac
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
-import { filingMeasureTitle } from './filing-intent';
+import { filingMeasureTitle, cvdChosen } from './filing-intent';
 import { scrollFormToTop } from './form-scroll';
 
 type TocItem = { id: string; label: string };
@@ -22,7 +22,7 @@ type DocItem = { key: string; label: string; accept: string; hint: string; when:
 })
 export class Por5Page {
   protected readonly filingTitle = filingMeasureTitle();
-  protected measure: 'dumping' | 'subsidy' = 'dumping';
+  protected measure: 'dumping' | 'subsidy' = cvdChosen() ? 'subsidy' : 'dumping';
   protected importGoods = '';
   protected filing: 'self' | 'behalf' = 'self';
   protected behalfOf = '';

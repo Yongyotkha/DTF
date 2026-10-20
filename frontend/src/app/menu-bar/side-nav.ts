@@ -90,9 +90,10 @@ export class SideNav implements OnInit, OnDestroy {
   protected menuList(): NavMenu[] {
     const role = this.accounts.role;
     if (role === 'officer') return [];
+    if (role === 'interest') return applicantMenus;
     if (role === 'head') return headMenus;
     if (role === 'director') return directorMenus;
-    if (role === 'staff' || this.kind === 'staff') return intakeMenus;
+    if (role === 'bureau' || role === 'committee' || role === 'external' || role === 'staff' || this.kind === 'staff') return intakeMenus;
     return applicantMenus;
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
@@ -201,7 +202,14 @@ export class SideNav implements OnInit, OnDestroy {
 
   protected pick(label: string): void {
     const role = this.accounts.role;
-    const internal = role === 'staff' || role === 'director' || role === 'head' || role === 'officer';
+    const internal = role === 'staff' || role === 'director' || role === 'head' || role === 'officer' || role === 'bureau' || role === 'committee' || role === 'external';
+    if (role === 'interest' && (label === 'ยื่นคำขอ' || label === 'รายการยื่นคำขอ')) {
+      void this.router.navigateByUrl('/interest/filing');
+      this.chosen.emit(label);
+      this.submenu.set(null);
+      if (this.state.narrow()) this.closeDrawer(false);
+      return;
+    }
     if (label === 'ยื่นคำขอ' && !internal) void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
     if (label === 'รายการยื่นคำขอ') void this.router.navigate(internal ? ['/cases'] : ['/requests']);
     if (label === 'ยื่นคำร้องขอพบเจ้าหน้าที่' || label === 'รายการยื่นคำร้องขอพบเจ้าหน้าที่') {

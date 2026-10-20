@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
@@ -8,7 +8,8 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
-import { filingMeasureTitle } from './filing-intent';
+import { cvdChosen, filingMeasureTitle } from './filing-intent';
+import { findListedCase } from './request-cases';
 import { scrollFormToTop } from './form-scroll';
 
 type DocItem = { key: string; title: string; hint?: string; required?: boolean; excel?: boolean };
@@ -89,7 +90,7 @@ function blankApplicant(open = true): Applicant {
 })
 export class Por2Page {
   protected readonly filingTitle = filingMeasureTitle();
-  protected measure = '';
+  protected measure = cvdChosen() ? 'subsidy' : '';
   protected role = '';
   protected step = 'มาตรการและประเภทการยื่น';
   protected goods = '';
@@ -112,6 +113,9 @@ export class Por2Page {
   protected roleTitle = '';
   protected signedOn = '';
   protected reviewOpen = false;
+  protected viewing = false;
+  protected returnCase = '';
+  protected caseRef = '';
   protected uploadOpen = false;
   protected readOn = false;
   protected readonly behalfLeft = behalfLeft;
@@ -159,7 +163,25 @@ export class Por2Page {
     },
   ];
 
-  constructor(private readonly view: ChangeDetectorRef) {}
+  constructor(
+    private readonly view: ChangeDetectorRef,
+    route: ActivatedRoute,
+  ) {
+    const code = route.snapshot.queryParamMap.get('case') ?? '';
+    this.returnCase = /^[A-Za-z0-9]+$/.test(code) ? code : '';
+    this.viewing = route.snapshot.queryParamMap.get('view') === '1' && !!this.returnCase;
+    if (!this.viewing) return;
+    const item = findListedCase(this.returnCase);
+    if (!item) return;
+    this.caseRef = item.ref;
+    this.measure = 'dumping';
+    this.goods = item.goods;
+    this.notice = `ประกาศทบทวนมาตรา 56 ${item.goods}`.slice(0, 200);
+    this.aim = 'rate';
+    this.evidence = [];
+    this.evidenceReady = false;
+    this.applicants = [{ ...blankApplicant(true), filing: 'self', name: item.applicant || '', nation: item.applicant?.includes('ในประเทศ') ? 'ไทย' : '' }];
+  }
 
   protected openFilledUpload(): void {
     this.uploadOpen = true;

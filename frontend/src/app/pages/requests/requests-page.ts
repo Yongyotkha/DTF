@@ -8,10 +8,10 @@ import { TopHeader } from '../../top-header/top-header';
 import { RequestForm, formOf, formsFor, purposeOf, requestForms, requestMeasures } from './form-catalog';
 import { startFilingCase } from './case-status';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
-import { archiveCases, draftCases, ListedCase } from './request-cases';
+import { archiveCases, currentResult, draftCases, ListedCase } from './request-cases';
 import { StatusTag } from '../../status-tag/status-tag';
 
-type RequestRow = ListedCase & { ready: boolean; filing: boolean };
+type RequestRow = ListedCase & { ready: boolean; filing: boolean; result: string };
 
 @Component({
   selector: 'app-requests-page',
@@ -91,7 +91,7 @@ export class RequestsPage implements OnDestroy {
   }
 
   private asRow(item: ListedCase): RequestRow {
-    return { ...item, ready: true, filing: false };
+    return { ...item, ready: true, filing: false, result: currentResult(item) };
   }
 
   protected setListTab(index: number): void {
@@ -156,7 +156,9 @@ export class RequestsPage implements OnDestroy {
     if (form?.code === 'ปร. 1') startFilingCase();
     this.choosing = false;
     document.body.classList.remove('chooser-open');
-    void this.router.navigateByUrl(route);
+    void this.router.navigate([route], {
+      queryParams: this.measure === 'มาตราการ CVD' ? { measure: 'cvd' } : {},
+    });
   }
 
   protected closeChooser(): void {

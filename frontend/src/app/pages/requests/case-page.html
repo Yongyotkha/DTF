@@ -83,11 +83,32 @@
           }
         </ol>
       </section>
+      @if (caseNote) {
+        <dl class="overview">
+          <div>
+            <dt>ผู้ยื่นคำขอ</dt>
+            <dd>{{ caseApplicant }}</dd>
+          </div>
+          <div>
+            <dt>แหล่งกำเนิด</dt>
+            <dd>{{ caseOrigins.join(' ') }}</dd>
+          </div>
+          <div class="wide">
+            <dt>สาระสำคัญ</dt>
+            <dd>{{ caseNote }}</dd>
+          </div>
+        </dl>
+      }
       <div class="sheet">
         <header class="stage">
           <h2>{{ viewLabel }}</h2>
           <app-status-tag [tone]="stageDone ? 'success' : 'info'" [label]="stageStatus" />
-          @if (viewLabel === 'ยื่นคำขอ') {
+          @if (caseFormRoute) {
+            <div class="stage__act">
+              <app-button type="outline" label="ดูแบบฟอร์ม" (click)="openFormView(caseFormRoute, $event)" />
+            </div>
+          }
+          @if (viewLabel === 'ยื่นคำขอ' && !listed) {
             <div class="stage__act">
               @if (!reviewPassed && !reviewPending) {
                 <app-button class="icon-before" type="outline" label="ขอปรึกษา" (click)="openConsult()">
@@ -178,7 +199,7 @@
               </div>
             </article>
           }
-        } @else if (viewLabel === 'ตรวจสอบข้อมูล') {
+        } @else if (viewLabel === 'ตรวจสอบข้อมูล' && !listed) {
           <div class="alert">
             <p>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5 21 20H3L12 4.5z" /><path d="M12 10v5M12 17.5v.5" /></svg>
@@ -224,28 +245,34 @@
             </div>
             <div>
               <dt>ประเภทมาตรการ</dt>
-              <dd>AD (ตอบโต้การทุ่มตลาด)</dd>
+              <dd>{{ measureLabel }}</dd>
             </div>
             <div>
               <dt>ชื่อสินค้า</dt>
-              <dd>เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน</dd>
+              <dd>{{ goodsName }}</dd>
             </div>
             <div>
               <dt>แบบฟอร์มที่ยื่น</dt>
               <dd class="chips">
-                @for (form of filedForms; track form.code) {
-                  <span class="chip">{{ form.label }}</span>
+                @if (listed) {
+                  <span class="chip">{{ caseKind }}</span>
+                } @else {
+                  @for (form of filedForms; track form.code) {
+                    <span class="chip">{{ form.label }}</span>
+                  }
                 }
               </dd>
             </div>
+            @if (shownCountries.length) {
             <div>
               <dt>แหล่งกำเนิดสินค้า</dt>
               <dd class="chips">
-                @for (name of countries; track name) {
+                @for (name of shownCountries; track name) {
                   <span class="chip">{{ name }}</span>
                 }
               </dd>
             </div>
+            }
             <div>
               <dt>ครั้งที่ยื่น</dt>
               <dd>{{ filingRound }} ครั้ง</dd>
@@ -254,14 +281,16 @@
               <dt>วันที่ยื่นคำขอ</dt>
               <dd>{{ filedOn }}</dd>
             </div>
+            @if (shownApplicants.length) {
             <div>
               <dt>ผู้ยื่นคำขอ</dt>
               <dd>
-                @for (party of applicants; track party.name; let last = $last) {
+                @for (party of shownApplicants; track party.name; let last = $last) {
                   {{ party.name }}@if (!last) {, }
                 }
               </dd>
             </div>
+            }
           </dl>
           @if (reviewPassed) {
             <article class="result result--pass" aria-label="ผลการตรวจสอบคำขอ">
@@ -293,7 +322,7 @@
                 </div>
               </div>
             </article>
-          } @else {
+          } @else if (!listed) {
           <article class="result" aria-label="ผลการตรวจสอบคำขอ">
             <span class="result__mark" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 6.5v8" /><circle cx="12" cy="17.5" r="1.2" fill="currentColor" stroke="none" /></svg>
@@ -341,9 +370,39 @@
             </ol>
           </section>
           }
-          <h2 class="forms__title">ผู้ยื่นคำขอ <span class="count">{{ applicants.length }}</span></h2>
+          @if (listed) {
+            @if (systemForms.length) {
+              <h2 class="forms__title">แบบฟอร์มในระบบ <span class="count">{{ systemForms.length }}</span></h2>
+              <p class="status-note">กรอกในแบบฟอร์มของระบบแล้ว เปิดดูได้จากปุ่มด้านขวา</p>
+              <ul>
+                @for (form of systemForms; track form.code) {
+                  <li>
+                    <span class="file">
+                      <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                      แบบ {{ form.code }} · {{ form.file }}
+                    </span>
+                    <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(form.route, $event)" />
+                  </li>
+                }
+              </ul>
+            }
+            @if (plainFiles.length) {
+              <h2 class="forms__title">ไฟล์ประกอบ <span class="count">{{ plainFiles.length }}</span></h2>
+              <ul>
+                @for (file of plainFiles; track file) {
+                  <li>
+                    <span class="file">
+                      <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                      {{ file }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+          <h2 class="forms__title">ผู้ยื่นคำขอ <span class="count">{{ shownApplicants.length }}</span></h2>
           <ul class="parties">
-            @for (party of applicants; track party.name) {
+            @for (party of shownApplicants; track party.name) {
               <li>
                 <strong>{{ party.name }}</strong>
                 <span>{{ party.address }}</span>
@@ -369,18 +428,60 @@
               }
             </ul>
           }
+          }
         } @else {
-          <p class="status-note">{{ statusNote }}</p>
-          <ul>
-            @for (file of files; track file) {
-              <li>
-                <span class="file">
-                  <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
-                  {{ file }}
-                </span>
-              </li>
-            }
-          </ul>
+          <p class="status-note">{{ stageSummary }}</p>
+          @if (stageFiles.length) {
+            <h2 class="forms__title">เอกสารในขั้นนี้ <span class="count">{{ stageFiles.length }}</span></h2>
+            <ul>
+              @for (file of stageFiles; track file) {
+                <li>
+                  <span class="file">
+                    <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                    {{ file }}
+                  </span>
+                  @if (formRoute(file); as route) {
+                    <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+        @if (history.length > 1) {
+          <section class="history" aria-label="ผลการดำเนินการ">
+            <h2>ผลการดำเนินการ</h2>
+            <ol>
+              @for (item of history; track item.title) {
+                <li [class.history__open]="historyOpen[item.title]">
+                  <div class="history__head" (click)="openHistoryStep(item.title)">
+                    <span>
+                      <strong>{{ item.title }}</strong>
+                      <span>{{ item.detail }}</span>
+                    </span>
+                    @if (item.when) {
+                      <time>{{ item.when }}</time>
+                    }
+                    <button type="button" class="more" [attr.aria-expanded]="historyOpen[item.title]" [attr.aria-label]="historyOpen[item.title] ? 'หุบเอกสาร' : 'เปิดเอกสาร'" (click)="$event.stopPropagation(); toggleHistory(item.title)">
+                      <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+                    </button>
+                  </div>
+                  @if (historyOpen[item.title] && item.docs.length) {
+                    <ul class="history__docs">
+                      @for (doc of item.docs; track doc) {
+                        <li>
+                          <span>{{ doc }}</span>
+                          @if (formRoute(doc); as route) {
+                            <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </li>
+              }
+            </ol>
+          </section>
         }
       </div>
       }

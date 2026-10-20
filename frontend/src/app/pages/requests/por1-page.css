@@ -2998,7 +2998,7 @@ table:has(.col-no) {
 .notice {
   position: fixed;
   inset: 0;
-  z-index: 21;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4302,6 +4302,26 @@ body.workspace-split .head {
 
 .consult-table th {
   white-space: nowrap;
+}
+
+.pack-table table {
+  table-layout: fixed;
+}
+
+.pack-table .col-no {
+  width: 8%;
+}
+
+.pack-table .col-fit {
+  width: 18%;
+}
+
+.pack-table .col-act {
+  width: 128px;
+}
+
+.pack-table td:nth-child(2) {
+  white-space: normal;
 }
 
 .consult-form {

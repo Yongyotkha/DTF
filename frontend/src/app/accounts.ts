@@ -6,13 +6,13 @@ const lastKey = 'dft-last-account';
 const trustKey = 'dft-trusted-device';
 const trustSpan = 30 * 24 * 60 * 60 * 1000;
 
-export type AccountRole = 'corporate' | 'individual' | 'association' | 'staff' | 'director' | 'head' | 'officer';
+export type AccountRole = 'corporate' | 'individual' | 'association' | 'staff' | 'director' | 'head' | 'officer' | 'bureau' | 'committee' | 'interest' | 'external';
 
 type Account = { password: string; role: AccountRole; email?: string; person?: string; personTitle?: string };
 
 export type SavedLogin = { username: string; password: string; email: string };
 
-const roles: AccountRole[] = ['corporate', 'individual', 'association', 'staff', 'director', 'head', 'officer'];
+const roles: AccountRole[] = ['corporate', 'individual', 'association', 'staff', 'director', 'head', 'officer', 'bureau', 'committee', 'interest', 'external'];
 
 export const roleHome: Record<AccountRole, string> = {
   corporate: '/requests',
@@ -22,6 +22,10 @@ export const roleHome: Record<AccountRole, string> = {
   director: '/director',
   head: '/head',
   officer: '/officer',
+  bureau: '/bureau',
+  committee: '/committee',
+  interest: '/interest',
+  external: '/external',
 };
 
 export type DemoLogin = { username: string; label: string; password: string; email: string; group: string };
@@ -45,6 +49,10 @@ const demoMenu: { username: string; group: string }[] = [
   { username: '1000000000118', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
   { username: '1000000000119', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
   { username: '1000000000120', group: 'กลุ่มงานวิเคราะห์และการกำหนดมาตรการ' },
+  { username: '1000000000121', group: 'กลุ่ม บท.' },
+  { username: '1000000000122', group: 'คณะกรรมการ ทตอ.' },
+  { username: '1000000000123', group: 'ผู้มีส่วนได้เสีย' },
+  { username: '1000000000124', group: 'หน่วยงานภายนอก' },
 ];
 
 export const roleLabel: Record<AccountRole, string> = {
@@ -55,6 +63,10 @@ export const roleLabel: Record<AccountRole, string> = {
   director: 'ผู้อำนวยการ',
   head: 'หัวหน้ากลุ่ม',
   officer: 'เจ้าหน้าที่ คต.',
+  bureau: 'เจ้าหน้าที่ บท.',
+  committee: 'คณะกรรมการ ทตอ.',
+  interest: 'ผู้มีส่วนได้เสีย',
+  external: 'หน่วยงานภายนอก',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -84,6 +96,10 @@ export class Accounts {
     ['1000000000118', { password: 'Officer@2569', role: 'officer', person: 'นางสาวสุภาพร แสงอรุณ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
     ['1000000000119', { password: 'Officer@2569', role: 'officer', person: 'นางสาวชลธิชา วัฒนกิจ', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
     ['1000000000120', { password: 'Officer@2569', role: 'officer', person: 'นายภูมิพัฒน์ อินทรสุข', personTitle: 'นักวิชาการพาณิชย์ปฏิบัติการ' }],
+    ['1000000000121', { password: 'Bureau@2569', role: 'bureau', person: 'นางสาวจิราภรณ์ ศรีสุข', personTitle: 'กลุ่ม บท.' }],
+    ['1000000000122', { password: 'Committee@2569', role: 'committee', person: 'นายประเสริฐ ธรรมรักษ์', personTitle: 'ประธานคณะกรรมการ ทตอ.' }],
+    ['1000000000123', { password: 'Interest@2569', role: 'interest', person: 'บริษัท ไทยสตีล อิมปอร์ต จำกัด', personTitle: 'ผู้มีส่วนได้เสีย' }],
+    ['1000000000124', { password: 'External@2569', role: 'external', person: 'กรมโรงงานอุตสาหกรรม', personTitle: 'หน่วยงานที่เกี่ยวข้อง' }],
   ]);
   private signedIn: AccountRole | '' = '';
   private person = '';

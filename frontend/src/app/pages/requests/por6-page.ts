@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
@@ -8,6 +8,8 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { filingMeasureTitle } from './filing-intent';
+import { caseFormExtra } from './case-form';
+import { findListedCase } from './request-cases';
 import { scrollFormToTop } from './form-scroll';
 
 type TocItem = { id: string; label: string };
@@ -81,6 +83,9 @@ export class Por6Page {
   protected signerPrint = '';
   protected roleTitle = '';
   protected signedDate = '';
+  protected viewing = false;
+  protected returnCase = '';
+  protected caseRef = '';
   protected reviewOpen = false;
   protected uploadOpen = false;
   protected readOn = false;
@@ -160,7 +165,15 @@ export class Por6Page {
     { key: 'other', label: 'เอกสารประกอบอื่น', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'ภาคผนวกหรือเอกสารเพิ่มเติม', section: 'other', when: 'always' },
   ];
 
-  constructor(private readonly view: ChangeDetectorRef) {}
+  constructor(
+    private readonly view: ChangeDetectorRef,
+    route: ActivatedRoute,
+  ) {
+    const code = route.snapshot.queryParamMap.get('case') ?? '';
+    this.returnCase = /^[A-Za-z0-9]+$/.test(code) ? code : '';
+    this.viewing = route.snapshot.queryParamMap.get('view') === '1' && !!this.returnCase;
+    if (this.viewing) this.fillCase();
+  }
 
   protected get completion(): boolean {
     return !!this.modes['complete'] || !!this.modes['assemble'];
@@ -354,8 +367,30 @@ export class Por6Page {
   }
 
   protected filled(item: TocItem): boolean {
+    if (this.viewing) return this.sectionReady(item.id);
     const ids = this.toc.flatMap((group) => group.items.map((row) => row.id));
     return ids.indexOf(item.id) <= ids.indexOf(this.section);
+  }
+
+  private sectionReady(id: string): boolean {
+    const text = (value: string) => !!value.trim();
+    if (id === '1.1') return text(this.company) && text(this.nationality) && text(this.address) && text(this.phone);
+    if (id === '1.2') return text(this.priorAid);
+    if (id === '1.3') return text(this.adapt);
+    if (id === '2') return text(this.notice) && text(this.subjectGoods) && text(this.country) && text(this.subjectParties);
+    if (id === '3.1') return (this.parties['3.1'] ?? []).some((row) => text(row.name));
+    if (id === '3.2') return text(this.tradePattern) || this.namesOf('trade').length > 0;
+    if (id === '3.3') return this.modeOptions.some((mode) => this.modes[mode.key]);
+    if (id === '3.4') return text(this.economy);
+    if (id === '3.5') return text(this.priceEffect) && text(this.volumeEffect);
+    if (id === '3.6') return this.measure === 'dumping' ? text(this.dumpingProof) : text(this.subsidyProof);
+    if (id === '3.7') return this.namesOf('support').length > 0;
+    if (id === '4') return this.namesOf('catalog').length > 0 || Object.values(this.compare).some((row) => text(row.left) || text(row.right));
+    if (id === '5.1' || id === '5.2' || id === '5.3') return (this.parties[id] ?? []).some((row) => text(row.name));
+    if (id === 'annex-c') return this.namesOf('poaSigned').length > 0;
+    if (id === '9') return this.ack && text(this.signer) && text(this.signedDate);
+    if (id === 'other') return this.namesOf('other').length > 0;
+    return false;
   }
 
   protected showDoc(item: DocItem): boolean {
@@ -390,6 +425,33 @@ export class Por6Page {
     event.preventDefault();
     event.stopPropagation();
     this.files = { ...this.files, [key]: this.namesOf(key).filter((item) => item !== name) };
+  }
+
+  private fillCase(): void {
+    const item = findListedCase(this.returnCase);
+    if (!item) return;
+    const extra = caseFormExtra(item);
+    this.caseRef = item.ref;
+    this.measure = 'dumping';
+    if (item.code === 'AC1001') this.modes = { ...this.modes, modify: true };
+    this.company = item.applicant || '';
+    this.nationality = item.applicant?.includes('ในประเทศ') ? 'ไทย' : '';
+    this.subjectGoods = item.goods;
+    this.country = item.origins?.[0] ?? '';
+    this.subjectParties = extra.exporters.join(' และ ');
+    this.notice = extra.notice;
+    this.power = extra.power;
+    this.parties['3.1'] = extra.exporters.length
+      ? extra.exporters.map((name) => ({ name, address: '', phone: '', fax: '', web: '', email: '' }))
+      : [this.blankParty()];
+    const attach = (key: string, names: string[]) => {
+      if (names.length) this.files = { ...this.files, [key]: names };
+    };
+    attach('goodsList', extra.files.goods);
+    attach('trade', extra.files.trade);
+    attach('catalog', extra.files.catalog);
+    attach('modeProof', extra.files.inquiry);
+    attach('poaSigned', extra.files.power);
   }
 
   private blankParty(): PartyRow {

@@ -8,6 +8,7 @@ import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extract';
 import { filingMeasureTitle } from './filing-intent';
+import { findListedCase } from './request-cases';
 import { scrollFormToTop } from './form-scroll';
 
 type TocItem = { id: string; label: string };
@@ -27,6 +28,9 @@ type ProducerStat = { name: string; cells: Record<string, string> };
 })
 export class SgPage {
   protected readonly notice: boolean;
+  protected viewing = false;
+  protected returnCase = '';
+  protected caseRef = '';
   protected filing: Filing = 'self';
   protected company = '';
   protected nationality = '';
@@ -127,6 +131,17 @@ export class SgPage {
     private readonly view: ChangeDetectorRef,
   ) {
     this.notice = route.snapshot.data['form'] === 'notice';
+    const code = route.snapshot.queryParamMap.get('case') ?? '';
+    this.returnCase = /^[A-Za-z0-9]+$/.test(code) ? code : '';
+    this.viewing = route.snapshot.queryParamMap.get('view') === '1' && !!this.returnCase && !this.notice;
+    if (!this.viewing) return;
+    const item = findListedCase(this.returnCase);
+    if (!item) return;
+    this.caseRef = item.ref;
+    this.company = item.applicant || '';
+    this.nationality = item.applicant?.includes('ในประเทศ') ? 'ไทย' : '';
+    this.tradeName = item.goods;
+    this.origin = item.origins?.[0] ?? '';
   }
 
   protected get formCode(): string {

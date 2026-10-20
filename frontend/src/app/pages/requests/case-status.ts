@@ -843,18 +843,32 @@ export function readNoteReads(username: string): string[] {
   }
 }
 
-export type LaterPhase = { visit: boolean; prelim: boolean; draftFinal: boolean; finalResult: boolean };
+export type LaterPhase = {
+  visit: boolean;
+  prelim: boolean;
+  draftFinal: boolean;
+  finalResult: boolean;
+  measures: boolean;
+  marks: Record<string, string>;
+  notes: Record<string, string>;
+};
 
 export function readLaterPhase(): LaterPhase {
-  const empty = { visit: false, prelim: false, draftFinal: false, finalResult: false };
+  const empty: LaterPhase = { visit: false, prelim: false, draftFinal: false, finalResult: false, measures: false, marks: {}, notes: {} };
   try {
     const value = JSON.parse(sessionStorage.getItem(laterPhaseKey) || 'null') as Partial<LaterPhase> | null;
     if (!value || typeof value !== 'object') return empty;
+    const marks = value.marks && typeof value.marks === 'object' ? value.marks : {};
+    const notes = value.notes && typeof value.notes === 'object' ? value.notes : {};
+    const textMap = (raw: object) => Object.fromEntries(Object.entries(raw).filter((entry) => typeof entry[0] === 'string' && typeof entry[1] === 'string'));
     return {
       visit: value.visit === true,
       prelim: value.prelim === true,
       draftFinal: value.draftFinal === true,
       finalResult: value.finalResult === true,
+      measures: value.measures === true,
+      marks: textMap(marks),
+      notes: textMap(notes),
     };
   } catch {
     return empty;

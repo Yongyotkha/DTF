@@ -13,6 +13,10 @@ const roleNames: Record<AccountRole, string> = {
   director: 'ผู้อำนวยการ',
   head: 'หัวหน้ากลุ่ม',
   officer: 'เจ้าหน้าที่ คต.',
+  bureau: 'เจ้าหน้าที่ บท.',
+  committee: 'คณะกรรมการ ทตอ.',
+  interest: 'ผู้มีส่วนได้เสีย',
+  external: 'หน่วยงานภายนอก',
 };
 
 @Component({
