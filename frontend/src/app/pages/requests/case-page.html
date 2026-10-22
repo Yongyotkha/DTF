@@ -34,27 +34,33 @@
       </header>
       @if (supplementView) {
         <div class="panel supplement-work">
-          <app-stepper-1 class="embedded" [current]="supplementCurrent" [steps]="supplementSteps" />
           @if (supplementStep < 4) {
-          <div class="sheet">
-            <ng-container *ngTemplateOutlet="requestExtra" />
-            <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
-            <div class="letter-form">
-              <app-thai-date-field label="วันที่หนังสือ" [required]="true" [value]="coverDate" (valueChange)="setCover('coverDate', $event)" />
-              <app-thai-date-field label="เลขที่หนังสือ" [required]="true" [value]="coverNo" (valueChange)="setCover('coverNo', $event)" />
-              <app-input-field class="block wide" kind="text" label="เรียน" [required]="true" state="readonly" [value]="coverTo" />
-              <app-input-field class="block wide" kind="text" label="เรื่อง" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverSubject" (valueChange)="setCover('coverSubject', $event)" />
-              <app-input-field class="block wide" kind="text" label="อ้างอิง" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverRef" (valueChange)="setCover('coverRef', $event)" />
-              <app-input-field class="block wide" kind="text" label="สิ่งที่แนบมาด้วย" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverEnclosed" (valueChange)="setCover('coverEnclosed', $event)" />
-              <app-input-field class="block wide" kind="textarea" label="รายละเอียด" [required]="true" [editable]="true" placeholder="text" [counter]="coverCount" [value]="coverDetail" (valueChange)="setCover('coverDetail', $event)" />
-              <app-input-field class="block wide" kind="text" label="มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverPurpose" (valueChange)="setCover('coverPurpose', $event)" />
-              <app-file-field label="แนบไฟล์ตราประทับบริษัท" [required]="true" accept=".png,.jpg,.jpeg" note="เฉพาะนามสกุล png, jpg, jpeg" [value]="coverSeal" (valueChange)="setCover('coverSeal', $event)" />
-              <app-file-field label="แนบไฟล์หนังสือนำส่งฉบับจริง" [required]="true" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" note="เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx" [value]="coverLetterFile" (valueChange)="setCover('coverLetterFile', $event)" />
-              <div class="letter-note">
-                <p>หมายเหตุ : สามารถ Preview ตัวอย่างใบนำส่งเมื่อกรอกข้อมูลครบถ้วน</p>
-                <app-button type="primary" size="sm" label="ตัวอย่างนำส่ง" [state]="coverReady ? 'default' : 'disabled'" (click)="openCoverPreview()" />
-              </div>
-            </div>
+          <div class="sheet extra-list">
+            <h2 class="forms__title">
+              รายการข้อมูลที่ต้องเพิ่มเติม
+              <span>{{ extraItems.length }} รายการ</span>
+            </h2>
+            @for (item of extraItems; track item.title; let i = $index) {
+              <article class="extra__task extra__task--open">
+                <span class="extra__no">{{ i + 1 }}</span>
+                <div>
+                  <p class="extra__pills">
+                    <strong>{{ item.title }}</strong>
+                    @if (extraSubmitted) {
+                      <app-status-tag tone="success" label="ยื่นข้อมูลเพิ่มเติมแล้ว" />
+                    }
+                  </p>
+                  <small>{{ item.kind }}</small>
+                  <p class="extra__hint">{{ item.detail }}</p>
+                  @if (item.kind === 'เอกสารประกอบ') {
+                    <app-file-field class="block" [label]="'แนบไฟล์' + item.title" [required]="true" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpeg,.jpg,.png,.tiff" note="เฉพาะนามสกุล doc, docx, xls, xlsx, ppt, pptx, pdf, jpeg, jpg, png, tiff" (valueChange)="addExtraProof(item.title, $event)" />
+                    <app-data-table class="fill index" [columns]="extendColumns" [rows]="extraProofRows(item.title)" />
+                  } @else {
+                    <app-input-field class="block" kind="textarea" [label]="item.title" [required]="true" [editable]="true" placeholder="ระบุ" [value]="extraAnswers[item.title] || ''" (valueChange)="setExtraAnswer(item.title, $event)" />
+                  }
+                </div>
+              </article>
+            }
           </div>
           } @else if (supplementStep === 6) {
           <div class="sheet">
@@ -161,33 +167,49 @@
             <p class="officer__note">คุณไม่ต้องดำเนินการใด ๆ ในตอนนี้ หากต้องการข้อมูลเพิ่มเติม ระบบจะแจ้งทางอีเมลและแสดงรายการที่หน้านี้</p>
           </article>
         } @else if (supplement && viewLabel === 'ตรวจสอบข้อมูล') {
-          <article class="extra" [class.extra--open]="extraOpen" aria-label="เจ้าหน้าที่ขอข้อมูลเพิ่มเติม">
+          <article class="extra" aria-label="เจ้าหน้าที่ขอข้อมูลเพิ่มเติม">
             <div class="extra__lead">
               <span class="extra__mark" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M12 7v6.5" /><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none" /></svg>
               </span>
               <div>
                 <h3>เจ้าหน้าที่ขอข้อมูลเพิ่มเติม</h3>
-                <p>เจ้าหน้าที่ตรวจสอบคำขอของคุณแล้ว พบว่าต้องการข้อมูลเพิ่มเติม กรุณาส่งภายใน {{ supplementDue }}</p>
+                <p>เจ้าหน้าที่ตรวจสอบคำขอของคุณแล้ว พบว่าต้องการข้อมูลเพิ่มเติม กรุณาตรวจสอบรายการด้านล่างและส่งข้อมูลภายในวันที่กำหนด</p>
+                <p class="extra__due">
+                  <img src="assets/icons/calendar.svg" width="16" height="16" alt="" />
+                  กำหนดส่ง: <strong>{{ supplementDue }}</strong>
+                </p>
               </div>
-              <app-button type="primary" label="ยื่นข้อมูลเพิ่มเติม" (click)="openSupplement()" />
-              <button type="button" class="more" [attr.aria-expanded]="extraOpen" [attr.aria-label]="extraOpen ? 'หุบรายละเอียด' : 'ขยายรายละเอียด'" (click)="toggleExtra()">
-                <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
-              </button>
+              @if (!extraSubmitted) {
+                <app-button type="primary" label="ดำเนินการ" (click)="openSupplement()" />
+              }
             </div>
-            @if (extraOpen) {
-              <div class="extra__detail">
-                <app-stepper-1 class="embedded" [current]="supplementCurrent" [steps]="supplementSteps" />
-                <div class="extra__pane">
-                  @if (supplementStep >= 6) {
-                    <ng-container *ngTemplateOutlet="feeProofRead" />
-                  } @else {
-                    <ng-container *ngTemplateOutlet="requestExtraRead" />
-                  }
-                </div>
-              </div>
-            }
           </article>
+          <section class="fixes extra-list" aria-label="รายการข้อมูลที่ต้องเพิ่มเติม">
+            <h2 class="forms__title">
+              รายการข้อมูลที่ต้องเพิ่มเติม
+              <span>{{ extraItems.length }} รายการ</span>
+            </h2>
+            <ol>
+              @for (item of extraItems; track item.title; let i = $index) {
+                <li [class.fixes__open]="!!supplementOpen[item.title]">
+                  <span class="extra__no">{{ i + 1 }}</span>
+                  <div>
+                    <p class="extra__pills">
+                      <strong>{{ item.title }}</strong>
+                    </p>
+                    <small>{{ item.kind }}</small>
+                    @if (supplementOpen[item.title]) {
+                      <p>{{ item.detail }}</p>
+                    }
+                  </div>
+                  <button type="button" class="more" [attr.aria-expanded]="!!supplementOpen[item.title]" [attr.aria-label]="supplementOpen[item.title] ? 'หุบรายละเอียด' : 'ขยายรายละเอียด'" (click)="toggleSupplement(item.title)">
+                    <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+                  </button>
+                </li>
+              }
+            </ol>
+          </section>
         } @else if (viewLabel === 'ตรวจสอบข้อมูล') {
           <div class="alert">
             <p>
@@ -458,7 +480,7 @@
 }
 @if (supplementSent) {
   <div class="notice">
-    <app-modal kind="success" heading="ส่งข้อมูลเพิ่มเติมสำเร็จ" detail="ระบบได้รับไฟล์แล้ว และจะแจ้งเจ้าหน้าที่ให้ตรวจสอบ" (choose)="finishSupplement()" />
+    <app-modal kind="success" heading="ส่งข้อมูลเพิ่มเติมสำเร็จ" detail="ระบบได้รับข้อมูลแล้ว และจะแจ้งเจ้าหน้าที่ให้ตรวจสอบ" (choose)="finishSupplement()" />
   </div>
 }
 @if (filedOpen) {

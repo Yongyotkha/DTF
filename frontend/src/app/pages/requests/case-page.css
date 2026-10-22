@@ -330,16 +330,12 @@ article.extra {
 
 .extra__lead {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px 16px;
   padding: 16px 20px;
   border-radius: 8px;
   background: var(--color-warning-bg);
-}
-
-.extra--open .more img {
-  transform: none;
 }
 
 .extra__detail {
@@ -390,6 +386,18 @@ article.extra {
   font-size: 14px;
   font-weight: 400;
   line-height: 21px;
+}
+
+.extra__due {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-primary);
+}
+
+.extra__due strong {
+  color: var(--color-warning);
+  font-weight: 700;
 }
 
 .extra__task {
@@ -522,6 +530,68 @@ article.extra {
 .extra__meta span {
   margin-right: 8px;
   color: var(--color-text-muted);
+}
+
+.extra-list > .forms__title {
+  margin-top: 24px;
+}
+
+.extra-list > .forms__title span {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.extra-list strong {
+  font-weight: 700;
+}
+
+.extra-list .more img {
+  transform: none;
+}
+
+.extra-list .fixes__open .more img {
+  transform: rotate(180deg);
+}
+
+.extra-list .extra__pills {
+  align-items: center;
+  margin: 0;
+}
+
+.extra-list .extra__pills strong {
+  display: inline;
+}
+
+.supplement-work .extra-list > .forms__title {
+  margin-top: 0;
+}
+
+.extra__hint {
+  margin: 8px 0 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.extra__task small {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.extra__task app-file-field,
+.extra__task app-input-field,
+.extra__task app-data-table {
+  display: block;
+  margin-top: 12px;
 }
 
 .stage + h2 {
@@ -1233,7 +1303,6 @@ span.link {
 .supplement-work .sheet {
   flex: 1;
   min-width: 0;
-  border-left: 0.5px solid var(--color-border);
 }
 
 .supplement-work .forms__title {

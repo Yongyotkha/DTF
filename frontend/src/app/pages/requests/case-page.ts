@@ -100,7 +100,27 @@ export class CasePage implements OnDestroy {
     { value: '1', label: 'ต้องแก้ไข', tone: 'danger' },
   ];
   protected readonly reviewItems = ['ความครบถ้วนของแบบฟอร์ม', 'หนังสือรับรองบริษัท', 'เอกสารประกอบคำขอ'];
-  protected readonly supplementDue = '20 ก.พ. 2569';
+  protected readonly supplementDue = '20 พฤศจิกายน 2569';
+  protected readonly extraItems: { title: string; kind: string; status: string; detail: string }[] = [
+    {
+      title: 'ข้อมูลวิธีการคำนวณมูลค่าปกติ',
+      kind: 'ข้อมูลคำขอ',
+      status: 'รอเพิ่มเติม',
+      detail: 'ขอให้ชี้แจงวิธีการคำนวณมูลค่าปกติที่ใช้ในคำขอ และระบุแหล่งที่มาของตัวเลขให้ครบ',
+    },
+    {
+      title: 'เอกสารหลักฐานประกอบต้นทุนการผลิต',
+      kind: 'เอกสารประกอบ',
+      status: 'รอเพิ่มเติม',
+      detail: 'ขอให้แนบเอกสารหลักฐานประกอบต้นทุนการผลิตให้ตรงกับช่วงเวลาที่แจ้งในคำขอ',
+    },
+    {
+      title: 'คำชี้แจงความสอดคล้องของข้อมูล',
+      kind: 'คำชี้แจง',
+      status: 'รอเพิ่มเติม',
+      detail: 'ขอให้ชี้แจงความสอดคล้องของข้อมูลในแบบคำขอกับเอกสารประกอบที่แนบมา',
+    },
+  ];
   protected supplementStep = 3;
   private readonly supplementLabels = [
     'ผปก. ยื่นแบบคำขอ',
@@ -220,6 +240,9 @@ export class CasePage implements OnDestroy {
   sentConsult: { topic: string; detail: string; channel: 'phone' | 'online' | 'onsite'; filedOn: string } | null = null;
   filedOpen = false;
   officialReview = false;
+  extraAnswers: Record<string, string> = {};
+  extraProofs: Record<string, { name: string; title: string }[]> = {};
+  extraSubmitted = false;
   supplementFiles: Record<string, string> = {};
   supplementSent = false;
   supplementDraftSaved = false;
@@ -267,6 +290,7 @@ export class CasePage implements OnDestroy {
     this.reviewPassed = this.code === 'AD1024';
     this.reviewPending = this.code === 'AD1054';
     this.supplement = this.code === 'AD1005';
+    this.extraSubmitted = sessionStorage.getItem(this.extraSentKey()) === '1';
     this.title = this.showcase
       ? `${this.requestRef} เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน`
       : item
@@ -311,6 +335,16 @@ export class CasePage implements OnDestroy {
 
   ngOnDestroy(): void {
     window.clearInterval(this.reviewTimer);
+    if (!this.fixesOnly && !this.supplementView) {
+      sessionStorage.removeItem(this.extraSentKey());
+      this.extraSubmitted = false;
+      this.extraAnswers = {};
+      this.extraProofs = {};
+    }
+  }
+
+  private extraSentKey(): string {
+    return `dft-extra-sent:${this.code}`;
   }
 
   protected get currentLabel(): string {
@@ -342,13 +376,14 @@ export class CasePage implements OnDestroy {
   protected get stageStatus(): string {
     if (this.stageDone && this.filedView) return 'ยื่นคำขอสำเร็จ';
     if (this.stageDone) return 'เสร็จสิ้น';
-    if (this.supplement && this.supplementStep >= 4) return 'ผปก. รับทราบคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
-    if (this.supplement) return 'ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม';
+    if (this.supplement && this.extraSubmitted) return 'ยื่นข้อมูลเพิ่มเติมแล้ว';
+    if (this.supplement) return 'รอส่งข้อมูลเพิ่มเติม';
     return 'กำลังดำเนินการ';
   }
 
   protected get stageTone(): StatusTone {
     if (this.stageDone) return 'success';
+    if (this.supplement && this.extraSubmitted) return 'success';
     if (this.supplement) return 'warning';
     return 'info';
   }
@@ -457,6 +492,25 @@ export class CasePage implements OnDestroy {
     this.view.detectChanges();
   }
 
+  setExtraAnswer(title: string, value: string): void {
+    this.extraAnswers = { ...this.extraAnswers, [title]: value };
+    this.view.detectChanges();
+  }
+
+  addExtraProof(title: string, name: string): void {
+    if (!name) return;
+    const current = this.extraProofs[title] ?? [];
+    if (current.some((file) => file.name === name)) return;
+    this.extraProofs = { ...this.extraProofs, [title]: [...current, { name, title: name }] };
+    this.view.detectChanges();
+  }
+
+  extraProofRows(title: string): string[][] {
+    const files = this.extraProofs[title] ?? [];
+    if (!files.length) return [['', '', '']];
+    return files.map((file, index) => [String(index + 1), file.name, file.title]);
+  }
+
   setFeePaidOn(value: string): void {
     this.feePaidOn = value;
     this.view.detectChanges();
@@ -556,15 +610,15 @@ export class CasePage implements OnDestroy {
   }
 
   sendSupplement(): void {
-    if (this.supplementStep > this.supplementLabels.length) return;
-    this.supplementStep += 1;
+    this.extraSubmitted = true;
+    sessionStorage.setItem(this.extraSentKey(), '1');
     this.supplementSent = true;
     this.view.detectChanges();
   }
 
   finishSupplement(): void {
     this.supplementSent = false;
-    this.view.detectChanges();
+    void this.router.navigate(['/requests', this.code]);
   }
 
   submitOfficial(): void {
