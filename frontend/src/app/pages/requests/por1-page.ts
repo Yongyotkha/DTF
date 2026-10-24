@@ -17,7 +17,8 @@ import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { caseFormExtra } from './case-form';
 import { cvdChosen } from './filing-intent';
-import { findListedCase, type ListedCase } from './request-cases';
+import { caseKey, findListedCase, type ListedCase } from './request-cases';
+import { invitePath, joinedFor } from './interest-invite';
 import { readParty, readText, valueIsWrong, wrongHint } from './form-extract';
 import { scrollFormToTop } from './form-scroll';
 
@@ -2800,13 +2801,18 @@ export class Por1Page {
     this.keepNote('case-split', `แตกเคสจากสรุปประชุมรายเดือน เลขสารบรรณ ${this.filingSaraban} Ref e-TR ${this.etrRefNo}`);
   }
 
-  protected get interestParties(): { name: string; org: string; count: string }[] {
+  protected get interestParties(): { name: string; org: string; count: string; joined: boolean }[] {
+    const joined = new Set(joinedFor(this.inquiryCaseId).map((item) => item.name));
+    let saved: { name: string; org: string; count: string }[] = [];
     try {
       const value = JSON.parse(this.laterPhase.notes['interest'] || '[]') as { name?: string; org?: string; count?: string }[];
-      return Array.isArray(value) ? value.flatMap((item) => item?.name ? [{ name: item.name, org: item.org || '', count: item.count || '1' }] : []) : [];
+      saved = Array.isArray(value) ? value.flatMap((item) => item?.name ? [{ name: item.name, org: item.org || '', count: item.count || '1' }] : []) : [];
     } catch {
-      return [];
+      saved = [];
     }
+    const names = new Set(saved.map((item) => item.name));
+    const extra = joinedFor(this.inquiryCaseId).filter((item) => !names.has(item.name)).map((item) => ({ name: item.name, org: item.org, count: '1' }));
+    return [...saved, ...extra].map((item) => ({ ...item, joined: joined.has(item.name) }));
   }
 
   protected addInterestParty(): void {
@@ -4171,6 +4177,58 @@ export class Por1Page {
     this.notice = 'saved';
   }
 
+  protected get casePublished(): boolean {
+    return !!this.laterPhase.notes['published'];
+  }
+
+  protected publishCase(): void {
+    const at = this.finalOn || '20/12/2562';
+    const code = this.sampleCase?.code || this.refId;
+    this.pushLink('e-Office', 'ส่งเรื่องปิดคดี', `เลขสารบรรณ ${this.filingSaraban} ส่งเข้า e-Office แล้ว`, this.filingSaraban, at);
+    this.pushLink('eTR', 'อัปเดตผลสิ้นสุด', `Ref Case ID (eTR) ${this.etrRefNo} อัปเดตผลของ ${this.refId} แล้ว`, this.etrRefNo, at);
+    this.pushLink('ThaiTR', 'เผยแพร่ผลบน ThaiTR', `https://thaitr.dft.go.th/th/search/${code}`, code, at);
+    this.keepNote('published', at);
+    this.closeFinal();
+  }
+
+  protected draftHearingTranscript(): void {
+    this.hearingMemo = 'ร่างสรุปจากการถอดเสียง ยังต้องให้เจ้าหน้าที่ตรวจก่อนนำไปใช้ ประเด็นที่ได้ยินคือคำขอเข้าฟังความคิดเห็น วันนัด และรายชื่อผู้ขอเข้าร่วม';
+  }
+
+  protected draftAgencyLetter(): void {
+    const kind = this.workDocs[this.docPart]?.title || 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง';
+    const at = '28/05/2562';
+    this.madeDocs = [...this.madeDocs, {
+      id: `agency-letter-${Date.now()}`,
+      kind,
+      at,
+      fields: [
+        { label: 'เรียน', value: 'หน่วยงานที่เกี่ยวข้อง' },
+        { label: 'เรื่อง', value: 'ขอข้อมูลเพื่อประกอบการไต่สวน' },
+        { label: 'เนื้อความ', value: `ด้วยกรมการค้าต่างประเทศอยู่ระหว่างพิจารณาคำขอเลขที่อ้างอิง ${this.refId} จึงขอความอนุเคราะห์ข้อมูลที่เกี่ยวข้องกับสินค้าในคำขอ เพื่อใช้ประกอบการพิจารณา`, long: true },
+      ],
+    }];
+    writeMadeDocs(this.madeDocs);
+    this.notice = 'assist';
+  }
+
+  private pushLink(system: string, title: string, detail: string, refNo: string, at: string): void {
+    const row: SystemLink = {
+      id: `${system}-${Date.now()}`,
+      at,
+      system,
+      title,
+      detail,
+      state: 'success',
+      mode: 'manual',
+      refNo,
+      error: '',
+      log: [{ at, text: `${this.signedPerson || 'เจ้าหน้าที่'} ${title}` }],
+    };
+    this.links = [row, ...this.links];
+    writeSystemLinks(this.links);
+  }
+
   protected readonly measureNav: { id: 'm56' | 'm57' | 'm58' | 'm59' | 'close'; label: string; hint: string }[] = [
     { id: 'm56', label: 'มาตรา 56', hint: 'ทบทวนความจำเป็นในการใช้บังคับอากร ถ้าไม่มีเหตุให้ใช้มาตรการเดิมต่อ' },
     { id: 'm57', label: 'มาตรา 57', hint: 'ทบทวนก่อนครบกำหนด ถ้าเข้าเงื่อนไขจึงตรวจการทุ่มตลาดและความเสียหายที่อาจเกิดซ้ำ' },
@@ -4679,8 +4737,43 @@ export class Por1Page {
     this.inquiryPart = choice === 'open' ? 'notice' : 'vote';
   }
 
+  protected inviteCopied = false;
+  protected inviteSent = false;
+
   protected get inquiryReferral(): string {
-    return this.inquiryCaseId ? `/interest/${this.inquiryCaseId}` : '';
+    return this.inquiryCaseId ? invitePath(this.inquiryCaseId) : '';
+  }
+
+  protected get inquiryInviteUrl(): string {
+    return this.inquiryReferral ? `${location.origin}${this.inquiryReferral}` : '';
+  }
+
+  protected copyInvite(): void {
+    const url = this.inquiryInviteUrl;
+    if (!url) return;
+    const done = () => {
+      this.inviteCopied = true;
+      window.setTimeout(() => {
+        this.inviteCopied = false;
+        this.view.markForCheck();
+      }, 2000);
+      this.view.markForCheck();
+    };
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(url).then(done).catch(() => done());
+      return;
+    }
+    done();
+  }
+
+  protected sendInvite(): void {
+    if (!this.inquiryInviteUrl) return;
+    this.inviteSent = true;
+    this.keepNote('invite-sent', this.inquiryInviteUrl);
+    const at = this.inquiryNoticeOn || '10/06/2562';
+    this.pushLink('อีเมล', 'ส่งลิงก์เชิญผู้มีส่วนได้เสีย', this.inquiryInviteUrl, this.inquiryCaseId, at);
+    this.pushLink('ไปรษณีย์', 'ส่งหนังสือเชิญผู้มีส่วนได้เสีย', this.inquiryInviteUrl, this.inquiryCaseId, at);
+    this.copyInvite();
   }
 
   protected get inquiryQuestionsDone(): boolean {
@@ -6462,7 +6555,7 @@ export class Por1Page {
   private sampleCase: ListedCase | null = null;
 
   protected get formCase(): string {
-    return this.returnCase;
+    return findListedCase(this.returnCase)?.code || this.returnCase;
   }
 
   protected fixReason(anchor: string): string {
@@ -6701,7 +6794,7 @@ export class Por1Page {
   private presentStaffCase(item: ListedCase): void {
     this.sampleCase = item;
     this.refId = item.ref;
-    this.returnCase = item.code;
+    this.returnCase = caseKey(item);
     this.applyCaseForm();
     for (const form of this.caseForms) form.measure = this.staffMeasureLabel(item);
     const statutory = /56|57|58|59/.test(`${item.measure} ${item.kind}`);
@@ -6799,6 +6892,7 @@ export class Por1Page {
     this.caseNotes = readCaseNotes();
     this.noteReads = readNoteReads(this.accounts.username);
     this.laterPhase = readLaterPhase();
+    this.inviteSent = !!this.laterPhase.notes['invite-sent'];
     this.restoreWorkNotes();
     this.loadDocNotice();
     this.loadWorkDrafts();

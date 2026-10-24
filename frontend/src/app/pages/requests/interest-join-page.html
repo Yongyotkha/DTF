@@ -1,0 +1,12 @@
+<app-auth-shell look="showcase">
+  <h1>ลงทะเบียนผู้มีส่วนได้เสีย</h1>
+  <p class="lead">{{ lead }}</p>
+  @if (caseId) {
+    <app-input-field class="block" label="ชื่อ" [required]="true" [editable]="true" [value]="name" (valueChange)="name = $event" />
+    <app-input-field class="block" label="หน่วยงาน" [editable]="true" [value]="org" (valueChange)="org = $event" />
+    <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" mark="card" [required]="true" [editable]="true" [state]="error ? 'error' : 'default'" [helper]="error" [value]="taxId" (valueChange)="taxId = $event" />
+    <app-input-field class="block" label="รหัสผ่าน" inputType="password" mark="lock" [reveal]="true" [required]="true" [editable]="true" [value]="password" (valueChange)="password = $event" />
+    <app-button class="wide login-submit" size="lg" label="ลงทะเบียนและเข้าสู่ระบบ" (click)="submit()" />
+    <a class="forgot" [routerLink]="['/login']" [queryParams]="{ invite: caseId }">มีบัญชีแล้ว เข้าสู่ระบบ</a>
+  }
+</app-auth-shell>

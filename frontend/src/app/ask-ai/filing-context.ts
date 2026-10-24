@@ -109,7 +109,7 @@ export function guideWelcome(snapshot: FilingSnapshot): string {
 }
 
 function caveat(snapshot: FilingSnapshot): string {
-  return `คำแนะนำนี้เป็นตัวอย่างจากต้นแบบ ยังไม่เชื่อมต่อโมเดล ไม่ได้แก้ข้อมูลในแบบ และไม่ใช่การยืนยันผลตามกฎหมาย อ้างอิงโครงสร้างแบบ ${snapshot.formType} ที่เปิดอยู่ในหน้านี้`;
+  return `คำแนะนำนี้เป็นตัวอย่างจากต้นแบบ ยังไม่เชื่อมต่อโมเดล ไม่ได้แก้ข้อมูลในแบบ และไม่ใช่การยืนยันผลตามกฎหมาย ที่มา: คู่มือ e-TR สำหรับผู้ประกอบการ และ Flow Module 1 อ้างอิงโครงสร้างแบบ ${snapshot.formType} ที่เปิดอยู่ในหน้านี้`;
 }
 
 function intentOf(text: string, snapshot: FilingSnapshot): 'review' | 'documents' | 'example' | 'next' | null {

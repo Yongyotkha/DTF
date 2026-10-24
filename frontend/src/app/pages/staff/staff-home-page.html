@@ -33,6 +33,20 @@
             }
           </section>
         }
+        @if (pendingProxies.length) {
+          <section id="proxy-queue" class="approve" aria-label="มอบหมายผู้กระทำการแทนที่รออนุมัติ">
+            <div>
+              <h2>มอบหมายผู้กระทำการแทนรออนุมัติ</h2>
+              @for (grant of pendingProxies; track grant.id) {
+                <p>{{ grant.ref }} {{ grant.goods }} · {{ grant.person }} · {{ grant.org }} · {{ grant.powers }}</p>
+                <div class="desk-head__tools">
+                  <app-button type="primary" label="อนุมัติ" (click)="reviewProxy(grant.id, true)" />
+                  <app-button type="outline" label="ไม่รับ" (click)="reviewProxy(grant.id, false)" />
+                </div>
+              }
+            </div>
+          </section>
+        }
         <section class="summary" aria-label="สรุปสถานะงาน">
           @for (item of summaryStats; track item.label) {
             <button type="button" class="summary__item" [class.on]="boardLane === item.id" [attr.data-lane]="item.id || 'all'" [attr.aria-pressed]="boardLane === item.id" (click)="pickSummary(item.id)">

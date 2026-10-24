@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { readFormCase } from './case-form';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
@@ -102,9 +103,27 @@ export class Por3aPage {
     },
   ];
 
-  constructor(private readonly view: ChangeDetectorRef) {
+  protected readonly formHeading = 'แบบ ปร. 3ก';
+  protected viewing = false;
+  protected returnCase = '';
+  protected caseRef = '';
+
+  constructor(
+    private readonly view: ChangeDetectorRef,
+    route: ActivatedRoute,
+  ) {
     const measure = readFilingIntent()?.measure;
     this.agreement = cvdChosen() || measure === 'มาตราการ CVD' ? 'subsidy' : 'dumping';
+    const opened = readFormCase(route);
+    this.viewing = opened.viewing;
+    this.returnCase = opened.returnCase;
+    this.caseRef = opened.caseRef;
+    const item = opened.item;
+    if (!opened.viewing || !item) return;
+    this.agreement = 'dumping';
+    this.filing = 'self';
+    this.goods = item.goods;
+    this.applicants = [{ ...blankApplicant(), name: item.applicant || '', nation: item.applicant?.includes('จำกัด') ? 'ไทย' : '' }];
   }
 
   protected openFilledUpload(): void {

@@ -1,7 +1,7 @@
 <div class="requests">
   <app-top-header class="fluid" />
   <div class="requests__body">
-    <app-side-nav open="คำขอ" [active]="choosing ? 'ยื่นคำขอ' : 'รายการยื่นคำขอ'" (chosen)="openMenu($event)" />
+    <app-side-nav open="คำขอ" active="รายการยื่นคำขอ" (chosen)="openMenu($event)" />
     <main>
       <header class="head">
         <div>
@@ -27,33 +27,46 @@
                   </div>
                   <app-status-tag [tone]="row.tone" [label]="row.status" />
                 </header>
-                <dl class="item__facts">
-                  <div>
-                    <dt>มาตรการ</dt>
-                    <dd>{{ row.measure }}</dd>
+                <p class="item__ask">{{ row.result }}</p>
+                <dl class="item__facts item__facts--split">
+                  <div class="item__col">
+                    <div>
+                      <img src="assets/icons/case-file.svg" width="16" height="16" alt="" />
+                      <dt>มาตรการ</dt>
+                      <dd>{{ row.measure }}</dd>
+                    </div>
+                    <div>
+                      <img src="assets/icons/akar-icons-file.svg" width="16" height="16" alt="" />
+                      <dt>แบบคำขอ</dt>
+                      <dd>{{ row.kind }}</dd>
+                    </div>
+                    <div>
+                      <img src="assets/icons/menu-list.svg" width="16" height="16" alt="" />
+                      <dt>ครั้งที่ยื่น</dt>
+                      <dd>{{ row.round ? 'ครั้งที่ ' + row.round : '—' }}</dd>
+                    </div>
                   </div>
-                  <div>
-                    <dt>แบบคำขอ</dt>
-                    <dd>{{ row.kind }}</dd>
-                  </div>
-                  <div>
-                    <dt>ครั้งที่ยื่น</dt>
-                    <dd>{{ row.round ? 'ครั้งที่ ' + row.round : '—' }}</dd>
-                  </div>
-                  <div>
-                    <dt>วันที่</dt>
-                    <dd>{{ dateOnly(row.created) }}</dd>
-                  </div>
-                  <div>
-                    <dt>เลขเคส</dt>
-                    <dd>{{ row.code }}</dd>
+                  <div class="item__col">
+                    <div>
+                      <img src="assets/icons/task-calendar.svg" width="16" height="16" alt="" />
+                      <dt>วันที่ยื่น</dt>
+                      <dd>{{ dateOnly(row.created) }}</dd>
+                    </div>
+                    <div>
+                      <img src="assets/icons/menu-folder.svg" width="16" height="16" alt="" />
+                      <dt>เลขเคส</dt>
+                      <dd>{{ caseNo(row) }}</dd>
+                    </div>
                   </div>
                 </dl>
-                <p class="item__result">{{ row.result }}</p>
                 <div class="item__foot">
-                  <div class="act">
-                    <app-button type="outline" [label]="row.ready ? 'ดูรายละเอียด' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row, $event)" />
-                  </div>
+                  <p class="item__updated">
+                    <img src="assets/icons/clipboard-clock.svg" width="16" height="16" alt="" />
+                    อัปเดตล่าสุด {{ dateOnly(row.updated) }}
+                  </p>
+                  <app-button type="outline" [label]="row.ready ? 'ดูรายละเอียด' : 'ยกเลิกแล้ว'" [state]="row.ready ? 'default' : 'disabled'" (click)="openRow(row, $event)">
+                    <img src="assets/icons/chevron-right.svg" width="16" height="16" alt="" />
+                  </app-button>
                 </div>
               </article>
             }
