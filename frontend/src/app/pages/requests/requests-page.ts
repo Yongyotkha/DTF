@@ -1,5 +1,6 @@
 import { Component, HostListener, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Accounts } from '../../accounts';
 import { AskAiState } from '../../ask-ai/ask-ai';
 import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
@@ -8,10 +9,12 @@ import { TopHeader } from '../../top-header/top-header';
 import { RequestForm, formOf, formsFor, purposeOf, requestForms, requestMeasures } from './form-catalog';
 import { startFilingCase } from './case-status';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
-import { archiveCases, currentResult, draftCases, ListedCase } from './request-cases';
+import { joinedCaseIds } from './interest-invite';
+import { allowedCaseIds, isActingAgent } from './proxy-grant';
+import { archiveCases, caseBrief, caseKey, caseNumberLabel, draftCases, latestDate, ListedCase } from './request-cases';
 import { StatusTag } from '../../status-tag/status-tag';
 
-type RequestRow = ListedCase & { ready: boolean; filing: boolean; result: string };
+type RequestRow = ListedCase & { ready: boolean; filing: boolean; result: string; updated: string };
 
 @Component({
   selector: 'app-requests-page',
@@ -42,6 +45,7 @@ export class RequestsPage implements OnDestroy {
   constructor(
     private readonly router: Router,
     private readonly askAi: AskAiState,
+    private readonly accounts: Accounts,
     route: ActivatedRoute,
   ) {
     route.queryParamMap.subscribe((params) => {
@@ -75,15 +79,29 @@ export class RequestsPage implements OnDestroy {
   }
 
   protected get filedRows(): RequestRow[] {
-    return archiveCases.map((item) => this.asRow(item));
+    return this.visibleCases(archiveCases).map((item) => this.asRow(item));
   }
 
   protected get draftRows(): RequestRow[] {
+    if (isActingAgent(this.accounts.username) || this.accounts.role === 'interest') return [];
     return draftCases.map((item) => this.asRow(item));
+  }
+
+  private visibleCases(rows: ListedCase[]): ListedCase[] {
+    const allow = allowedCaseIds(this.accounts.username);
+    let next = allow ? rows.filter((item) => allow.has(item.id) || allow.has(item.code)) : rows;
+    if (this.accounts.role !== 'interest') return next;
+    const joined = joinedCaseIds(this.accounts.username);
+    if (!joined) return next;
+    return next.filter((item) => joined.has(item.id) || joined.has(item.code));
   }
 
   protected dateOnly(value: string): string {
     return value.trim().split(/\s+/)[0] || '—';
+  }
+
+  protected caseNo(row: ListedCase): string {
+    return caseNumberLabel(row);
   }
 
   protected get visibleRows(): RequestRow[] {
@@ -91,7 +109,7 @@ export class RequestsPage implements OnDestroy {
   }
 
   private asRow(item: ListedCase): RequestRow {
-    return { ...item, ready: true, filing: false, result: currentResult(item) };
+    return { ...item, ready: true, filing: false, result: caseBrief(item), updated: latestDate(item) };
   }
 
   protected setListTab(index: number): void {
@@ -123,7 +141,7 @@ export class RequestsPage implements OnDestroy {
       void this.router.navigate(['/requests', 'por-1']);
       return;
     }
-    void this.router.navigate(['/requests', row.code]);
+    void this.router.navigate(['/requests', caseKey(row)]);
   }
 
   private formFor(row: RequestRow): RequestForm | null {

@@ -4,7 +4,7 @@
     @if (reviewRole) {
       <app-side-nav kind="staff" open="คำขอ" active="หน้าหลัก" />
     } @else {
-      <app-side-nav open="คำขอ" active="ยื่นคำขอ" (chosen)="openApplicantMenu($event)" />
+      <app-side-nav open="คำขอ" active="รายการยื่นคำขอ" (chosen)="openApplicantMenu($event)" />
     }
     <main>
       <div [class.review-pin]="!!reviewRole">
@@ -194,7 +194,7 @@
                 } @else if (committeeResult === 'take' && inquiryOpen === 'open' && inquiryNoticeSent) {
                   <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }} ประกาศเมื่อ {{ inquiryNoticeOn }}</p>
                   <p>แจ้งสถานทูต ผู้ส่งออก สำนักงานส่งเสริมการค้า กรมศุลกากร ผู้นำเข้า อุตสาหกรรมภายใน สมาคม และหนังสือพิมพ์ไทยกับอังกฤษแล้ว</p>
-                  <p>ลิงก์สำหรับผู้มีส่วนได้เสีย {{ inquiryReferral }}</p>
+                  <p>ลิงก์เชิญผู้มีส่วนได้เสีย {{ inquiryInviteUrl }}</p>
                   @if (inquiryHearing === 'hold') {
                     <p>จัดแถลงการณ์วันที่ {{ inquiryHearingOn }} {{ inquiryHearingPlace }}</p>
                   } @else if (inquiryHearing === 'skip') {
@@ -203,7 +203,7 @@
                 } @else if (committeeResult === 'take' && inquiryOpen === 'open') {
                   <p>เปิดการไต่สวนแล้ว Case ID {{ inquiryCaseId }} ขั้นต่อไปคือประกาศและแจ้งผู้เกี่ยวข้อง</p>
                 } @else if (committeeResult === 'take' && inquiryOpen === 'close') {
-                  <p>คณะกรรมการมีมติไม่เปิดไต่สวน สถานะปิดการไต่สวน</p>
+                  <p>มีมติไม่เปิดไต่สวน แจ้งผู้ยื่นแล้ว ปิดคำขอ และสถานะเป็นปิดการไต่สวน</p>
                 } @else if (committeeResult === 'take' && inquiryDecide === 'return') {
                   <p>คณะกรรมการคืนคำขอ</p>
                 } @else if (committeeResult === 'take' && committeeFee === 'pay') {
@@ -1755,6 +1755,7 @@
                           </app-button>
                         }
                         @if (preQuestionnaire) {
+                          <app-button class="icon-before" type="outline" label="ร่างหนังสือขอข้อมูล" (click)="draftAgencyLetter()" />
                           <app-button class="ask-ai icon-before" type="primary" label="ช่วยวิเคราะห์" [state]="prePickedCount ? 'default' : 'disabled'" (click)="summarizePreQuestionnaire()">
                             <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
                           </app-button>
@@ -2514,6 +2515,7 @@
               <header class="assign-head">
                 <div>
                   <h2>เปิดไต่สวน</h2>
+                  <p>มาตรา 39 เริ่มจากวาระพิจารณาและมติรับคำขอ จากนั้นแจ้งชำระค่าธรรมเนียม รับทราบหลักฐาน แล้วมีมติเปิดหรือไม่เปิดไต่สวน</p>
                 </div>
                 @if (inquiryOpen === 'open') {
                   <app-status-tag tone="success" label="เปิดการไต่สวน" />
@@ -2670,20 +2672,25 @@
                           </div>
                         }
                         @if (inquiryPart === 'letters') {
-                          @if (inquiryReferral) {
-                            <p class="link-detail">ลิงก์ผู้มีส่วนได้เสีย {{ inquiryReferral }}</p>
+                          @if (inquiryInviteUrl) {
+                            <p class="link-detail">ลิงก์เชิญให้ลงทะเบียนและเข้าสู่ระบบ</p>
+                            <p class="link-detail">{{ inquiryInviteUrl }}</p>
+                            <footer class="doc-foot">
+                              <app-button type="outline" [label]="inviteCopied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์เชิญ'" (click)="copyInvite()" />
+                              <app-button type="primary" [label]="inviteSent ? 'ส่งอีเมลและไปรษณีย์แล้ว' : 'ส่งอีเมลและไปรษณีย์'" (click)="sendInvite()" />
+                            </footer>
                           }
-                          <h3>ลงทะเบียนผู้มีส่วนได้เสีย</h3>
+                          <h3>เพิ่มผู้มีส่วนได้เสีย</h3>
                           <div class="draft-form">
                             <app-input-field class="block" kind="text" label="ชื่อ" [required]="true" [value]="partyName" (valueChange)="partyName = $event" />
                             <app-input-field class="block" kind="text" label="หน่วยงาน" [required]="false" [value]="partyOrg" (valueChange)="partyOrg = $event" />
                             <app-input-field class="block" kind="text" label="จำนวนคน" [required]="false" [value]="partyCount" (valueChange)="partyCount = $event" />
                           </div>
                           <footer class="doc-foot">
-                            <app-button type="primary" label="บันทึกผู้ลงทะเบียน" [state]="partyName.trim() ? 'default' : 'disabled'" (click)="addInterestParty()" />
+                            <app-button type="primary" label="เพิ่มและเชิญ" [state]="partyName.trim() ? 'default' : 'disabled'" (click)="addInterestParty()" />
                           </footer>
                           @for (party of interestParties; track party.name) {
-                            <p>{{ party.name }}@if (party.org) { · {{ party.org }} } · {{ party.count }} คน</p>
+                            <p>{{ party.name }}@if (party.org) { · {{ party.org }} } · {{ party.count }} คน <app-status-tag variant="soft" [tone]="party.joined ? 'success' : 'info'" [label]="party.joined ? 'ลงทะเบียนแล้ว' : 'เชิญแล้ว'" /></p>
                           }
                         }
                         <footer class="doc-foot">
@@ -2765,8 +2772,19 @@
                       </section>
                     } @else if (inquiryPart === 'proof') {
                       <section class="notice-form" aria-label="หลักฐานการชำระ">
-                        <h3>หลักฐานการชำระค่าธรรมเนียม</h3>
-                        <p class="link-detail">ผู้ยื่นแนบหลักฐานจากหน้าคำขอ แล้วเจ้าหน้าที่รับทราบ</p>
+                        <div class="reply-bar">
+                          <div>
+                            <h3>หลักฐานการชำระค่าธรรมเนียม</h3>
+                            <p class="link-detail">ผู้ยื่นส่งหลักฐานจากหน้าคำขอ หรือบันทึกหลักฐานที่ได้รับ แล้วรับทราบเพื่อไปมติเปิดไต่สวน</p>
+                          </div>
+                          @if (!inquiryPayAck) {
+                            <label class="pick">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                              เพิ่ม
+                              <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addInquiryPayFiles($event)" />
+                            </label>
+                          }
+                        </div>
                         @if (inquiryPayFiles.length) {
                           <div class="table-wrap slip-files">
                             <table>
@@ -2792,6 +2810,11 @@
                                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
                                           ดู
                                         </button>
+                                        @if (!inquiryPayAck) {
+                                          <button type="button" class="trash" aria-label="ลบไฟล์" (click)="removeInquiryPayFile(n)">
+                                            <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                                          </button>
+                                        }
                                       </div>
                                     </td>
                                   </tr>
@@ -2800,11 +2823,11 @@
                             </table>
                           </div>
                         } @else {
-                          <p>ยังไม่มีหลักฐานการชำระจากผู้ยื่น</p>
+                          <p>ยังไม่มีหลักฐานการชำระ แนบไฟล์แล้วกดรับทราบ</p>
                         }
                         @if (!inquiryPayAck) {
                           <footer class="doc-foot">
-                            <app-button type="primary" label="รับทราบหลักฐาน" [state]="inquiryPaySent ? 'default' : 'disabled'" (click)="ackInquiryPay()" />
+                            <app-button type="primary" label="รับทราบหลักฐาน" [state]="inquiryPayFiles.length ? 'default' : 'disabled'" (click)="ackInquiryPay()" />
                           </footer>
                         } @else {
                           <p>เจ้าหน้าที่รับทราบหลักฐานแล้ว ระบบสร้างบันทึกรับทราบ ขั้นต่อไปคือมติเปิดไต่สวน</p>
@@ -2841,16 +2864,24 @@
                             <app-button type="primary" label="บันทึกมติ" [state]="inquiryOpenDraft === 'open' || (inquiryOpenDraft === 'close' && inquiryCloseNote.trim()) ? 'default' : 'disabled'" (click)="saveInquiryOpen()" />
                           </footer>
                         } @else if (inquiryOpen === 'open') {
-                          <p>เปิดการไต่สวนแล้ว ส่งเข้า e-TR</p>
-                          <p>Case ID {{ inquiryCaseId }}</p>
-                          <p>สถานะเปิดการไต่สวน ขั้นต่อไปคือประกาศกรม แจ้งผู้เกี่ยวข้อง และออกข่าวหนังสือพิมพ์</p>
+                          <p>มติเปิดไต่สวนเมื่อ {{ inquiryOpenAt }}</p>
+                          <ol class="findings">
+                            <li><div><strong>ส่งเข้า e-TR</strong><p>Case ID {{ inquiryCaseId }}</p></div></li>
+                            <li><div><strong>สถานะเปิดการไต่สวน</strong><p>ขั้นต่อไปคือประกาศกรม แจ้งผู้เกี่ยวข้อง และออกข่าวหนังสือพิมพ์</p></div></li>
+                          </ol>
+                          <p>บันทึกโดย {{ inquirySentBy }}</p>
                           <footer class="doc-foot">
                             <app-button type="primary" label="ไปประกาศเปิดไต่สวน" (click)="openInquiryStep('notice')" />
                           </footer>
                         } @else {
-                          <p>มีมติไม่เปิดไต่สวน แจ้งอีเมลผู้ยื่น บันทึกผล และปิดคำขอแล้ว</p>
-                          <p>สถานะปิดการไต่สวน</p>
+                          <p>มติไม่เปิดไต่สวนเมื่อ {{ inquiryOpenAt }}</p>
                           @if (inquiryCloseNote) { <p>{{ inquiryCloseNote }}</p> }
+                          <ol class="findings">
+                            <li><div><strong>แจ้งผู้เกี่ยวข้อง</strong><p>ส่งอีเมลว่าไม่เปิดไต่สวน บันทึกผล และแจ้งผู้ยื่น</p></div></li>
+                            <li><div><strong>ปิดคำขอ</strong><p>สถานะปิดการไต่สวน และสถานะคำขอเป็นปิดคำขอ</p></div></li>
+                            <li><div><strong>ส่งเข้า e-TR</strong><p>บันทึกผลไม่เปิดไต่สวนแล้ว</p></div></li>
+                          </ol>
+                          <p>บันทึกโดย {{ inquirySentBy }}</p>
                         }
                       </section>
                     } @else if (inquiryPart === 'hearing') {
@@ -2927,6 +2958,7 @@
                               </div>
                             </div>
                             <footer class="doc-foot">
+                              <app-button type="outline" label="ถอดเสียงและสรุปประเด็น" (click)="draftHearingTranscript()" />
                               <app-button type="primary" label="บันทึกผล e-Office" [state]="hearingMemo.trim() && hearingOffice && hearingPeople.trim() ? 'default' : 'disabled'" (click)="saveHearingOffice()" />
                             </footer>
                           }
@@ -3547,9 +3579,12 @@
                   @if (finalPart === 'close') {
                     <section class="notice-form" aria-label="ปิดงานผลสิ้นสุด">
                       <h3>ปิดงานผลสิ้นสุด</h3>
-                      <p class="link-detail">เมื่อประกาศและหนังสือแจ้งครบแล้ว ปิดงานนี้แล้วไปทบทวนมาตรการตามมาตรา 56 ถึง 59</p>
+                      <p class="link-detail">เมื่อประกาศและหนังสือแจ้งครบแล้ว ส่งเลขสารบรรณเข้า e-Office อัปเดต e-TR เผยแพร่ ThaiTR แล้วปิดงาน</p>
+                      @if (casePublished) {
+                        <p>ส่งปิดคดีแล้ว เลขสารบรรณ {{ filingSaraban }} · Ref e-TR {{ etrRefNo }}</p>
+                      }
                       <footer class="doc-foot">
-                        <app-button type="primary" label="บันทึกปิดงาน" (click)="closeFinal()" />
+                        <app-button type="primary" [label]="casePublished ? 'ปิดงานแล้ว' : 'ส่งปิดคดีและเผยแพร่'" (click)="publishCase()" />
                       </footer>
                     </section>
                   } @else {

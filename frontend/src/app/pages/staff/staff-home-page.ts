@@ -6,6 +6,7 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { assignmentReachesOfficer, groupHead, groupMembers, staffPeople, workGroups } from './staff-roster';
+import { listGrants, powerLabel, reviewGrant } from '../requests/proxy-grant';
 import { archiveCases, findListedCase } from '../requests/request-cases';
 import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
 
@@ -26,6 +27,7 @@ type TaskCase = {
   status: string;
   due: string;
   tone: StatusTone;
+  caseId?: string;
 };
 
 const buckets: { id: Bucket; label: string; count: number; icon: string; tone: string }[] = [
@@ -92,10 +94,38 @@ export class StaffHomePage implements OnDestroy {
     private readonly router: Router,
     private readonly route: ActivatedRoute,
   ) {
+    if (this.accounts.username === '1000000000126' && this.router.url.split('?')[0] === '/committee') {
+      void this.router.navigateByUrl('/committee/other');
+    }
     if (this.role === 'officer') this.deskFilter = 'in';
     else if (this.role === 'director') this.deskFilter = 'request';
     this.refreshConsult();
+    if (route.snapshot.queryParamMap.get('queue') === 'proxy') {
+      queueMicrotask(() => document.getElementById('proxy-queue')?.scrollIntoView({ block: 'start' }));
+    }
     this.assignTimer = window.setInterval(() => this.refreshConsult(), 1000);
+  }
+
+  protected proxyTick = 0;
+
+  protected get pendingProxies(): { id: string; person: string; org: string; powers: string; ref: string; goods: string }[] {
+    void this.proxyTick;
+    return listGrants().filter((grant) => grant.status === 'pending').map((grant) => {
+      const item = findListedCase(grant.caseId);
+      return {
+        id: grant.id,
+        person: grant.person,
+        org: grant.org,
+        powers: grant.powers.map((key) => powerLabel(key)).join(', '),
+        ref: item?.ref ?? grant.caseId,
+        goods: item?.goods ?? '',
+      };
+    });
+  }
+
+  protected reviewProxy(id: string, accept: boolean): void {
+    reviewGrant(id, accept);
+    this.proxyTick += 1;
   }
 
   protected get role(): string {
@@ -464,10 +494,24 @@ export class StaffHomePage implements OnDestroy {
         title: 'ทบทวนมาตรา 57',
         kind: 'request',
         bucket: 'out',
-        product: 'ยางใน จากจีน',
-        sender: 'ผู้ผลิตยางในในประเทศ',
+        product: 'ยางในรถจักรยานยนต์ จากจีน',
+        sender: 'ดีรับเบอร์, วีรับเบอร์ และ เอ็น.ดี.รับเบอร์',
         group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
-        at: '31/05/2567',
+        at: '24/07/2566',
+        status: 'ประกาศผลการทบทวน',
+        due: '',
+        tone: 'success',
+      },
+      {
+        code: 'AD1022',
+        caseId: 'ad102257',
+        title: 'ทบทวนมาตรา 57',
+        kind: 'request',
+        bucket: 'out',
+        product: 'เหล็ก GL จากจีน เกาหลี และไต้หวัน',
+        sender: 'บริษัท เอ็นเอส บลูสโคป (ประเทศไทย) จำกัด',
+        group: 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
+        at: '11/09/2566',
         status: 'ประกาศผลการทบทวน',
         due: '',
         tone: 'success',
@@ -594,7 +638,8 @@ export class StaffHomePage implements OnDestroy {
       this.assignOpen = true;
       return;
     }
-    this.openFiling(row.code !== this.filingRef && findListedCase(row.code) && !findListedCase(row.code)?.draft ? row.code : '');
+    const key = row.caseId || row.code;
+    this.openFiling(key !== this.filingRef && findListedCase(key) && !findListedCase(key)?.draft ? key : '');
   }
 
   protected get headsThisGroup(): boolean {

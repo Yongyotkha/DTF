@@ -1,6 +1,9 @@
 import { Component, OnDestroy, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { roleHome, Accounts } from '../../accounts';
+import { rememberJoined } from '../requests/interest-invite';
+import { acceptGrant, grantById } from '../requests/proxy-grant';
+import { caseKey, findListedCase } from '../requests/request-cases';
 import { DftButton } from '../../button/button';
 import { OtpField } from '../../fields/otp-field';
 import { InputField, InputState } from '../../input-field/input-field';
@@ -29,11 +32,18 @@ export class LoginPage implements OnDestroy {
   private timer = 0;
   private otpClock?: ReturnType<typeof setInterval>;
   private resentTimer?: ReturnType<typeof setTimeout>;
+  private readonly inviteCase: string;
+  private readonly actGrant: string;
 
   constructor(
     private readonly router: Router,
     private readonly accounts: Accounts,
+    route: ActivatedRoute,
   ) {
+    const invite = route.snapshot.queryParamMap.get('invite') ?? '';
+    this.inviteCase = /^[A-Za-z0-9-]+$/u.test(invite) ? invite : '';
+    const act = route.snapshot.queryParamMap.get('act') ?? '';
+    this.actGrant = /^[A-Za-z0-9-]+$/u.test(act) ? act : '';
     const last = this.accounts.last();
     this.taxId = last?.username ?? '0105538041238';
     this.password = last?.password ?? 'Dft@2569';
@@ -105,9 +115,11 @@ export class LoginPage implements OnDestroy {
 
   protected continueWithSso(): void {
     if (this.phase() !== 'form') return;
-    const last = this.accounts.last();
-    this.taxId = last?.username ?? '0105538041238';
-    this.password = last?.password ?? 'Dft@2569';
+    const account = this.roles.find((item) => item.username === this.rolePick) ?? this.roles[0];
+    if (!account) return;
+    this.taxId = account.username;
+    this.password = account.password;
+    this.mail = account.email || this.mail;
     this.enter();
   }
 
@@ -162,7 +174,25 @@ export class LoginPage implements OnDestroy {
       this.phase.set('success');
       this.timer = window.setTimeout(() => {
         const role = this.accounts.role;
-        void this.router.navigateByUrl(role ? roleHome[role] : '/home');
+        const invited = this.inviteCase ? findListedCase(this.inviteCase) : undefined;
+        if (this.inviteCase && role === 'interest') {
+          rememberJoined({
+            caseId: invited?.id ?? this.inviteCase,
+            name: this.accounts.personName || this.accounts.displayName,
+            org: '',
+            username: this.accounts.username,
+          });
+        }
+        const accepted = this.actGrant ? acceptGrant(this.actGrant, this.accounts.username) : null;
+        const acted = accepted && typeof accepted === 'object' ? findListedCase(accepted.caseId) : undefined;
+        const next = acted
+          ? `/requests/${caseKey(acted)}`
+          : this.actGrant && !grantById(this.actGrant)
+            ? '/requests'
+          : this.inviteCase && role === 'interest'
+          ? invited ? `/requests/${caseKey(invited)}` : '/requests/cases'
+          : role ? roleHome[role] : '/home';
+        void this.router.navigateByUrl(next);
       }, 900);
     }, 900);
   }

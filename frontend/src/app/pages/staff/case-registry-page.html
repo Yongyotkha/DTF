@@ -156,13 +156,13 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of paged; track row.code) {
+              @for (row of paged; track row.key) {
                 <tr>
                   <td class="col-check">
-                    <button type="button" class="check" [attr.aria-pressed]="picked.has(row.code)" [attr.aria-label]="'เลือก ' + row.code" (click)="toggle(row.code)">
+                    <button type="button" class="check" [attr.aria-pressed]="picked.has(row.key)" [attr.aria-label]="'เลือก ' + row.code" (click)="toggle(row.key)">
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" />
-                        @if (picked.has(row.code)) {
+                        @if (picked.has(row.key)) {
                           <path d="M7.5 12.2L10.4 15L16.5 8.8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
                         }
                       </svg>

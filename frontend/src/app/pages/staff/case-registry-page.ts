@@ -7,7 +7,7 @@ import { SearchOption } from '../../search-frame/search-frame';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus } from '../requests/case-status';
-import { archiveCases } from '../requests/request-cases';
+import { archiveCases, caseKey } from '../requests/request-cases';
 import { thaitrMeasures } from './thaitr-measures';
 
 type Band = 'all' | 'measure' | 'doing' | 'wait' | 'cancel';
@@ -26,6 +26,8 @@ type RegistryCase = {
   tone: StatusTone;
   live: boolean;
   internal: boolean;
+  key: string;
+  openCode: string;
 };
 
 const measureCodes: SearchOption[] = [
@@ -52,7 +54,7 @@ const years: SearchOption[] = Array.from({ length: 2569 - 2533 + 1 }, (_, index)
   return { value: year, label: year };
 });
 
-const catalog: RegistryCase[] = thaitrMeasures.map((item) => ({
+const catalog: RegistryCase[] = thaitrMeasures.map((item, index) => ({
   code: item.code,
   ref: '',
   goods: item.goods,
@@ -66,6 +68,8 @@ const catalog: RegistryCase[] = thaitrMeasures.map((item) => ({
   tone: toneOf(item.status),
   live: false,
   internal: false,
+  key: `thaitr-${index}-${item.code}`,
+  openCode: '',
 }));
 
 function shortMeasure(value: string): 'AD' | 'AC' | 'SG' | 'CVD' {
@@ -150,6 +154,8 @@ export class CaseRegistryPage {
       tone: caseStatusTone(readCaseStatus()),
       live: true,
       internal: true,
+      key: 'live',
+      openCode: '',
     };
     const samples: RegistryCase[] = archiveCases.map((item) => ({
       code: item.code,
@@ -165,6 +171,8 @@ export class CaseRegistryPage {
       tone: item.tone,
       live: false,
       internal: true,
+      key: item.id,
+      openCode: caseKey(item),
     }));
     return [live, ...samples, ...catalog];
   }
@@ -219,7 +227,7 @@ export class CaseRegistryPage {
   }
 
   protected get pageChecked(): boolean {
-    return this.paged.length > 0 && this.paged.every((row) => this.picked.has(row.code));
+    return this.paged.length > 0 && this.paged.every((row) => this.picked.has(row.key));
   }
 
   protected published(row: RegistryCase): boolean {
@@ -290,7 +298,7 @@ export class CaseRegistryPage {
 
   protected togglePage(): void {
     const next = new Set(this.picked);
-    const codes = this.paged.map((row) => row.code);
+    const codes = this.paged.map((row) => row.key);
     if (this.pageChecked) codes.forEach((code) => next.delete(code));
     else codes.forEach((code) => next.add(code));
     this.picked = next;
@@ -308,11 +316,11 @@ export class CaseRegistryPage {
       interest: '/interest/filing',
       external: '/external/filing',
     } as Record<string, string>)[this.accounts.role] ?? '/director/filing';
-    void this.router.navigate([filing], { queryParams: row.live ? {} : { case: row.code } });
+    void this.router.navigate([filing], { queryParams: row.live ? {} : { case: row.openCode || row.code } });
   }
 
   protected exportRows(): void {
-    const source = this.picked.size ? this.visible.filter((row) => this.picked.has(row.code)) : this.visible;
+    const source = this.picked.size ? this.visible.filter((row) => this.picked.has(row.key)) : this.visible;
     const header = ['เลขอ้างอิงคำขอ', 'เลขคดี', 'สินค้า', 'ประเทศ', 'มาตรการ', 'สถานะ', 'วันที่ยื่น', 'ลิงก์ thaitr'];
     const lines = source.map((row) => [
       row.live ? row.code : '',
