@@ -7,12 +7,14 @@ import { SearchOption } from '../../search-frame/search-frame';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus } from '../requests/case-status';
+import { archiveCases, caseKey } from '../requests/request-cases';
 import { thaitrMeasures } from './thaitr-measures';
 
 type Band = 'all' | 'measure' | 'doing' | 'wait' | 'cancel';
 
 type RegistryCase = {
   code: string;
+  ref: string;
   goods: string;
   origin: string;
   measure: string;
@@ -23,6 +25,9 @@ type RegistryCase = {
   status: string;
   tone: StatusTone;
   live: boolean;
+  internal: boolean;
+  key: string;
+  openCode: string;
 };
 
 const measureCodes: SearchOption[] = [
@@ -49,8 +54,9 @@ const years: SearchOption[] = Array.from({ length: 2569 - 2533 + 1 }, (_, index)
   return { value: year, label: year };
 });
 
-const catalog: RegistryCase[] = thaitrMeasures.map((item) => ({
+const catalog: RegistryCase[] = thaitrMeasures.map((item, index) => ({
   code: item.code,
+  ref: '',
   goods: item.goods,
   origin: item.origin,
   measure: item.measure,
@@ -61,7 +67,17 @@ const catalog: RegistryCase[] = thaitrMeasures.map((item) => ({
   status: item.status,
   tone: toneOf(item.status),
   live: false,
+  internal: false,
+  key: `thaitr-${index}-${item.code}`,
+  openCode: '',
 }));
+
+function shortMeasure(value: string): 'AD' | 'AC' | 'SG' | 'CVD' {
+  if (value.startsWith('SG')) return 'SG';
+  if (value.startsWith('AC') || value.includes('หลบเลี่ยง')) return 'AC';
+  if (value.includes('CVD') || value.includes('อุดหนุน')) return 'CVD';
+  return 'AD';
+}
 
 function toneOf(status: string): StatusTone {
   if (status === 'ใช้มาตรการ' || status === 'ยื่นแบบ') return 'success';
@@ -126,6 +142,7 @@ export class CaseRegistryPage {
     const status = caseStatusLabel(readCaseStatus());
     const live: RegistryCase = {
       code: filingRefId,
+      ref: filingRefId,
       goods: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน',
       origin: 'เวียดนามและอียิปต์',
       measure: 'AD',
@@ -136,8 +153,28 @@ export class CaseRegistryPage {
       status,
       tone: caseStatusTone(readCaseStatus()),
       live: true,
+      internal: true,
+      key: 'live',
+      openCode: '',
     };
-    return [live, ...catalog];
+    const samples: RegistryCase[] = archiveCases.map((item) => ({
+      code: item.code,
+      ref: item.ref,
+      goods: item.goods,
+      origin: item.origins?.join(' ') || '—',
+      measure: shortMeasure(`${item.measure} ${item.kind}`),
+      side: 'ใช้',
+      hs: '',
+      year: item.created.slice(-4),
+      date: item.created,
+      status: item.status,
+      tone: item.tone,
+      live: false,
+      internal: true,
+      key: item.id,
+      openCode: caseKey(item),
+    }));
+    return [live, ...samples, ...catalog];
   }
 
   protected get statuses(): string[] {
@@ -148,6 +185,7 @@ export class CaseRegistryPage {
     const rows = this.rows.filter((row) => this.matches(row));
     return [...rows].sort((a, b) => {
       if (a.live !== b.live) return a.live ? -1 : 1;
+      if (a.internal !== b.internal) return a.internal ? -1 : 1;
       if (this.sort.startsWith('date')) {
         const diff = stamp(a.date) - stamp(b.date);
         return this.sort.endsWith('new') ? -diff : diff;
@@ -189,11 +227,11 @@ export class CaseRegistryPage {
   }
 
   protected get pageChecked(): boolean {
-    return this.paged.length > 0 && this.paged.every((row) => this.picked.has(row.code));
+    return this.paged.length > 0 && this.paged.every((row) => this.picked.has(row.key));
   }
 
   protected published(row: RegistryCase): boolean {
-    return !row.live;
+    return !row.internal;
   }
 
   protected publicUrl(row: RegistryCase): string {
@@ -260,32 +298,29 @@ export class CaseRegistryPage {
 
   protected togglePage(): void {
     const next = new Set(this.picked);
-    const codes = this.paged.map((row) => row.code);
+    const codes = this.paged.map((row) => row.key);
     if (this.pageChecked) codes.forEach((code) => next.delete(code));
     else codes.forEach((code) => next.add(code));
     this.picked = next;
   }
 
   protected open(row: RegistryCase): void {
-    if (!row.live) return;
-    const role = this.accounts.role;
-    if (role === 'staff') {
-      void this.router.navigateByUrl('/staff/filing');
-      return;
-    }
-    if (role === 'head') {
-      void this.router.navigateByUrl('/head/filing');
-      return;
-    }
-    if (role === 'officer') {
-      void this.router.navigateByUrl('/officer/filing');
-      return;
-    }
-    void this.router.navigateByUrl('/director/filing');
+    if (!row.internal) return;
+    const filing = ({
+      director: '/director/filing',
+      head: '/head/filing',
+      staff: '/staff/filing',
+      officer: '/officer/filing',
+      bureau: '/bureau/filing',
+      committee: '/committee/filing',
+      interest: '/interest/filing',
+      external: '/external/filing',
+    } as Record<string, string>)[this.accounts.role] ?? '/director/filing';
+    void this.router.navigate([filing], { queryParams: row.live ? {} : { case: row.openCode || row.code } });
   }
 
   protected exportRows(): void {
-    const source = this.picked.size ? this.visible.filter((row) => this.picked.has(row.code)) : this.visible;
+    const source = this.picked.size ? this.visible.filter((row) => this.picked.has(row.key)) : this.visible;
     const header = ['เลขอ้างอิงคำขอ', 'เลขคดี', 'สินค้า', 'ประเทศ', 'มาตรการ', 'สถานะ', 'วันที่ยื่น', 'ลิงก์ thaitr'];
     const lines = source.map((row) => [
       row.live ? row.code : '',
@@ -317,7 +352,7 @@ export class CaseRegistryPage {
     if (this.toYear && (!year || year > Number(this.toYear))) return false;
     const text = this.query.trim().toLowerCase();
     if (!text) return true;
-    const bag = `${row.code} ${row.goods} ${row.origin} ${row.measure} ${row.status} ${this.sideLabel(row)}`.toLowerCase();
+    const bag = `${row.ref} ${row.code} ${row.goods} ${row.origin} ${row.measure} ${row.status} ${this.sideLabel(row)}`.toLowerCase();
     if (bag.includes(text)) return true;
     const compact = text.replace(/\s/g, '');
     return /^\d{4,}$/.test(compact) && row.hs.replace(/\D/g, '').includes(compact);

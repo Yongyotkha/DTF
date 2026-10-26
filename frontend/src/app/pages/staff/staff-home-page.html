@@ -6,8 +6,8 @@
       @if (role === 'director' || role === 'officer') {
         <header class="desk-head">
           <div>
-            <h1>{{ role === 'director' ? 'ศูนย์บริหารงาน' : 'งานของฉัน' }}</h1>
-            <p>{{ role === 'director' ? 'ดูคำขอ มอบหมายให้หัวหน้ากลุ่ม และติดตามงาน' : 'เฉพาะงานที่ได้รับมอบหมาย' }}</p>
+            <h1>ระบบ e-TR</h1>
+            <p>สรุปเรื่องมาตรการทุ่มตลาด การอุดหนุน และมาตรการปกป้อง</p>
           </div>
         <div class="desk-head__tools">
           @if (role === 'director') {
@@ -20,38 +20,6 @@
           </app-button>
         </div>
         </header>
-        <div class="desk-stats">
-          @for (item of deskStats; track item.id) {
-            <button type="button" class="desk-stat" [class.on]="deskFilter === item.id" [attr.aria-pressed]="deskFilter === item.id" (click)="pickDesk(item.id)">
-              <span class="desk-stat__name">
-                <i [attr.data-tone]="item.id" aria-hidden="true">
-                  @switch (item.id) {
-                    @case ('in') {
-                      <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4zM4 8l8 6 8-6" /></svg>
-                    }
-                    @case ('wait') {
-                      <svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="3" /><path d="M4 19c1.2-2.4 3.2-3.5 6-3.5M18 8v6M15 11h6" /></svg>
-                    }
-                    @case ('pending') {
-                      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><path d="M12 8v5l3 2" /></svg>
-                    }
-                    @case ('out') {
-                      <svg viewBox="0 0 24 24"><path d="M4 12h10M11 7l5 5-5 5M15 5h5v14h-5" /></svg>
-                    }
-                    @case ('follow') {
-                      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><path d="M12 8v5M12 16h.01" /></svg>
-                    }
-                    @default {
-                      <svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="2.5" /><circle cx="16" cy="9" r="2.5" /><path d="M4 18c.8-2 2.4-3 4-3s3.2 1 4 3M12 18c.8-2 2.4-3 4-3s3.2 1 4 3" /></svg>
-                    }
-                  }
-                </i>
-                {{ item.label }}
-              </span>
-              <strong [class.stat__zero]="item.count === 0">{{ item.count }}</strong>
-            </button>
-          }
-        </div>
         @if (awaitingApproval) {
           <section class="approve" aria-label="คำขอรออนุมัติยื่นแบบ">
             <div>
@@ -65,42 +33,72 @@
             }
           </section>
         }
-        <section class="desk" aria-label="รายการงาน">
-          <header>
-            <h2>{{ listTitle }}</h2>
-            <p>{{ deskRows.length }} รายการ</p>
-          </header>
-          <div class="desk-tabs" role="tablist">
-            @if (role === 'director') {
-              <button type="button" role="tab" [class.on]="deskFilter === 'request'" [attr.aria-selected]="deskFilter === 'request'" (click)="pickDesk('request')">คำขอ</button>
-              <button type="button" role="tab" [class.on]="deskFilter === 'job'" [attr.aria-selected]="deskFilter === 'job'" (click)="pickDesk('job')">งาน</button>
-              <button type="button" role="tab" [class.on]="deskFilter === 'track'" [attr.aria-selected]="deskFilter === 'track'" (click)="pickDesk('track')">ติดตาม</button>
-            } @else {
-              <button type="button" role="tab" [class.on]="deskFilter === 'in'" [attr.aria-selected]="deskFilter === 'in'" (click)="pickDesk('in')">งานรับเข้า</button>
-              <button type="button" role="tab" [class.on]="deskFilter === 'doing'" [attr.aria-selected]="deskFilter === 'doing'" (click)="pickDesk('doing')">กำลังดำเนินการ</button>
-              <button type="button" role="tab" [class.on]="deskFilter === 'group'" [attr.aria-selected]="deskFilter === 'group'" (click)="pickDesk('group')">งานของกลุ่ม</button>
-            }
-          </div>
-          <label class="desk-search">
-            <input type="search" aria-label="ค้นหาเลขคำขอหรือชื่อผู้ยื่น" placeholder="ค้นหาเลขคำขอ / ชื่อผู้ยื่น..." [value]="query" (input)="query = $any($event.target).value" />
-          </label>
-          @if (!deskRows.length) {
-            <p class="desk-empty">{{ query.trim() ? 'ไม่พบงานที่ค้นหา' : 'ไม่มีรายการในกลุ่มนี้' }}</p>
+        @if (pendingProxies.length) {
+          <section id="proxy-queue" class="approve" aria-label="มอบหมายผู้กระทำการแทนที่รออนุมัติ">
+            <div>
+              <h2>มอบหมายผู้กระทำการแทนรออนุมัติ</h2>
+              @for (grant of pendingProxies; track grant.id) {
+                <p>{{ grant.ref }} {{ grant.goods }} · {{ grant.person }} · {{ grant.org }} · {{ grant.powers }}</p>
+                <div class="desk-head__tools">
+                  <app-button type="primary" label="อนุมัติ" (click)="reviewProxy(grant.id, true)" />
+                  <app-button type="outline" label="ไม่รับ" (click)="reviewProxy(grant.id, false)" />
+                </div>
+              }
+            </div>
+          </section>
+        }
+        <section class="summary" aria-label="สรุปสถานะงาน">
+          @for (item of summaryStats; track item.label) {
+            <button type="button" class="summary__item" [class.on]="boardLane === item.id" [attr.data-lane]="item.id || 'all'" [attr.aria-pressed]="boardLane === item.id" (click)="pickSummary(item.id)">
+              <span class="summary__copy">
+                <b>{{ item.label }}</b>
+                <small>{{ item.hint }}</small>
+              </span>
+              <strong [class.stat__zero]="item.count === 0">{{ item.count }}</strong>
+            </button>
           }
-          @for (row of deskRows; track row.code + row.title) {
+        </section>
+        <div class="board-tools">
+          <label class="desk-search">
+            <input type="search" aria-label="ค้นหาเลขคำขอหรือชื่อผู้ยื่น" placeholder="ค้นหาเลขคำขอ ผู้ยื่น บริษัท หรือหัวข้อเรื่อง" [value]="query" (input)="query = $any($event.target).value" />
+          </label>
+          <label class="board-filter">
+            <span>กลุ่มงาน</span>
+            <select aria-label="กลุ่มงาน" [value]="groupFilter" (change)="groupFilter = $any($event.target).value">
+              <option value="">ทั้งหมด</option>
+              @for (group of taskGroups; track group) {
+                <option [value]="group">{{ group }}</option>
+              }
+            </select>
+          </label>
+          <div class="board-view" role="tablist" aria-label="รูปแบบการดู">
+            <button type="button" [class.on]="boardView === 'board'" (click)="boardView = 'board'">แบบคอลัมน์</button>
+            <button type="button" [class.on]="boardView === 'list'" (click)="boardView = 'list'">แบบรายการ</button>
+          </div>
+        </div>
+        <section class="board" [class.board--list]="boardView === 'list'" aria-label="บอร์ดงาน">
+          @for (column of boardColumns; track column.id) {
+            <div class="board-col" [attr.data-lane]="column.id">
+              <header>
+                <h2>{{ column.label }}</h2>
+                <span>{{ column.rows.length }}</span>
+              </header>
+              @if (!column.rows.length) {
+                <p class="desk-empty">ไม่มีงาน</p>
+              }
+              @for (row of column.rows; track row.code + row.title) {
             <article class="job" [class.job--open]="openCode === row.code + row.title">
               <button type="button" class="job__hit" (click)="toggleJob(row.code + row.title)">
                 <span class="job__top">
                   <b>{{ row.title }}</b>
                   <app-status-tag variant="soft" [tone]="row.tone" [label]="row.status" />
                 </span>
-                <span class="job__product">{{ row.code }} · {{ row.product }}</span>
-                <span class="job__who">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9l6-4 6 4v11M10 20v-4h4v4" /></svg>
-                  {{ row.sender }}
-                </span>
+                <span class="job__when">{{ row.at }}</span>
+                <span class="job__product">เลข Ref {{ row.code }} · Product : {{ row.product }}</span>
+                <span class="job__who">{{ row.sender }}</span>
+                <span class="job__who">ผู้ยื่น : {{ row.sender }}</span>
                 @if (row.due) {
-                  <span class="job__due">{{ row.due }}</span>
+                  <span class="job__due">วันที่ครบกำหนดส่ง : {{ row.due }}</span>
                 }
               </button>
               @if (openCode === row.code + row.title) {
@@ -186,12 +184,14 @@
                 </dl>
               }
               <footer>
+                <app-button type="primary" label="ดูรายละเอียด" (click)="toggleJob(row.code + row.title)" />
                 @if (row.code === filingRef && (role === 'director' || role === 'officer')) {
-                  <app-button type="primary" [label]="jobLabel(row)" (click)="jobClick(row)" />
+                  <app-button type="outline" [label]="jobLabel(row)" (click)="jobClick(row)" />
                 }
-                <small>{{ row.at }}</small>
               </footer>
             </article>
+              }
+            </div>
           }
         </section>
       } @else {

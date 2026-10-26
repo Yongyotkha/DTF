@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
@@ -8,7 +8,8 @@ import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { StepsMenuSection } from '../../steps-menu/steps-menu';
 import { TopHeader } from '../../top-header/top-header';
-import { filingMeasureTitle } from './filing-intent';
+import { filingMeasureTitle, cvdChosen } from './filing-intent';
+import { findListedCase } from './request-cases';
 import { scrollFormToTop } from './form-scroll';
 @Component({
   selector: 'app-por3-page',
@@ -18,7 +19,11 @@ import { scrollFormToTop } from './form-scroll';
 })
 export class Por3Page {
   protected readonly filingTitle = filingMeasureTitle();
-  protected measure: 'dumping' | 'subsidy' = 'dumping';
+  protected viewing = false;
+  protected returnCase = '';
+  protected caseRef = '';
+  protected caseNo = '';
+  protected measure: 'dumping' | 'subsidy' = cvdChosen() ? 'subsidy' : 'dumping';
   protected filing: 'self' | 'all' | 'part' = 'self';
   protected step = '1.1 ประเภทของการยื่นคำขอ';
   protected reviewOpen = false;
@@ -66,7 +71,54 @@ export class Por3Page {
       { label: 'เอกสารประกอบอื่นๆ', state: 'default' },
     ]},
   ];
-  constructor(private readonly view: ChangeDetectorRef) {}
+  constructor(
+    private readonly view: ChangeDetectorRef,
+    route: ActivatedRoute,
+  ) {
+    const code = route.snapshot.queryParamMap.get('case') ?? '';
+    this.returnCase = /^[A-Za-z0-9]+$/u.test(code) ? code : '';
+    this.viewing = route.snapshot.queryParamMap.get('view') === '1' && !!this.returnCase;
+    if (!this.viewing) return;
+    const item = findListedCase(this.returnCase);
+    if (!item) return;
+    this.caseRef = item.ref;
+    this.caseNo = item.code;
+    this.measure = 'dumping';
+    this.fillSunset(item.id);
+  }
+
+  private fillSunset(id: string): void {
+    if (id === 'ad1019-57') {
+      this.filing = 'part';
+      this.goods = 'ยางในชนิดที่ใช้กับรถจักรยานยนต์';
+      this.notice = 'ผลการพิจารณาทบทวนความจำเป็นในการใช้มาตรการตอบโต้การทุ่มตลาดสินค้ายางในชนิดที่ใช้กับรถจักรยานยนต์ที่มีแหล่งกำเนิดจากสาธารณรัฐประชาชนจีนต่อไป พ.ศ. 2561'.slice(0, 200);
+      this.signer = 'นายอภิสิทธิ์ สุธัมม์';
+      this.roleTitle = 'ผู้รับมอบอำนาจ';
+      this.signedOn = '24/07/2566';
+      this.applicants = ['บริษัท ดีรับเบอร์ จำกัด', 'บริษัท วีรับเบอร์ คอร์ปอเรชั่น จำกัด', 'บริษัท เอ็น.ดี.รับเบอร์ จำกัด (มหาชน)'].map((name) => ({
+        ...this.blank(true),
+        name,
+        nation: 'ไทย',
+      }));
+      return;
+    }
+    if (id !== 'ad102257') return;
+    this.filing = 'self';
+    this.goods = 'เหล็กแผ่นรีดเย็นชุบหรือเคลือบด้วยโลหะเจือของอะลูมิเนียมและสังกะสีแบบจุ่มร้อน';
+    this.notice = 'ผลการพิจารณาทบทวนความจำเป็นในการใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดเย็นชุบหรือเคลือบด้วยโลหะเจือของอะลูมิเนียมและสังกะสีแบบจุ่มร้อนที่มีแหล่งกำเนิดจากจีน เกาหลี และไต้หวันต่อไป พ.ศ. 2562'.slice(0, 200);
+    this.signer = 'นายจิรพล ยิ่งสิทธิสวัสดิ์';
+    this.roleTitle = 'ผู้มีอำนาจกระทำการแทน';
+    this.signedOn = '11/09/2566';
+    this.applicants = [{
+      ...this.blank(true),
+      name: 'บริษัท เอ็นเอส บลูสโคป (ประเทศไทย) จำกัด',
+      nation: 'ไทย',
+      address: '188 อาคารสปริงทาวเวอร์ ชั้น 14 ถนนราชเทวี ทุ่งพญาไท ราชเทวี กรุงเทพฯ 10400',
+      phone: '02-333-3000',
+      fax: '02-333-3002',
+      email: 'jirapon.yingsittisawad@bluescope.com',
+    }];
+  }
 
   protected openFilledUpload(): void {
     this.uploadOpen = true;
@@ -134,6 +186,14 @@ export class Por3Page {
     scrollFormToTop(event);
   }
   protected filled(label: string): boolean {
+    if (this.viewing) {
+      const named = this.applicants.some((person) => person.name && person.nation && person.address);
+      if (label.startsWith('1.1')) return !!this.measure && !!this.filing;
+      if (label.startsWith('1.2') || label.startsWith('1.3')) return named;
+      if (label.startsWith('พิจารณาทบทวน')) return !!this.goods && !!this.notice;
+      if (label.startsWith('คำรับรอง')) return !!this.signer;
+      return false;
+    }
     const labels = this.labels();
     return labels.indexOf(label) <= labels.indexOf(this.step);
   }

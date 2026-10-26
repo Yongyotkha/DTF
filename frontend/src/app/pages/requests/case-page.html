@@ -1,34 +1,64 @@
 <div class="case">
   <app-top-header class="fluid" />
   <div class="case__body">
-    <app-side-nav open="คำขอ" active="รายการยื่นคำขอ" />
+    <app-side-nav [open]="menuOpen" [active]="menuActive" />
     <main>
       <header class="head">
         <div class="head__lead">
-          <a
-            class="head__back"
-            [routerLink]="fixesOnly || supplementView ? ['/requests', code] : '/requests'"
-            [attr.aria-label]="fixesOnly || supplementView ? 'กลับหน้ารายละเอียด' : 'กลับหน้ารายการ'"
-          >
-            <img src="assets/icons/arrow-left.svg" width="24" height="24" alt="" />
-          </a>
-          <h1>{{ supplementView ? 'ยื่นข้อมูลเพิ่มเติม' : fixesOnly ? 'รายการที่ต้องแก้ไข' : title }}</h1>
           <p class="crumb">
             <a routerLink="/requests">รายการยื่นคำขอ</a>
             <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
             @if (fixesOnly || supplementView) {
-              <a [routerLink]="['/requests', code]">รายละเอียด</a>
+              <a [routerLink]="['/requests', routeKey]">รายละเอียด</a>
               <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
               <span class="crumb__on" aria-current="page">{{ supplementView ? 'ยื่นข้อมูลเพิ่มเติม' : 'รายการที่ต้องแก้ไข' }}</span>
             } @else {
               <span class="crumb__on" aria-current="page">รายละเอียด</span>
             }
           </p>
+          <a
+            class="head__back"
+            [routerLink]="fixesOnly || supplementView ? ['/requests', routeKey] : '/requests'"
+            [attr.aria-label]="fixesOnly || supplementView ? 'กลับหน้ารายละเอียด' : 'กลับไปรายการ'"
+          >
+            <img src="assets/icons/arrow-left.svg" width="24" height="24" alt="" />
+            @if (!fixesOnly && !supplementView) {
+              <span>กลับไปรายการ</span>
+            }
+          </a>
+          <div class="head__title">
+            <div class="head__name">
+              <h1>{{ supplementView ? 'ยื่นข้อมูลเพิ่มเติม' : listed && !fixesOnly ? requestRef : (fixesOnly ? 'รายการที่ต้องแก้ไข' : title) }}</h1>
+              @if (listed && !fixesOnly && !supplementView) {
+                <app-status-tag [tone]="listed.tone" [label]="listed.status" />
+              }
+            </div>
+            @if (listed && !fixesOnly && !supplementView) {
+              <p class="head__goods">{{ goodsName }}</p>
+            }
+          </div>
         </div>
         @if (supplementView) {
           <div class="head__actions">
             <app-button type="outline" label="บันทึกร่าง" (click)="saveSupplementDraft()" />
             <app-button type="primary" label="ยื่นข้อมูลเพิ่มเติม" (click)="sendSupplement()" />
+          </div>
+        } @else if (listed && !fixesOnly) {
+          <div class="head__tools">
+            <app-button class="icon-before" type="outline" label="พิมพ์" (click)="printCase()">
+              <img src="assets/icons/print.svg" width="16" height="16" alt="" />
+            </app-button>
+            <div class="manage">
+              <app-button type="primary" [label]="manageOpen ? 'ปิดเมนู' : 'จัดการคำขอ'" (click)="toggleManage()" />
+              @if (manageOpen) {
+                <div class="manage__menu" role="menu">
+                  @if (petitionRoute && canOpenForm) {
+                    <button type="button" role="menuitem" (click)="openFormView(petitionRoute, $event); manageOpen = false">ดูแบบฟอร์ม</button>
+                  }
+                  <button type="button" role="menuitem" (click)="printCase(); manageOpen = false">พิมพ์รายละเอียด</button>
+                </div>
+              }
+            </div>
           </div>
         }
       </header>
@@ -110,12 +140,15 @@
         </div>
       } @else {
       <section class="progress">
-        <p>ขั้นตอน {{ stepIndex }} จาก {{ steps.length }} - อยู่ระหว่าง{{ currentLabel }}</p>
+        <p>{{ progressLine }}</p>
+        @if (listed && nextStep) {
+          <p>{{ nextStep }}</p>
+        }
         <ol [style.--step-count]="steps.length">
           @for (step of steps; track step.number; let i = $index) {
-            <li [class.progress__on]="i + 1 === stepIndex" [class.progress__done]="i + 1 < stepIndex" [class.progress__open]="i + 1 <= stepIndex" (click)="openStep(i + 1)">
+            <li [class.progress__on]="!caseClosed && i + 1 === stepIndex" [class.progress__done]="stepDone(i + 1)" [class.progress__open]="i + 1 <= stepIndex" (click)="openStep(i + 1)">
               <span>
-                @if (i + 1 < stepIndex) {
+                @if (stepDone(i + 1)) {
                   <img src="assets/icons/step-check.svg" width="16" height="16" alt="" />
                 } @else {
                   {{ step.number }}
@@ -126,11 +159,208 @@
           }
         </ol>
       </section>
+      @if (listed) {
+        <section class="summary" aria-label="สรุปคำขอ">
+          <span class="summary__mark" aria-hidden="true">
+            <img src="assets/icons/box.svg" width="28" height="28" alt="" />
+          </span>
+          <div>
+            <h2>{{ goodsName }}</h2>
+            @if (askLine) {
+              <p>{{ askLine }}</p>
+            }
+            @if (agentNote) {
+              <p>{{ agentNote }}</p>
+            }
+            <dl class="overview summary__facts">
+              <div>
+                <dt>มาตรการ</dt>
+                <dd>{{ measureLabel }}</dd>
+              </div>
+              <div>
+                <dt>แบบคำขอ</dt>
+                <dd>{{ caseKind }}</dd>
+              </div>
+              <div>
+                <dt>ครั้งที่ยื่น</dt>
+                <dd>{{ filingRound ? 'ครั้งที่ ' + filingRound : '—' }}</dd>
+              </div>
+              <div>
+                <dt>เลขเคส</dt>
+                <dd>{{ shownCode }}</dd>
+              </div>
+              <div>
+                <dt>เลขที่อ้างอิง</dt>
+                <dd>{{ requestRef }}</dd>
+              </div>
+              <div>
+                <dt>วันที่ยื่นคำขอ</dt>
+                <dd>{{ filedOn || '—' }}</dd>
+              </div>
+              @if (caseOrigins.length) {
+                <div>
+                  <dt>แหล่งกำเนิด</dt>
+                  <dd>{{ caseOrigins.join(' ') }}</dd>
+                </div>
+              }
+            </dl>
+          </div>
+        </section>
+        @if (flowActions.length === 1 && flowActions[0].id === 'withdraw') {
+          <section class="guide" aria-label="การถอนคำขอ">
+            <article>
+              <strong>ถอนคำขอ</strong>
+              <p>ผู้ยื่นถอนคำขอเองได้ก่อนเปิดไต่สวน</p>
+              @if (actionDone('withdraw')) {
+                <app-status-tag variant="soft" tone="success" label="ส่งแล้ว" />
+              } @else {
+                <app-button type="danger-outline" label="ถอนคำขอ" (click)="toggleAction('withdraw')" />
+              }
+              @if (actionOpen === 'withdraw' && !actionDone('withdraw')) {
+                <app-input-field kind="textarea" label="รายละเอียด" [required]="true" [value]="actionNote" (valueChange)="actionNote = $event" />
+                <app-button type="primary" size="sm" label="ส่ง" [state]="actionNote.trim() ? 'default' : 'disabled'" (click)="saveAction('withdraw')" />
+              }
+            </article>
+            <article class="guide__note">
+              <h2>คำแนะนำ</h2>
+              <ul>
+                <li>ถอนได้ขณะคำขอยังอยู่ระหว่างยื่นหรือตรวจสอบ ก่อนเปิดไต่สวน</li>
+                <li>ถ้าคำขอเกิน 4 เดือน เจ้าหน้าที่จะตีคืนแล้วนับระยะใหม่</li>
+                <li>หลังถอนแล้ว หากจะดำเนินการต่อ ให้ยื่นคำขอใหม่</li>
+              </ul>
+            </article>
+          </section>
+        } @else if (flowActions.length) {
+          <section class="acts acts--cards" aria-label="การดำเนินการในขั้นตอนนี้">
+            <header class="acts__bar">
+              <h2>การดำเนินการในขั้นตอนนี้</h2>
+              <app-status-tag tone="warning" label="กำลังดำเนินการ" />
+            </header>
+            <div class="acts__grid">
+              @for (action of flowActions; track action.id) {
+                <article>
+                  <strong>{{ action.label }}</strong>
+                  <p>{{ action.hint }}</p>
+                  @if (actionDone(action.id)) {
+                    <app-status-tag variant="soft" tone="success" label="ส่งแล้ว" />
+                  } @else {
+                    <app-button [type]="action.id === 'withdraw' ? 'danger-outline' : 'primary'" [label]="action.label" (click)="toggleAction(action.id)" />
+                  }
+                  @if (actionOpen === action.id && !actionDone(action.id)) {
+                    <app-input-field kind="textarea" label="รายละเอียด" [required]="action.id !== 'join'" [value]="actionNote" (valueChange)="actionNote = $event" />
+                    <app-button type="primary" size="sm" label="ส่ง" [state]="action.id === 'join' || actionNote.trim() ? 'default' : 'disabled'" (click)="saveAction(action.id)" />
+                  }
+                </article>
+              }
+            </div>
+          </section>
+        }
+        <section class="dossier">
+          <app-tabs line [labels]="detailTabs" [selected]="detailTab" (activeChange)="setDetailTab($event)" />
+          @if (detailTab === 0) {
+            <div class="dossier__sheet">
+              <section>
+                <h2>ผู้ยื่นคำขอ</h2>
+                <div class="party-names">
+                  @for (party of applicantParties; track party.name) {
+                    @if (partyDetail) {
+                      <button type="button" class="party-link" (click)="partyOpen = true">{{ party.name }}</button>
+                    } @else {
+                      <span>{{ party.name }}</span>
+                    }
+                  } @empty {
+                    <span>—</span>
+                  }
+                </div>
+              </section>
+              @if (shownNote) {
+                <section>
+                  <h2>สาระสำคัญ</h2>
+                  <p class="dossier__note">{{ shownNote }}</p>
+                </section>
+              }
+            </div>
+          } @else if (detailTab === 1) {
+            <h2 class="forms__title">เอกสารที่เกี่ยวข้อง <span class="count">{{ files.length }}</span></h2>
+            @if (partyScope) {
+              <p class="history__empty">{{ partyScope }}</p>
+            }
+            <ul>
+              @for (file of files; track file) {
+                <li>
+                  <span class="file"><img src="assets/icons/case-file.svg" width="15" height="20" alt="" />{{ file }}</span>
+                  @if (formRoute(file); as route) {
+                    <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                  } @else {
+                    <app-button type="outline" size="sm" label="เปิดดู" (click)="openRecord(file, viewLabel, $event)" />
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="history__empty">ลำดับขั้นและเอกสารอยู่ในผลการดำเนินการด้านล่าง</p>
+          }
+        </section>
+        <section class="history" id="case-history" aria-label="ผลการดำเนินการ">
+          <div class="history__bar">
+            <h2>ผลการดำเนินการ</h2>
+            <div class="history__tools">
+              <button type="button" class="files-only" [attr.aria-pressed]="filesOnly" (click)="toggleFilesOnly()">
+                <img [src]="filesOnly ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="20" height="20" alt="" />
+                แสดงเฉพาะขั้นที่มีเอกสาร
+              </button>
+              <button type="button" class="more" [class.more--open]="historyAnyOpen" [attr.aria-expanded]="historyAnyOpen" [attr.aria-label]="historyAnyOpen ? 'หุบรายละเอียดทุกขั้น' : 'แสดงรายละเอียดทุกขั้น'" (click)="toggleHistoryList()">
+                <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+              </button>
+            </div>
+          </div>
+          <ol>
+            @for (item of shownHistory; track item.title) {
+              <li [class.history__open]="historyOpen[item.title]" [class.history__now]="item.title === currentLabel && !caseClosed">
+                <div class="history__head" (click)="toggleHistory(item.title)">
+                  <span class="history__mark" aria-hidden="true"></span>
+                  <span>
+                    <strong>{{ item.title }}</strong>
+                    <span>{{ item.detail }}</span>
+                  </span>
+                  @if (item.when) { <time>{{ item.when }}</time> }
+                  <button type="button" class="more" [attr.aria-expanded]="historyOpen[item.title]" [attr.aria-label]="historyOpen[item.title] ? 'หุบรายละเอียด' : 'เปิดรายละเอียด'">
+                    <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+                  </button>
+                </div>
+                @if (historyOpen[item.title]) {
+                  @if (item.docs.length) {
+                    <ul class="history__docs">
+                      @for (doc of item.docs; track doc) {
+                        <li>
+                          <span>{{ doc }}</span>
+                          @if (formRoute(doc); as route) {
+                            <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                          } @else {
+                            <app-button type="outline" size="sm" label="เปิดดู" (click)="openRecord(doc, item.title, $event)" />
+                          }
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="history__empty">{{ docEmpty }}</p>
+                  }
+                }
+              </li>
+            }
+          </ol>
+        </section>
+      } @else {
       <div class="sheet">
         <header class="stage">
           <h2>{{ viewLabel }}</h2>
           <app-status-tag [tone]="stageTone" [label]="stageStatus" />
-          @if (filedView) {
+          @if (stageFormRoute) {
+            <div class="stage__act">
+              <app-button type="outline" label="ดูแบบฟอร์ม" (click)="openFormView(stageFormRoute, $event)" />
+            </div>
+          }
+          @if (filedView && !listed) {
             <div class="stage__act">
               @if (!reviewPassed && !reviewPending && !supplement) {
                 <app-button class="icon-before" type="outline" label="ขอปรึกษา" (click)="openConsult()">
@@ -153,6 +383,35 @@
             </div>
           }
         </header>
+        @if (flowActions.length) {
+          <section class="acts" aria-label="การดำเนินการตาม Flow">
+            @for (action of flowActions; track action.id) {
+              <article>
+                <div class="acts__row">
+                  <div>
+                    <strong>{{ action.label }}</strong>
+                    <p>{{ action.hint }}</p>
+                  </div>
+                  @if (actionDone(action.id)) {
+                    <app-status-tag variant="soft" tone="success" label="ส่งแล้ว" />
+                  } @else {
+                    <app-button type="primary" size="sm" [label]="actionOpen === action.id ? 'ปิด' : action.label" (click)="toggleAction(action.id)" />
+                  }
+                </div>
+                @if (actionOpen === action.id && !actionDone(action.id)) {
+                  <app-input-field kind="textarea" label="รายละเอียด" [required]="action.id !== 'join'" [value]="actionNote" (valueChange)="actionNote = $event" />
+                  <app-button type="primary" size="sm" label="ส่ง" [state]="action.id === 'join' || actionNote.trim() ? 'default' : 'disabled'" (click)="saveAction(action.id)" />
+                }
+                @if (actionDone(action.id) && action.id !== 'join') {
+                  <p>{{ actionDone(action.id) }}</p>
+                }
+              </article>
+            }
+            @if (thaiTrUrl) {
+              <p>เผยแพร่บน ThaiTR แล้ว <a [href]="thaiTrUrl" target="_blank" rel="noopener noreferrer">เปิดหน้า ThaiTR</a></p>
+            }
+          </section>
+        }
         @if (viewLabel === 'ตรวจสอบข้อมูล' && (reviewPassed || officialReview)) {
           <article class="officer" aria-label="รอเจ้าหน้าที่ตรวจสอบ">
             <div class="officer__row">
@@ -210,7 +469,7 @@
               }
             </ol>
           </section>
-        } @else if (viewLabel === 'ตรวจสอบข้อมูล') {
+        } @else if (viewLabel === 'ตรวจสอบข้อมูล' && !listed) {
           <div class="alert">
             <p>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5 21 20H3L12 4.5z" /><path d="M12 10v5M12 17.5v.5" /></svg>
@@ -245,7 +504,58 @@
             </ul>
           </article>
         } @else if (filedView) {
-          <ng-container *ngTemplateOutlet="caseOverview" />
+          @if (listed) {
+            <dl class="overview">
+              <div>
+                <dt>เลขที่คำขอ</dt>
+                <dd>{{ requestRef }}</dd>
+              </div>
+              <div>
+                <dt>เลขเคส</dt>
+                <dd>{{ shownCode }}</dd>
+              </div>
+              <div>
+                <dt>ประเภทมาตรการ</dt>
+                <dd>{{ measureLabel }}</dd>
+              </div>
+              <div>
+                <dt>ชื่อสินค้า</dt>
+                <dd>{{ goodsName }}</dd>
+              </div>
+              <div>
+                <dt>แบบฟอร์มที่ยื่น</dt>
+                <dd class="chips">
+                  <span class="chip">{{ caseKind }}</span>
+                </dd>
+              </div>
+              @if (shownCountries.length) {
+              <div>
+                <dt>ประเทศ</dt>
+                <dd class="chips">
+                  @for (name of shownCountries; track name) {
+                    <span class="chip">{{ name }}</span>
+                  }
+                </dd>
+              </div>
+              }
+              <div>
+                <dt>วันที่ยื่นคำขอ</dt>
+                <dd>{{ filedOn }}</dd>
+              </div>
+              @if (shownApplicants.length) {
+              <div>
+                <dt>ผู้ยื่นคำขอ</dt>
+                <dd>
+                  @for (party of shownApplicants; track party.name; let last = $last) {
+                    {{ party.name }}@if (!last) {, }
+                  }
+                </dd>
+              </div>
+              }
+            </dl>
+          } @else {
+            <ng-container *ngTemplateOutlet="caseOverview" />
+          }
           @if (reviewPassed) {
             <article class="result result--pass" aria-label="ผลการตรวจสอบคำขอ">
               <span class="result__mark" aria-hidden="true">
@@ -271,7 +581,7 @@
                 </div>
               </div>
             </article>
-          } @else if (!supplement) {
+          } @else if (!supplement && !listed) {
           <article class="result" aria-label="ผลการตรวจสอบคำขอ">
             <span class="result__mark" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 6.5v8" /><circle cx="12" cy="17.5" r="1.2" fill="currentColor" stroke="none" /></svg>
@@ -319,9 +629,39 @@
             </ol>
           </section>
           }
-          <h2 class="forms__title">ผู้ยื่นคำขอ <span class="count">{{ applicants.length }}</span></h2>
+          @if (listed) {
+            @if (systemForms.length) {
+              <h2 class="forms__title">แบบฟอร์มในระบบ <span class="count">{{ systemForms.length }}</span></h2>
+              <p class="status-note">กรอกในแบบฟอร์มของระบบแล้ว เปิดดูได้จากปุ่มด้านขวา</p>
+              <ul>
+                @for (form of systemForms; track form.code) {
+                  <li>
+                    <span class="file">
+                      <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                      แบบ {{ form.code }} · {{ form.file }}
+                    </span>
+                    <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(form.route, $event)" />
+                  </li>
+                }
+              </ul>
+            }
+            @if (plainFiles.length) {
+              <h2 class="forms__title">ไฟล์ประกอบ <span class="count">{{ plainFiles.length }}</span></h2>
+              <ul>
+                @for (file of plainFiles; track file) {
+                  <li>
+                    <span class="file">
+                      <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                      {{ file }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          } @else {
+          <h2 class="forms__title">ผู้ยื่นคำขอ <span class="count">{{ shownApplicants.length }}</span></h2>
           <ul class="parties">
-            @for (party of applicants; track party.name) {
+            @for (party of shownApplicants; track party.name) {
               <li>
                 <strong>{{ party.name }}</strong>
                 <span>{{ party.address }}</span>
@@ -347,26 +687,159 @@
               }
             </ul>
           }
+          }
         } @else {
-          <p class="status-note">{{ statusNote }}</p>
-          <ul>
-            @for (file of files; track file) {
-              <li>
-                <span class="file">
-                  <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
-                  {{ file }}
-                </span>
-              </li>
-            }
-          </ul>
+          <p class="status-note">{{ stageSummary }}</p>
+          @if (stageFiles.length) {
+            <h2 class="forms__title">เอกสารในขั้นนี้ <span class="count">{{ stageFiles.length }}</span></h2>
+            <ul>
+              @for (file of stageFiles; track file) {
+                <li>
+                  <span class="file">
+                    <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+                    {{ file }}
+                  </span>
+                  @if (formRoute(file); as route) {
+                    <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                  } @else {
+                    <app-button type="outline" size="sm" label="เปิดดู" (click)="openRecord(file, viewLabel, $event)" />
+                  }
+                  @if (joinLink(file); as link) {
+                    <a [routerLink]="link">ลิงก์เชิญผู้มีส่วนได้เสีย</a>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+        @if (history.length > 1) {
+          <section class="history" aria-label="ผลการดำเนินการ">
+            <div class="history__bar">
+              <h2>ผลการดำเนินการ</h2>
+              <button type="button" class="more" [class.more--open]="historyAnyOpen" [attr.aria-expanded]="historyAnyOpen" [attr.aria-label]="historyAnyOpen ? 'หุบรายละเอียดทุกขั้น' : 'แสดงรายละเอียดทุกขั้น'" (click)="toggleHistoryList()">
+                <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+              </button>
+            </div>
+            <ol>
+              @for (item of history; track item.title) {
+                <li [class.history__open]="historyOpen[item.title]" [class.history__now]="item.title === currentLabel && !caseClosed">
+                  <div class="history__head" (click)="toggleHistory(item.title)">
+                    <span class="history__mark" aria-hidden="true"></span>
+                    <span>
+                      <strong>{{ item.title }}</strong>
+                      <span>{{ item.detail }}</span>
+                    </span>
+                    @if (item.when) {
+                      <time>{{ item.when }}</time>
+                    }
+                    <button type="button" class="more" [attr.aria-expanded]="historyOpen[item.title]" [attr.aria-label]="historyOpen[item.title] ? 'หุบรายละเอียด' : 'เปิดรายละเอียด'">
+                      <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
+                    </button>
+                  </div>
+                  @if (historyOpen[item.title]) {
+                    @if (item.docs.length) {
+                      <ul class="history__docs">
+                        @for (doc of item.docs; track doc) {
+                          <li>
+                            <span>{{ doc }}</span>
+                            @if (formRoute(doc); as route) {
+                              <app-button type="outline" size="sm" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+                            } @else {
+                              <app-button type="outline" size="sm" label="เปิดดู" (click)="openRecord(doc, item.title, $event)" />
+                            }
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="history__empty">{{ docEmpty }}</p>
+                    }
+                  }
+                </li>
+              }
+            </ol>
+          </section>
         }
       </div>
+      }
       }
       </div>
       }
     </main>
   </div>
 </div>
+@if (partyOpen) {
+  <div class="sample sample--submit" (click)="partyOpen = false">
+    <section role="dialog" aria-modal="true" aria-labelledby="party-title" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2 id="party-title">ข้อมูลผู้ยื่นคำขอ</h2>
+        <button type="button" class="submit__close submit__close--icon" aria-label="ปิด" (click)="partyOpen = false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+      <div class="sample__body">
+        @for (party of applicantParties; track party.name) {
+          <dl class="overview">
+            <div class="wide"><dt>ชื่อบริษัท</dt><dd>{{ party.name }}</dd></div>
+            <div class="wide"><dt>เลขประจำตัวผู้เสียภาษี</dt><dd>{{ party.taxId || '—' }}</dd></div>
+            <div class="wide"><dt>ที่อยู่</dt><dd>{{ party.address || '—' }}</dd></div>
+            <div class="wide"><dt>ผู้ติดต่อ</dt><dd>{{ party.contact || '—' }}</dd></div>
+            <div class="wide"><dt>โทรศัพท์</dt><dd>{{ party.phone || '—' }}</dd></div>
+            <div class="wide"><dt>อีเมล</dt><dd>{{ party.email || '—' }}</dd></div>
+          </dl>
+        }
+      </div>
+      <div class="submit__actions">
+        <app-button type="outline" label="ปิด" (click)="partyOpen = false" />
+      </div>
+    </section>
+  </div>
+}
+@if (readingFile) {
+  <div class="sample sample--submit" (click)="closeRecord()">
+    <section role="dialog" aria-modal="true" aria-labelledby="record-title" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2 id="record-title">{{ readingFile }}</h2>
+        <button type="button" class="submit__close submit__close--icon" aria-label="ปิด" (click)="closeRecord()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+      <dl class="overview">
+        <div>
+          <dt>ขั้น</dt>
+          <dd>{{ readingStep }}</dd>
+        </div>
+        <div>
+          <dt>เลขที่อ้างอิง</dt>
+          <dd>{{ requestRef }}</dd>
+        </div>
+        <div>
+          <dt>เลขเคส</dt>
+          <dd>{{ shownCode }}</dd>
+        </div>
+        <div class="wide">
+          <dt>เรื่องที่ยื่น</dt>
+          <dd>{{ caseAsk }}</dd>
+        </div>
+        <div class="wide">
+          <dt>ผลของขั้นนี้</dt>
+          <dd>{{ readingDetail }}</dd>
+        </div>
+        @if (shownNote) {
+          <div class="wide">
+            <dt>สาระสำคัญ</dt>
+            <dd>{{ shownNote }}</dd>
+          </div>
+        }
+      </dl>
+      <div class="submit__actions">
+        @if (formRoute(readingFile); as route) {
+          <app-button type="primary" label="ดูแบบฟอร์ม" (click)="openFormView(route, $event)" />
+        }
+        <app-button type="outline" label="ปิด" (click)="closeRecord()" />
+      </div>
+    </section>
+  </div>
+}
 @if (consultOpen) {
   <div class="sample sample--submit sample--check" (click)="closeConsult()">
     <section role="dialog" aria-modal="true" aria-labelledby="consult-title" (click)="$event.stopPropagation()">

@@ -1,6 +1,7 @@
 import { Injectable, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, computed, effect, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Accounts, roleHome } from '../accounts';
+import { isActingAgent, powersOf, ProxyPower } from '../pages/requests/proxy-grant';
 import { WorkspaceState } from '../workspace/workspace-state';
 import { MenuGroup } from './menu-group';
 import { MenuItem } from './menu-item';
@@ -50,21 +51,59 @@ export class SidebarState {
 type NavMenu = { title: string; items: string[] };
 
 const applicantMenus: NavMenu[] = [
-  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
-  { title: 'คำร้อง', items: ['ยื่นคำร้องขอพบเจ้าหน้าที่', 'รายการยื่นคำร้องขอพบเจ้าหน้าที่'] },
+  { title: 'คำขอ', items: ['รายการยื่นคำขอ', 'มอบหมายผู้กระทำการแทน', 'รับ–ส่งข้อมูลอื่น ๆ'] },
+  { title: 'คำร้อง', items: ['ขอพบเจ้าหน้าที่', 'ขอข้อมูลข่าวสาร'] },
 ];
 
-const intakeMenus: NavMenu[] = [
-  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
+const otherCommitteeMenus: NavMenu[] = [
+  { title: 'คณะกรรมการอื่นๆ', items: ['ตรวจสอบและอนุมัติ', 'ตรวจและปรับแก้วาระ', 'อนุมัติ hearing'] },
+];
+
+const interestMenus: NavMenu[] = [
+  { title: 'กระบวนการไต่สวน', items: ['ลงทะเบียนผู้มีส่วนได้ส่วนเสีย', 'Case ID', 'รับ–ส่งข้อมูลอื่น ๆ'] },
+  { title: 'คำร้อง', items: ['ขอข้อมูลข่าวสาร'] },
 ];
 
 const directorMenus: NavMenu[] = [
-  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
+  { title: 'งาน', items: ['มอบหมายงาน', 'รายการยื่นคำขอ'] },
+  { title: 'กระบวนการไต่สวน', items: ['อนุมัติผู้กระทำการแทน', 'อนุมัติผู้มีส่วนได้เสีย', 'Case ID'] },
+  { title: 'รายงาน', items: ['รายงานผล'] },
 ];
 
 const headMenus: NavMenu[] = [
-  { title: 'คำขอ', items: ['รายการยื่นคำขอ'] },
+  { title: 'งาน', items: ['รายงานผลหรือส่งต่อ', 'รายการยื่นคำขอ'] },
+  { title: 'กระบวนการไต่สวน', items: ['อนุมัติเอกสารฉบับเปิดเผย', 'Case ID'] },
+  { title: 'รายงาน', items: ['ตรวจสอบการรายงานผล'] },
 ];
+
+const officerMenus: NavMenu[] = [
+  { title: 'งาน', items: ['ติดตามกระบวนงานยื่นคำขอ', 'บันทึกรับเรื่อง', 'รายการยื่นคำขอ'] },
+  { title: 'กระบวนการไต่สวน', items: ['แจ้งผู้มีส่วนได้เสีย', 'Case ID', 'รับ–ส่งข้อมูลอื่น ๆ', 'แบบสอบถาม'] },
+  { title: 'คำร้อง', items: ['คำร้องขอพบเจ้าหน้าที่', 'คำร้องขอข้อมูลข่าวสาร'] },
+];
+
+const bureauMenus: NavMenu[] = [
+  { title: 'งาน', items: ['บันทึกข้อมูลลงรับ', 'รายการยื่นคำขอ'] },
+];
+
+const committeeMenus: NavMenu[] = [
+  { title: 'งาน', items: ['ผลการพิจารณา', 'รายการยื่นคำขอ'] },
+];
+
+const externalMenus: NavMenu[] = [
+  { title: 'งาน', items: ['หนังสือที่ได้รับ', 'Case ID'] },
+];
+
+function agentMenus(powers: ProxyPower[]): NavMenu[] {
+  const talk = powers.includes('contact') || powers.includes('edit') || powers.includes('full');
+  const menus: NavMenu[] = [
+    { title: 'คำขอ', items: talk ? ['รายการยื่นคำขอ', 'รับ–ส่งข้อมูลอื่น ๆ'] : ['รายการยื่นคำขอ'] },
+  ];
+  if (powers.includes('full') || powers.includes('contact')) {
+    menus.push({ title: 'คำร้อง', items: ['ขอพบเจ้าหน้าที่', 'ขอข้อมูลข่าวสาร'] });
+  }
+  return menus;
+}
 
 @Component({
   selector: 'app-side-nav',
@@ -89,10 +128,16 @@ export class SideNav implements OnInit, OnDestroy {
 
   protected menuList(): NavMenu[] {
     const role = this.accounts.role;
-    if (role === 'officer') return [];
-    if (role === 'head') return headMenus;
+    if (this.accounts.username === '1000000000126') return otherCommitteeMenus;
+    if (role === 'interest') return interestMenus;
+    if (isActingAgent(this.accounts.username)) return agentMenus(powersOf(this.accounts.username));
     if (role === 'director') return directorMenus;
-    if (role === 'staff' || this.kind === 'staff') return intakeMenus;
+    if (role === 'head') return headMenus;
+    if (role === 'officer') return officerMenus;
+    if (role === 'bureau') return bureauMenus;
+    if (role === 'committee') return committeeMenus;
+    if (role === 'external') return externalMenus;
+    if (role === 'staff') return officerMenus;
     return applicantMenus;
   }
   private readonly opened = signal<ReadonlySet<string>>(new Set());
@@ -201,13 +246,41 @@ export class SideNav implements OnInit, OnDestroy {
 
   protected pick(label: string): void {
     const role = this.accounts.role;
-    const internal = role === 'staff' || role === 'director' || role === 'head' || role === 'officer';
-    if (label === 'ยื่นคำขอ' && !internal) void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
-    if (label === 'รายการยื่นคำขอ') void this.router.navigate(internal ? ['/cases'] : ['/requests']);
-    if (label === 'ยื่นคำร้องขอพบเจ้าหน้าที่' || label === 'รายการยื่นคำร้องขอพบเจ้าหน้าที่') {
-      if (!internal) void this.router.navigate(['/requests/por-1'], { queryParams: { consult: '1' } });
+    const internal = role === 'staff' || role === 'director' || role === 'head' || role === 'officer' || role === 'bureau' || role === 'committee' || role === 'external';
+    const home = role ? roleHome[role] : '/home';
+    const filing = role === 'director' ? '/director/filing'
+      : role === 'head' ? '/head/filing'
+      : role === 'officer' || role === 'staff' ? '/officer/filing'
+      : role === 'bureau' ? '/bureau/filing'
+      : role === 'committee' ? '/committee/filing'
+      : home;
+    if (label === 'ตรวจสอบและอนุมัติ' || label === 'ตรวจและปรับแก้วาระ' || label === 'อนุมัติ hearing') {
+      void this.router.navigate(['/committee/other'], { queryParams: { task: label } });
+    } else if (label === 'หน้าหลัก' || label === 'หน้าแรก' || label === 'มอบหมายงาน' || label === 'รายงานผลหรือส่งต่อ' || label === 'รายงานผล' || label === 'ตรวจสอบการรายงานผล' || label === 'บันทึกข้อมูลลงรับ' || label === 'บันทึกรับเรื่อง' || label === 'ผลการพิจารณา' || label === 'หนังสือที่ได้รับ' || label === 'อนุมัติเอกสารฉบับเปิดเผย') {
+      void this.router.navigateByUrl(home);
+    } else if (label === 'อนุมัติผู้กระทำการแทน') {
+      void this.router.navigate([home], { queryParams: { queue: 'proxy' } });
+    } else if (label === 'ติดตามกระบวนงานยื่นคำขอ' || label === 'แบบสอบถาม') {
+      void this.router.navigateByUrl(internal ? filing : '/requests');
+    } else if (label === 'ยื่นคำขอ' && !internal) {
+      void this.router.navigate(['/requests']);
+    } else if (label === 'รายการยื่นคำขอ') {
+      void this.router.navigate(internal ? ['/cases'] : ['/requests']);
+    } else if (label === 'ยื่นคำร้องขอพบเจ้าหน้าที่' || label === 'รายการยื่นคำร้องขอพบเจ้าหน้าที่' || label === 'คำร้องขอพบเจ้าหน้าที่' || label === 'ขอพบเจ้าหน้าที่') {
+      if (internal) void this.router.navigateByUrl(filing);
+      else void this.router.navigate(['/requests/por-1'], { queryParams: { consult: '1' } });
+    } else if (!internal && label === 'มอบหมายผู้กระทำการแทน') {
+      void this.router.navigateByUrl('/requests/proxy');
+    } else if (label === 'ลงทะเบียนผู้มีส่วนได้ส่วนเสีย' || label === 'แจ้งผู้มีส่วนได้เสีย' || label === 'อนุมัติผู้มีส่วนได้เสีย') {
+      void this.router.navigateByUrl('/requests/interest');
+    } else if (label === 'Case ID') {
+      void this.router.navigateByUrl(internal ? '/cases' : '/requests/cases');
+    } else if (label === 'รับ–ส่งข้อมูลอื่น ๆ') {
+      void this.router.navigateByUrl(internal ? filing : '/requests/exchange');
+    } else if (label === 'ยื่นคำร้องขอข้อมูลข่าวสาร' || label === 'คำร้องขอข้อมูลข่าวสาร' || label === 'ขอข้อมูลข่าวสาร' || label === 'รายการยื่นคำร้องขอข้อมูลข่าวสาร') {
+      if (internal) void this.router.navigateByUrl(filing);
+      else void this.router.navigateByUrl('/requests/info');
     }
-    if (label === 'หน้าหลัก' || label === 'หน้าแรก') void this.router.navigateByUrl(role ? roleHome[role] : '/home');
     this.chosen.emit(label);
     this.submenu.set(null);
     if (this.state.narrow()) this.closeDrawer(false);

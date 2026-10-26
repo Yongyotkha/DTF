@@ -1,0 +1,37 @@
+<div class="requests">
+  <app-top-header class="fluid" />
+  <div class="requests__body">
+    <app-side-nav open="คณะกรรมการอื่นๆ" [active]="active" />
+    <main>
+      <header class="head">
+        <div>
+          <h1>คณะกรรมการอื่นๆ</h1>
+          <p class="head__note">ตรวจและอนุมัติการยื่นแบบ วาระ และการจัด hearing ตาม Flow</p>
+        </div>
+      </header>
+      <section class="panel">
+        <div class="list">
+          @for (task of tasks; track task.id) {
+            <article class="item">
+              <header class="item__head">
+                <div>
+                  <p class="item__code">{{ task.label }}</p>
+                  <p class="item__goods">{{ task.hint }}</p>
+                </div>
+                <app-status-tag [tone]="done(task.id) ? 'success' : 'warning'" [label]="done(task.id) ? 'อนุมัติแล้ว' : 'รออนุมัติ'" />
+              </header>
+              @if (task.id === 'agenda' && !done(task.id)) {
+                <app-input-field kind="textarea" label="วาระ" [value]="agenda" (valueChange)="agenda = $event" />
+              }
+              @if (!done(task.id)) {
+                <div class="item__foot">
+                  <app-button type="primary" label="อนุมัติ" (click)="approve(task.id)" />
+                </div>
+              }
+            </article>
+          }
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

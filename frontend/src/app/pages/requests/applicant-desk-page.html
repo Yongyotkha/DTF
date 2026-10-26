@@ -1,0 +1,139 @@
+<div class="requests">
+  <app-top-header class="fluid" />
+  <div class="requests__body">
+    <app-side-nav [kind]="staffNotice ? 'staff' : 'applicant'" [open]="menuOpen" [active]="menuActive" />
+    <main>
+      <header class="head">
+        <div>
+          <h1>{{ title }}</h1>
+          <p class="head__note">{{ note }}</p>
+        </div>
+        @if (desk === 'proxy' && canGrant) {
+          <app-button class="icon-before soft-shadow" label="เพิ่มข้อมูล" (click)="openProxy()">
+            <img src="assets/icons/list-plus.svg" width="24" height="24" alt="" />
+          </app-button>
+        }
+        @if (desk === 'info' && !compose) {
+          <app-button class="icon-before soft-shadow" label="ยื่นคำร้อง" (click)="compose = true">
+            <img src="assets/icons/list-plus.svg" width="24" height="24" alt="" />
+          </app-button>
+        }
+      </header>
+      <section class="panel">
+        @if (desk === 'interest' && staffNotice) {
+          <app-tabs line [labels]="interestLabels" [selected]="interestTab" (activeChange)="setInterestTab($event)" />
+        }
+        @if (desk === 'proxy' && inviteLink) {
+          <article class="item">
+            <p class="item__ask">ลิงก์เชิญผู้กระทำการแทน</p>
+            <p class="item__result">{{ inviteLink }}</p>
+            <div class="item__foot">
+              <app-button type="outline" [label]="copied === inviteLink ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์เชิญ'" (click)="copyText(inviteLink, $event)" />
+            </div>
+          </article>
+        }
+        @if (desk === 'info' && compose) {
+          <form class="list" (submit)="$event.preventDefault(); saveInfo()">
+            <article class="item">
+              <app-input-field label="เรื่องที่ขอข้อมูล" [required]="true" [value]="topic" (valueChange)="topic = $event" />
+              <app-input-field kind="textarea" label="รายละเอียด" [value]="detail" (valueChange)="detail = $event" />
+              <div class="item__foot">
+                <app-button type="outline" label="ยกเลิก" (click)="compose = false" />
+                <app-button type="primary" label="ส่งคำร้อง" (click)="saveInfo()" />
+              </div>
+            </article>
+          </form>
+        }
+        @if (cards.length === 0) {
+          <p class="empty">ไม่พบรายการ</p>
+        } @else {
+          <div class="list">
+            @for (card of cards; track card.key) {
+              <article class="item" [class.item--link]="canOpen(card)" [attr.tabindex]="canOpen(card) ? 0 : null" (click)="openCard(card)">
+                <header class="item__head">
+                  <div>
+                    <p class="item__code">{{ card.ref }}</p>
+                    <p class="item__goods">{{ card.title }}</p>
+                  </div>
+                  <app-status-tag [tone]="card.tone" [label]="card.status" />
+                </header>
+                <dl class="item__facts">
+                  <div><dt>มาตรการ</dt><dd>{{ card.measure }}</dd></div>
+                  <div><dt>แบบคำขอ</dt><dd>{{ card.kind }}</dd></div>
+                  <div><dt>ครั้งที่ยื่น</dt><dd>{{ card.round }}</dd></div>
+                  <div><dt>วันที่</dt><dd>{{ card.date }}</dd></div>
+                  @if (card.applicant) {
+                    <div><dt>ผู้ยื่น</dt><dd>{{ card.applicant }}</dd></div>
+                  }
+                  <div><dt>เลขเคส</dt><dd>{{ caseNo(card) }}</dd></div>
+                </dl>
+                <p class="item__result">{{ card.result }}</p>
+                <div class="item__foot">
+                  @if (card.invite) {
+                    <app-button type="outline" [label]="copied === card.invite ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์เชิญ'" (click)="copyText(card.invite, $event)" />
+                  }
+                  @if (card.grantStatus === 'active' && card.grantId) {
+                    <app-button type="outline" label="ระงับ" (click)="useGrant(card.grantId, false, $event)" />
+                  }
+                  @if (card.grantStatus === 'suspended' && card.grantId) {
+                    <app-button type="primary" label="อนุญาต" (click)="useGrant(card.grantId, true, $event)" />
+                  }
+                  <app-button type="outline" label="ดูรายละเอียด" [state]="canOpen(card) ? 'default' : 'disabled'" (click)="openCard(card)" />
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    </main>
+  </div>
+</div>
+@if (desk === 'proxy' && proxyOpen) {
+  <div class="chooser" (click)="closeProxy()">
+    <section class="chooser--method" role="dialog" aria-modal="true" aria-labelledby="proxy-title" (click)="$event.stopPropagation()">
+      <form (submit)="$event.preventDefault(); saveProxy()">
+        <header class="chooser__head">
+          <div>
+            <h2 id="proxy-title">เพิ่มผู้กระทำการแทน</h2>
+            <p>เลือกเคสและอำนาจ แล้วสร้างลิงก์เชิญ</p>
+          </div>
+          <button type="button" aria-label="ปิด" (click)="closeProxy()">✕</button>
+        </header>
+        <div class="chooser__body">
+          <app-input-field label="ชื่อผู้กระทำการแทน" [required]="true" [value]="person" (valueChange)="person = $event" />
+          <app-input-field label="หน่วยงาน" [required]="true" [value]="org" (valueChange)="org = $event" />
+                  <app-input-field kind="search" label="ค้นหาเลขอ้างอิงหรือเลขเคส" [editable]="true" placeholder="เลขอ้างอิงหรือเลขเคส" helper="แสดงเฉพาะเคสที่บัญชีนี้มอบหมายได้" [value]="caseQuery" (valueChange)="caseQuery = $event" />
+                  <div class="case-picks" role="listbox" aria-label="เคสที่มอบหมายได้">
+                    @for (item of caseChoices; track item.id) {
+                      <button type="button" role="option" [attr.aria-selected]="pickedId === item.id" (click)="pickGrantCase(item)">
+                        <img [src]="pickedId === item.id ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="20" height="20" alt="" />
+                        <span>
+                          <strong>{{ item.ref }}</strong>
+                          <span>{{ caseLabel(item) }} · {{ item.goods }}</span>
+                        </span>
+                      </button>
+                    } @empty {
+                      <p class="empty">ไม่พบเคสที่มอบหมายได้</p>
+                    }
+                  </div>
+          <fieldset class="powers">
+            <legend>อำนาจกระทำการแทน</legend>
+            @for (item of powerChoices; track item.key) {
+              <button type="button" (click)="togglePower(item.key)">
+                <img [src]="powers[item.key] ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="20" height="20" alt="" />
+                <span>{{ item.label }}</span>
+              </button>
+            }
+          </fieldset>
+          @if (proxyError) {
+            <p class="empty">{{ proxyError }}</p>
+          }
+        </div>
+        <div class="chooser__foot">
+          <app-button type="outline" label="ยกเลิก" (click)="closeProxy()" />
+          <app-button type="primary" label="บันทึกและสร้างลิงก์เชิญ" (click)="saveProxy()" />
+        </div>
+      </form>
+    </section>
+  </div>
+}

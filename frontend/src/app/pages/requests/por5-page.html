@@ -1,27 +1,29 @@
 <div class="por1">
   <app-top-header class="fluid" />
   <div class="por1__body">
-    <app-side-nav open="คำขอ" active="ยื่นคำขอ" />
+    <app-side-nav open="คำขอ" active="รายการยื่นคำขอ" />
     <main>
       <div class="review-pin">
         <header class="head">
           <div>
             <div class="head__title">
-              <a class="head__back" routerLink="/requests" aria-label="กลับหน้ารายการ">
+              <a class="head__back" [routerLink]="returnCase ? ['/requests', returnCase] : '/requests'" aria-label="กลับหน้ารายการ">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
               </a>
-              <h1>{{ filingTitle }}</h1>
-              <app-status-tag tone="neutral" label="ร่าง" />
+              <h1>{{ viewing ? formHeading : filingTitle }}</h1>
+              <app-status-tag [tone]="viewing ? 'info' : 'neutral'" [label]="viewing ? 'ดูแบบฟอร์ม' : 'ร่าง'" />
             </div>
-            <p>แบบคำขอคืนอากรตอบโต้การทุ่มตลาดหรือการอุดหนุนตามมาตรา 59 และมาตรา 70</p>
+            <p>{{ viewing ? 'เลขที่อ้างอิง ' + caseRef + ' · เคส ' + returnCase : 'แบบคำขอคืนอากรตอบโต้การทุ่มตลาดหรือการอุดหนุนตามมาตรา 59 และมาตรา 70' }}</p>
           </div>
           <div class="head__actions">
             <button type="button" class="head__history" aria-label="ประวัติคำขอ">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
             </button>
             <span class="head__split" aria-hidden="true"></span>
+            @if (!viewing) {
             <app-button type="outline" label="บันทึกร่าง" />
             <app-button type="primary" label="ยื่นตรวจสอบ" (click)="reviewOpen = true" />
+            }
           </div>
         </header>
       </div>
@@ -30,9 +32,11 @@
         <div class="sheet__bar">
           <h2>รายละเอียดเอกสาร</h2>
           <div class="sheet__upload">
+            @if (!viewing) {
             <app-button class="icon-before" type="pill" label="อัปโหลดไฟล์" (click)="openFilledUpload()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M16.5 9.5 12 5 7.5 9.5M4 19h16" /></svg>
             </app-button>
+            }
           </div>
         </div>
         <div class="sheet__split">
@@ -51,7 +55,7 @@
               }
             }
           </nav>
-          <fieldset class="form">
+          <fieldset class="form" [disabled]="viewing">
             @if (section === '1.1') {
               <h3>1.1 ผู้ยื่นคำขอ</h3>
               <div class="grid">

@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { readFormCase } from './case-form';
 import { DftButton } from '../../button/button';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
@@ -7,7 +8,7 @@ import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extrac
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
-import { filingMeasureTitle } from './filing-intent';
+import { filingMeasureTitle, cvdChosen } from './filing-intent';
 import { scrollFormToTop } from './form-scroll';
 
 type TocItem = { id: string; label: string };
@@ -22,7 +23,7 @@ type DocItem = { key: string; label: string; accept: string; hint: string; when:
 })
 export class Por2aPage {
   protected readonly filingTitle = filingMeasureTitle();
-  protected measure: 'dumping' | 'subsidy' = 'dumping';
+  protected measure: 'dumping' | 'subsidy' = cvdChosen() ? 'subsidy' : 'dumping';
   protected stake = '';
   protected filing: 'self' | 'behalf' = 'self';
   protected behalfOf = '';
@@ -108,7 +109,27 @@ export class Por2aPage {
     },
   ];
 
-  constructor(private readonly view: ChangeDetectorRef) {}
+  protected readonly formHeading = 'แบบ ปร. 2ก';
+  protected viewing = false;
+  protected returnCase = '';
+  protected caseRef = '';
+
+  constructor(
+    private readonly view: ChangeDetectorRef,
+    route: ActivatedRoute,
+  ) {
+    const opened = readFormCase(route);
+    this.viewing = opened.viewing;
+    this.returnCase = opened.returnCase;
+    this.caseRef = opened.caseRef;
+    const item = opened.item;
+    if (!opened.viewing || !item) return;
+    this.company = item.applicant || '';
+    this.nationality = item.applicant?.includes('จำกัด') ? 'ไทย' : '';
+    this.goods = item.goods;
+    this.measure = 'dumping';
+    this.filing = 'self';
+  }
 
   protected openFilledUpload(): void {
     this.uploadOpen = true;

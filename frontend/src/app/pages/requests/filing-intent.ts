@@ -1,4 +1,5 @@
 import { Router } from '@angular/router';
+import { inject } from '@angular/core';
 import { requestMeasures } from './form-catalog';
 
 const key = 'dft-filing-intent';
@@ -34,6 +35,11 @@ export function clearFilingIntent(): void {
   } catch {
     /* private browsing */
   }
+}
+
+export function cvdChosen(): boolean {
+  const router = inject(Router);
+  return router.parseUrl(router.url).queryParams['measure'] === 'cvd';
 }
 
 export function filingMeasureTitle(fallback = 'มาตราการ AD'): string {

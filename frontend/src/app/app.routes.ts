@@ -21,15 +21,22 @@ import { Por7Page } from './pages/requests/por7-page';
 import { Por8Page } from './pages/requests/por8-page';
 import { SgPage } from './pages/requests/sg-page';
 import { FormUploadPage } from './pages/requests/form-upload-page';
+import { ApplicantDeskPage } from './pages/requests/applicant-desk-page';
+import { filingGuard } from './pages/requests/filing-guard';
+import { InterestJoinPage } from './pages/requests/interest-join-page';
+import { ProxyJoinPage } from './pages/requests/proxy-join-page';
 import { RequestsPage } from './pages/requests/requests-page';
 import { StaffChatPage } from './pages/requests/staff-chat-page';
 import { CaseRegistryPage } from './pages/staff/case-registry-page';
+import { OtherCommitteePage } from './pages/staff/other-committee-page';
 import { StaffHomePage } from './pages/staff/staff-home-page';
 import { StaffTaskPage } from './pages/staff/staff-task-page';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
   { path: 'login', component: LoginPage },
+  { path: 'join/:code', component: InterestJoinPage },
+  { path: 'act/:id', component: ProxyJoinPage },
   { path: 'forgot-password', component: ForgotPage },
   { path: 'register', component: RegisterPage },
   { path: 'register/:kind/:step', component: RegisterStepPage },
@@ -48,20 +55,34 @@ export const routes: Routes = [
   { path: 'officer', component: StaffHomePage, data: { role: 'officer' } },
   { path: 'officer/filing', component: Por1Page, data: { review: 'officer' } },
   { path: 'officer/tasks/:code', component: StaffTaskPage, data: { role: 'officer' } },
+  { path: 'bureau', component: StaffHomePage, data: { role: 'bureau' } },
+  { path: 'bureau/filing', component: Por1Page, data: { review: 'bureau' } },
+  { path: 'committee', component: StaffHomePage, data: { role: 'committee' } },
+  { path: 'committee/other', component: OtherCommitteePage },
+  { path: 'committee/filing', component: Por1Page, data: { review: 'committee' } },
+  { path: 'interest', component: StaffHomePage, data: { role: 'interest' } },
+  { path: 'interest/filing', component: Por1Page, data: { review: 'interest' } },
+  { path: 'external', component: StaffHomePage, data: { role: 'external' } },
+  { path: 'external/filing', component: Por1Page, data: { review: 'external' } },
   { path: 'requests', component: RequestsPage },
-  { path: 'requests/por-1', component: Por1Page },
-  { path: 'requests/por-2', component: Por2Page },
-  { path: 'requests/por-2a', component: Por2aPage },
-  { path: 'requests/por-3', component: Por3Page },
-  { path: 'requests/por-3a', component: Por3aPage },
-  { path: 'requests/por-4', component: Por4Page },
-  { path: 'requests/por-5', component: Por5Page },
-  { path: 'requests/por-6', component: Por6Page },
-  { path: 'requests/por-7', component: Por7Page },
-  { path: 'requests/por-8', component: Por8Page },
-  { path: 'requests/sg', component: SgPage, data: { form: 'request' } },
-  { path: 'requests/sg-notice', component: SgPage, data: { form: 'notice' } },
-  { path: 'requests/upload', component: FormUploadPage },
+  { path: 'requests/proxy', component: ApplicantDeskPage, data: { desk: 'proxy' } },
+  { path: 'requests/interest', component: ApplicantDeskPage, data: { desk: 'interest' } },
+  { path: 'requests/cases', component: ApplicantDeskPage, data: { desk: 'cases' } },
+  { path: 'requests/exchange', component: ApplicantDeskPage, data: { desk: 'exchange' } },
+  { path: 'requests/info', component: ApplicantDeskPage, data: { desk: 'info' } },
+  { path: 'requests/por-1', component: Por1Page, canActivate: [filingGuard] },
+  { path: 'requests/por-2', component: Por2Page, canActivate: [filingGuard] },
+  { path: 'requests/por-2a', component: Por2aPage, canActivate: [filingGuard] },
+  { path: 'requests/por-3', component: Por3Page, canActivate: [filingGuard] },
+  { path: 'requests/por-3a', component: Por3aPage, canActivate: [filingGuard] },
+  { path: 'requests/por-4', component: Por4Page, canActivate: [filingGuard] },
+  { path: 'requests/por-5', component: Por5Page, canActivate: [filingGuard] },
+  { path: 'requests/por-6', component: Por6Page, canActivate: [filingGuard] },
+  { path: 'requests/por-7', component: Por7Page, canActivate: [filingGuard] },
+  { path: 'requests/por-8', component: Por8Page, canActivate: [filingGuard] },
+  { path: 'requests/sg', component: SgPage, data: { form: 'request' }, canActivate: [filingGuard] },
+  { path: 'requests/sg-notice', component: SgPage, data: { form: 'notice' }, canActivate: [filingGuard] },
+  { path: 'requests/upload', component: FormUploadPage, canActivate: [filingGuard] },
   { path: 'requests/draft/:id', component: DraftPage },
   { path: 'requests/chat', component: StaffChatPage },
   { path: 'requests/:code/fixes', component: CasePage, data: { view: 'fixes' } },

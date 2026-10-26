@@ -1,0 +1,18 @@
+<app-auth-shell look="showcase">
+  <h1>รับมอบอำนาจกระทำการแทน</h1>
+  <p class="lead">{{ lead }}</p>
+  @if (blocked) {
+    <p class="lead">{{ blocked }}</p>
+  } @else if (grant) {
+    <ul class="lead">
+      @for (item of powers; track item) {
+        <li>{{ item }}</li>
+      }
+    </ul>
+    <app-input-field class="block" label="ชื่อผู้รับมอบอำนาจ" [required]="true" [editable]="true" [value]="name" (valueChange)="name = $event" />
+    <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" mark="card" [required]="true" [editable]="true" [state]="error ? 'error' : 'default'" [helper]="error" [value]="taxId" (valueChange)="taxId = $event" />
+    <app-input-field class="block" label="รหัสผ่าน" inputType="password" mark="lock" [reveal]="true" [required]="true" [editable]="true" [value]="password" (valueChange)="password = $event" />
+    <app-button class="wide login-submit" size="lg" label="สมัครและเข้าสู่ระบบ" (click)="submit()" />
+    <a class="forgot" [routerLink]="['/login']" [queryParams]="{ act: grantId }">มีบัญชีแล้ว เข้าสู่ระบบ</a>
+  }
+</app-auth-shell>
