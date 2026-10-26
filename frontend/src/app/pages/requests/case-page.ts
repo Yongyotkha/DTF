@@ -10,7 +10,7 @@ import { InputField } from '../../input-field/input-field';
 import { DftModal } from '../../modal/modal';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
-import { StepperOne } from '../../stepper-1/stepper-1';
+import { StepperOneItem } from '../../stepper-1/stepper-1';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 import { formOf } from './form-catalog';
@@ -22,7 +22,7 @@ import { caseBrief, CaseParty, caseNumberLabel, documentsForStage, findListedCas
 
 @Component({
   selector: 'app-case-page',
-  imports: [NgTemplateOutlet, TopHeader, SideNav, RouterLink, DftButton, StatusTag, DftModal, FileField, StepperOne, InputField, ThaiDateField, DataTable, Tabs],
+  imports: [NgTemplateOutlet, TopHeader, SideNav, RouterLink, DftButton, StatusTag, DftModal, FileField, InputField, ThaiDateField, DataTable, Tabs],
   templateUrl: './case-page.html',
   styleUrl: './case-page.css',
 })

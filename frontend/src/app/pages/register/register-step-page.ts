@@ -88,12 +88,7 @@ const details: Record<Kind, Field[]> = {
     { key: 'district', label: 'อำเภอ/เขต', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'subdistrict', label: 'ตำบล/แขวง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'postcode', label: 'รหัสไปรษณีย์', required: true, placeholder: 'รหัสไปรษณีย์' },
-    { key: 'addressEn', label: 'ที่อยู่ (ภาษาอังกฤษ)', required: true, placeholder: 'House No., Building, Soi, Road' },
-    { key: 'provinceEn', label: 'จังหวัด (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Bangkok' },
-    { key: 'districtEn', label: 'อำเภอ/เขต (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
-    { key: 'subdistrictEn', label: 'ตำบล/แขวง (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
-    { key: 'postcodeEn', label: 'รหัสไปรษณีย์ (ภาษาอังกฤษ)', required: true, placeholder: '10110' },
-    { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ', required: true },
+    { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ' },
   ],
   association: [
     { key: 'country', label: 'ประเทศ', required: true, placeholder: 'ประเทศไทย' },
@@ -111,17 +106,12 @@ const details: Record<Kind, Field[]> = {
     { key: 'district', label: 'อำเภอ/เขต', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'subdistrict', label: 'ตำบล/แขวง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'postcode', label: 'รหัสไปรษณีย์', required: true, placeholder: 'รหัสไปรษณีย์' },
-    { key: 'addressEn', label: 'ที่อยู่ (ภาษาอังกฤษ)', required: true, placeholder: 'House No., Building, Soi, Road' },
-    { key: 'provinceEn', label: 'จังหวัด (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Bangkok' },
-    { key: 'districtEn', label: 'อำเภอ/เขต (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
-    { key: 'subdistrictEn', label: 'ตำบล/แขวง (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
-    { key: 'postcodeEn', label: 'รหัสไปรษณีย์ (ภาษาอังกฤษ)', required: true, placeholder: '10110' },
     { key: 'addressCert', label: 'ที่อยู่ตามหนังสือรับรอง', required: true, placeholder: 'เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน' },
     { key: 'provinceCert', label: 'จังหวัดตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'districtCert', label: 'อำเภอ/เขตตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'subdistrictCert', label: 'ตำบล/แขวงตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'postcodeCert', label: 'รหัสไปรษณีย์ตามหนังสือรับรอง', required: true, placeholder: 'รหัสไปรษณีย์' },
-    { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ', required: true },
+    { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ' },
   ],
 };
 
@@ -164,6 +154,8 @@ const corporateSample: Record<string, string> = {
   password: 'Dft@2569',
   confirm: 'Dft@2569',
 };
+
+const regnoLookupKeys = ['registered', 'name', 'nameEn'] as const;
 
 const corporateDirectors: Director[] = [
   { name: 'สุรช', surname: 'ล่ำซำ', action: 'กรรมการผู้จัดการ ลงลายมือชื่อและประทับตราสำคัญของบริษัท' },
@@ -277,12 +269,16 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       this.touched.set({});
       this.failed = false;
       this.addingDirector.set(false);
-      if (kind === 'corporate' && !this.draft.values['name']) {
-        Object.assign(this.draft.values, corporateSample);
-      }
       if (kind === 'corporate') {
-        for (const key of ['nameEn']) {
-          if (!this.draft.values[key]) this.draft.values[key] = corporateSample[key];
+        for (const [key, sample] of Object.entries(corporateSample)) {
+          if ((regnoLookupKeys as readonly string[]).includes(key)) continue;
+          if (!this.draft.values[key]) this.draft.values[key] = sample;
+        }
+        if (this.draft.regnoVerified && this.draft.values['name']) {
+          this.regnoCheck.set('success');
+        } else {
+          this.regnoCheck.set('idle');
+          this.clearRegnoLookup();
         }
       }
       if (kind === 'corporate') {
@@ -350,7 +346,6 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       const base = hideCert
         ? details[this.kind].filter((field) => !Object.values(certFromThai).includes(field.key))
         : details[this.kind];
-      if ((this.kind === 'individual' || this.kind === 'association') && this.value('proxy') === 'yes') return [...base, ...proxyFields];
       return base;
     }
     if (this.step === 3) return access;
@@ -428,7 +423,12 @@ export class RegisterStepPage implements OnInit, OnDestroy {
 
   protected setValue(key: string, value: string): void {
     if (key === 'username') return;
-    if (key === 'regno') this.regnoCheck.set('idle');
+    if (this.kind === 'corporate' && (regnoLookupKeys as readonly string[]).includes(key)) return;
+    if (key === 'regno' && (this.draft.values['regno'] ?? '') !== value) {
+      this.regnoCheck.set('idle');
+      this.draft.regnoVerified = false;
+      this.clearRegnoLookup();
+    }
     this.draft.values[key] = value;
     if (key === 'regno' && this.step >= 3) this.assignUsername();
     const certKey = certFromThai[key];
@@ -454,7 +454,11 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   }
 
   protected linkSso(provider: DraftSsoProvider): void {
-    if (this.kind !== 'corporate' || this.ssoAccount(provider)) return;
+    if (this.kind !== 'corporate') return;
+    if (this.ssoAccount(provider)) {
+      this.draft.sso = this.draft.sso.filter((row) => row.provider !== provider);
+      return;
+    }
     const sample = corporateSso.find((row) => row.provider === provider);
     if (!sample) return;
     this.draft.sso = [...this.draft.sso, { ...sample }];
@@ -570,6 +574,8 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     if (!value) {
       this.checkingRegno.set(false);
       this.regnoCheck.set('error');
+      this.draft.regnoVerified = false;
+      this.clearRegnoLookup();
       return;
     }
     this.regnoCheck.set('idle');
@@ -579,8 +585,30 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       const current = this.value('regno').trim();
       const ok = this.value('country') === 'ต่างประเทศ' ? current.length >= 3 : thaiIdOk(current);
       this.checkingRegno.set(false);
-      this.regnoCheck.set(current ? (ok ? 'success' : 'error') : 'idle');
+      if (!current) {
+        this.regnoCheck.set('idle');
+        this.draft.regnoVerified = false;
+        this.clearRegnoLookup();
+        return;
+      }
+      this.regnoCheck.set(ok ? 'success' : 'error');
+      this.draft.regnoVerified = ok;
+      if (ok) this.applyRegnoLookup();
+      else this.clearRegnoLookup();
     }, 1200);
+  }
+
+  protected regnoFieldState(key: string): InputState {
+    if (this.stateOf(this.fieldBy(key)) === 'error') return 'error';
+    return 'readonly';
+  }
+
+  private applyRegnoLookup(): void {
+    for (const key of regnoLookupKeys) this.draft.values[key] = corporateSample[key];
+  }
+
+  private clearRegnoLookup(): void {
+    for (const key of regnoLookupKeys) this.draft.values[key] = '';
   }
 
   protected invalid(key: string): boolean {

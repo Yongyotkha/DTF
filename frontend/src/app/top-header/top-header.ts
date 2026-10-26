@@ -1,13 +1,13 @@
 import { Component, ElementRef, HostListener, Input } from '@angular/core';
-import { Router } from '@angular/router';
-import { Accounts } from '../accounts';
+import { Router, RouterLink } from '@angular/router';
+import { Accounts, roleHome } from '../accounts';
 import { Dropdown } from '../dropdown/dropdown';
 import { SidebarState } from '../menu-bar/side-nav';
 import { WorkspaceState } from '../workspace/workspace-state';
 
 @Component({
   selector: 'app-top-header',
-  imports: [Dropdown],
+  imports: [Dropdown, RouterLink],
   templateUrl: './top-header.html',
   styleUrl: './top-header.css',
 })
@@ -23,6 +23,11 @@ export class TopHeader {
     protected readonly sidebar: SidebarState,
     protected readonly workspace: WorkspaceState,
   ) {}
+
+  protected get homePath(): string {
+    const role = this.accounts.role;
+    return role ? roleHome[role] : this.account ? '/home' : '/login';
+  }
 
   protected accountName(): string {
     return this.name || this.accounts.displayName;

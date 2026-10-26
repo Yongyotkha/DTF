@@ -8,7 +8,9 @@
         <span class="top-header__tip" role="tooltip">{{ sidebar.drawer() ? 'ปิดเมนู' : 'เปิดเมนู' }}</span>
       </button>
     }
-    <img src="assets/logo/dft.png" width="65" height="50" alt="กรมการค้าต่างประเทศ Department of Foreign Trade" />
+    <a class="top-header__logo" [routerLink]="homePath" aria-label="หน้าหลัก">
+      <img src="assets/logo/dft.png" width="65" height="50" alt="กรมการค้าต่างประเทศ Department of Foreign Trade" />
+    </a>
   </div>
   @if (account) {
   <div class="top-header__actions">

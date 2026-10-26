@@ -51,9 +51,9 @@
           <app-id-number-field label="เลขทะเบียนนิติบุคคล" placeholder="0105538041238" [digitsOnly]="true" [maxLength]="13" [state]="regnoState()" [helper]="regnoHelper()" [value]="value('regno')" (valueChange)="setValue('regno', $event)" (blurred)="touch('regno')" />
           <app-button type="secondary" label="ตรวจสอบข้อมูล" [loading]="checkingRegno()" (click)="checkRegno()" />
         </div>
-        <app-thai-date-field label="วันที่จดทะเบียนนิติบุคคล" placeholder="30/04/2538" limit="untilToday" [state]="stateOf(fieldBy('registered'))" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
-        <app-input-field class="block" label="ชื่อนิติบุคคล (ภาษาไทย)" [required]="true" [editable]="true" placeholder="บริษัท ดาต้า มายนิ่ง จำกัด" [state]="stateOf(fieldBy('name'))" [helper]="message('name')" [value]="value('name')" (valueChange)="setValue('name', $event)" (blurred)="touch('name')" />
-        <app-input-field class="block" label="ชื่อนิติบุคคล (ภาษาอังกฤษ)" [required]="true" [editable]="true" placeholder="Data Mining Co., Ltd." [state]="stateOf(fieldBy('nameEn'))" [helper]="message('nameEn')" [value]="value('nameEn')" (valueChange)="setValue('nameEn', $event)" (blurred)="touch('nameEn')" />
+        <app-thai-date-field label="วันที่จดทะเบียนนิติบุคคล" placeholder="30/04/2538" limit="untilToday" [editable]="false" [state]="regnoFieldState('registered')" [helper]="message('registered')" [value]="value('registered')" (valueChange)="setValue('registered', $event)" (blurred)="touch('registered')" />
+        <app-input-field class="block" label="ชื่อนิติบุคคล (ภาษาไทย)" [required]="true" [editable]="false" placeholder="บริษัท ดาต้า มายนิ่ง จำกัด" [state]="regnoFieldState('name')" [helper]="message('name')" [value]="value('name')" (valueChange)="setValue('name', $event)" (blurred)="touch('name')" />
+        <app-input-field class="block" label="ชื่อนิติบุคคล (ภาษาอังกฤษ)" [required]="true" [editable]="false" placeholder="Data Mining Co., Ltd." [state]="regnoFieldState('nameEn')" [helper]="message('nameEn')" [value]="value('nameEn')" (valueChange)="setValue('nameEn', $event)" (blurred)="touch('nameEn')" />
         <app-phone-field placeholder="02-348-8700" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
         <app-email-field placeholder="support@datamining.co.th" [state]="stateOf(fieldBy('email'))" [helper]="message('email')" [value]="value('email')" (valueChange)="setValue('email', $event)" (blurred)="touch('email')" />
         <app-file-field label="หนังสือรับรองนิติบุคคล" [required]="true" [error]="invalid('cert')" [message]="message('cert')" [value]="value('cert')" (valueChange)="setValue('cert', $event)" (blurred)="touch('cert')" />
@@ -154,7 +154,7 @@
         <app-phone-field label="โทรศัพท์" placeholder="ระบุ" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
         <app-phone-field label="โทรศัพท์มือถือ" placeholder="ระบุ" [state]="stateOf(fieldBy('mobile'))" [helper]="message('mobile')" [value]="value('mobile')" (valueChange)="setValue('mobile', $event)" (blurred)="touch('mobile')" />
         <app-email-field placeholder="ระบุ" [state]="stateOf(fieldBy('email'))" [helper]="message('email')" [value]="value('email')" (valueChange)="setValue('email', $event)" (blurred)="touch('email')" />
-        <h3 class="part span-2">2. ที่อยู่ตามบัตรประจำตัวประชาชน (ภาษาไทย)</h3>
+        <h3 class="part span-2">2. ที่อยู่ตามบัตรประจำตัวประชาชน</h3>
         <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน" [state]="stateOf(fieldBy('address'))" [helper]="message('address')" [value]="value('address')" (valueChange)="setValue('address', $event)" (blurred)="touch('address')" />
         <app-address-select
           class="span-2"
@@ -176,78 +176,11 @@
           (postcodeChange)="setValue('postcode', $event)"
           (fieldBlur)="touch($event)"
         />
-        <h3 class="part span-2">3. ที่อยู่ตามบัตรประจำตัวประชาชน (ภาษาอังกฤษ)</h3>
-        <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="House No., Building, Soi, Road" [state]="stateOf(fieldBy('addressEn'))" [helper]="message('addressEn')" [value]="value('addressEn')" (valueChange)="setValue('addressEn', $event)" (blurred)="touch('addressEn')" />
-        <div class="place span-2">
-          <app-address-select
-            lang="en"
-            [postcodeHidden]="true"
-            [province]="value('provinceEn')"
-            [district]="value('districtEn')"
-            [subdistrict]="value('subdistrictEn')"
-            [postcode]="value('postcodeEn')"
-            [provinceError]="stateOf(fieldBy('provinceEn')) === 'error'"
-            [districtError]="stateOf(fieldBy('districtEn')) === 'error'"
-            [subdistrictError]="stateOf(fieldBy('subdistrictEn')) === 'error'"
-            [provinceMessage]="message('provinceEn')"
-            [districtMessage]="message('districtEn')"
-            [subdistrictMessage]="message('subdistrictEn')"
-            (provinceChange)="setValue('provinceEn', $event)"
-            (districtChange)="setValue('districtEn', $event)"
-            (subdistrictChange)="setValue('subdistrictEn', $event)"
-            (postcodeChange)="setValue('postcodeEn', $event)"
-            (fieldBlur)="touch($event === 'province' ? 'provinceEn' : $event === 'district' ? 'districtEn' : 'subdistrictEn')"
-          />
-          <app-input-field class="block" label="รหัสไปรษณีย์" [required]="true" [editable]="true" placeholder="10110" [state]="stateOf(fieldBy('postcodeEn'))" [helper]="message('postcodeEn')" [value]="value('postcodeEn')" (valueChange)="setValue('postcodeEn', $event)" (blurred)="touch('postcodeEn')" />
-        </div>
       </div>
-      <h3 class="part">4. ข้อมูลผู้รับมอบอำนาจ</h3>
-      <fieldset class="choice">
-        <legend>การมอบอำนาจ <span>*</span></legend>
-        <span class="choice__row">
-          <label><input type="radio" name="proxy" value="no" [checked]="value('proxy') !== 'yes'" (change)="setProxy('no')" />ไม่มีการมอบอำนาจ</label>
-          <label><input type="radio" name="proxy" value="yes" [checked]="value('proxy') === 'yes'" (change)="setProxy('yes')" />มีการมอบอำนาจ</label>
-        </span>
-      </fieldset>
+      <h3 class="part">3. ข้อมูลผู้รับมอบอำนาจ</h3>
       <div class="form-grid">
-        <app-file-field label="หนังสือมอบอำนาจ" [required]="true" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" note="เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx" [error]="invalid('proxyDoc')" [message]="message('proxyDoc')" [value]="value('proxyDoc')" (valueChange)="setValue('proxyDoc', $event)" (blurred)="touch('proxyDoc')" />
+        <app-file-field label="หนังสือมอบอำนาจ" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" note="เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx" [error]="invalid('proxyDoc')" [message]="message('proxyDoc')" [value]="value('proxyDoc')" (valueChange)="setValue('proxyDoc', $event)" (blurred)="touch('proxyDoc')" />
       </div>
-      @if (value('proxy') === 'yes') {
-        <div class="form-grid">
-          <button type="button" class="download__link span-2">ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล (กรณีเป็นผู้มอบอำนาจ)</button>
-          <app-input-field class="block span-2" label="ผู้มอบอำนาจ" [required]="true" [editable]="false" state="readonly" placeholder="ชื่อจากส่วนที่ 1" [value]="grantorName()" />
-          <app-input-field class="block" label="ผู้รับมอบอำนาจ" [required]="true" [editable]="true" placeholder="นายสมชาย ใจดี" [state]="stateOf(fieldBy('proxyName'))" [helper]="message('proxyName')" [value]="value('proxyName')" (valueChange)="setValue('proxyName', $event)" (blurred)="touch('proxyName')" />
-          <app-thai-date-field label="วันที่เริ่มต้นกระทำการแทน" placeholder="15/10/2569" limit="any" [state]="stateOf(fieldBy('proxyStart'))" [helper]="message('proxyStart')" [value]="value('proxyStart')" (valueChange)="setValue('proxyStart', $event)" (blurred)="touch('proxyStart')" />
-          <fieldset class="choice choice--stack span-2" [class.error]="invalid('proxyPowers')">
-            <legend>อำนาจกระทำการแทน <span>*</span></legend>
-            @for (item of proxyPowerOptions; track item.key) {
-              <label><input type="checkbox" [checked]="proxyPowerOn(item.key)" (change)="toggleProxyPower(item.key, $any($event.target).checked)" />{{ item.label }}</label>
-            }
-            @if (invalid('proxyPowers')) { <span class="meta">{{ message('proxyPowers') }}</span> }
-          </fieldset>
-          <app-file-field label="ลายเซ็นผู้รับมอบอำนาจ" [required]="true" accept=".png,.jpg,.jpeg" note="เฉพาะนามสกุล png, jpg, jpeg" [error]="invalid('proxySign')" [message]="message('proxySign')" [value]="value('proxySign')" (valueChange)="setValue('proxySign', $event)" (blurred)="touch('proxySign')" />
-          <fieldset class="choice choice--stack span-2" [class.error]="invalid('proxyKind')">
-            <legend>ประเภทการมอบอำนาจ <span>*</span></legend>
-            <span class="choice__row">
-              <label><input type="radio" name="proxyKind" value="act" [checked]="value('proxyKind') === 'act'" (change)="setValue('proxyKind', 'act')" />ผู้รับมอบมีอำนาจกระทำการแทน</label>
-              <label><input type="radio" name="proxyKind" value="sub" [checked]="value('proxyKind') === 'sub'" (change)="setValue('proxyKind', 'sub')" />ผู้รับมอบมีอำนาจกระทำการแทนและมอบอำนาจช่วง</label>
-            </span>
-            @if (invalid('proxyKind')) { <span class="meta">{{ message('proxyKind') }}</span> }
-          </fieldset>
-          <div class="seal span-2">
-            <fieldset class="choice choice--stack" [class.error]="invalid('proxySeal')">
-              <legend>ประเภทการแสดงตราประทับบริษัทและลายเซ็นของผู้รับมอบอำนาจซึ่งจะปรากฏอยู่บนหนังสือนำส่งในระบบ <span>*</span></legend>
-              <label><input type="radio" name="proxySeal" value="seal" [checked]="value('proxySeal') === 'seal'" (change)="setValue('proxySeal', 'seal')" />แนบและแสดงเฉพาะตราประทับบริษัท</label>
-              <label><input type="radio" name="proxySeal" value="sign" [checked]="value('proxySeal') === 'sign'" (change)="setValue('proxySeal', 'sign')" />แนบและแสดงเฉพาะลายเซ็น</label>
-              <label><input type="radio" name="proxySeal" value="both" [checked]="value('proxySeal') === 'both'" (change)="setValue('proxySeal', 'both')" />แนบและแสดงตราประทับบริษัทและลายเซ็น</label>
-              <label><input type="radio" name="proxySeal" value="none" [checked]="value('proxySeal') === 'none'" (change)="setValue('proxySeal', 'none')" />ไม่แนบตราประทับบริษัทและลายเซ็น (แต่ต้องแนบหนังสือนำส่งเองทุกครั้ง)</label>
-              @if (invalid('proxySeal')) { <span class="meta">{{ message('proxySeal') }}</span> }
-            </fieldset>
-            <app-button type="primary" label="ตัวอย่างหนังสือนำส่ง" (click)="showProxySample()" />
-          </div>
-          @if (proxySample()) { <p class="hint span-2">{{ proxySampleText() }}</p> }
-        </div>
-      }
     } @else if (isAssociationForm) {
       <div class="form-grid">
         <h3 class="part span-2">1. ข้อมูลสมาคมการค้า</h3>
@@ -269,7 +202,7 @@
         <app-file-field label="หนังสือยินยอมให้ใช้ข้อมูล" [required]="true" [error]="invalid('consent')" [message]="message('consent')" [value]="value('consent')" (valueChange)="setValue('consent', $event)" (blurred)="touch('consent')">
           <button type="button" class="download__link">ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล</button>
         </app-file-field>
-        <h3 class="part span-2">2. ที่อยู่ (ภาษาไทย)</h3>
+        <h3 class="part span-2">2. ที่อยู่</h3>
         <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน" [state]="stateOf(fieldBy('address'))" [helper]="message('address')" [value]="value('address')" (valueChange)="setValue('address', $event)" (blurred)="touch('address')" />
         <app-address-select
           class="span-2"
@@ -291,31 +224,7 @@
           (postcodeChange)="setValue('postcode', $event)"
           (fieldBlur)="touch($event)"
         />
-        <h3 class="part span-2">3. ที่อยู่ (ภาษาอังกฤษ)</h3>
-        <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="House No., Building, Soi, Road" [state]="stateOf(fieldBy('addressEn'))" [helper]="message('addressEn')" [value]="value('addressEn')" (valueChange)="setValue('addressEn', $event)" (blurred)="touch('addressEn')" />
-        <div class="place span-2">
-          <app-address-select
-            lang="en"
-            [postcodeHidden]="true"
-            [province]="value('provinceEn')"
-            [district]="value('districtEn')"
-            [subdistrict]="value('subdistrictEn')"
-            [postcode]="value('postcodeEn')"
-            [provinceError]="stateOf(fieldBy('provinceEn')) === 'error'"
-            [districtError]="stateOf(fieldBy('districtEn')) === 'error'"
-            [subdistrictError]="stateOf(fieldBy('subdistrictEn')) === 'error'"
-            [provinceMessage]="message('provinceEn')"
-            [districtMessage]="message('districtEn')"
-            [subdistrictMessage]="message('subdistrictEn')"
-            (provinceChange)="setValue('provinceEn', $event)"
-            (districtChange)="setValue('districtEn', $event)"
-            (subdistrictChange)="setValue('subdistrictEn', $event)"
-            (postcodeChange)="setValue('postcodeEn', $event)"
-            (fieldBlur)="touch($event === 'province' ? 'provinceEn' : $event === 'district' ? 'districtEn' : 'subdistrictEn')"
-          />
-          <app-input-field class="block" label="รหัสไปรษณีย์" [required]="true" [editable]="true" placeholder="10110" [state]="stateOf(fieldBy('postcodeEn'))" [helper]="message('postcodeEn')" [value]="value('postcodeEn')" (valueChange)="setValue('postcodeEn', $event)" (blurred)="touch('postcodeEn')" />
-        </div>
-        <h3 class="part span-2">4. ที่อยู่ตามหนังสือรับรองจดทะเบียนสมาคมการค้า</h3>
+        <h3 class="part span-2">3. ที่อยู่ตามหนังสือรับรองจดทะเบียนสมาคมการค้า</h3>
         <fieldset class="choice span-2">
           <legend>ที่อยู่ตามหนังสือรับรอง <span>*</span></legend>
           <span class="choice__row">
@@ -347,58 +256,10 @@
           />
         }
       </div>
-      <h3 class="part">5. ข้อมูลผู้รับมอบอำนาจ</h3>
-      <fieldset class="choice">
-        <legend>การมอบอำนาจ <span>*</span></legend>
-        <span class="choice__row">
-          <label><input type="radio" name="proxy" value="no" [checked]="value('proxy') !== 'yes'" (change)="setProxy('no')" />ไม่มีการมอบอำนาจ</label>
-          <label><input type="radio" name="proxy" value="yes" [checked]="value('proxy') === 'yes'" (change)="setProxy('yes')" />มีการมอบอำนาจ</label>
-        </span>
-      </fieldset>
+      <h3 class="part">4. ข้อมูลผู้รับมอบอำนาจ</h3>
       <div class="form-grid">
-        <app-file-field label="หนังสือมอบอำนาจ" [required]="true" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" note="เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx" [error]="invalid('proxyDoc')" [message]="message('proxyDoc')" [value]="value('proxyDoc')" (valueChange)="setValue('proxyDoc', $event)" (blurred)="touch('proxyDoc')" />
+        <app-file-field label="หนังสือมอบอำนาจ" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" note="เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx" [error]="invalid('proxyDoc')" [message]="message('proxyDoc')" [value]="value('proxyDoc')" (valueChange)="setValue('proxyDoc', $event)" (blurred)="touch('proxyDoc')" />
       </div>
-      @if (value('proxy') === 'yes') {
-        <div class="form-grid">
-          <button type="button" class="download__link span-2">ดาวน์โหลดเอกสารยินยอมใช้ข้อมูล (กรณีเป็นผู้มอบอำนาจ)</button>
-          <app-input-field class="block span-2" label="ผู้มอบอำนาจ" [required]="true" [editable]="false" state="readonly" placeholder="ชื่อสมาคมการค้าจากส่วนที่ 1" [value]="value('name')" />
-          <div class="regno span-2">
-            <app-input-field class="block" label="ค้นหาผู้รับมอบอำนาจ" [editable]="true" placeholder="1103700123458" [state]="proxyQueryState()" [helper]="proxyQueryHelper()" [value]="value('proxyQuery')" (valueChange)="setProxyQuery($event)" (blurred)="touch('proxyQuery')" />
-            <app-button type="secondary" label="ค้นหา" [loading]="checkingProxy()" (click)="searchProxy()" />
-          </div>
-          <p class="hint span-2">ค้นหาจากเลขทะเบียนนิติบุคคล/เลขบัตรประจำตัวประชาชน/เลขหนังสือเดินทาง/เลขทะเบียนสมาคมการค้า</p>
-          <app-input-field class="block" label="ผู้รับมอบอำนาจ" [required]="true" [editable]="true" placeholder="นายสมชาย ใจดี" [state]="stateOf(fieldBy('proxyName'))" [helper]="message('proxyName')" [value]="value('proxyName')" (valueChange)="setValue('proxyName', $event)" (blurred)="touch('proxyName')" />
-          <app-thai-date-field label="วันที่เริ่มต้นกระทำการแทน" placeholder="15/10/2569" limit="any" [state]="stateOf(fieldBy('proxyStart'))" [helper]="message('proxyStart')" [value]="value('proxyStart')" (valueChange)="setValue('proxyStart', $event)" (blurred)="touch('proxyStart')" />
-          <fieldset class="choice choice--stack span-2" [class.error]="invalid('proxyPowers')">
-            <legend>อำนาจกระทำการแทน <span>*</span></legend>
-            @for (item of proxyPowerOptions; track item.key) {
-              <label><input type="checkbox" [checked]="proxyPowerOn(item.key)" (change)="toggleProxyPower(item.key, $any($event.target).checked)" />{{ item.label }}</label>
-            }
-            @if (invalid('proxyPowers')) { <span class="meta">{{ message('proxyPowers') }}</span> }
-          </fieldset>
-          <app-file-field label="ลายเซ็นผู้รับมอบอำนาจ" [required]="true" accept=".png,.jpg,.jpeg" note="เฉพาะนามสกุล png, jpg, jpeg" [error]="invalid('proxySign')" [message]="message('proxySign')" [value]="value('proxySign')" (valueChange)="setValue('proxySign', $event)" (blurred)="touch('proxySign')" />
-          <fieldset class="choice choice--stack span-2" [class.error]="invalid('proxyKind')">
-            <legend>ประเภทการมอบอำนาจ <span>*</span></legend>
-            <span class="choice__row">
-              <label><input type="radio" name="proxyKind" value="act" [checked]="value('proxyKind') === 'act'" (change)="setValue('proxyKind', 'act')" />ผู้รับมอบมีอำนาจกระทำการแทน</label>
-              <label><input type="radio" name="proxyKind" value="sub" [checked]="value('proxyKind') === 'sub'" (change)="setValue('proxyKind', 'sub')" />ผู้รับมอบมีอำนาจกระทำการแทนและมอบอำนาจช่วง</label>
-            </span>
-            @if (invalid('proxyKind')) { <span class="meta">{{ message('proxyKind') }}</span> }
-          </fieldset>
-          <div class="seal span-2">
-            <fieldset class="choice choice--stack" [class.error]="invalid('proxySeal')">
-              <legend>ประเภทการแสดงตราประทับบริษัทและลายเซ็นของผู้รับมอบอำนาจซึ่งจะปรากฏอยู่บนหนังสือนำส่งในระบบ <span>*</span></legend>
-              <label><input type="radio" name="proxySeal" value="seal" [checked]="value('proxySeal') === 'seal'" (change)="setValue('proxySeal', 'seal')" />แนบและแสดงเฉพาะตราประทับบริษัท</label>
-              <label><input type="radio" name="proxySeal" value="sign" [checked]="value('proxySeal') === 'sign'" (change)="setValue('proxySeal', 'sign')" />แนบและแสดงเฉพาะลายเซ็น</label>
-              <label><input type="radio" name="proxySeal" value="both" [checked]="value('proxySeal') === 'both'" (change)="setValue('proxySeal', 'both')" />แนบและแสดงตราประทับบริษัทและลายเซ็น</label>
-              <label><input type="radio" name="proxySeal" value="none" [checked]="value('proxySeal') === 'none'" (change)="setValue('proxySeal', 'none')" />ไม่แนบตราประทับบริษัทและลายเซ็น (แต่ต้องแนบหนังสือนำส่งเองทุกครั้ง)</label>
-              @if (invalid('proxySeal')) { <span class="meta">{{ message('proxySeal') }}</span> }
-            </fieldset>
-            <app-button type="primary" label="ตัวอย่างหนังสือนำส่ง" (click)="showProxySample()" />
-          </div>
-          @if (proxySample()) { <p class="hint span-2">{{ proxySampleText() }}</p> }
-        </div>
-      }
     } @else if (isAccessForm) {
       <div class="access">
         @for (field of fields; track field.key) {
@@ -426,7 +287,7 @@
           <div class="sso">
             <button type="button" class="sso__btn sso__btn--full" [class.sso__btn--linked]="!!ssoAccount('thaiid')" (click)="linkSso('thaiid')">
               <img src="assets/auth/thaid.webp" width="30" height="30" alt="" />
-              <span>{{ ssoAccount('thaiid') || 'ดำเนินการต่อด้วย ThaiD' }}</span>
+              <span>ดำเนินการต่อด้วย ThaiD</span>
               @if (ssoAccount('thaiid')) {
                 <app-status-tag tone="success" label="ผูกแล้ว" />
               }
@@ -434,14 +295,14 @@
             <div class="sso__row">
               <button type="button" class="sso__btn sso__btn--microsoft" [class.sso__btn--linked]="!!ssoAccount('microsoft')" (click)="linkSso('microsoft')">
                 <img src="assets/auth/icon-microsoft.svg" width="16" height="16" alt="" />
-                <span>{{ ssoAccount('microsoft') || 'Microsoft 365' }}</span>
+                <span>Microsoft 365</span>
                 @if (ssoAccount('microsoft')) {
                   <app-status-tag tone="success" label="ผูกแล้ว" />
                 }
               </button>
               <button type="button" class="sso__btn sso__btn--google" [class.sso__btn--linked]="!!ssoAccount('google')" (click)="linkSso('google')">
                 <img src="assets/auth/icon-google.svg" width="16" height="16" alt="" />
-                <span>{{ ssoAccount('google') || 'Google' }}</span>
+                <span>Google</span>
                 @if (ssoAccount('google')) {
                   <app-status-tag tone="success" label="ผูกแล้ว" />
                 }
@@ -479,7 +340,6 @@
     @if (!registered()) {
     <hr class="rule" />
     <div class="actions">
-      <a class="to-login" routerLink="/login">กลับหน้าเข้าสู่ระบบ</a>
       <app-button class="icon-before" type="outline" label="ย้อนกลับ" (click)="back()">
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M21 12H3" fill="none" stroke="currentColor" stroke-linecap="round" /><path d="M9 6L3 12L9 18" fill="none" stroke="currentColor" stroke-linecap="round" /></svg>
       </app-button>
