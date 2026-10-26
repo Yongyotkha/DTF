@@ -1,6 +1,11 @@
 <div class="screen">
   <app-top-header class="fluid" [account]="false" />
-  <h1>ลงทะเบียนสมาชิก</h1>
+  <div class="title">
+    <a class="title__back" routerLink="/login" aria-label="กลับหน้าเข้าสู่ระบบ">
+      <img src="assets/icons/arrow-left.svg" width="24" height="24" alt="" />
+    </a>
+    <h1>ลงทะเบียนสมาชิก</h1>
+  </div>
   <section class="sheet">
     <p>กรุณาเลือกประเภทบุคคลที่ต้องการใช้งาน</p>
     <div class="grid">
@@ -15,9 +20,6 @@
           </a>
         </article>
       }
-    </div>
-    <div class="back">
-      <app-button type="outline" label="กลับหน้าเข้าสู่ระบบ" (click)="goLogin()" />
     </div>
   </section>
 </div>

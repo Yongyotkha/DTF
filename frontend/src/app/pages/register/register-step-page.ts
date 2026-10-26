@@ -50,7 +50,6 @@ const titles: Record<Kind, string> = {
 const details: Record<Kind, Field[]> = {
   corporate: [
     { key: 'country', label: 'ประเทศ', required: true, placeholder: 'ประเทศไทย' },
-    { key: 'taxId', label: 'เลขประจำตัวผู้เสียภาษี', required: true, placeholder: '0105538041238' },
     { key: 'regno', label: 'เลขทะเบียนนิติบุคคล', required: true, placeholder: '0105538041238' },
     { key: 'registered', label: 'วันที่จดทะเบียนนิติบุคคล', kind: 'date', required: true, placeholder: '30/04/2538' },
     { key: 'name', label: 'ชื่อนิติบุคคล (ภาษาไทย)', required: true, placeholder: 'บริษัท ดาต้า มายนิ่ง จำกัด' },
@@ -63,17 +62,8 @@ const details: Record<Kind, Field[]> = {
     { key: 'district', label: 'อำเภอ/เขต', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
     { key: 'subdistrict', label: 'ตำบล/แขวง', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
     { key: 'postcode', label: 'รหัสไปรษณีย์', required: true, placeholder: '10110' },
-    { key: 'addressEn', label: 'ที่อยู่ (ภาษาอังกฤษ)', required: true, placeholder: '102 Naradhiwas Rajanagarindra Road' },
-    { key: 'provinceEn', label: 'จังหวัด (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Bangkok' },
-    { key: 'districtEn', label: 'อำเภอ/เขต (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
-    { key: 'subdistrictEn', label: 'ตำบล/แขวง (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
-    { key: 'postcodeEn', label: 'รหัสไปรษณีย์ (ภาษาอังกฤษ)', required: true, placeholder: '10110' },
-    { key: 'addressCert', label: 'ที่อยู่ตามหนังสือรับรอง', required: true, placeholder: 'เลขที่ 102 ถนน ณ ระนอง' },
-    { key: 'provinceCert', label: 'จังหวัดตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'กรุงเทพมหานคร' },
-    { key: 'districtCert', label: 'อำเภอ/เขตตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
-    { key: 'subdistrictCert', label: 'ตำบล/แขวงตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'คลองเตย' },
-    { key: 'postcodeCert', label: 'รหัสไปรษณีย์ตามหนังสือรับรอง', required: true, placeholder: '10110' },
     { key: 'consent', label: 'หนังสือยินยอมให้ใช้ข้อมูล', required: true },
+    { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ' },
   ],
   individual: [
     { key: 'identity', label: 'ยืนยันตัวตน', required: true, placeholder: 'บัตรประจำตัวประชาชน' },
@@ -103,6 +93,7 @@ const details: Record<Kind, Field[]> = {
     { key: 'districtEn', label: 'อำเภอ/เขต (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
     { key: 'subdistrictEn', label: 'ตำบล/แขวง (ภาษาอังกฤษ)', kind: 'dropdown', required: true, placeholder: 'Khlong Toei' },
     { key: 'postcodeEn', label: 'รหัสไปรษณีย์ (ภาษาอังกฤษ)', required: true, placeholder: '10110' },
+    { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ', required: true },
   ],
   association: [
     { key: 'country', label: 'ประเทศ', required: true, placeholder: 'ประเทศไทย' },
@@ -130,6 +121,7 @@ const details: Record<Kind, Field[]> = {
     { key: 'districtCert', label: 'อำเภอ/เขตตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'subdistrictCert', label: 'ตำบล/แขวงตามหนังสือรับรอง', kind: 'dropdown', required: true, placeholder: 'เลือก' },
     { key: 'postcodeCert', label: 'รหัสไปรษณีย์ตามหนังสือรับรอง', required: true, placeholder: 'รหัสไปรษณีย์' },
+    { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ', required: true },
   ],
 };
 
@@ -167,6 +159,7 @@ const corporateSample: Record<string, string> = {
   subdistrictCert: 'คลองเตย',
   postcodeCert: '10110',
   consent: 'หนังสือยินยอมให้ใช้ข้อมูล.pdf',
+  proxyDoc: 'หนังสือมอบอำนาจ.pdf',
   authority: 'นายสุรช ล่ำซำ ลงลายมือชื่อและประทับตราสำคัญของบริษัท',
   password: 'Dft@2569',
   confirm: 'Dft@2569',
@@ -192,7 +185,6 @@ const proxyFields: Field[] = [
   { key: 'proxyName', label: 'ผู้รับมอบอำนาจ', required: true, placeholder: 'นายสมชาย ใจดี' },
   { key: 'proxyStart', label: 'วันที่เริ่มต้นกระทำการแทน', kind: 'date', required: true, placeholder: '15/10/2569' },
   { key: 'proxyPowers', label: 'อำนาจกระทำการแทน', required: true },
-  { key: 'proxyDoc', label: 'หนังสือมอบอำนาจ', required: true },
   { key: 'proxySign', label: 'ลายเซ็นผู้รับมอบอำนาจ', required: true },
   { key: 'proxyKind', label: 'ประเภทการมอบอำนาจ', required: true },
   { key: 'proxySeal', label: 'ประเภทการแสดงตราประทับบริษัทและลายเซ็น', required: true },
@@ -289,7 +281,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
         Object.assign(this.draft.values, corporateSample);
       }
       if (kind === 'corporate') {
-        for (const key of ['taxId', 'nameEn', 'addressEn', 'provinceEn', 'districtEn', 'subdistrictEn', 'postcodeEn', 'addressCert', 'provinceCert', 'districtCert', 'subdistrictCert', 'postcodeCert']) {
+        for (const key of ['nameEn']) {
           if (!this.draft.values[key]) this.draft.values[key] = corporateSample[key];
         }
       }
@@ -305,7 +297,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       if ((kind === 'corporate' || kind === 'association') && !this.draft.values['country']) {
         this.draft.values['country'] = 'ประเทศไทย';
       }
-      if ((kind === 'corporate' || kind === 'individual' || kind === 'association') && !this.draft.values['proxy']) this.draft.values['proxy'] = 'no';
+      if ((kind === 'individual' || kind === 'association') && !this.draft.values['proxy']) this.draft.values['proxy'] = 'no';
       if ((kind === 'corporate' || kind === 'association') && !this.draft.values['certSame']) {
         this.draft.values['certSame'] = 'yes';
         this.copyCertAddress();
@@ -354,11 +346,11 @@ export class RegisterStepPage implements OnInit, OnDestroy {
 
   protected get fields(): Field[] {
     if (this.step === 2) {
-      const hideCert = (this.kind === 'corporate' || this.kind === 'association') && this.value('certSame') !== 'no';
+      const hideCert = this.kind === 'association' && this.value('certSame') !== 'no';
       const base = hideCert
         ? details[this.kind].filter((field) => !Object.values(certFromThai).includes(field.key))
         : details[this.kind];
-      if ((this.kind === 'corporate' || this.kind === 'individual' || this.kind === 'association') && this.value('proxy') === 'yes') return [...base, ...proxyFields];
+      if ((this.kind === 'individual' || this.kind === 'association') && this.value('proxy') === 'yes') return [...base, ...proxyFields];
       return base;
     }
     if (this.step === 3) return access;
@@ -440,7 +432,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     this.draft.values[key] = value;
     if (key === 'regno' && this.step >= 3) this.assignUsername();
     const certKey = certFromThai[key];
-    if (certKey && (this.kind === 'corporate' || this.kind === 'association') && this.value('certSame') !== 'no') this.draft.values[certKey] = value;
+    if (certKey && this.kind === 'association' && this.value('certSame') !== 'no') this.draft.values[certKey] = value;
   }
 
   protected setCertSame(value: 'yes' | 'no'): void {
@@ -600,7 +592,7 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   }
 
   protected directorRows(): string[][] {
-    return this.directors().map((item, index) => [String(index + 1), item.name, item.surname, item.action]);
+    return this.directors().map((item, index) => [String(index + 1), item.name, item.surname]);
   }
 
   protected importTable(): string[][] {

@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { DftButton } from '../../button/button';
+import { RouterLink } from '@angular/router';
 import { TopHeader } from '../../top-header/top-header';
 
 type RegisterCard = {
@@ -13,16 +12,11 @@ type RegisterCard = {
 
 @Component({
   selector: 'app-register-page',
-  imports: [TopHeader, RouterLink, DftButton],
+  imports: [TopHeader, RouterLink],
   templateUrl: './register-page.html',
   styleUrl: './register-page.css',
 })
 export class RegisterPage {
-  constructor(private readonly router: Router) {}
-
-  protected goLogin(): void {
-    void this.router.navigateByUrl('/login');
-  }
   protected readonly cards: RegisterCard[] = [
     {
       kind: 'corporate',
