@@ -23,6 +23,9 @@
                 <header class="item__head">
                   <div>
                     <p class="item__code">{{ row.ref }}</p>
+                    @if (row.applicant) {
+                      <p class="item__who">{{ row.applicant }}</p>
+                    }
                     <p class="item__goods">{{ row.goods }}</p>
                   </div>
                   <app-status-tag [tone]="row.tone" [label]="row.status" />
@@ -96,6 +99,7 @@
             }
           </div>
         </div>
+        <p class="measure-note">{{ measureNote }}</p>
         <div class="cards">
           @for (form of visibleForms; track form.code) {
             <label class="card" [class.card--picked]="isPicked(form.code)">
@@ -119,6 +123,9 @@
                   </span>
                   <h3>{{ purpose(form).label }}</h3>
                   <p>{{ purpose(form).summary }}</p>
+                  @if (purpose(form).hint) {
+                    <p class="card__hint">{{ purpose(form).hint }}</p>
+                  }
                 </div>
               </div>
             </label>

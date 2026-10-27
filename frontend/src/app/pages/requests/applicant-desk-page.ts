@@ -1,5 +1,5 @@
 import { Component, OnDestroy } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
 import { InputField } from '../../input-field/input-field';
 import { SideNav } from '../../menu-bar/side-nav';
@@ -7,7 +7,7 @@ import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 import { Accounts } from '../../accounts';
-import { joinedCaseIds, joinedFor, invitePath as interestInvitePath } from './interest-invite';
+import { InterestFiling, InterestKind, interestKindLabel, joinedCaseIds, joinedFor, invitePath as interestInvitePath, readInterestFilings, rememberJoined, saveInterestFiling } from './interest-invite';
 import { addGrant, allowedCaseIds, invitePath, isActingAgent, listGrants, powerLabel, proxyPowerChoices, ProxyGrant, ProxyPower, setGrantUse } from './proxy-grant';
 import { archiveCases, caseKey, caseNumberLabel, ListedCase } from './request-cases';
 
@@ -36,7 +36,7 @@ type Card = {
 
 @Component({
   selector: 'app-applicant-desk-page',
-  imports: [TopHeader, SideNav, DftButton, StatusTag, Tabs, InputField],
+  imports: [TopHeader, SideNav, DftButton, StatusTag, Tabs, InputField, RouterLink],
   templateUrl: './applicant-desk-page.html',
   styleUrl: './requests-page.css',
 })
@@ -56,6 +56,11 @@ export class ApplicantDeskPage implements OnDestroy {
   protected proxyError = '';
   protected topic = '';
   protected detail = '';
+  protected filings: InterestFiling[] = readInterestFilings();
+  protected filingGroup: InterestKind = 'importer';
+  protected fixNote = '';
+  protected fixDue = '';
+  protected readonly kindLabel = interestKindLabel;
   private readonly addedInfo: Card[] = [];
 
   constructor(
@@ -68,6 +73,10 @@ export class ApplicantDeskPage implements OnDestroy {
     if (this.desk === 'interest' && this.accounts.role !== 'interest' && !this.staffNotice) {
       void this.router.navigateByUrl('/requests');
     }
+  }
+
+  protected get interestUser(): boolean {
+    return this.accounts.role === 'interest';
   }
 
   protected get staffNotice(): boolean {
@@ -102,6 +111,25 @@ export class ApplicantDeskPage implements OnDestroy {
     if (this.desk === 'cases') return 'เข้าคดีเพื่อรับฟังความคิดเห็น ตอบแบบสอบถาม ยืนยันการตรวจสอบ และดูผล';
     if (this.desk === 'exchange') return 'รับและส่งข้อมูลอื่นที่ไม่อยู่ในแบบคำขอหรือแบบสอบถาม';
     return 'ขอข้อมูลข่าวสาร ชำระค่าธรรมเนียม และรับทราบเอกสารฉบับเปิดเผย';
+  }
+
+  protected decideFiling(id: string, status: 'approved' | 'conditional' | 'fix'): void {
+    const row = this.filings.find((item) => item.id === id);
+    if (!row) return;
+    if (status === 'fix' && (!this.fixNote.trim() || !this.fixDue.trim())) return;
+    if (status !== 'fix' && !this.filingGroup) return;
+    const next: InterestFiling = {
+      ...row,
+      status,
+      group: status === 'fix' ? row.group : this.filingGroup,
+      fixNote: status === 'fix' ? this.fixNote.trim() : row.fixNote,
+      fixDue: status === 'fix' ? this.fixDue.trim() : row.fixDue,
+    };
+    saveInterestFiling(next);
+    if (status === 'approved') {
+      rememberJoined({ caseId: row.caseId, name: row.name, org: row.company || interestKindLabel(this.filingGroup), username: row.taxId });
+    }
+    this.filings = readInterestFilings();
   }
 
   protected get interestLabels(): string[] {
@@ -352,6 +380,9 @@ export class ApplicantDeskPage implements OnDestroy {
     const allow = allowedCaseIds(this.accounts.username);
     let rows = archiveCases.filter((item) => !item.draft);
     if (allow) rows = rows.filter((item) => allow.has(item.id) || allow.has(item.code));
+    const own = rows.filter((item) => item.filer === this.accounts.username);
+    if (own.length) return own;
+    if (this.accounts.role === 'corporate') rows = rows.filter((item) => !item.filer);
     if (this.accounts.role !== 'interest') return rows;
     const joined = joinedCaseIds(this.accounts.username);
     if (!joined) return rows;

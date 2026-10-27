@@ -284,7 +284,7 @@ h1 {
 
 .desk-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
@@ -292,8 +292,69 @@ h1 {
 
 .desk-head__tools {
   display: flex;
-  flex-wrap: wrap;
+  flex: none;
+  align-items: center;
   gap: 8px;
+}
+
+.icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-btn.on {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+.icon-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.icon-btn .tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  display: none;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.icon-btn:hover .tip,
+.icon-btn:focus-visible .tip {
+  display: block;
 }
 
 .desk-head p,
@@ -545,8 +606,67 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 8px;
   margin-top: 12px;
+}
+
+.job__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  cursor: pointer;
+}
+
+.job__icon--line {
+  background: var(--color-white);
+  color: var(--color-primary);
+}
+
+.job__icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.job__icon:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.job__tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 2;
+  display: none;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.job__icon:hover .job__tip,
+.job__icon:focus-visible .job__tip {
+  display: block;
 }
 
 .consult-assign {
@@ -684,35 +804,41 @@ h1 {
 }
 
 .board {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 .board-col {
   display: flex;
+  flex: 0 0 320px;
   flex-direction: column;
   gap: 8px;
+  max-height: calc(100vh - 200px);
   min-width: 0;
   padding: 12px;
+  overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-bg-page);
 }
 
 .summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
   gap: 12px;
   margin-bottom: 12px;
 }
 
 .summary__item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 88px;
   padding: 16px;
   border: 1px solid var(--color-border);
@@ -722,6 +848,29 @@ h1 {
   font-family: var(--font-sans-thai);
   text-align: left;
   cursor: pointer;
+}
+
+.summary__tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 2;
+  display: none;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  pointer-events: none;
+}
+
+.summary__item:hover .summary__tip,
+.summary__item:focus-visible .summary__tip {
+  display: block;
 }
 
 .summary__copy {
@@ -747,7 +896,7 @@ h1 {
   background: var(--color-info-bg);
 }
 
-.summary__item[data-lane='late'] {
+.summary__item[data-lane='pending'] {
   background: var(--color-warning-bg);
 }
 
@@ -755,9 +904,11 @@ h1 {
   background: var(--color-success-bg);
 }
 
-.summary__item[data-lane='all'] {
+.summary__item[data-lane='follow'],
+.summary__item[data-lane='group'] {
   background: var(--color-white);
 }
+
 
 .summary__item.on {
   border-color: var(--color-primary);
@@ -787,6 +938,10 @@ h1 {
   margin: 0;
 }
 
+.board-search {
+  margin-bottom: 12px;
+}
+
 .board-filter {
   display: flex;
   align-items: center;
@@ -797,8 +952,7 @@ h1 {
   line-height: 21px;
 }
 
-.board-filter select,
-.board-view button {
+.board-filter select {
   height: 40px;
   padding: 0 12px;
   border: 1px solid var(--color-border);
@@ -827,7 +981,14 @@ h1 {
 }
 
 .board--list {
-  grid-template-columns: 1fr;
+  flex-direction: column;
+  overflow-x: visible;
+}
+
+.board--list .board-col {
+  flex: none;
+  width: 100%;
+  max-height: none;
 }
 
 .job__when {
@@ -843,7 +1004,7 @@ h1 {
   background: var(--color-info-bg);
 }
 
-.board-col[data-lane='late'] {
+.board-col[data-lane='pending'] {
   border-top: 3px solid var(--color-warning);
   background: var(--color-warning-bg);
 }
@@ -853,16 +1014,25 @@ h1 {
   background: var(--color-success-bg);
 }
 
-.board-col[data-lane='active'] {
+.board-col[data-lane='follow'] {
   border-top: 3px solid var(--color-primary);
-  background: var(--color-bg-page);
+  background: var(--color-white);
+}
+
+.board-col[data-lane='group'] {
+  border-top: 3px solid var(--color-border);
+  background: var(--color-white);
 }
 
 .board-col header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  background: inherit;
 }
 
 .board-col h2 {
@@ -890,12 +1060,6 @@ h1 {
   margin-top: 0;
 }
 
-@media (max-width: 1100px) {
-  .board,
-  .summary {
-    grid-template-columns: 1fr;
-  }
-}
 
 @media (max-width: 1100px) {
   .stats,

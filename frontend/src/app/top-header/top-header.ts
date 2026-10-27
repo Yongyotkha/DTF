@@ -25,7 +25,10 @@ export class TopHeader {
   ) {}
 
   protected accountName(): string {
-    return this.name || this.accounts.displayName;
+    const name = this.name || this.accounts.displayName;
+    const role = this.accounts.roleName;
+    if (!role || name === role) return name;
+    return `${name} (${role})`;
   }
 
   protected showMenu(): boolean {

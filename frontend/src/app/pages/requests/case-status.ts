@@ -33,6 +33,7 @@ const noteReadKey = 'dft-por1-note-reads';
 const laterPhaseKey = 'dft-por1-later-phase';
 const workDraftKey = 'dft-por1-work-drafts';
 const madeDocKey = 'dft-por1-made-docs';
+const flowFileKey = 'dft-por1-flow-file';
 
 /** เลข Ref Case ID (eTR) ที่ระบบ eTR ส่งกลับ ยังไม่ใช่เลข Case ID ของคดี */
 export type EtrLink = {
@@ -128,6 +129,7 @@ export const reviewWaitMs = 10_000;
 export type RoundState = 'review' | 'revision';
 export type RoundFinding = { place: string; title: string; detail: string; action: 'เพิ่มเอกสาร' | 'ปรับข้อมูล' };
 export type RoundFile = { group: string; name: string; saved: string };
+export type RoundAnswer = { group: string; label: string; value: string };
 export type FilingRound = {
   round: number;
   submittedOn: string;
@@ -137,6 +139,7 @@ export type FilingRound = {
   signer: string;
   files: RoundFile[];
   findings: RoundFinding[];
+  answers?: RoundAnswer[];
 };
 
 /** เลขที่อ้างอิงระหว่างยื่นคำขอ ยังไม่ใช่เลข Case ID */
@@ -616,7 +619,7 @@ export type InquiryPayFile = { name: string; title: string; sentOn: string };
 
 export type InquiryQuestionId = 'importer' | 'domestic' | 'exporter';
 
-export type InquiryLoopKind = 'form' | 'extend-ask' | 'extend-reply' | 'answer' | 'revise' | 'revised';
+export type InquiryLoopKind = 'form' | 'docs' | 'extend-ask' | 'extend-reply' | 'answer' | 'revise' | 'revised';
 
 /** เอกสารหนึ่งฉบับในวงรอบแบบสอบถาม สร้างซ้ำได้จนกว่าจะผ่าน */
 export type InquiryLoopDoc = {
@@ -655,7 +658,7 @@ function readInquiryQuestions(value: unknown): InquiryQuestion[] {
     const found = saved.find((row) => row && typeof row === 'object' && (row as { id?: string }).id === item.id) as Partial<InquiryQuestion> | undefined;
     if (!found) return { ...item };
     const text = (value: unknown) => typeof value === 'string' ? value : '';
-    const kinds = new Set(['form', 'extend-ask', 'extend-reply', 'answer', 'revise', 'revised']);
+    const kinds = new Set(['form', 'docs', 'extend-ask', 'extend-reply', 'answer', 'revise', 'revised']);
     const papers = Array.isArray(found.papers)
       ? found.papers.flatMap((paper) => {
           if (!paper || typeof paper !== 'object') return [];
@@ -1088,8 +1091,31 @@ export function consultChannelLabel(plan: ConsultPlan | null): string {
     .join(' · ');
 }
 
+export type FlowCheckItem = { label: string; pass: boolean; detail: string; note: string; place?: string };
+export type FlowFile = { state: 'checking' | 'receive' | 'fix'; passed: boolean; items: FlowCheckItem[]; round: number; until?: number };
+
+/** ผลตรวจก่อนส่งต่อเจ้าหน้าที่ ผู้ยื่นไม่เห็นว่าระบบตรวจ */
+export function writeFlowFile(value: FlowFile | null): void {
+  if (!value) sessionStorage.removeItem(flowFileKey);
+  else sessionStorage.setItem(flowFileKey, JSON.stringify(value));
+}
+
+export function readFlowFile(): FlowFile | null {
+  const raw = sessionStorage.getItem(flowFileKey);
+  if (!raw) return null;
+  if (raw === 'receive') return { state: 'receive', passed: true, items: [], round: 1 };
+  try {
+    const parsed = JSON.parse(raw) as FlowFile;
+    if (parsed?.state === 'checking' || parsed?.state === 'receive' || parsed?.state === 'fix') return parsed;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 /** เริ่มคำขอต้นแบบใหม่จากหน้าเลือกแบบฟอร์ม */
 export function startFilingCase(): void {
+  writeFlowFile(null);
   writeCaseStatus('draft');
   writeRounds([]);
   writeReviewUntil(0);

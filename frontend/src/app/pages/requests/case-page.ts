@@ -13,6 +13,7 @@ import { formCodeIn } from './case-form';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
 import { joinedCaseIds } from './interest-invite';
 import { allows, isActingAgent, powersOnCase, powerLabel, ProxyPower } from './proxy-grant';
+import { hearingStatus, readHearing, writeHearing } from './hearing-lane';
 import { caseBrief, CaseParty, caseNumberLabel, documentsForStage, findListedCase, ListedCase, PartyAudience, partyDocuments, partyDocumentsForStage, stageResult, stepLabel } from './request-cases';
 
 @Component({
@@ -51,6 +52,7 @@ export class CasePage implements OnDestroy {
     if (stage === 'open' || stage === 'question') {
       return [
         { id: 'qn', label: 'ส่งคำตอบแบบสอบถาม', hint: 'ส่งคำตอบแบบสอบถามของเคสนี้' },
+        { id: 'extend', label: 'ขอขยายเวลา', hint: 'ขอขยายเวลาได้ก่อนวันครบกำหนด 7 วัน' },
         { id: 'exchange', label: 'รับ–ส่งข้อมูลอื่น', hint: 'ส่งเอกสารที่ไม่อยู่ในแบบคำขอหรือแบบสอบถาม' },
       ];
     }
@@ -72,6 +74,7 @@ export class CasePage implements OnDestroy {
     if (stage === 'open' || stage === 'question') {
       return [
         { id: 'qn', label: 'ส่งคำตอบแบบสอบถาม', hint: 'ส่งคำตอบและแบบสอบถามของผู้มีส่วนได้เสีย' },
+        { id: 'extend', label: 'ขอขยายเวลา', hint: 'ขอขยายเวลาได้ก่อนวันครบกำหนด 7 วัน' },
         { id: 'opinion', label: 'ส่งความเห็น', hint: 'ส่งความเห็นต่อข้อมูลที่เปิดเผย' },
       ];
     }
@@ -123,8 +126,20 @@ export class CasePage implements OnDestroy {
     if (!text && id !== 'join') return;
     this.actionState = { ...this.actionState, [id]: text || 'ยืนยันแล้ว' };
     sessionStorage.setItem(this.actionKey, JSON.stringify(this.actionState));
+    if (id === 'hearing') {
+      writeHearing({ caseCode: this.code, by: this.accounts.displayName, ask: text, step: 'ask', when: '', place: '', summary: '' });
+    }
     this.actionNote = '';
     this.actionOpen = '';
+  }
+
+  protected hearingLine(): string {
+    const lane = readHearing();
+    if (!lane || lane.caseCode !== this.code) return '';
+    const base = hearingStatus(lane.step);
+    if (lane.step === 'booked' || lane.step === 'approved') return `${base} ${lane.when} ${lane.place}`.trim();
+    if (lane.step === 'done') return `${base} ${lane.summary}`.trim();
+    return base;
   }
 
   protected joinLink(file: string): string {
@@ -438,8 +453,14 @@ export class CasePage implements OnDestroy {
         return 'ขั้นถัดไปคือส่งคำตอบแบบสอบถาม';
       case 'question':
         return 'ขั้นถัดไปคือส่งคำตอบแบบสอบถาม แล้วรอผลขั้นต้น';
-      case 'prelim':
+      case 'prelim': {
+        const lane = readHearing();
+        if (lane?.caseCode === this.code && (lane.step === 'done' || lane.step === 'skip')) return 'สรุป hearing ส่งกลับเข้าผลแล้ว';
+        if (lane?.caseCode === this.code && lane.step === 'approved') return 'คณะกรรมการอนุมัติแล้ว รอเจ้าหน้าที่สรุปประเด็น';
+        if (lane?.caseCode === this.code && lane.step === 'booked') return 'นัด hearing แล้ว รอคณะกรรมการอนุมัติ';
+        if (lane?.caseCode === this.code && lane.step === 'ask') return 'ส่งคำขอ hearing แล้ว รอเจ้าหน้าที่พิจารณา';
         return 'ขั้นถัดไปคือขอทราบข้อเท็จจริงหรือขอจัด hearing ภายใน 30 วัน';
+      }
       case 'draft':
         return 'ขั้นถัดไปคือส่งความเห็นต่อร่างผล';
       case 'stopped':

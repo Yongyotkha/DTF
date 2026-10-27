@@ -185,7 +185,7 @@
   }
 
   .top-header__name {
-    max-width: 88px;
+    max-width: calc(100vw - 180px);
   }
 }
 

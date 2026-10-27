@@ -23,9 +23,12 @@
               @if (task.id === 'agenda' && !done(task.id)) {
                 <app-input-field kind="textarea" label="วาระ" [value]="agenda" (valueChange)="agenda = $event" />
               }
+              @if (task.id === 'hearing' && hearingAsk) {
+                <p class="item__goods">{{ hearingAsk }}</p>
+              }
               @if (!done(task.id)) {
                 <div class="item__foot">
-                  <app-button type="primary" label="อนุมัติ" (click)="approve(task.id)" />
+                  <app-button type="primary" label="อนุมัติ" [state]="task.id === 'hearing' && !hearingReady ? 'disabled' : 'default'" (click)="approve(task.id)" />
                 </div>
               }
             </article>

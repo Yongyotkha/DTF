@@ -3,21 +3,37 @@
   <div class="staff__body">
     <app-side-nav kind="staff" open="" active="หน้าหลัก" (chosen)="openMenu($event)" />
     <main>
-      @if (role === 'director' || role === 'officer') {
+      @if (overview) {
         <header class="desk-head">
           <div>
-            <h1>ระบบ e-TR</h1>
-            <p>สรุปเรื่องมาตรการทุ่มตลาด การอุดหนุน และมาตรการปกป้อง</p>
+            <h1>ภาพรวมงาน</h1>
+            <p>{{ overviewLead }}</p>
           </div>
         <div class="desk-head__tools">
           @if (role === 'director') {
-            <app-button class="icon-before" type="outline" label="คำขอทั้งหมด" (click)="openCases()">
+            <button type="button" class="icon-btn" aria-label="คำขอทั้งหมด" (click)="openCases()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
-            </app-button>
+              <span class="tip" role="tooltip">คำขอทั้งหมด</span>
+            </button>
           }
-          <app-button class="icon-before" type="outline" label="รีเฟรช" (click)="refreshConsult()">
+          <button type="button" class="icon-btn" aria-label="รีเฟรช" (click)="refreshConsult()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.2-5.6M20 4v5h-5" /></svg>
-          </app-button>
+            <span class="tip" role="tooltip">รีเฟรช</span>
+          </button>
+          <button type="button" class="icon-btn" [class.on]="searchOpen || !!query" aria-label="ค้นหา" [attr.aria-expanded]="searchOpen" (click)="toggleSearch()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
+            <span class="tip" role="tooltip">ค้นหา</span>
+          </button>
+          <div class="board-view" role="tablist" aria-label="รูปแบบการดู">
+            <button type="button" class="icon-btn" aria-label="แบบคอลัมน์" [class.on]="boardView === 'board'" (click)="boardView = 'board'">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1" /><rect x="10" y="4" width="5" height="16" rx="1" /><rect x="17" y="4" width="4" height="16" rx="1" /></svg>
+              <span class="tip" role="tooltip">แบบคอลัมน์</span>
+            </button>
+            <button type="button" class="icon-btn" aria-label="แบบรายการ" [class.on]="boardView === 'list'" (click)="boardView = 'list'">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <span class="tip" role="tooltip">แบบรายการ</span>
+            </button>
+          </div>
         </div>
         </header>
         @if (awaitingApproval) {
@@ -31,6 +47,17 @@
             } @else if (canApprove) {
               <app-button type="primary" label="อนุมัติการยื่นแบบ" (click)="approveFiling()" />
             }
+          </section>
+        }
+        @if (role === 'head' && headsThisGroup && consultStep === 'group') {
+          <section class="consult-assign" aria-label="มอบหมายเจ้าหน้าที่ในกลุ่ม">
+            <p>มอบหมายเจ้าหน้าที่ในกลุ่ม {{ consultGroupName }}</p>
+            <div>
+              @for (person of consultMembers; track person.name) {
+                <button type="button" [class.on]="consultMember === person.name" (click)="consultMember = person.name">{{ person.name }}</button>
+              }
+            </div>
+            <app-button type="primary" label="มอบหมายเจ้าหน้าที่นี้" (click)="assignConsultMember()" />
           </section>
         }
         @if (pendingProxies.length) {
@@ -49,33 +76,32 @@
         }
         <section class="summary" aria-label="สรุปสถานะงาน">
           @for (item of summaryStats; track item.label) {
-            <button type="button" class="summary__item" [class.on]="boardLane === item.id" [attr.data-lane]="item.id || 'all'" [attr.aria-pressed]="boardLane === item.id" (click)="pickSummary(item.id)">
+            <button type="button" class="summary__item" [class.on]="boardLane === item.id" [attr.data-lane]="item.id" [attr.aria-pressed]="boardLane === item.id" [attr.aria-describedby]="'summary-tip-' + item.id" (click)="pickSummary(item.id)">
               <span class="summary__copy">
                 <b>{{ item.label }}</b>
                 <small>{{ item.hint }}</small>
               </span>
               <strong [class.stat__zero]="item.count === 0">{{ item.count }}</strong>
+              <span class="summary__tip" role="tooltip" [id]="'summary-tip-' + item.id">{{ item.tip }}</span>
             </button>
           }
         </section>
-        <div class="board-tools">
-          <label class="desk-search">
-            <input type="search" aria-label="ค้นหาเลขคำขอหรือชื่อผู้ยื่น" placeholder="ค้นหาเลขคำขอ ผู้ยื่น บริษัท หรือหัวข้อเรื่อง" [value]="query" (input)="query = $any($event.target).value" />
-          </label>
-          <label class="board-filter">
-            <span>กลุ่มงาน</span>
-            <select aria-label="กลุ่มงาน" [value]="groupFilter" (change)="groupFilter = $any($event.target).value">
-              <option value="">ทั้งหมด</option>
-              @for (group of taskGroups; track group) {
-                <option [value]="group">{{ group }}</option>
-              }
-            </select>
-          </label>
-          <div class="board-view" role="tablist" aria-label="รูปแบบการดู">
-            <button type="button" [class.on]="boardView === 'board'" (click)="boardView = 'board'">แบบคอลัมน์</button>
-            <button type="button" [class.on]="boardView === 'list'" (click)="boardView = 'list'">แบบรายการ</button>
+        @if (searchOpen) {
+          <div class="board-tools board-search">
+            <label class="desk-search">
+              <input id="desk-search" type="search" aria-label="ค้นหาเลขคำขอหรือชื่อผู้ยื่น" placeholder="ค้นหาเลขคำขอ ผู้ยื่น บริษัท หรือหัวข้อเรื่อง" [value]="query" (input)="query = $any($event.target).value" />
+            </label>
+            <label class="board-filter">
+              <span>กลุ่มงาน</span>
+              <select aria-label="กลุ่มงาน" [value]="groupFilter" (change)="groupFilter = $any($event.target).value">
+                <option value="">ทั้งหมด</option>
+                @for (group of taskGroups; track group) {
+                  <option [value]="group">{{ group }}</option>
+                }
+              </select>
+            </label>
           </div>
-        </div>
+        }
         <section class="board" [class.board--list]="boardView === 'list'" aria-label="บอร์ดงาน">
           @for (column of boardColumns; track column.id) {
             <div class="board-col" [attr.data-lane]="column.id">
@@ -86,9 +112,9 @@
               @if (!column.rows.length) {
                 <p class="desk-empty">ไม่มีงาน</p>
               }
-              @for (row of column.rows; track row.code + row.title) {
-            <article class="job" [class.job--open]="openCode === row.code + row.title">
-              <button type="button" class="job__hit" (click)="toggleJob(row.code + row.title)">
+              @for (row of column.rows; track taskKey(row)) {
+            <article class="job" [class.job--open]="openCode === taskKey(row)">
+              <button type="button" class="job__hit" (click)="toggleJob(taskKey(row))">
                 <span class="job__top">
                   <b>{{ row.title }}</b>
                   <app-status-tag variant="soft" [tone]="row.tone" [label]="row.status" />
@@ -101,7 +127,7 @@
                   <span class="job__due">วันที่ครบกำหนดส่ง : {{ row.due }}</span>
                 }
               </button>
-              @if (openCode === row.code + row.title) {
+              @if (openCode === taskKey(row)) {
                 @if (role === 'director' && awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') {
                     <div class="consult-assign">
                       <p>มอบหมายกลุ่มงาน หัวหน้ากลุ่มจะเลือกเจ้าหน้าที่ในกลุ่มต่อ</p>
@@ -184,9 +210,15 @@
                 </dl>
               }
               <footer>
-                <app-button type="primary" label="ดูรายละเอียด" (click)="toggleJob(row.code + row.title)" />
-                @if (row.code === filingRef && (role === 'director' || role === 'officer')) {
-                  <app-button type="outline" [label]="jobLabel(row)" (click)="jobClick(row)" />
+                <button type="button" class="job__icon" aria-label="ดูรายละเอียด" (click)="toggleJob(taskKey(row))">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <span class="job__tip" role="tooltip">ดูรายละเอียด</span>
+                </button>
+                @if (row.code === filingRef && (role === 'director' || role === 'head' || role === 'officer')) {
+                  <button type="button" class="job__icon job__icon--line" [attr.aria-label]="jobLabel(row)" (click)="jobClick(row)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+                    <span class="job__tip" role="tooltip">{{ jobLabel(row) }}</span>
+                  </button>
                 }
               </footer>
             </article>
@@ -202,17 +234,6 @@
           <p>ขั้นถัดไป ผู้อำนวยการเลือกกลุ่ม แล้วหัวหน้ากลุ่มเลือกเจ้าหน้าที่ในกลุ่ม</p>
           <p>หัวข้อ {{ consultTopic }} · {{ consultWhen }}</p>
           <app-button type="primary" label="มอบหมายให้ผู้อำนวยการ" (click)="assignIntake()" />
-        </section>
-      }
-      @if (role === 'head' && headsThisGroup && consultStep === 'group') {
-        <section class="consult-assign" aria-label="มอบหมายเจ้าหน้าที่ในกลุ่ม">
-          <p>มอบหมายเจ้าหน้าที่ในกลุ่ม {{ consultGroupName }}</p>
-          <div>
-            @for (person of consultMembers; track person.name) {
-              <button type="button" [class.on]="consultMember === person.name" (click)="consultMember = person.name">{{ person.name }}</button>
-            }
-          </div>
-          <app-button type="primary" label="มอบหมายเจ้าหน้าที่นี้" (click)="assignConsultMember()" />
         </section>
       }
       @if (awaitingApproval) {

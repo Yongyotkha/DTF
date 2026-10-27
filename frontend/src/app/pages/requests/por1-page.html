@@ -8,7 +8,7 @@
     }
     <main>
       <div [class.review-pin]="!!reviewRole">
-      <header class="head" [class.head--review]="!!reviewRole" [class.head--status]="showStatus">
+      <header class="head" [class.head--review]="!!reviewRole" [class.head--status]="!reviewRole && tracking">
         <div>
           @if (reviewRole) {
             <p class="crumb">คำขอ <span aria-hidden="true">›</span> รายละเอียดคำขอ</p>
@@ -35,12 +35,12 @@
             } @else if (!showStatus && tracking) {
               <p>เลขที่อ้างอิง {{ refId }}</p>
             } @else if (!tracking) {
-              <p>แบบคำขอให้พิจารณาทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้การทุ่มตลาดหรือการอุดหนุน</p>
+              <p>{{ filingLead }}</p>
             }
           }
         </div>
         <div class="head__actions">
-          @if (reviewRole) {
+          @if (showReviewTab('assign')) {
             <button type="button" class="head__history" [class.on]="reviewTab === 'assign'" [class.head__history--new]="assignmentWaiting" [attr.aria-label]="workButtonLabel" (click)="showAssignment()">
               @if (canAssignWork) {
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1" /><circle cx="10" cy="8" r="3" /><path d="M20 8v6M17 11h6" /></svg>
@@ -48,6 +48,8 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l1 3H5l1-3z" /><path d="M6 6h12v14H6z" /><path d="M9 12l2 2 4-4" /></svg>
               }
             </button>
+          }
+          @if (reviewRole) {
             <button type="button" class="head__history" [class.head__history--alert]="unreadNoteCount > 0" [attr.aria-label]="unreadNoteCount ? 'บันทึกข้อความ มีรายการที่ยังไม่ได้อ่าน ' + unreadNoteCount + ' รายการ' : 'บันทึกข้อความ'" (click)="openNotes()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2z" /><path d="M9 9h6M9 13h4" /></svg>
             </button>
@@ -107,6 +109,24 @@
         }
       </header>
       @if (reviewRole) {
+        @if (screenCheck; as check) {
+          <section class="sheet review" aria-label="ผลการตรวจก่อนส่งต่อ">
+            <div class="review__lead">
+              <div>
+                <h2>AI ตรวจ 3 ระดับ</h2>
+                <p>{{ check.state === 'checking' ? 'กำลังตรวจคำขอ ครั้งที่ ' + check.round : check.passed ? 'ไม่พบประเด็น รวบรวมผลแล้ว ขั้นถัดไปคือเปิดเคสและงานสารบรรณลงทะเบียนรับ' : 'พบประเด็น แจ้งผู้ยื่นให้แก้ไขแล้ว ยังไม่เปิดเคส' }}</p>
+              </div>
+            </div>
+            <ol class="review__steps">
+              @for (item of check.items; track item.label) {
+                <li [class.review__done]="item.pass">
+                  <span aria-hidden="true"></span>
+                  {{ item.label }} · {{ item.detail }}
+                </li>
+              }
+            </ol>
+          </section>
+        }
         @if (caseStatus === 'approval') {
           <section class="approve-band" aria-label="ส่งมาขออนุมัติ">
             @if (filingGate?.state === 'pending') {
@@ -158,7 +178,7 @@
         }
         <nav class="step-tabs" aria-label="ส่วนงาน">
           @for (tab of reviewTabs(); track tab.id) {
-            <button type="button" [class.on]="reviewTab === tab.id" [class.is-done]="reviewMark(tab.id) === 'done'" [class.is-lock]="reviewMark(tab.id) === 'lock'" [class.is-link]="tab.id === 'link'" [disabled]="reviewLocked(tab.id)" (click)="pickReviewTab(tab.id)">
+            <button type="button" [class.on]="reviewTab === tab.id" [class.is-done]="reviewMark(tab.id) === 'done'" [class.is-now]="reviewMark(tab.id) === 'now'" [class.is-lock]="reviewMark(tab.id) === 'lock'" [class.is-link]="tab.id === 'link'" [disabled]="reviewLocked(tab.id)" (click)="pickReviewTab(tab.id)">
               <span class="step-tabs__mark">
                 @if (tab.id === 'link') {
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1.5l1.4-1.4a5 5 0 0 0-7-7L10 6.6" /><path d="M14 11a5 5 0 0 0-7.1-.5l-1.4 1.4a5 5 0 0 0 7 7L14 17.4" /></svg>
@@ -268,7 +288,7 @@
                       <th class="col-no">ลำดับ</th>
                       <th>ไฟล์แนบ</th>
                       <th>ชื่อเอกสาร</th>
-                      <th>การจัดการ</th>
+                      <th class="col-manage">การจัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -608,7 +628,7 @@
                             <th class="col-no">ลำดับ</th>
                             <th>ไฟล์แนบ</th>
                             <th>ชื่อเอกสาร</th>
-                            <th>การจัดการ</th>
+                            <th class="col-manage">การจัดการ</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -710,6 +730,47 @@
               }
             </ol>
           </section>
+        } @else if (checkReturned) {
+          <section class="sheet fix-banner" aria-label="ผลการตรวจสอบคำขอ">
+            <span class="fix-banner__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 6.5v8" /><circle cx="12" cy="17.5" r="1.2" fill="currentColor" stroke="none" /></svg>
+            </span>
+            <div class="fix-banner__copy">
+              <h2>ผลการตรวจสอบ : <span>ไม่ผ่าน</span></h2>
+              <p>ตรวจคำขอครั้งที่ {{ filingRound }} แล้ว ยังไม่ผ่าน เพราะมี {{ failedChecks.length }} รายการที่ต้องแก้</p>
+              @if (offerConsult) {
+                <p>แก้ครบ 3 รอบแล้วยังไม่ผ่าน ยืนยันยื่นแบบทางการได้เลย หรือขอปรึกษาเจ้าหน้าที่ หรือกลับไปแก้ในแบบแล้วส่งตรวจอีกครั้ง</p>
+              } @else {
+                <p>ยืนยันยื่นแบบทางการได้เลยโดยไม่ต้องแก้ หรือเปิดแบบคำขอแล้วแก้ตามรายการด้านล่างก่อนส่งตรวจอีกครั้ง</p>
+              }
+            </div>
+            <div class="fix-banner__act">
+              <app-button type="primary" label="ยืนยันยื่นแบบทางการ" (click)="officialOpen = true" />
+              @if (offerConsult) {
+                <app-button type="outline" label="ขอปรึกษาเจ้าหน้าที่" (click)="openConsult()" />
+              }
+              <app-button type="outline" label="ไปแก้ในแบบคำขอ" (click)="editAfterCheck()" />
+            </div>
+          </section>
+          <section class="sheet fix-board" aria-label="รายการที่ต้องแก้">
+            <header>
+              <h2>รายการที่ต้องแก้ <span>{{ failedChecks.length }} รายการ</span></h2>
+            </header>
+            <ol>
+              @for (item of failedChecks; track item.note; let i = $index) {
+                <li>
+                  <span class="fix-no">{{ i + 1 }}</span>
+                  <div>
+                    <strong>{{ item.note }}</strong>
+                    @if (item.place) {
+                      <small>{{ item.place }}</small>
+                    }
+                    <p>{{ item.detail }}</p>
+                  </div>
+                </li>
+              }
+            </ol>
+          </section>
         } @else {
         <section class="sheet review" aria-label="สถานะการตรวจสอบคำขอ">
           <div class="review__lead">
@@ -717,22 +778,37 @@
               <svg viewBox="0 0 24 24"><path d="M5 12.5 9.2 17 19 7" /></svg>
             </span>
             <div>
-              <h2>ได้รับเอกสารเรียบร้อย</h2>
-              <p>คำขอเลขที่อ้างอิง {{ refId }} ครั้งที่ {{ filingRound }} อยู่ระหว่างตรวจสอบ</p>
-              <p class="review__clock" role="timer" aria-live="polite">รอผลภายใน 10 วินาที · เหลือเวลา {{ reviewClock }}</p>
-              <p>หากไม่ผ่าน จะให้เลือกแก้ไข ขอปรึกษา หรือยืนยันส่งแบบยื่นทางการ</p>
+              @if (screenChecking) {
+                <h2>อยู่ระหว่างตรวจสอบ</h2>
+                <p>คำขอเลขที่อ้างอิง {{ refId }} ครั้งที่ {{ filingRound }} อยู่ระหว่างตรวจสอบ</p>
+              } @else if (waitingReceipt) {
+                <h2>ส่งคำขอแล้ว</h2>
+                <p>คำขอเลขที่อ้างอิง {{ refId }} ครั้งที่ {{ filingRound }} อยู่ระหว่างตรวจสอบ</p>
+              } @else {
+                <h2>ได้รับเอกสารเรียบร้อย</h2>
+                <p>คำขอเลขที่อ้างอิง {{ refId }} ครั้งที่ {{ filingRound }} อยู่ระหว่างตรวจสอบ</p>
+                <p class="review__clock" role="timer" aria-live="polite">รอผลภายใน 10 วินาที · เหลือเวลา {{ reviewClock }}</p>
+                <p>หากไม่ผ่าน จะให้เลือกแก้ไข ขอปรึกษา หรือยืนยันส่งแบบยื่นทางการ</p>
+              }
               <p class="amend-note">วันที่ยื่นครั้งแรก {{ filedOn }} · วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน) {{ amendUntil }}</p>
             </div>
           </div>
           <ol class="review__steps">
-            <li class="review__now">
-              <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg></span>
-              อยู่ระหว่างตรวจสอบข้อมูลและเอกสาร
-            </li>
-            <li>
-              <span aria-hidden="true"></span>
-              รอแจ้งผลการตรวจสอบ
-            </li>
+            @if (screenChecking || waitingReceipt) {
+              <li class="review__now">
+                <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg></span>
+                ตรวจสอบคำขอ
+              </li>
+            } @else {
+              <li class="review__now">
+                <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg></span>
+                อยู่ระหว่างตรวจสอบข้อมูลและเอกสาร
+              </li>
+              <li>
+                <span aria-hidden="true"></span>
+                รอแจ้งผลการตรวจสอบ
+              </li>
+            }
           </ol>
           <div class="review__actions">
             <app-button class="icon-before" type="primary" label="ดูรายละเอียดคำขอ" (click)="viewingForm = true">
@@ -753,23 +829,59 @@
                   <div>
                     <strong>ครั้งที่ {{ round.round }}</strong>
                     <app-status-tag variant="soft" [tone]="round.state === 'revision' ? 'danger' : 'info'" [label]="round.state === 'revision' ? 'ไม่ผ่าน' : 'ตรวจสอบ'" />
-                    <small>ยื่นเมื่อ {{ round.submittedOn }} · {{ round.files.length }} ไฟล์</small>
-                    <p>{{ round.state === 'revision' ? 'ให้แก้ไขก่อนยื่นรอบถัดไป' : 'อยู่ระหว่างตรวจสอบ' }}</p>
+                    <small>ยื่นเมื่อ {{ round.submittedOn }} · {{ round.files.length }} ไฟล์ · {{ round.state === 'revision' ? 'ไม่ผ่าน เพราะมี ' + round.findings.length + ' รายการที่ต้องแก้' : 'อยู่ระหว่างตรวจสอบ' }}</small>
+                    @if (expandedRound === round.round && round.findings.length) {
+                      <ul class="rounds__why">
+                        @for (item of round.findings; track item.title) {
+                          <li>
+                            <strong>{{ item.title }}</strong>
+                            @if (item.place) {
+                              <small>{{ item.place }}</small>
+                            }
+                            @if (item.detail) {
+                              <p>{{ item.detail }}</p>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    }
                   </div>
-                  <button type="button" (click)="openStored(round)">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /></svg>
-                    ดูไฟล์ที่ยื่นไว้
-                  </button>
-                  <button type="button" aria-label="เปิดรอบนี้" (click)="openStored(round)">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-                  </button>
+                  <div class="rounds__acts">
+                    <button type="button" aria-label="ดูแบบฟอร์ม" (click)="openRoundForm(round)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                    </button>
+                    <button type="button" aria-label="ดูไฟล์ที่ยื่นไว้" (click)="openStored(round)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /></svg>
+                    </button>
+                    @if (round.findings.length) {
+                      <button type="button" aria-label="ดูเหตุผลที่ไม่ผ่าน" [attr.aria-expanded]="expandedRound === round.round" [class.on]="expandedRound === round.round" (click)="toggleRound(round.round)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+                      </button>
+                    }
+                  </div>
                 </article>
               }
             </div>
           </section>
         }
       }
-      @if (openedRound) {
+      @if (openedRound && historyView === 'form') {
+        <section class="sheet rounds" aria-label="แบบฟอร์มของรอบการยื่น">
+          <h2>แบบ ปร. 1 ครั้งที่ {{ openedRound.round }}</h2>
+          <p class="sheet__view">เก็บไว้เป็นประวัติตอนยื่น {{ openedRound.submittedOn }} · {{ openedRound.company }} · {{ openedRound.measure }} · ผู้ลงนาม {{ openedRound.signer }}</p>
+          @for (group of answerGroups(openedRound); track group) {
+            <h3 class="rounds__group">{{ group }}</h3>
+            <dl class="rounds__form">
+              @for (row of answersIn(openedRound, group); track row.label) {
+                <div>
+                  <dt>{{ row.label }}</dt>
+                  <dd>{{ row.value }}</dd>
+                </div>
+              }
+            </dl>
+          }
+        </section>
+      } @else if (openedRound) {
         <section class="sheet rounds" aria-label="ไฟล์ของรอบการยื่น">
           <h2>คำขอครั้งที่ {{ openedRound.round }}</h2>
           <p class="sheet__view">ยื่นเมื่อ {{ openedRound.submittedOn }} · {{ openedRound.company }} · {{ openedRound.measure }} · ผู้ลงนาม {{ openedRound.signer }}</p>
@@ -843,14 +955,14 @@
                       <div>
                         <h2>{{ activeDuty?.title || 'งาน' }}</h2>
                       </div>
-                      @if (reviewRole === 'director' && activeDuty?.title !== 'ขอคำปรึกษา') {
+                      @if (reviewRole === 'director' && !dutyIsAssign) {
                         <button type="button" class="assign-add" (click)="openAssign()">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                           เพิ่มผู้รับมอบหมาย
                         </button>
                       }
                     </header>
-                    @if (activeDuty?.title === 'ขอคำปรึกษา') {
+                    @if (dutyIsAssign) {
                       <article class="consult-board">
                         <ng-template #consultFields>
                           <div class="assign-dates assign-dates--when">
@@ -864,6 +976,11 @@
                             <input type="checkbox" [checked]="consultRemind" (change)="consultRemind = $any($event.target).checked" />
                             <img [src]="consultRemind ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
                             แจ้งเตือนผู้รับผิดชอบหลักทางอีเมล ก่อนถึงวันครบกำหนด
+                          </label>
+                          <label class="slip-check">
+                            <input type="checkbox" [checked]="consultSigned" (change)="consultSigned = $any($event.target).checked" />
+                            <img [src]="consultSigned ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                            ลงนามคำสั่งมอบหมาย
                           </label>
                           <label class="assign-remark">
                             <span>คำสั่ง/การดำเนินการ<span class="req">*</span></span>
@@ -943,6 +1060,11 @@
                               </table>
                             </div>
                           }
+                          <label class="slip-check">
+                            <input type="checkbox" [checked]="resultSigned" (change)="resultSigned = $any($event.target).checked" />
+                            <img [src]="resultSigned ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                            ลงนามรายงานผล
+                          </label>
                         </ng-template>
                         <ng-template #officerSelect let-group="group">
                           <div class="people-select">
@@ -1015,8 +1137,8 @@
                           <section class="consult-assign" aria-label="มอบหมายงาน">
                             <header>
                               <span>
-                                <h3>มอบหมายงานให้กลุ่ม</h3>
-                                <p>เลือกได้มากกว่า 1 กลุ่ม</p>
+                                <h3>{{ activeDuty?.title === 'กำหนดผู้รับผิดชอบ' ? 'กำหนดผู้รับผิดชอบ' : 'มอบหมายงานให้กลุ่ม' }}</h3>
+                                <p>{{ activeDuty?.title === 'กำหนดผู้รับผิดชอบ' ? 'เลือกกลุ่มที่รับผิดชอบคำขอนี้' : 'เลือกได้มากกว่า 1 กลุ่ม' }}</p>
                               </span>
                               @if (!consultClosed) {
                               <app-button class="icon-before" type="primary" label="มอบหมายงาน" (click)="openConsultForm('groups')">
@@ -1083,12 +1205,59 @@
                             </div>
                             @if (consultClosed) {
                               <p class="act-note">ปิดงานเมื่อ {{ consultClosed.at }} น.</p>
-                            } @else {
-                              <footer class="assign-foot">
-                                <app-button class="icon-before" type="primary" label="ปิดงาน" (click)="closeConsultWork()">
-                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
-                                </app-button>
-                              </footer>
+                            }
+                            @for (job of consultJobs; track job.group) {
+                              @if (job.result && !job.verdict) {
+                                <section class="slip consult-next" aria-label="พิจารณาอนุมัติ">
+                                  <h3>พิจารณา {{ job.group }}</h3>
+                                  <p>{{ job.result.detail }}</p>
+                                  <p class="act-note">ผู้ทำ {{ reportersOf(job) }}{{ job.result.signed ? ' · ลงนามแล้ว' : '' }} · เก็บเข้าซองงานแล้ว</p>
+                                  <footer class="assign-foot">
+                                    <app-button type="primary" label="อนุมัติ" (click)="decideJob(job.group, 'approve')" />
+                                    <app-button type="outline" label="ส่งกลับให้รายงานผลใหม่" (click)="decideJob(job.group, 'rework')" />
+                                  </footer>
+                                </section>
+                              }
+                              @if (job.verdict === 'approve' && !job.handoff) {
+                                <section class="slip consult-next" aria-label="สถานะการส่งต่อ">
+                                  <h3>สถานะการส่งต่อ {{ job.group }}</h3>
+                                  <p>อนุมัติแล้ว ถ้าไม่ส่งต่อจึงไปปิดงานหรือส่ง กธ.</p>
+                                  <footer class="assign-foot">
+                                    <app-button type="primary" label="ไม่ส่งต่อ" (click)="setJobHandoff(job.group, 'stop')" />
+                                    <app-button type="outline" label="ส่งต่อ" (click)="setJobHandoff(job.group, 'more')" />
+                                  </footer>
+                                </section>
+                              }
+                              @if (job.handoff === 'more') {
+                                <p class="act-note">{{ job.group }} ส่งต่อแล้ว รอหัวหน้ากลุ่มเลือกผู้รับคนใหม่</p>
+                              }
+                              @if (job.handoff === 'stop' && !job.delivery) {
+                                <section class="slip consult-next" aria-label="สถานะการส่งมอบ">
+                                  <h3>สถานะการส่งมอบ {{ job.group }}</h3>
+                                  <footer class="assign-foot">
+                                    <app-button type="primary" label="ปิดงาน" (click)="setJobDelivery(job.group, 'close')" />
+                                    <app-button type="outline" label="ส่ง กธ. เพื่อพิจารณา" (click)="setJobDelivery(job.group, 'board')" />
+                                    <app-button type="outline" label="ส่งกลับตรวจสอบ" (click)="setJobDelivery(job.group, 'check')" />
+                                  </footer>
+                                </section>
+                              }
+                              @if (job.delivery === 'board') {
+                                <p class="act-note">{{ job.group }} ส่ง กธ. เพื่อพิจารณาแล้ว</p>
+                              }
+                              @if (job.delivery === 'close') {
+                                <p class="act-note">{{ job.group }} ปิดงานแล้ว</p>
+                              }
+                              @if (job.delivery === 'check') {
+                                <section class="slip consult-next" aria-label="ตรวจสอบ">
+                                  <h3>ตรวจสอบ {{ job.group }}</h3>
+                                  <p>ผู้ทำ {{ reportersOf(job) }}</p>
+                                  <p>{{ job.result?.detail }}</p>
+                                  <footer class="assign-foot">
+                                    <app-button type="primary" label="ปิดงาน" (click)="setJobDelivery(job.group, 'close')" />
+                                    <app-button type="outline" label="ส่งกลับให้รายงานผลใหม่" (click)="decideJob(job.group, 'rework')" />
+                                  </footer>
+                                </section>
+                              }
                             }
                             }
                           </section>
@@ -1152,6 +1321,12 @@
                               </div>
                               @if (consultClosed) {
                                 <p class="act-note">ผู้อำนวยการปิดงานแล้วเมื่อ {{ consultClosed.at }} น.</p>
+                              }
+                              @if (job.verdict === 'rework' && !job.result) {
+                                <p class="act-note">ผู้อำนวยการส่งกลับให้รายงานผลใหม่</p>
+                              }
+                              @if (officerForwarded(job)) {
+                                <p class="act-note">มีเจ้าหน้าที่ส่งต่องาน เลือกผู้รับคนใหม่</p>
                               }
                               @if (job.reply !== 'return' && !job.officers.length && !consultClosed) {
                                 <section class="slip consult-next" aria-label="แบบฟอร์มมอบหมายให้เจ้าหน้าที่">
@@ -1284,7 +1459,7 @@
                                       }
                                       <ng-container [ngTemplateOutlet]="resultFields" />
                                       <footer class="assign-foot">
-                                        <app-button class="icon-before" type="primary" label="รายงานผล" [state]="resultDetail.trim() ? 'default' : 'disabled'" (click)="submitGroupResult()">
+                                        <app-button class="icon-before" type="primary" label="รายงานผล" [state]="resultDetail.trim() && resultSigned ? 'default' : 'disabled'" (click)="submitGroupResult()">
                                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                                         </app-button>
                                       </footer>
@@ -1371,17 +1546,43 @@
                                   </app-button>
                                 </footer>
                               }
-                              @if (!consultClosed && mine.reply === 'accept' && !mine.result) {
-                                <section class="slip" aria-label="รายงานผล">
-                                  <h3>รายงานผล</h3>
-                                  <p>รายงานผลการทำงานให้หัวหน้ากลุ่ม</p>
-                                  <ng-container [ngTemplateOutlet]="resultFields" />
+                              @if (!consultClosed && mine.reply === 'accept' && !mine.result && mine.move !== 'forward') {
+                                <section class="slip" aria-label="รายงานผลหรือส่งต่อ">
+                                  <h3>รายงานผลหรือส่งต่อ</h3>
+                                  <div class="path-choice" role="radiogroup" aria-label="รายงานผลหรือส่งต่อ">
+                                    <button type="button" [class.on]="consultMove === 'report'" (click)="consultMove = 'report'">
+                                      <img [src]="consultMove === 'report' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                                      <span>
+                                        <strong>รายงานผล</strong>
+                                        <small>รายงานให้หัวหน้ากลุ่ม แล้วส่งต่อให้ผู้อำนวยการพิจารณา</small>
+                                      </span>
+                                    </button>
+                                    <button type="button" [class.on]="consultMove === 'forward'" (click)="consultMove = 'forward'">
+                                      <img [src]="consultMove === 'forward' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                                      <span>
+                                        <strong>ส่งต่อ</strong>
+                                        <small>ส่งกลับให้หัวหน้ากลุ่มเลือกผู้รับคนใหม่</small>
+                                      </span>
+                                    </button>
+                                  </div>
+                                  @if (consultMove === 'report') {
+                                    <ng-container [ngTemplateOutlet]="resultFields" />
+                                  }
                                   <footer class="assign-foot">
-                                    <app-button class="icon-before" type="primary" label="รายงานผล" [state]="resultDetail.trim() ? 'default' : 'disabled'" (click)="submitOfficerResult()">
-                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                                    </app-button>
+                                    @if (consultMove === 'forward') {
+                                      <app-button class="icon-before" type="primary" label="ส่งต่อ" (click)="forwardMyWork()">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                                      </app-button>
+                                    } @else {
+                                      <app-button class="icon-before" type="primary" label="รายงานผล" [state]="resultDetail.trim() && resultSigned ? 'default' : 'disabled'" (click)="submitOfficerResult()">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                                      </app-button>
+                                    }
                                   </footer>
                                 </section>
+                              }
+                              @if (mine.move === 'forward' && !mine.result) {
+                                <p class="act-note">ส่งต่องานแล้ว รอหัวหน้ากลุ่มเลือกผู้รับคนใหม่</p>
                               }
                               @if (mine.result) {
                                 <p class="act-note">รายงานผลให้หัวหน้ากลุ่มแล้วเมื่อ {{ mine.result.at }} น.</p>
@@ -1493,7 +1694,7 @@
                         }
                       </ul>
                     }
-                    @if (activeDuty?.title !== 'ขอคำปรึกษา') {
+                    @if (!dutyIsAssign) {
                     @if (false && canAssignWork && (peopleReady || reviewRole === 'staff')) {
                       <ol class="handoff" aria-label="ขั้นตอนการมอบหมาย">
                         @for (step of handoffSteps; track step.title) {
@@ -1665,7 +1866,7 @@
                                 <th>รายการ</th>
                                 <th>ชื่อเอกสาร</th>
                                 <th>ชื่อเอกสารใหม่</th>
-                                <th>การจัดการ</th>
+                                <th class="col-manage">การจัดการ</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1884,7 +2085,7 @@
                               <th class="col-no">ลำดับ</th>
                               <th>ไฟล์แนบ</th>
                               <th>ชื่อเอกสาร</th>
-                              <th>การจัดการ</th>
+                              <th class="col-manage">การจัดการ</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1931,7 +2132,7 @@
                             <th class="col-no">ลำดับ</th>
                             <th>เอกสาร</th>
                             <th>วันที่บันทึก</th>
-                            <th>การจัดการ</th>
+                            <th class="col-manage">การจัดการ</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2198,7 +2399,7 @@
                                 <tr>
                                   <th>ไฟล์แนบ</th>
                                   <th>ชื่อเอกสาร</th>
-                                  <th>การจัดการ</th>
+                                  <th class="col-manage">การจัดการ</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2275,7 +2476,7 @@
                                       <th>วันที่ส่ง</th>
                                       <th>ไฟล์แนบ</th>
                                       <th>ชื่อเอกสาร</th>
-                                      <th>การจัดการ</th>
+                                      <th class="col-manage">การจัดการ</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2358,7 +2559,7 @@
                                       <th>วันที่ส่ง</th>
                                       <th>ไฟล์แนบ</th>
                                       <th>ชื่อเอกสาร</th>
-                                      <th>การจัดการ</th>
+                                      <th class="col-manage">การจัดการ</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2794,7 +2995,7 @@
                                   <th>วันที่ส่ง</th>
                                   <th>ไฟล์แนบ</th>
                                   <th>ชื่อเอกสาร</th>
-                                  <th>การจัดการ</th>
+                                  <th class="col-manage">การจัดการ</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2958,7 +3159,6 @@
                               </div>
                             </div>
                             <footer class="doc-foot">
-                              <app-button type="outline" label="ถอดเสียงและสรุปประเด็น" (click)="draftHearingTranscript()" />
                               <app-button type="primary" label="บันทึกผล e-Office" [state]="hearingMemo.trim() && hearingOffice && hearingPeople.trim() ? 'default' : 'disabled'" (click)="saveHearingOffice()" />
                             </footer>
                           }
@@ -2976,8 +3176,8 @@
                       <section class="notice-form" aria-label="แบบสอบถาม">
                         <div class="reply-bar">
                           <div>
-                            <h3>แบบสอบถาม</h3>
-                            <p class="link-detail">เลือกกลุ่มผู้ตอบ แล้วเลือกเอกสารทีละรายการ บันทึกซ้ำได้จนกว่ากลุ่มนั้นจะผ่าน</p>
+                            <h3>รับ-ส่งข้อมูลการไต่สวน</h3>
+                            <p class="link-detail">Case ID {{ inquiryCaseId }} เลือกแบบสอบถามหรือเอกสาร กลุ่มที่ไม่ได้เลือกไม่ต้องตอบ</p>
                           </div>
                           @if (activeQuestion; as party) {
                             <app-status-tag variant="soft" [tone]="inquiryQuestionTone(party)" [label]="inquiryQuestionState(party)" />
@@ -2989,45 +3189,77 @@
                           }
                         </nav>
                         @if (activeQuestion; as row) {
-                          <div class="sheet__split">
-                            <nav class="toc" aria-label="เอกสารของกลุ่มนี้">
-                              @for (kind of inquiryLoops; track kind) {
-                                <button type="button" class="toc__child" [class.toc__on]="inquiryLoop === kind" [attr.aria-current]="inquiryLoop === kind ? 'true' : null" (click)="inquiryLoop = kind">
-                                  <img [src]="papersOf(row, kind).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                                  {{ inquiryLoopLabel(kind) }}
-                                </button>
-                              }
-                            </nav>
-                            <div class="receipt__view">
-                              <h3>{{ inquiryLoopLabel(inquiryLoop) }}</h3>
-                              <p class="link-detail">{{ inquiryLoopHint(inquiryLoop) }}</p>
-                              @if (inquiryLoop === 'form') {
-                                @for (part of questionnaireParts(row.id); track part) {
-                                  <p class="link-detail">{{ part }}</p>
+                          <div class="receipt__view">
+                              @if (exchangeStage(row) === 'done') {
+                                <p>กลุ่มนี้จบแล้ว ไม่ส่งกลับแก้ไข</p>
+                              } @else if (exchangeStage(row) === 'prepare') {
+                                <div class="slip-line">
+                                  <span>ประเภท<span class="req">*</span></span>
+                                  <div class="slip-choices">
+                                    <button type="button" (click)="exchangeKind = 'form'"><img [src]="exchangeKind === 'form' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แบบสอบถาม</button>
+                                    <button type="button" (click)="exchangeKind = 'docs'"><img [src]="exchangeKind === 'docs' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />รับ-ส่งเอกสาร</button>
+                                  </div>
+                                </div>
+                                @if (exchangeKind === 'form') {
+                                  @for (part of questionnaireParts(row.id); track part) {
+                                    <p class="link-detail">{{ part }}</p>
+                                  }
+                                } @else {
+                                  <div class="slip-choices">
+                                    @for (head of exchangeHeads; track head) {
+                                      <button type="button" (click)="toggleHead(head)"><img [src]="pickedHeads.includes(head) ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />{{ head }}</button>
+                                    }
+                                  </div>
                                 }
-                              }
-                              @if (papersOf(row, 'answer').length || papersOf(row, 'revised').length) {
-                                <p class="link-detail">{{ questionOpen(row.id) ? 'เผยแพร่ความเห็นฉบับเปิดเผยแล้ว' : 'มีคำตอบแล้ว เผยแพร่เฉพาะฉบับเปิดเผย' }}</p>
+                                <div class="slip-line">
+                                  <span>การตอบกลับ<span class="req">*</span></span>
+                                  <div class="slip-choices">
+                                    <button type="button" (click)="exchangeReply = 'yes'"><img [src]="exchangeReply === 'yes' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ต้องตอบกลับ</button>
+                                    <button type="button" (click)="exchangeReply = 'no'"><img [src]="exchangeReply === 'no' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่ต้องตอบกลับ</button>
+                                  </div>
+                                </div>
+                                <div class="draft-form">
+                                  <app-thai-date-field label="วันที่" [required]="true" [value]="inquiryPaperOn" (valueChange)="inquiryPaperOn = $event" />
+                                  <app-input-field class="block wide" kind="textarea" label="คำนำส่ง" [required]="true" [value]="inquiryPaperNote" (valueChange)="inquiryPaperNote = $event" />
+                                </div>
+                                <footer class="doc-foot">
+                                  <app-button type="primary" label="ส่ง" [state]="inquiryPaperNote.trim() && (exchangeKind === 'form' || pickedHeads.length) ? 'default' : 'disabled'" (click)="sendExchange()" />
+                                </footer>
+                              } @else if (exchangeStage(row) === 'extend') {
+                                <p class="link-detail">ขอขยายเวลาได้ก่อนวันครบกำหนด 7 วัน ถ้าไม่ขอ ให้บันทึกคำตอบที่ส่งกลับ</p>
+                                <div class="draft-form">
+                                  <app-thai-date-field label="วันที่" [required]="true" [value]="inquiryPaperOn" (valueChange)="inquiryPaperOn = $event" />
+                                  <app-input-field class="block wide" kind="textarea" label="เนื้อความ" [required]="true" [value]="inquiryPaperNote" (valueChange)="inquiryPaperNote = $event" />
+                                </div>
+                                <footer class="doc-foot">
+                                  <app-button type="outline" label="ส่งหนังสือขอขยายเวลา" [state]="inquiryPaperNote.trim() ? 'default' : 'disabled'" (click)="recordExtensionAsk()" />
+                                  <app-button type="primary" label="บันทึกคำตอบ" [state]="inquiryPaperNote.trim() ? 'default' : 'disabled'" (click)="recordAnswer()" />
+                                </footer>
+                              } @else if (exchangeStage(row) === 'grant') {
+                                <p class="link-detail">กำหนดวันส่งคืนใหม่ ส่งแบบสอบถามใหม่ และส่งหนังสือตอบรับให้ขยายเวลา</p>
+                                <div class="draft-form">
+                                  <app-thai-date-field label="วันที่" [required]="true" [value]="inquiryPaperOn" (valueChange)="inquiryPaperOn = $event" />
+                                  <app-thai-date-field label="วันครบกำหนดใหม่" [required]="true" [value]="inquiryPaperDue" (valueChange)="inquiryPaperDue = $event" />
+                                  <app-input-field class="block wide" kind="textarea" label="เนื้อความ" [required]="true" [value]="inquiryPaperNote" (valueChange)="inquiryPaperNote = $event" />
+                                </div>
+                                <footer class="doc-foot">
+                                  <app-button type="primary" label="ส่งหนังสือตอบรับให้ขยายเวลา" [state]="inquiryPaperNote.trim() ? 'default' : 'disabled'" (click)="grantExtension()" />
+                                </footer>
+                              } @else {
+                                <p class="link-detail">ตรวจคำตอบแล้ว เลือกส่งกลับแก้ไขหรือจบกลุ่มนี้</p>
                                 @if (!questionOpen(row.id)) {
                                   <footer class="doc-foot">
                                     <app-button type="outline" label="เผยแพร่ฉบับเปิดเผย" (click)="publishQuestion(row.id)" />
                                   </footer>
                                 }
-                              }
-                              @if (!row.passed) {
                                 <div class="draft-form">
                                   <app-thai-date-field label="วันที่" [required]="true" [value]="inquiryPaperOn" (valueChange)="inquiryPaperOn = $event" />
-                                  @if (inquiryLoop === 'extend-reply') {
-                                    <app-thai-date-field label="วันครบกำหนดใหม่" [required]="true" [value]="inquiryPaperDue" (valueChange)="inquiryPaperDue = $event" />
-                                  }
-                                  <app-input-field class="block wide" kind="textarea" [label]="inquiryLoop === 'form' ? 'คำนำส่ง' : 'เนื้อความ'" [required]="true" [value]="inquiryPaperNote" (valueChange)="inquiryPaperNote = $event" />
+                                  <app-input-field class="block wide" kind="textarea" label="เนื้อความแจ้งแก้ไข" [required]="true" [value]="inquiryPaperNote" (valueChange)="inquiryPaperNote = $event" />
                                 </div>
                                 <footer class="doc-foot">
-                                  <app-button type="primary" label="บันทึก" [state]="inquiryPaperNote.trim() ? 'default' : 'disabled'" (click)="saveInquiryLoop()" />
-                                  <app-button type="outline" label="ผ่านขั้นนี้" [state]="questionCanPass(row) ? 'default' : 'disabled'" (click)="passInquiryQuestion(row.id)" />
+                                  <app-button type="primary" label="ไม่ส่งกลับแก้ไข" (click)="passInquiryQuestion(row.id)" />
+                                  <app-button type="outline" label="ส่งหนังสือแจ้งแก้ไข" [state]="inquiryPaperNote.trim() ? 'default' : 'disabled'" (click)="sendCorrection()" />
                                 </footer>
-                              } @else {
-                                <p>กลุ่มนี้ผ่านแล้ว เปิดดูเอกสารที่บันทึกไว้ได้จากรายการด้านล่าง</p>
                               }
                               <p class="slip-file-label">ไฟล์เอกสาร</p>
                               <div class="table-wrap slip-files">
@@ -3036,11 +3268,11 @@
                                     <tr>
                                       <th>ชื่อเอกสาร</th>
                                       <th>วันที่บันทึก</th>
-                                      <th>การจัดการ</th>
+                                      <th class="col-manage">การจัดการ</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    @for (paper of papersOf(row, inquiryLoop); track paper.docId) {
+                                    @for (paper of row.papers; track paper.docId) {
                                       <tr>
                                         <td>{{ inquiryLoopLabel(paper.kind) }} ครั้งที่ {{ paper.round }}</td>
                                         <td>{{ paper.at }}</td>
@@ -3064,7 +3296,6 @@
                                 </table>
                               </div>
                             </div>
-                          </div>
                         }
                         @if (inquiryQuestionsDone) {
                           <p>แบบสอบถามทั้งสามกลุ่มผ่านแล้ว ขั้นต่อไปในกลุ่มนี้คือตรวจสถานประกอบการ</p>
@@ -3321,6 +3552,33 @@
                     <section class="notice-form" aria-label="ไปร่างผลสิ้นสุด">
                       <h3>ไปร่างผลสิ้นสุด</h3>
                       <p class="link-detail">ผู้มีส่วนได้เสียขอแถลงการณ์หรือส่งความเห็นได้ภายใน 30 วันนับจากวันประกาศ ถ้าไม่ส่งกลับคณะกรรมการจึงไปร่างผลสิ้นสุด</p>
+                      @if (hearingLane; as lane) {
+                        <section class="notice-form" aria-label="คำขอ hearing">
+                          <h3>คำขอ hearing</h3>
+                          <p>{{ lane.caseCode }} · {{ lane.by }}</p>
+                          <p>{{ lane.ask }}</p>
+                          @if (lane.step === 'ask') {
+                            <app-thai-date-field label="วันที่แถลงการณ์" [required]="true" [value]="hearingWhen" (valueChange)="hearingWhen = $event" />
+                            <app-input-field class="block" kind="text" label="สถานที่หรือช่องทาง" [required]="true" [value]="hearingPlaceLane" (valueChange)="hearingPlaceLane = $event" />
+                            <footer class="doc-foot">
+                              <app-button type="primary" label="นัด hearing" [state]="hearingWhen.trim() && hearingPlaceLane.trim() ? 'default' : 'disabled'" (click)="bookHearing()" />
+                              <app-button type="outline" label="ไม่จัด" (click)="skipHearing()" />
+                            </footer>
+                          } @else if (lane.step === 'booked') {
+                            <p>นัดแล้ว {{ lane.when }} {{ lane.place }} รอคณะกรรมการอนุมัติ</p>
+                          } @else if (lane.step === 'approved') {
+                            <p>อนุมัติแล้ว {{ lane.when }} {{ lane.place }}</p>
+                            <app-input-field kind="textarea" label="สรุปประเด็น" [required]="true" [value]="hearingSummary" (valueChange)="hearingSummary = $event" />
+                            <footer class="doc-foot">
+                              <app-button type="primary" label="บันทึกสรุปและส่งกลับเข้าผล" [state]="hearingSummary.trim() ? 'default' : 'disabled'" (click)="saveHearingSummary()" />
+                            </footer>
+                          } @else if (lane.step === 'done') {
+                            <p>สรุปประเด็นแล้ว ส่งกลับเข้าผล: {{ lane.summary }}</p>
+                          } @else {
+                            <p>ไม่จัด hearing ส่งกลับเข้าผล</p>
+                          }
+                        </section>
+                      }
                       <div class="slip-line">
                         <span>แถลงการณ์ผลขั้นต้น</span>
                         <div class="slip-choices">
@@ -3814,6 +4072,33 @@
           }
         </section>
       }
+      @if (showForm && revising && checkReturned) {
+        <section class="sheet fix-board fix-board--alert" aria-label="รายการที่ต้องแก้">
+          <header>
+            <h2>รายการที่ต้องแก้ <span>{{ failedChecks.length }} รายการ</span></h2>
+            <button type="button" [attr.aria-expanded]="fixesOpen" [attr.aria-label]="fixesOpen ? 'ซ่อนรายการที่ต้องแก้' : 'แสดงรายการที่ต้องแก้'" (click)="fixesOpen = !fixesOpen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+          </header>
+          @if (fixesOpen) {
+            <p>แก้รายการเหล่านี้ในแบบด้านล่าง แล้วกดยื่นตรวจสอบที่มุมขวาบน</p>
+            <ol>
+              @for (item of failedChecks; track item.note; let i = $index) {
+                <li>
+                  <span class="fix-no">{{ i + 1 }}</span>
+                  <div>
+                    <strong>{{ item.note }}</strong>
+                    @if (item.place) {
+                      <small>{{ item.place }}</small>
+                    }
+                    <p>{{ item.detail }}</p>
+                  </div>
+                </li>
+              }
+            </ol>
+          }
+        </section>
+      }
       @if (showForm) {
       <section class="sheet" [class.sheet--view]="formLocked">
         <app-filing-tabs />
@@ -3848,24 +4133,28 @@
               }
             }
           </nav>
-          <fieldset class="form" [disabled]="formLocked" (input)="publishGuide()" (change)="publishGuide()" (click)="publishGuide()" (focusin)="noteField($event)">
+          <fieldset class="form" [class.form--fix]="sectionNeedsFix" [disabled]="formLocked" (input)="publishGuide()" (change)="publishGuide()" (click)="publishGuide()" (focusin)="noteField($event)">
             @if (section === '1' && anchor === 'part-1-1') {
               <h3 id="part-1-1">1.1 ผู้ยื่นคำขอ</h3>
               <div class="grid">
                 <fieldset class="field--wide">
                   <legend>มาตรการที่ขอให้ดำเนินการพิจารณา<span class="req">*</span></legend>
-                  <div class="choices">
-                    <label>
-                      <input type="radio" name="measure" value="dumping" [checked]="measure === 'dumping'" (change)="measure = 'dumping'" />
-                      <img [src]="measure === 'dumping' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                      ตอบโต้การทุ่มตลาด
-                    </label>
-                    <label>
-                      <input type="radio" name="measure" value="subsidy" [checked]="measure === 'subsidy'" (change)="measure = 'subsidy'" />
-                      <img [src]="measure === 'subsidy' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                      ตอบโต้การอุดหนุน
-                    </label>
-                  </div>
+                  @if (measureLocked) {
+                    <p>{{ measure === 'subsidy' ? 'ตอบโต้การอุดหนุน' : 'ตอบโต้การทุ่มตลาด' }}</p>
+                  } @else {
+                    <div class="choices">
+                      <label>
+                        <input type="radio" name="measure" value="dumping" [checked]="measure === 'dumping'" (change)="measure = 'dumping'" />
+                        <img [src]="measure === 'dumping' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                        ตอบโต้การทุ่มตลาด
+                      </label>
+                      <label>
+                        <input type="radio" name="measure" value="subsidy" [checked]="measure === 'subsidy'" (change)="measure = 'subsidy'" />
+                        <img [src]="measure === 'subsidy' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                        ตอบโต้การอุดหนุน
+                      </label>
+                    </div>
+                  }
                 </fieldset>
                 <label class="field">
                   ชื่อ/บริษัท/สมาคม<span class="req">*</span>
@@ -5411,6 +5700,8 @@
         }
       } @else if (caseStatus === 'consult') {
         <p class="submit__hint">ยังไม่มีการมอบหมายงาน สถานะจะเป็นยื่นแบบทันที</p>
+      } @else if (checkReturned) {
+        <p class="submit__hint">ยังมีรายการที่ไม่ผ่าน สามารถยืนยันยื่นแบบทางการได้โดยไม่ต้องแก้ไข ระบบจะบันทึกคำขอนี้เป็นสถานะยื่นแบบ</p>
       } @else {
         <p class="submit__hint">ระบบจะบันทึกคำขอนี้เป็นสถานะยื่นแบบ</p>
       }
@@ -5430,7 +5721,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </app-button>
         } @else {
-          <app-button class="icon-before" type="primary" label="ยืนยันยื่นแบบทางการ" [state]="aiReady ? 'default' : 'disabled'" (click)="confirmOfficial()">
+          <app-button class="icon-before" type="primary" label="ยืนยันยื่นแบบทางการ" [state]="aiReady || checkReturned ? 'default' : 'disabled'" (click)="confirmOfficial()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
           </app-button>
         }

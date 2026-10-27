@@ -20,7 +20,45 @@
         }
       </header>
       <section class="panel">
+        @if (desk === 'interest' && interestUser) {
+          <div class="item__foot">
+            <a routerLink="/join/AD1020">ลงทะเบียนเข้าเคส</a>
+          </div>
+        }
         @if (desk === 'interest' && staffNotice) {
+          @for (row of filings; track row.id) {
+            <article class="item">
+              <header class="item__head">
+                <div>
+                  <p class="item__code">{{ row.receipt }}</p>
+                  <p class="item__goods">{{ row.name }}{{ row.company ? ' · ' + row.company : '' }}</p>
+                </div>
+                <app-status-tag [tone]="row.status === 'approved' ? 'success' : row.status === 'fix' ? 'danger' : 'warning'" [label]="row.status === 'approved' ? 'อนุมัติแล้ว' : row.status === 'conditional' ? 'อนุมัติแบบมีเงื่อนไข' : row.status === 'fix' ? 'แจ้งแก้ไข' : 'รอพิจารณา'" />
+              </header>
+              <p class="item__result">{{ row.window === 'late' ? 'คำร้องขอลงทะเบียน' : 'ลงทะเบียนในระยะที่เปิดไว้' }} · {{ row.kinds.map(kindLabel).join(' · ') }}{{ row.group ? ' · กลุ่ม ' + kindLabel(row.group) : '' }}</p>
+              @if (row.fixNote) {
+                <p class="item__result">แจ้งแก้ไข: {{ row.fixNote }} กำหนด {{ row.fixDue }}</p>
+              }
+              @if (row.status !== 'approved') {
+                <label class="role">
+                  <span>กลุ่มผู้มีส่วนได้เสีย</span>
+                  <select aria-label="กลุ่มผู้มีส่วนได้เสีย" [value]="filingGroup" (change)="filingGroup = $any($event.target).value">
+                    <option value="importer">ผู้นำเข้า</option>
+                    <option value="domestic">อุตสาหกรรมภายใน</option>
+                    <option value="exporter">ผู้ส่งออก</option>
+                    <option value="agency">หน่วยงานที่เกี่ยวข้อง</option>
+                  </select>
+                </label>
+                <app-input-field label="ข้อความแจ้งแก้ไข" [value]="fixNote" (valueChange)="fixNote = $event" />
+                <app-input-field label="กำหนดวันรับที่ส่ง" placeholder="27/10/2569" [value]="fixDue" (valueChange)="fixDue = $event" />
+                <div class="item__foot">
+                  <app-button type="primary" label="อนุมัติ" (click)="decideFiling(row.id, 'approved')" />
+                  <app-button type="outline" label="อนุมัติแบบมีเงื่อนไข" (click)="decideFiling(row.id, 'conditional')" />
+                  <app-button type="outline" label="แจ้งแก้ไข" (click)="decideFiling(row.id, 'fix')" />
+                </div>
+              }
+            </article>
+          }
           <app-tabs line [labels]="interestLabels" [selected]="interestTab" (activeChange)="setInterestTab($event)" />
         }
         @if (desk === 'proxy' && inviteLink) {

@@ -5,6 +5,7 @@ import { InputField } from '../../input-field/input-field';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
+import { readHearing, writeHearing } from '../requests/hearing-lane';
 
 type TaskId = 'filing' | 'agenda' | 'hearing';
 
@@ -36,7 +37,24 @@ export class OtherCommitteePage {
     return !!this.saved[id];
   }
 
+  protected get hearingReady(): boolean {
+    return readHearing()?.step === 'booked';
+  }
+
+  protected get hearingAsk(): string {
+    const lane = readHearing();
+    if (!lane) return '';
+    if (lane.step === 'ask') return `${lane.caseCode} ส่งคำขอแล้ว รอเจ้าหน้าที่นัด: ${lane.ask}`;
+    if (lane.step === 'booked') return `${lane.caseCode} นัด ${lane.when} ${lane.place}: ${lane.ask}`;
+    return `${lane.caseCode} ${lane.step === 'approved' ? 'อนุมัติแล้ว' : 'ดำเนินการแล้ว'}`;
+  }
+
   protected approve(id: TaskId): void {
+    if (id === 'hearing') {
+      const lane = readHearing();
+      if (!lane || lane.step !== 'booked') return;
+      writeHearing({ ...lane, step: 'approved' });
+    }
     this.saved = { ...this.saved, [id]: 'อนุมัติแล้ว', 'agenda-text': this.agenda.trim() };
     sessionStorage.setItem('dft-other-committee', JSON.stringify(this.saved));
   }

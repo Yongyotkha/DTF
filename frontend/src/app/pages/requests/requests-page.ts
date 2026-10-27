@@ -6,7 +6,7 @@ import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
-import { RequestForm, formOf, formsFor, purposeOf, requestForms, requestMeasures } from './form-catalog';
+import { RequestForm, formOf, formsFor, measureOf, purposeOf, requestForms, requestMeasures } from './form-catalog';
 import { startFilingCase } from './case-status';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
 import { joinedCaseIds } from './interest-invite';
@@ -83,13 +83,20 @@ export class RequestsPage implements OnDestroy {
   }
 
   protected get draftRows(): RequestRow[] {
-    if (isActingAgent(this.accounts.username) || this.accounts.role === 'interest') return [];
+    if (isActingAgent(this.accounts.username) || this.accounts.role === 'interest' || this.ownFilings().length) return [];
     return draftCases.map((item) => this.asRow(item));
+  }
+
+  private ownFilings(): ListedCase[] {
+    return archiveCases.filter((item) => item.filer === this.accounts.username);
   }
 
   private visibleCases(rows: ListedCase[]): ListedCase[] {
     const allow = allowedCaseIds(this.accounts.username);
     let next = allow ? rows.filter((item) => allow.has(item.id) || allow.has(item.code)) : rows;
+    const own = this.ownFilings();
+    if (own.length) return own;
+    if (this.accounts.role === 'corporate') next = next.filter((item) => !item.filer);
     if (this.accounts.role !== 'interest') return next;
     const joined = joinedCaseIds(this.accounts.username);
     if (!joined) return next;
@@ -175,7 +182,7 @@ export class RequestsPage implements OnDestroy {
     this.choosing = false;
     document.body.classList.remove('chooser-open');
     void this.router.navigate([route], {
-      queryParams: this.measure === 'มาตราการ CVD' ? { measure: 'cvd' } : {},
+      queryParams: this.measure === 'มาตราการ CVD' ? { measure: 'cvd' } : this.measure === 'มาตราการ AD' ? { measure: 'ad' } : {},
     });
   }
 
@@ -267,6 +274,10 @@ export class RequestsPage implements OnDestroy {
 
   protected purpose(form: RequestForm) {
     return purposeOf(form, this.measure);
+  }
+
+  protected get measureNote(): string {
+    return measureOf(this.measure).note;
   }
 
   @HostListener('document:keydown.escape')

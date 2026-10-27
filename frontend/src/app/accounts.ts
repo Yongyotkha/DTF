@@ -30,8 +30,16 @@ export const roleHome: Record<AccountRole, string> = {
 
 export type DemoLogin = { username: string; label: string; password: string; email: string; group: string };
 
+export const secondApplicant = {
+  username: '0105569012345',
+  password: 'Ssi@2569',
+  name: 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน)',
+  email: 'kittikomp@ssi-steel.com',
+};
+
 const demoMenu: { username: string; group: string }[] = [
   { username: '0105538041238', group: 'ผู้ยื่นคำขอ' },
+  { username: secondApplicant.username, group: 'ผู้ยื่นคำขอ' },
   { username: '1000000000125', group: 'ผู้ยื่นแทน' },
   { username: '1000000000123', group: 'ผู้มีส่วนได้เสีย' },
   { username: '1000000000102', group: 'ผู้อำนวยการ' },
@@ -65,6 +73,7 @@ export const roleLabel: Record<AccountRole, string> = {
 export class Accounts {
   private readonly users = new Map<string, Account>([
     ['0105538041238', { password: 'Dft@2569', role: 'corporate', email: 'support@datamining.co.th' }],
+    [secondApplicant.username, { password: secondApplicant.password, role: 'corporate', email: secondApplicant.email, person: secondApplicant.name, personTitle: 'ผู้ยื่นคำขอ' }],
     ['0125544004802', { password: 'Dft@2569', role: 'corporate' }],
     ['1103700123456', { password: 'Person@2569', role: 'individual' }],
     ['0994000167890', { password: 'Assoc@2569', role: 'association' }],
@@ -250,6 +259,25 @@ export class Accounts {
   get displayName(): string {
     if (this.person) return this.person;
     return this.signedIn ? roleLabel[this.signedIn] : roleLabel.corporate;
+  }
+
+  get roleName(): string {
+    const item = demoMenu.find((row) => row.username === this.userId);
+    if (item?.group === 'หัวหน้ากลุ่ม' || this.signedIn === 'head') {
+      const title = this.users.get(this.userId)?.personTitle ?? '';
+      const code = title.replace(/^กลุ่ม\s*/, '');
+      return code ? `หัวหน้ากลุ่ม ${code}` : 'หัวหน้ากลุ่ม';
+    }
+    if (item?.group.endsWith('(AD)')) return 'เจ้าหน้าที่ AD';
+    if (item?.group.endsWith('(CVD)')) return 'เจ้าหน้าที่ CVD';
+    if (item?.group.endsWith('(SG)')) return 'เจ้าหน้าที่ SG';
+    if (item?.group === 'คณะกรรมการ') return 'คณะกรรมการ ทตอ.';
+    if (item) return item.group;
+    const title = this.users.get(this.userId)?.personTitle ?? '';
+    if (this.signedIn === 'officer') return roleLabel.officer;
+    if (this.signedIn === 'corporate') return 'ผู้ยื่นคำขอ';
+    if (title && title !== this.person) return title;
+    return this.signedIn ? roleLabel[this.signedIn] : '';
   }
 
   namedPeople(): { name: string; role: AccountRole; title: string }[] {

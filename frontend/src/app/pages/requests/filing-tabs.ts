@@ -23,7 +23,8 @@ export class FilingTabs {
     const caseCode = String(url.queryParams['case'] ?? '');
     const viewing = url.queryParams['view'] === '1' && /^[A-Za-z0-9]+$/.test(caseCode);
     this.viewQuery = viewing ? { case: caseCode, view: '1' } : null;
-    this.subsidyQuery = url.queryParams['measure'] === 'cvd' ? { measure: 'cvd' } : null;
+    const measure = url.queryParams['measure'];
+    this.subsidyQuery = measure === 'cvd' || measure === 'ad' ? { measure } : null;
     this.path = this.router.url.split('?')[0];
     if (viewing) {
       const item = findListedCase(caseCode);

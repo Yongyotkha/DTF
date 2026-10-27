@@ -133,7 +133,7 @@ export function allows(powers: ProxyPower[] | null, action: string): boolean {
   if (!powers) return true;
   if (powers.includes('full')) return true;
   if (action === 'withdraw') return false;
-  if (action === 'facts' || action === 'hearing' || action === 'object' || action === 'qn' || action === 'exchange') return powers.includes('contact') || powers.includes('edit');
+  if (action === 'facts' || action === 'hearing' || action === 'object' || action === 'qn' || action === 'exchange' || action === 'extend') return powers.includes('contact') || powers.includes('edit');
   if (action === 'form' || action === 'fee') return powers.includes('file') || powers.includes('edit');
   return powers.includes('other');
 }

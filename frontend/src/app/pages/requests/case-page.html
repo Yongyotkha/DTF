@@ -208,6 +208,12 @@
                     <app-input-field kind="textarea" label="รายละเอียด" [required]="action.id !== 'join'" [value]="actionNote" (valueChange)="actionNote = $event" />
                     <app-button type="primary" size="sm" label="ส่ง" [state]="action.id === 'join' || actionNote.trim() ? 'default' : 'disabled'" (click)="saveAction(action.id)" />
                   }
+                  @if (actionDone(action.id) && action.id !== 'join') {
+                    <p>{{ actionDone(action.id) }}</p>
+                  }
+                  @if (action.id === 'hearing' && hearingLine()) {
+                    <p>{{ hearingLine() }}</p>
+                  }
                 </article>
               }
             </div>
@@ -362,6 +368,9 @@
                 }
                 @if (actionDone(action.id) && action.id !== 'join') {
                   <p>{{ actionDone(action.id) }}</p>
+                }
+                @if (action.id === 'hearing' && hearingLine()) {
+                  <p>{{ hearingLine() }}</p>
                 }
               </article>
             }

@@ -1,12 +1,68 @@
 <app-auth-shell look="showcase">
   <h1>ลงทะเบียนผู้มีส่วนได้เสีย</h1>
   <p class="lead">{{ lead }}</p>
-  @if (caseId) {
+  @if (error) {
+    <p class="lead">{{ error }}</p>
+  }
+  @if (step === 'window') {
+    <label class="role">
+      <span>เคส</span>
+      <span class="role__control">
+        <select aria-label="เคส" [value]="caseId" (change)="caseId = $any($event.target).value">
+          <option value="">เลือกเคส</option>
+          @for (item of openCases; track item.id) {
+            <option [value]="item.id">{{ item.ref }} {{ item.goods }}</option>
+          }
+        </select>
+      </span>
+    </label>
+    <app-button class="wide" type="outline" label="อยู่ในระยะลงทะเบียน" (click)="chooseWindow('open')" />
+    <app-button class="wide" type="outline" label="เกินระยะ ยื่นคำร้องขอลงทะเบียน" (click)="chooseWindow('late')" />
+  } @else if (step === 'person') {
+    <p class="lead">{{ window === 'late' ? 'คำร้องขอลงทะเบียน' : 'ลงทะเบียนในระยะที่เปิดไว้' }} · {{ caseLabel(caseId) }}</p>
     <app-input-field class="block" label="ชื่อ" [required]="true" [editable]="true" [value]="name" (valueChange)="name = $event" />
-    <app-input-field class="block" label="หน่วยงาน" [editable]="true" [value]="org" (valueChange)="org = $event" />
-    <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" mark="card" [required]="true" [editable]="true" [state]="error ? 'error' : 'default'" [helper]="error" [value]="taxId" (valueChange)="taxId = $event" />
+    <p class="lead">ประเภทผู้มีส่วนได้เสีย เลือกได้มากกว่า 1 ประเภท</p>
+    @for (kind of kindChoices; track kind) {
+      <label class="trust">
+        <input type="checkbox" [checked]="kinds.includes(kind)" (change)="toggleKind(kind)" />
+        <span>{{ kindLabel(kind) }}</span>
+      </label>
+    }
+    <label class="trust">
+      <input type="checkbox" [checked]="acceptDocs" (change)="acceptDocs = $any($event.target).checked" />
+      <span>ยอมรับการรับ–ส่งเอกสารหรือติดต่อผ่านระบบเท่านั้น</span>
+    </label>
+    <label class="trust">
+      <input type="checkbox" [checked]="signed" (change)="signed = $any($event.target).checked" />
+      <span>ลงนาม</span>
+    </label>
+    <label class="trust">
+      <input type="checkbox" [checked]="acting" (change)="acting = $any($event.target).checked" />
+      <span>เป็นผู้ทำการแทนบริษัทหรือหน่วยงาน</span>
+    </label>
+    <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" mark="card" [required]="true" [editable]="true" [value]="taxId" (valueChange)="taxId = $event" />
     <app-input-field class="block" label="รหัสผ่าน" inputType="password" mark="lock" [reveal]="true" [required]="true" [editable]="true" [value]="password" (valueChange)="password = $event" />
-    <app-button class="wide login-submit" size="lg" label="ลงทะเบียนและเข้าสู่ระบบ" (click)="submit()" />
-    <a class="forgot" [routerLink]="['/login']" [queryParams]="{ invite: caseId }">มีบัญชีแล้ว เข้าสู่ระบบ</a>
+    <app-button class="wide login-submit" size="lg" label="บันทึกข้อมูลส่วนบุคคล" (click)="continuePerson()" />
+  } @else if (step === 'company') {
+    <p class="lead">ใบนำส่งส่วนบุคคล {{ receipt }}</p>
+    <app-input-field class="block" label="บริษัทหรือหน่วยงานที่ทำการแทน" [required]="true" [editable]="true" [value]="company" (valueChange)="company = $event" />
+    @for (kind of kindChoices; track kind) {
+      <label class="trust">
+        <input type="checkbox" [checked]="companyKinds.includes(kind)" (change)="toggleKind(kind, true)" />
+        <span>{{ kindLabel(kind) }}</span>
+      </label>
+    }
+    <label class="trust">
+      <input type="checkbox" [checked]="companySigned" (change)="companySigned = $any($event.target).checked" />
+      <span>ลงนามในนามหน่วยงาน</span>
+    </label>
+    <app-button class="wide login-submit" size="lg" label="บันทึกหน่วยงานและส่งให้เจ้าหน้าที่" (click)="finish()" />
+  } @else {
+    <p class="lead">ส่งแล้ว รอเจ้าหน้าที่พิจารณา</p>
+    <p class="lead">ใบนำส่งส่วนบุคคล {{ receipt }}</p>
+    @if (companyReceipt) {
+      <p class="lead">ใบนำส่งหน่วยงาน {{ companyReceipt }}</p>
+    }
+    <a class="forgot" [routerLink]="['/login']" [queryParams]="{ invite: caseId }">เข้าสู่ระบบ</a>
   }
 </app-auth-shell>

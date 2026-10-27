@@ -129,6 +129,11 @@ main {
   min-width: 240px;
 }
 
+.head--status h1,
+.head--status > div:first-child > p {
+  overflow-wrap: normal;
+}
+
 .sheet.fix-banner {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) max-content;
@@ -365,6 +370,34 @@ main {
   align-items: center;
 }
 
+.fix-board--alert header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.fix-board--alert header button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fix-board--alert header button[aria-expanded='false'] svg {
+  transform: rotate(-90deg);
+}
+
 .fix-board h2 span,
 .rounds header > span {
   padding: 2px 10px;
@@ -462,6 +495,14 @@ main {
   color: var(--color-text-muted);
   font-size: 14px;
   line-height: 21px;
+}
+
+.form.form--fix h3,
+.form.form--fix .section-title,
+.form.form--fix > label,
+.form.form--fix legend,
+.form.form--fix .field {
+  color: var(--color-error-red);
 }
 
 .rounds header > span {
@@ -1580,19 +1621,66 @@ main {
 }
 
 .rounds__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
 .rounds__grid article {
   display: flex;
+  flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 12px 16px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
+}
+
+.rounds__why {
+  flex: 1 0 100%;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rounds__why li + li {
+  margin-top: 8px;
+}
+
+.rounds__acts {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rounds__acts button.on svg {
+  transform: rotate(180deg);
+}
+
+.rounds__form {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.rounds__form div {
+  display: grid;
+  gap: 2px;
+}
+
+.rounds__form dt {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.rounds__form dd {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 16px;
+  line-height: 24px;
 }
 
 .rounds__grid strong,
@@ -1614,6 +1702,18 @@ main {
   color: var(--color-text-muted);
   font-size: 14px;
   line-height: 21px;
+}
+
+.rounds__grid article > div > small {
+  display: inline;
+  margin: 0;
+}
+
+.rounds__grid .rounds__acts button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-color: var(--color-border);
 }
 
 .rounds__grid button,
@@ -2126,9 +2226,14 @@ fieldset legend {
 }
 
 .col-manage,
-.roster .col-manage {
-  width: 96px;
+.roster .col-manage,
+.col-act,
+td:has(> .manage),
+td:has(> .made-actions) {
+  width: 1%;
+  white-space: nowrap;
   text-align: center;
+  vertical-align: middle;
 }
 
 .roster strong {
@@ -2154,6 +2259,8 @@ fieldset legend {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  width: max-content;
+  white-space: nowrap;
 }
 
 .icon-btn {
@@ -2440,24 +2547,12 @@ table:has(.col-no) {
   margin: 0;
 }
 
-.doc-detail__table th:nth-child(1),
-.doc-detail__table td:nth-child(1) {
-  width: 28%;
-}
-
-.doc-detail__table th:nth-child(2),
-.doc-detail__table td:nth-child(2) {
-  width: 26%;
+.doc-detail__table table {
+  table-layout: auto;
 }
 
 .doc-detail__table th:nth-child(3),
 .doc-detail__table td:nth-child(3) {
-  width: 22%;
-  white-space: nowrap;
-}
-
-.doc-detail__table .col-manage {
-  width: 24%;
   white-space: nowrap;
 }
 
@@ -4305,7 +4400,7 @@ body.workspace-split .head {
 }
 
 .pack-table table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .pack-table .col-no {
@@ -4317,7 +4412,7 @@ body.workspace-split .head {
 }
 
 .pack-table .col-act {
-  width: 128px;
+  width: 1%;
 }
 
 .pack-table td:nth-child(2) {
@@ -4798,6 +4893,15 @@ body.workspace-split .head {
 .step-tabs button.is-done .step-tabs__mark {
   background: var(--color-success);
   color: var(--color-white);
+}
+
+.step-tabs button.is-now .step-tabs__mark {
+  background: var(--color-warning);
+  color: var(--color-white);
+}
+
+.step-tabs button.is-now small {
+  color: var(--color-warning);
 }
 
 .step-tabs button.is-lock .step-tabs__mark {
@@ -6104,7 +6208,7 @@ body.workspace-split .head {
 }
 
 .file-dialog .slip-files table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .file-dialog .slip-files .col-no {
@@ -6119,7 +6223,7 @@ body.workspace-split .head {
 }
 
 .file-dialog .slip-files .col-act {
-  width: 112px;
+  width: 1%;
 }
 
 .slip-view {
@@ -6240,9 +6344,11 @@ body.workspace-split .head {
 }
 
 .made-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
+  flex-wrap: nowrap;
   gap: 8px;
+  width: max-content;
+  white-space: nowrap;
 }
 
 .draft-line strong {
@@ -6309,7 +6415,7 @@ body.workspace-split .head {
 }
 
 .notice-files .slip-files table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .notice-files .slip-files .col-no {
@@ -6329,7 +6435,7 @@ body.workspace-split .head {
 }
 
 .notice-files .slip-files .col-act {
-  width: 136px;
+  width: 1%;
   white-space: nowrap;
 }
 

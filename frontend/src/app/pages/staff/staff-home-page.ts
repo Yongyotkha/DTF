@@ -8,12 +8,24 @@ import { TopHeader } from '../../top-header/top-header';
 import { assignmentReachesOfficer, groupHead, groupMembers, staffPeople, workGroups } from './staff-roster';
 import { listGrants, powerLabel, reviewGrant } from '../requests/proxy-grant';
 import { archiveCases, findListedCase } from '../requests/request-cases';
-import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
+import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readReceipt, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
 
 type Bucket = 'in' | 'pending' | 'out' | 'follow' | 'group';
 type WorkKind = 'request' | 'job' | 'track';
 type WorkBucket = 'in' | 'wait' | 'doing' | 'pending' | 'out' | 'follow' | 'group';
 type DeskFilter = WorkKind | WorkBucket;
+
+type FlowOfficer = { name: string; reply: 'pending' | 'accept' | 'return'; move?: string; result?: { at?: string } };
+type FlowJob = {
+  group: string;
+  reply: 'pending' | 'accept' | 'return';
+  result?: { at?: string };
+  officers: FlowOfficer[];
+  verdict?: string;
+  handoff?: string;
+  delivery?: string;
+  dueOn?: string;
+};
 
 type TaskCase = {
   code: string;
@@ -136,6 +148,15 @@ export class StaffHomePage implements OnDestroy {
     return this.role === 'director' || this.role === 'head' || this.role === 'officer';
   }
 
+  protected get overview(): boolean {
+    return this.role === 'director' || this.role === 'head' || this.role === 'officer' || this.role === 'bureau';
+  }
+
+  protected get overviewLead(): string {
+    const role = this.accounts.roleName;
+    return role ? `งานที่ ${role} ต้องดำเนินการ` : 'งานที่บัญชีนี้ต้องดำเนินการ';
+  }
+
   protected get deskStats(): { id: DeskFilter; label: string; count: number }[] {
     if (this.role === 'officer') {
       const owned = this.consultOfficerAssignment();
@@ -185,19 +206,27 @@ export class StaffHomePage implements OnDestroy {
     this.openCode = this.openCode === code ? '' : code;
   }
 
+  protected taskKey(row: TaskCase): string {
+    return `${row.caseId || row.code}:${row.title}`;
+  }
+
   protected boardLane = '';
   protected groupFilter = '';
   protected boardView: 'board' | 'list' = 'board';
+  protected searchOpen = false;
+
+  protected toggleSearch(): void {
+    this.searchOpen = !this.searchOpen;
+    if (this.searchOpen) setTimeout(() => document.getElementById('desk-search')?.focus());
+  }
 
   private taskRows(): TaskCase[] {
     const text = this.query.trim();
-    const source = this.role === 'officer'
-      ? [...this.officerJobs('in'), ...this.officerJobs('doing')]
-      : this.directorCatalog();
+    const source = this.taskSource();
     const seen = new Set<string>();
     const rows: TaskCase[] = [];
     for (const row of source) {
-      const key = row.code + row.title;
+      const key = this.taskKey(row);
       if (seen.has(key)) continue;
       seen.add(key);
       if (this.groupFilter && row.group !== this.groupFilter) continue;
@@ -209,31 +238,226 @@ export class StaffHomePage implements OnDestroy {
   }
 
   protected get taskGroups(): string[] {
-    const source = this.role === 'officer'
-      ? [...this.officerJobs('in'), ...this.officerJobs('doing')]
-      : this.directorCatalog();
-    return [...new Set(source.map((row) => row.group).filter(Boolean))];
+    return [...new Set(this.taskSource().map((row) => row.group).filter(Boolean))];
   }
 
-  private laneOf(row: TaskCase): 'in' | 'late' | 'out' | 'active' {
-    if (row.bucket === 'out') return 'out';
-    if (row.bucket === 'pending' || row.bucket === 'follow') return 'late';
-    if (row.bucket === 'doing' || row.bucket === 'group') return 'active';
+  private taskSource(): TaskCase[] {
+    return this.flowTasks();
+  }
+
+  private flowTasks(): TaskCase[] {
+    const jobs = this.readFlowJobs();
+    if (this.role === 'director') return this.directorFlow(jobs);
+    if (this.role === 'head') return this.headFlow(jobs);
+    if (this.role === 'officer') return this.officerFlow(jobs);
+    if (this.role === 'bureau') return this.bureauFlow();
+    return [];
+  }
+
+  private flowReply(value: string | undefined): FlowOfficer['reply'] {
+    if (value === 'accept' || value === 'return') return value;
+    return 'pending';
+  }
+
+  private readFlowJobs(): FlowJob[] {
+    try {
+      if (sessionStorage.getItem('dft-por1-consult-sample') === '1' || sessionStorage.getItem('dft-por1-consult-default') === '1') return [];
+      const value = JSON.parse(sessionStorage.getItem('dft-por1-consult-jobs') || '[]') as {
+        group?: string;
+        reply?: string;
+        result?: { at?: string };
+        officers?: { name?: string; reply?: string; move?: string; result?: { at?: string } }[];
+        verdict?: string;
+        handoff?: string;
+        delivery?: string;
+        form?: { dueOn?: string };
+      }[];
+      if (!Array.isArray(value)) return [];
+      return value.flatMap((job) => {
+        if (!job || typeof job.group !== 'string' || !job.group) return [];
+        const reply = this.flowReply(job.reply);
+        const officers: FlowOfficer[] = Array.isArray(job.officers) ? job.officers.flatMap((officer) => {
+          if (!officer || typeof officer.name !== 'string' || !officer.name) return [];
+          return [{ name: officer.name, reply: this.flowReply(officer.reply), move: officer.move, result: officer.result }];
+        }) : [];
+        return [{
+          group: job.group,
+          reply,
+          result: job.result,
+          officers,
+          verdict: job.verdict,
+          handoff: job.handoff,
+          delivery: job.delivery,
+          dueOn: job.form?.dueOn || '',
+        }];
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  private stepCard(title: string, bucket: WorkBucket, status: string, tone: StatusTone, group: string, due = ''): TaskCase {
+    return {
+      code: this.filingRef,
+      title,
+      kind: 'job',
+      bucket,
+      product: 'เหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์',
+      sender: this.applicantName,
+      group,
+      at: '16/05/2562',
+      status,
+      due: due || `ครบกำหนดแก้ไขเพิ่มเติม ${this.amendUntil}`,
+      tone,
+    };
+  }
+
+  private directorFlow(jobs: FlowJob[]): TaskCase[] {
+    const cards: TaskCase[] = [];
+    const status = readCaseStatus();
+    const handedOff = jobs.length > 0 || readWorkAssignment().groupTasks.length > 0;
+    if (status === 'approval' && this.canApprove) {
+      const pending = this.filingGate?.state === 'pending';
+      cards.push(this.stepCard(pending ? 'ตรวจสอบคำขอ' : 'อนุมัติการยื่นแบบ', 'in', pending ? 'ส่งมาขออนุมัติ' : 'รออนุมัติการยื่นแบบ', 'warning', 'ผู้อำนวยการ'));
+    } else if ((status === 'official' || status === 'approval') && !handedOff) {
+      cards.push(this.stepCard('ยื่นคำขอแบบ ปร.1', 'in', 'ยื่นแบบทางการแล้ว', 'info', 'ผู้อำนวยการ'));
+    } else if (status === 'review' && !handedOff) {
+      cards.push(this.stepCard('ยื่นคำขอแบบ ปร.1', 'in', 'อยู่ระหว่างตรวจสอบ', 'info', 'ผู้อำนวยการ'));
+    } else if (status === 'revision' && !handedOff) {
+      cards.push(this.stepCard('ยื่นคำขอแบบ ปร.1', 'follow', 'รอผู้ยื่นแก้ไข', 'warning', 'ผู้อำนวยการ'));
+    }
+    if (jobs.length) return [...cards, ...jobs.map((job) => this.directorJobCard(job))];
+    const saved = readWorkAssignment();
+    if (saved.groupTasks.length) {
+      return [...cards, ...saved.groupTasks.map((task) => task.reply === 'return'
+        ? this.stepCard(`ส่งคืนจาก ${task.head || task.group}`, 'in', 'หัวหน้ากลุ่มส่งคืน', 'danger', task.group)
+        : this.stepCard(`มอบหมาย ${this.shortGroup(task.group)}`, 'out', 'ส่งมอบให้หัวหน้ากลุ่มแล้ว', 'success', task.group))];
+    }
+    if (status === 'consult' && this.consultStep === 'director') {
+      cards.push(this.stepCard('มอบหมายกลุ่ม', 'in', 'รอมอบหมายกลุ่ม', 'warning', 'ผู้อำนวยการ'));
+    }
+    return cards;
+  }
+
+  private directorJobCard(job: FlowJob): TaskCase {
+    const head = groupHead(job.group) || 'หัวหน้ากลุ่ม';
+    const due = job.dueOn ? `ครบกำหนด ${job.dueOn}` : '';
+    if (job.reply === 'return') return this.stepCard(`ส่งคืนจาก ${head}`, 'in', 'หัวหน้ากลุ่มส่งคืน', 'danger', job.group, due);
+    if (job.result && job.verdict !== 'approve' && job.verdict !== 'rework') return this.stepCard(`รายงานจาก ${head}`, 'in', 'รอพิจารณาอนุมัติ', 'warning', job.group, due);
+    if (job.verdict === 'approve' && !job.handoff) return this.stepCard('สถานะการส่งต่อ', 'follow', 'รอเลือกส่งต่อหรือไม่ส่งต่อ', 'warning', job.group, due);
+    if (job.handoff === 'stop' && !job.delivery) return this.stepCard('สถานะการส่งมอบ', 'follow', 'รอเลือกปิดงาน ส่ง กธ. หรือส่งกลับตรวจสอบ', 'warning', job.group, due);
+    if (job.handoff === 'more') return this.stepCard('ส่งต่องาน', 'out', 'ส่งต่อแล้ว', 'success', job.group, due);
+    if (job.delivery === 'check') return this.stepCard('ส่งกลับตรวจสอบ', 'out', 'ส่งกลับตรวจสอบแล้ว', 'success', job.group, due);
+    if (job.delivery === 'close') return this.stepCard('ปิดงาน', 'out', 'ส่งมอบแล้ว', 'success', job.group, due);
+    if (job.delivery === 'board') return this.stepCard('ส่ง กธ. เพื่อพิจารณา', 'out', 'ส่งมอบแล้ว', 'success', job.group, due);
+    return this.stepCard(`มอบหมาย ${this.shortGroup(job.group)}`, 'out', 'ส่งมอบให้กลุ่มแล้ว', 'success', job.group, due);
+  }
+
+  private headFlow(jobs: FlowJob[]): TaskCase[] {
+    const group = this.myGroup();
+    const job = jobs.find((item) => item.group === group);
+    if (job) return [this.headJobCard(job)];
+    const task = readWorkAssignment().groupTasks.find((item) => item.group === group);
+    if (task?.reply === 'pending') return [this.stepCard('รับมอบหมายจากผู้อำนวยการ', 'in', 'รอรับเรื่อง', 'warning', group)];
+    if (task?.reply === 'return') return [this.stepCard('ส่งคืนผู้อำนวยการ', 'out', 'ส่งคืนแล้ว', 'danger', group)];
+    if (task?.reply === 'accept') {
+      const hands = readWorkAssignment().hands.filter((hand) => hand.group === group);
+      if (!hands.length) return [this.stepCard('มอบหมายเจ้าหน้าที่หรือรายงานผล', 'follow', 'รับเรื่องแล้ว', 'warning', group)];
+      if (hands.some((hand) => hand.reply === 'return') && hands.every((hand) => hand.reply !== 'pending')) return [this.stepCard('เจ้าหน้าที่ส่งคืน', 'in', 'เลือกผู้รับคนใหม่', 'danger', group)];
+      return [this.stepCard('งานของกลุ่ม', 'group', 'อยู่ระหว่างเจ้าหน้าที่ดำเนินการ', 'info', group)];
+    }
+    if (readCaseStatus() === 'consult' && this.consultStep === 'group' && this.headsThisGroup && readConsultGroup() === group) {
+      return [this.stepCard('มอบหมายเจ้าหน้าที่ในกลุ่ม', 'in', 'รอเลือกเจ้าหน้าที่', 'warning', group)];
+    }
+    return [];
+  }
+
+  private headJobCard(job: FlowJob): TaskCase {
+    const due = job.dueOn ? `ครบกำหนด ${job.dueOn}` : '';
+    if (job.reply === 'return') return this.stepCard('ส่งคืนผู้อำนวยการ', 'out', 'ส่งคืนแล้ว', 'danger', job.group, due);
+    if (job.reply === 'pending') return this.stepCard('รับมอบหมายจากผู้อำนวยการ', 'in', 'รอรับเรื่อง', 'warning', job.group, due);
+    if (job.verdict === 'rework') return this.stepCard('รายงานผลใหม่', 'in', 'ผู้อำนวยการส่งกลับให้รายงานใหม่', 'warning', job.group, due);
+    if (job.delivery === 'check') return this.stepCard('ส่งกลับตรวจสอบ', 'in', 'ผู้อำนวยการส่งกลับตรวจสอบ', 'warning', job.group, due);
+    if (job.result || job.handoff === 'more' || job.delivery === 'close' || job.delivery === 'board') return this.stepCard('รายงานผลถึงผู้อำนวยการ', 'out', 'ส่งมอบรายงานแล้ว', 'success', job.group, due);
+    const pending = job.officers.some((officer) => officer.reply === 'pending');
+    const accepted = job.officers.filter((officer) => officer.reply === 'accept');
+    const returned = job.officers.filter((officer) => officer.reply === 'return');
+    if (returned.length && !pending && !accepted.some((officer) => !officer.result)) return this.stepCard('เจ้าหน้าที่ส่งคืน', 'in', 'เลือกผู้รับคนใหม่', 'danger', job.group, due);
+    if (accepted.length && accepted.every((officer) => officer.result) && !pending) return this.stepCard('รวบรวมรายงานส่งผู้อำนวยการ', 'in', 'รอรายงานผล', 'warning', job.group, due);
+    if (job.officers.length) return this.stepCard('งานของกลุ่ม', 'group', 'อยู่ระหว่างเจ้าหน้าที่ดำเนินการ', 'info', job.group, due);
+    return this.stepCard('มอบหมายเจ้าหน้าที่หรือรายงานผล', 'follow', 'รับเรื่องแล้ว', 'warning', job.group, due);
+  }
+
+  private officerFlow(jobs: FlowJob[]): TaskCase[] {
+    const me = this.accounts.personName;
+    const cards = jobs.flatMap((job) => {
+      const mine = job.officers.find((officer) => officer.name === me);
+      if (!mine || job.reply === 'return') return [];
+      return [this.officerJobCard(job, mine)];
+    });
+    if (cards.length || jobs.length) return cards;
+    const hand = readWorkAssignment().hands.find((item) => item.name === me);
+    if (!hand) return [];
+    if (hand.reply === 'return') return [this.stepCard('ส่งคืนหัวหน้ากลุ่ม', 'out', 'ส่งคืนแล้ว', 'danger', hand.group)];
+    if (hand.reply === 'pending') return [this.stepCard('รับมอบหมายจากหัวหน้ากลุ่ม', 'in', 'รอรับเรื่อง', 'warning', hand.group)];
+    return [this.stepCard('ดำเนินงานตามที่มอบหมาย', 'follow', 'รับเรื่องแล้ว', 'info', hand.group)];
+  }
+
+  private officerJobCard(job: FlowJob, mine: FlowOfficer): TaskCase {
+    const due = job.dueOn ? `ครบกำหนด ${job.dueOn}` : '';
+    if (mine.reply === 'return') return this.stepCard('ส่งคืนหัวหน้ากลุ่ม', 'out', 'ส่งคืนแล้ว', 'danger', job.group, due);
+    if (mine.reply === 'pending') return this.stepCard('รับมอบหมายจากหัวหน้ากลุ่ม', 'in', 'รอรับเรื่อง', 'warning', job.group, due);
+    if (mine.move === 'forward' && !mine.result) return this.stepCard('ส่งต่อหัวหน้ากลุ่ม', 'out', 'ส่งต่อให้เลือกผู้รับใหม่', 'success', job.group, due);
+    if (mine.result) return this.stepCard('รายงานผล', 'out', 'ส่งมอบรายงานแล้ว', 'success', job.group, due);
+    return this.stepCard('ดำเนินงานตามที่มอบหมาย', 'follow', 'รับเรื่องแล้ว', 'info', job.group, due);
+  }
+
+  private bureauFlow(): TaskCase[] {
+    const receipt = readReceipt();
+    if (!receipt?.links?.length) return [];
+    return [this.stepCard('ลงรับจากระบบสารบรรณ', 'out', 'ส่งมอบเลขรับแล้ว', 'success', 'กลุ่ม บท.')];
+  }
+
+  private shortGroup(group: string): string {
+    if (group.includes('(AD)')) return 'กลุ่ม AD';
+    if (group.includes('CVD')) return 'กลุ่ม CVD';
+    if (group.includes('(SG)')) return 'กลุ่ม SG';
+    if (group.includes('วิเคราะห์')) return 'กลุ่มวิเคราะห์';
+    if (group.includes('บท')) return 'กลุ่ม บท.';
+    return group;
+  }
+
+  private myGroup(): string {
+    const me = this.accounts.personName;
+    return staffPeople.find((person) => person.name === me)?.work ?? '';
+  }
+
+  private finishedTask(row: TaskCase): boolean {
+    return /ประกาศ|ยุติ|ไม่เปิด/.test(row.status) || row.status === 'งานออก';
+  }
+
+  private etrLane(row: TaskCase): 'in' | 'pending' | 'out' | 'follow' | 'group' {
+    if (row.bucket === 'out' || row.status === 'งานออก' || this.finishedTask(row)) return 'out';
+    if (row.bucket === 'pending') return 'pending';
+    if (row.bucket === 'follow') return 'follow';
+    if (row.bucket === 'group' || row.bucket === 'doing') return 'group';
+    if (/เปิดการไต่สวน|ร่างผลการ|รับฟังความคิดเห็น|ตรวจสอบข้อมูล|กำลังดำเนินการ|ผลการไต่สวน/.test(row.status)) return 'group';
     return 'in';
   }
 
-  protected get summaryStats(): { id: '' | 'in' | 'late' | 'out'; label: string; hint: string; count: number }[] {
+  protected get summaryStats(): { id: 'in' | 'pending' | 'out' | 'follow' | 'group'; label: string; hint: string; tip: string; count: number }[] {
     const rows = this.taskRows();
-    const count = (id: 'in' | 'late' | 'out' | 'active') => rows.filter((row) => this.laneOf(row) === id).length;
+    const count = (id: 'in' | 'pending' | 'out' | 'follow' | 'group') => rows.filter((row) => this.etrLane(row) === id).length;
     return [
-      { id: 'in', label: 'งานรับเข้า', hint: 'งานใหม่ที่รอดำเนินการ', count: count('in') },
-      { id: 'late', label: 'งานค้าง', hint: 'ใกล้ครบกำหนด / เกินกำหนด', count: count('late') },
-      { id: 'out', label: 'งานออก', hint: 'งานที่ดำเนินการแล้ว', count: count('out') },
-      { id: '', label: 'งานทั้งหมด', hint: 'ทุกสถานะ', count: rows.length },
+      { id: 'in', label: 'งานรับเข้า', hint: 'งานใหม่ที่ยังไม่ส่งต่อ', tip: 'งานที่เข้ามาใหม่ของบัญชีนี้ ยังไม่ได้ส่งมอบต่อ', count: count('in') },
+      { id: 'pending', label: 'งานค้าง', hint: 'ครบกำหนดแล้วยังไม่ส่งต่อ', tip: 'งานที่ครบกำหนดแล้ว แต่ยังไม่ได้ส่งมอบต่อ', count: count('pending') },
+      { id: 'out', label: 'งานออก', hint: 'ส่งมอบไปแล้ว', tip: 'งานที่ส่งมอบไปแล้ว จึงออกจากงานที่กำลังรับ', count: count('out') },
+      { id: 'follow', label: 'งานที่ต้องติดตาม (งานระหว่างดำเนินการ)', hint: 'ยังทำอยู่และต้องติดตาม', tip: 'งานที่ยังทำอยู่และต้องติดตามต่อ ยังไม่ใช่งานของทั้งกลุ่ม', count: count('follow') },
+      { id: 'group', label: 'งานระหว่างดำเนินการของกลุ่ม', hint: 'กลุ่มกำลังทำอยู่', tip: 'งานที่กลุ่มกำลังทำอยู่ในกระบวนการไต่สวน', count: count('group') },
     ];
   }
 
-  protected pickSummary(id: '' | 'in' | 'late' | 'out'): void {
+  protected pickSummary(id: 'in' | 'pending' | 'out' | 'follow' | 'group'): void {
     this.boardLane = this.boardLane === id ? '' : id;
   }
 
@@ -241,15 +465,16 @@ export class StaffHomePage implements OnDestroy {
     const rows = this.taskRows();
     const columns = [
       { id: 'in', label: 'งานรับเข้า' },
-      { id: 'late', label: 'งานค้าง' },
+      { id: 'pending', label: 'งานค้าง' },
       { id: 'out', label: 'งานออก' },
-      { id: 'active', label: 'งานทั้งหมด' },
+      { id: 'follow', label: 'งานที่ต้องติดตาม (งานระหว่างดำเนินการ)' },
+      { id: 'group', label: 'งานระหว่างดำเนินการของกลุ่ม' },
     ];
     return columns
       .filter((column) => !this.boardLane || this.boardLane === column.id)
       .map((column) => ({
         ...column,
-        rows: column.id === 'active' ? rows : rows.filter((row) => this.laneOf(row) === column.id),
+        rows: rows.filter((row) => this.etrLane(row) === column.id),
       }));
   }
 
@@ -517,16 +742,22 @@ export class StaffHomePage implements OnDestroy {
         tone: 'success',
       },
     );
-    const seen = new Set(rows.map((row) => row.code));
+    const seenCodes = new Set(rows.filter((row) => row.code !== '—').map((row) => row.code));
+    const seenIds = new Set(rows.map((row) => row.caseId || ''));
     for (const item of archiveCases) {
-      if (seen.has(item.code)) continue;
-      seen.add(item.code);
-      const done = item.status.includes('ประกาศ') || item.status.includes('ผล');
+      if (/^POR/i.test(item.code)) continue;
+      if (seenIds.has(item.id)) continue;
+      if (item.code !== '—' && seenCodes.has(item.code)) continue;
+      seenIds.add(item.id);
+      if (item.code !== '—') seenCodes.add(item.code);
+      const finished = /ประกาศ|ยุติ|ไม่เปิด/.test(item.status);
+      const openWork = !finished && item.status !== 'ยื่นคำขอ' && item.status !== 'ร่าง';
       rows.push({
         code: item.code,
+        caseId: item.id,
         title: item.kind,
         kind: 'request',
-        bucket: done ? 'out' : 'in',
+        bucket: finished ? 'out' : item.waiting ? 'pending' : openWork ? 'doing' : 'in',
         product: item.goods,
         sender: item.applicant || 'ผู้ยื่นคำขอ',
         group: item.measure.startsWith('SG') ? 'กลุ่มงานมาตรการป้องกัน (SG)' : 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)',
@@ -621,6 +852,7 @@ export class StaffHomePage implements OnDestroy {
   protected jobLabel(row: TaskCase): string {
     if (row.code === this.filingRef && this.canApprove) return this.filingGate?.state === 'pending' ? 'ตรวจสอบคำขอ' : 'อนุมัติการยื่นแบบ';
     if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') return 'มอบหมายกลุ่ม';
+    if (row.code === this.filingRef && row.status === 'ยื่นแบบทางการแล้ว') return 'กำหนดผู้รับผิดชอบ';
     return 'ดูคำขอ';
   }
 
@@ -634,8 +866,12 @@ export class StaffHomePage implements OnDestroy {
       return;
     }
     if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') {
-      this.openCode = row.code + row.title;
+      this.openCode = this.taskKey(row);
       this.assignOpen = true;
+      return;
+    }
+    if (row.code === this.filingRef && row.status === 'ยื่นแบบทางการแล้ว') {
+      this.openFiling('', 'assign');
       return;
     }
     const key = row.caseId || row.code;
@@ -813,7 +1049,7 @@ export class StaffHomePage implements OnDestroy {
     void this.router.navigate(['/cases']);
   }
 
-  protected openFiling(code = ''): void {
+  protected openFiling(code = '', tab = ''): void {
     const filing = ({
       director: '/director/filing',
       head: '/head/filing',
@@ -824,7 +1060,10 @@ export class StaffHomePage implements OnDestroy {
       interest: '/interest/filing',
       external: '/external/filing',
     } as Record<string, string>)[this.role] ?? '/officer/filing';
-    void this.router.navigate([filing], { queryParams: code ? { case: code } : {} });
+    const queryParams: Record<string, string> = {};
+    if (code) queryParams['case'] = code;
+    if (tab) queryParams['tab'] = tab;
+    void this.router.navigate([filing], { queryParams });
   }
 
   private assignedConsultJob(group: string): TaskCase {

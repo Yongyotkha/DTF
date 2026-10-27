@@ -103,6 +103,7 @@ h1 {
 }
 
 .item__code,
+.item__who,
 .item__goods,
 .item__facts dt,
 .item__facts dd {
@@ -116,6 +117,13 @@ h1 {
   font-size: 16px;
   font-weight: 700;
   line-height: 24px;
+}
+
+.item__who {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
 }
 
 .item__goods {
@@ -359,6 +367,15 @@ h2 {
   justify-content: space-between;
 }
 
+.measure-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
 .measures button {
   padding: 6px 10px;
   border: 1px solid var(--color-border);
@@ -596,6 +613,10 @@ h2 {
   line-height: 21px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+.card__body p.card__hint {
+  -webkit-line-clamp: 4;
 }
 
 .powers {
