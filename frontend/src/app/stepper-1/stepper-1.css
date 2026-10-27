@@ -17,6 +17,16 @@
   width: 244px;
 }
 
+:host(.embedded) .stepper-1 {
+  height: 100%;
+  border-radius: 0;
+  background: transparent;
+}
+
+:host(.embedded) .stepper-1__toggle {
+  display: none;
+}
+
 .stepper-1__head {
   display: flex;
   align-items: center;

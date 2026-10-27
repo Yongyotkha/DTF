@@ -110,7 +110,7 @@ export class InputField {
   }
 
   protected toggleCalendar(event: Event): void {
-    if (!this.calendar || this.locked) return;
+    if (!this.calendar || this.locked || !this.editable) return;
     const target = event.target;
     if (target instanceof Node && this.host.nativeElement.querySelector('.picker')?.contains(target)) return;
     if (this.calendarOpen()) {

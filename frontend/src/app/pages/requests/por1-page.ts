@@ -6659,15 +6659,12 @@ export class Por1Page {
   }
 
   protected finishNotice(): void {
-    const draft = this.notice === 'draft';
     const submitted = this.notice === 'submitted';
-    const stay = this.revising;
     this.notice = null;
     if (submitted) {
       if (!readFlowFile()) void this.router.navigate(['/requests', 'AD1054']);
       return;
     }
-    if (draft && !stay) void this.router.navigate(['/requests'], { queryParams: { tab: 'draft' } });
   }
 
   protected get onBehalf(): boolean {

@@ -1,11 +1,16 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Accounts } from '../../accounts';
 import { DftButton } from '../../button/button';
+import { DataTable } from '../../data-table/data-table';
+import { FileField } from '../../fields/file-field';
+import { ThaiDateField } from '../../fields/thai-date-field';
 import { InputField } from '../../input-field/input-field';
 import { DftModal } from '../../modal/modal';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag, StatusTone } from '../../status-tag/status-tag';
+import { StepperOneItem } from '../../stepper-1/stepper-1';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 import { formOf } from './form-catalog';
@@ -18,7 +23,7 @@ import { caseBrief, CaseParty, caseNumberLabel, documentsForStage, findListedCas
 
 @Component({
   selector: 'app-case-page',
-  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, DftModal, InputField, Tabs],
+  imports: [NgTemplateOutlet, TopHeader, SideNav, RouterLink, DftButton, StatusTag, DftModal, FileField, InputField, ThaiDateField, DataTable, Tabs],
   templateUrl: './case-page.html',
   styleUrl: './case-page.css',
 })
@@ -184,7 +189,9 @@ export class CasePage implements OnDestroy {
   protected readonly reviewPassed: boolean;
   protected readonly reviewPending: boolean;
   protected readonly supplement: boolean;
+  protected readonly showcase: boolean;
   protected readonly fixesOnly: boolean;
+  protected readonly supplementView: boolean;
   protected readonly statusNote: string;
   protected stepIndex = 1;
   protected readonly steps: { label: string; number: string }[];
@@ -246,7 +253,7 @@ export class CasePage implements OnDestroy {
       reason: 'ยังมีเอกสารประกอบที่ต้องแนบเพิ่มเติม จึงยังไม่สามารถตรวจรายการให้ครบได้',
     },
   ];
-  protected readonly countries = ['ญี่ปุ่น', 'แอฟริกาใต้', 'รัสเซีย'];
+  protected readonly countries: string[];
   protected readonly history: { title: string; detail: string; when: string; docs: string[] }[];
   protected readonly reviewStats: { value: string; label: string; tone: StatusTone }[] = [
     { value: '6', label: 'ผ่านการตรวจสอบ', tone: 'success' },
@@ -254,11 +261,41 @@ export class CasePage implements OnDestroy {
     { value: '1', label: 'ต้องแก้ไข', tone: 'danger' },
   ];
   protected readonly reviewItems = ['ความครบถ้วนของแบบฟอร์ม', 'หนังสือรับรองบริษัท', 'เอกสารประกอบคำขอ'];
-  protected readonly supplementDue = '20 ก.พ. 2569';
-  protected readonly supplementFacts: { label: string; value: string; due?: boolean }[] = [
-    { label: 'เจ้าหน้าที่แจ้งเมื่อ', value: '10 ก.พ. 2569' },
-    { label: 'กำหนดส่งข้อมูล', value: '20 ก.พ. 2569', due: true },
+  protected readonly supplementDue = '20 พฤศจิกายน 2569';
+  protected readonly extraItems: { title: string; kind: string; status: string; detail: string }[] = [
+    {
+      title: 'ข้อมูลวิธีการคำนวณมูลค่าปกติ',
+      kind: 'ข้อมูลคำขอ',
+      status: 'รอเพิ่มเติม',
+      detail: 'ขอให้ชี้แจงวิธีการคำนวณมูลค่าปกติที่ใช้ในคำขอ และระบุแหล่งที่มาของตัวเลขให้ครบ',
+    },
+    {
+      title: 'เอกสารหลักฐานประกอบต้นทุนการผลิต',
+      kind: 'เอกสารประกอบ',
+      status: 'รอเพิ่มเติม',
+      detail: 'ขอให้แนบเอกสารหลักฐานประกอบต้นทุนการผลิตให้ตรงกับช่วงเวลาที่แจ้งในคำขอ',
+    },
+    {
+      title: 'คำชี้แจงความสอดคล้องของข้อมูล',
+      kind: 'คำชี้แจง',
+      status: 'รอเพิ่มเติม',
+      detail: 'ขอให้ชี้แจงความสอดคล้องของข้อมูลในแบบคำขอกับเอกสารประกอบที่แนบมา',
+    },
   ];
+  protected supplementStep = 3;
+  private readonly supplementLabels = [
+    'ผปก. ยื่นแบบคำขอ',
+    'คต. พิจารณาคำขอ',
+    'ผปก. ส่งข้อมูลที่แก้ไขเพิ่มเติม',
+    'ผปก. รับทราบคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน',
+    'คต. บันทึกผลการพิจารณาเปิดการไต่สวน',
+    'ผปก. บันทึกหลักฐานชำระค่าธรรมเนียม',
+  ];
+  protected readonly amendDueOn = '06/06/2569';
+  protected readonly dueOn = '20/02/2569';
+  protected readonly overviewNote = '-';
+  protected readonly endOn = '06/06/2569';
+  protected readonly extendDecisionFile = 'ผลการพิจารณาขยายเวลา.pdf';
   protected readonly supplementTasks: {
     title: string;
     kind: string;
@@ -354,6 +391,7 @@ export class CasePage implements OnDestroy {
   protected viewStep = 1;
   fixesOpen = false;
   openFixTitle: string | null = null;
+  extraOpen = false;
   supplementOpen: Record<string, boolean> = {};
   consultOpen = false;
   consultTopic = 'ขอปรึกษาการแก้ไขคำขอ';
@@ -363,6 +401,38 @@ export class CasePage implements OnDestroy {
   sentConsult: { topic: string; detail: string; channel: 'phone' | 'online' | 'onsite'; filedOn: string } | null = null;
   filedOpen = false;
   officialReview = false;
+  extraAnswers: Record<string, string> = {};
+  extraProofs: Record<string, { name: string; title: string }[]> = {};
+  extraSubmitted = false;
+  supplementFiles: Record<string, string> = {};
+  supplementSent = false;
+  supplementDraftSaved = false;
+  supplementKind: 'fix' | 'extend' = 'extend';
+  extendReason = 'ขอขยายระยะเวลา';
+  extendNewDue = '22/09/2569';
+  extendFiles: { name: string; title: string }[] = [
+    { name: 'ขอขยายเวลา - 22/09/2569.pdf', title: 'ขอขยายเวลา - 22/09/2569.pdf' },
+  ];
+  protected readonly extendColumns = ['ลำดับ', 'ชื่อเอกสาร', 'ชื่อเอกสารใหม่'];
+  coverDate = '22/09/2569';
+  coverNo = '22/09/2569';
+  coverTo = 'ผู้อำนวยการกองปกป้องและตอบโต้ทางการค้า';
+  coverSubject = 'ยื่นคำขอขยายเวลา';
+  coverRef = '-';
+  coverEnclosed = '-';
+  coverDetail = 'บริษัทฯ ขอขยายระยะเวลาการส่งข้อมูลที่แก้ไขเพิ่มเติม เนื่องจากอยู่ระหว่างรวบรวมเอกสารหลักฐานให้ครบถ้วน';
+  coverPurpose = 'มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา';
+  coverSeal = 'ตราประทับบริษัท.png';
+  coverLetterFile = 'หน้าหนังสือนำส่งฉบับจริง.png';
+  coverPreview = false;
+  protected readonly feeRefNo = '147855858';
+  protected readonly feeNotice = '-';
+  protected readonly feeNoticeFile = 'หนังสือชำระค่าธรรมเนียม.pdf';
+  protected readonly feeNoticeDue = '22/09/2569';
+  feePaid = true;
+  feePaidOn = '22/09/2569';
+  feeAmount = '';
+  feeProofFiles: { name: string; title: string }[] = [];
   private reviewTimer = 0;
 
   constructor(
@@ -373,6 +443,7 @@ export class CasePage implements OnDestroy {
   ) {
     const code = route.snapshot.paramMap.get('code') ?? '';
     this.fixesOnly = route.snapshot.data['view'] === 'fixes';
+    this.supplementView = route.snapshot.data['view'] === 'supplement';
     const item = findListedCase(code);
     this.routeKey = code;
     this.code = item?.code ?? code;
@@ -388,10 +459,17 @@ export class CasePage implements OnDestroy {
     this.reviewPassed = this.code === 'AD1024';
     this.reviewPending = this.code === 'AD1054';
     this.supplement = this.code === 'AD1005';
-    this.title = item ? `${item.ref} ${item.goods}` : this.requestRef;
+    this.showcase = this.code === 'AD1039';
+    this.extraSubmitted = sessionStorage.getItem(this.extraSentKey()) === '1';
+    this.title = this.showcase
+      ? `${this.requestRef} เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน`
+      : item
+        ? `${item.ref} ${item.goods}`
+        : this.requestRef;
     this.statusNote = item ? `${item.status} · ${item.kind}` : 'ไม่พบคำขอ';
     this.filingRound = item?.round ?? 1;
     this.filedOn = item?.created || '—';
+    this.countries = item?.countries?.length ? item.countries : ['ญี่ปุ่น', 'แอฟริกาใต้', 'รัสเซีย'];
     const picked = selectedFiling(item?.kind, this.filedForms.map((form) => form.code));
     this.selectedMeasure = picked.measure;
     this.selectedCodes = picked.codes;
@@ -440,6 +518,16 @@ export class CasePage implements OnDestroy {
 
   ngOnDestroy(): void {
     window.clearInterval(this.reviewTimer);
+    if (!this.fixesOnly && !this.supplementView) {
+      sessionStorage.removeItem(this.extraSentKey());
+      this.extraSubmitted = false;
+      this.extraAnswers = {};
+      this.extraProofs = {};
+    }
+  }
+
+  private extraSentKey(): string {
+    return `dft-extra-sent:${this.code}`;
   }
 
   protected get nextStep(): string {
@@ -486,6 +574,14 @@ export class CasePage implements OnDestroy {
   protected get currentLabel(): string {
     const step = this.steps[this.stepIndex - 1];
     return step ? step.label : '';
+  }
+
+  protected get filedView(): boolean {
+    return this.viewLabel === 'ยื่นคำขอ' || this.viewLabel === 'ยื่นคำขอทบทวน';
+  }
+
+  protected get reviewOverview(): boolean {
+    return this.supplement && (this.supplementView || this.viewLabel === 'ตรวจสอบข้อมูล');
   }
 
   protected get shownCode(): string {
@@ -573,6 +669,7 @@ export class CasePage implements OnDestroy {
 
   protected get shownCountries(): string[] {
     if (this.caseOrigins.length) return this.caseOrigins;
+    if (this.listed?.countries.length) return this.listed.countries;
     if (this.listed) return [];
     return this.countries;
   }
@@ -715,8 +812,18 @@ export class CasePage implements OnDestroy {
   }
 
   protected get stageStatus(): string {
-    if (this.stageDone && this.viewLabel === 'ยื่นคำขอ') return 'ยื่นคำขอสำเร็จ';
-    return this.stageDone ? 'เสร็จสิ้น' : 'กำลังดำเนินการ';
+    if (this.stageDone && this.filedView) return 'ยื่นคำขอสำเร็จ';
+    if (this.stageDone) return 'เสร็จสิ้น';
+    if (this.supplement && this.extraSubmitted) return 'ยื่นข้อมูลเพิ่มเติมแล้ว';
+    if (this.supplement) return 'รอส่งข้อมูลเพิ่มเติม';
+    return 'กำลังดำเนินการ';
+  }
+
+  protected get stageTone(): StatusTone {
+    if (this.stageDone) return 'success';
+    if (this.supplement && this.extraSubmitted) return 'success';
+    if (this.supplement) return 'warning';
+    return 'info';
   }
 
   protected get officialLocked(): boolean {
@@ -763,6 +870,11 @@ export class CasePage implements OnDestroy {
     this.view.detectChanges();
   }
 
+  toggleExtra(): void {
+    this.extraOpen = !this.extraOpen;
+    this.view.detectChanges();
+  }
+
   toggleSupplement(title: string): void {
     this.supplementOpen = { ...this.supplementOpen, [title]: !this.supplementOpen[title] };
     this.view.detectChanges();
@@ -779,7 +891,172 @@ export class CasePage implements OnDestroy {
   }
 
   protected openSupplement(): void {
-    document.getElementById('supplement-tasks')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    void this.router.navigate(['/requests', this.code, 'supplement']);
+  }
+
+  protected downloadExtendDecision(): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>ผลการพิจารณาขยายเวลา</title></head><body><h1>ผลการพิจารณาขยายเวลา</h1><p>เลขที่คำขอ ${this.requestRef}</p><p>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน) ${this.amendDueOn}</p><p>วันที่ครบกำหนด ${this.dueOn}</p><p>กำหนดวันสิ้นสุด ${this.endOn}</p><p>หมายเหตุ ${this.overviewNote}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.extendDecisionFile;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  setSupplementFile(title: string, name: string): void {
+    this.supplementFiles = { ...this.supplementFiles, [title]: name };
+    this.view.detectChanges();
+  }
+
+  setSupplementKind(kind: 'fix' | 'extend'): void {
+    this.supplementKind = kind;
+    this.view.detectChanges();
+  }
+
+  setExtendReason(value: string): void {
+    this.extendReason = value;
+    this.view.detectChanges();
+  }
+
+  setExtendDue(value: string): void {
+    this.extendNewDue = value;
+    this.view.detectChanges();
+  }
+
+  addExtendFile(name: string): void {
+    if (!name || this.extendFiles.some((file) => file.name === name)) return;
+    this.extendFiles = [...this.extendFiles, { name, title: name }];
+    this.view.detectChanges();
+  }
+
+  setExtraAnswer(title: string, value: string): void {
+    this.extraAnswers = { ...this.extraAnswers, [title]: value };
+    this.view.detectChanges();
+  }
+
+  addExtraProof(title: string, name: string): void {
+    if (!name) return;
+    const current = this.extraProofs[title] ?? [];
+    if (current.some((file) => file.name === name)) return;
+    this.extraProofs = { ...this.extraProofs, [title]: [...current, { name, title: name }] };
+    this.view.detectChanges();
+  }
+
+  extraProofRows(title: string): string[][] {
+    const files = this.extraProofs[title] ?? [];
+    if (!files.length) return [['', '', '']];
+    return files.map((file, index) => [String(index + 1), file.name, file.title]);
+  }
+
+  setFeePaidOn(value: string): void {
+    this.feePaidOn = value;
+    this.view.detectChanges();
+  }
+
+  setFeeAmount(value: string): void {
+    this.feeAmount = value;
+    this.view.detectChanges();
+  }
+
+  addFeeProofFile(name: string): void {
+    if (!name || this.feeProofFiles.some((file) => file.name === name)) return;
+    this.feeProofFiles = [...this.feeProofFiles, { name, title: name }];
+    this.view.detectChanges();
+  }
+
+  protected get feeProofRows(): string[][] {
+    if (!this.feeProofFiles.length) return [['', '', '']];
+    return this.feeProofFiles.map((file, index) => [String(index + 1), file.name, file.title]);
+  }
+
+  protected downloadFeeNotice(): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>หนังสือชำระค่าธรรมเนียม</title></head><body><h1>หนังสือชำระค่าธรรมเนียม</h1><p>เลขที่อ้างอิง ${this.feeRefNo}</p><p>เลขที่คำขอ ${this.requestRef}</p><p>ภายในวันที่ ${this.feeNoticeDue}</p></body></html>`;
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = this.feeNoticeFile;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected get supplementCurrent(): number {
+    return Math.min(this.supplementStep, this.supplementLabels.length);
+  }
+
+  protected get supplementSteps(): StepperOneItem[] {
+    const notes = [
+      `${this.filedOn} 10:15`,
+      '03/04/2569 14:20',
+      '22/09/2569 09:30',
+      '22/09/2569 10:15',
+      '22/09/2569 11:30',
+      '22/09/2569 14:00',
+    ];
+    return this.supplementLabels.map((label, index) => {
+      const number = index + 1;
+      const state = number < this.supplementStep ? 'success' : number === this.supplementStep ? 'pending' : 'disabled';
+      return { state, label, number: String(number), note: number < this.supplementStep ? notes[index] || '' : '' };
+    });
+  }
+
+  protected get extendFileRows(): string[][] {
+    if (!this.extendFiles.length) return [['', '', '']];
+    return this.extendFiles.map((file, index) => [String(index + 1), file.name, file.title]);
+  }
+
+  protected get coverReady(): boolean {
+    return [this.coverDate, this.coverNo, this.coverTo, this.coverSubject, this.coverRef, this.coverEnclosed, this.coverDetail, this.coverPurpose, this.coverSeal, this.coverLetterFile].every((item) => !!item.trim());
+  }
+
+  protected get coverCount(): string {
+    return `${this.coverDetail.length} / 200`;
+  }
+
+  protected get supplementReady(): boolean {
+    if (!this.coverReady) return false;
+    if (this.supplementKind === 'extend') {
+      return !!this.extendReason.trim() && !!this.extendNewDue.trim() && this.extendFiles.length > 0;
+    }
+    return this.supplementTasks.every((task) => !!this.supplementFiles[task.title]);
+  }
+
+  setCover(field: 'coverDate' | 'coverNo' | 'coverTo' | 'coverSubject' | 'coverRef' | 'coverEnclosed' | 'coverDetail' | 'coverPurpose' | 'coverSeal' | 'coverLetterFile', value: string): void {
+    this[field] = field === 'coverDetail' ? value.slice(0, 200) : value;
+    this.view.detectChanges();
+  }
+
+  openCoverPreview(): void {
+    if (!this.coverReady) return;
+    this.coverPreview = true;
+    this.view.detectChanges();
+  }
+
+  closeCoverPreview(): void {
+    this.coverPreview = false;
+    this.view.detectChanges();
+  }
+
+  saveSupplementDraft(): void {
+    this.supplementDraftSaved = true;
+    this.view.detectChanges();
+  }
+
+  closeSupplementDraft(): void {
+    this.supplementDraftSaved = false;
+    this.view.detectChanges();
+  }
+
+  sendSupplement(): void {
+    this.extraSubmitted = true;
+    sessionStorage.setItem(this.extraSentKey(), '1');
+    this.supplementSent = true;
+    this.view.detectChanges();
+  }
+
+  finishSupplement(): void {
+    this.supplementSent = false;
+    void this.router.navigate(['/requests', this.code]);
   }
 
   submitOfficial(): void {

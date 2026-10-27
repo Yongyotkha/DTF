@@ -8,37 +8,42 @@
           <p class="crumb">
             <a routerLink="/requests">รายการยื่นคำขอ</a>
             <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
-            @if (fixesOnly) {
+            @if (fixesOnly || supplementView) {
               <a [routerLink]="['/requests', routeKey]">รายละเอียด</a>
               <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
-              <span class="crumb__on" aria-current="page">รายการที่ต้องแก้ไข</span>
+              <span class="crumb__on" aria-current="page">{{ supplementView ? 'ยื่นข้อมูลเพิ่มเติม' : 'รายการที่ต้องแก้ไข' }}</span>
             } @else {
               <span class="crumb__on" aria-current="page">รายละเอียด</span>
             }
           </p>
           <a
             class="head__back"
-            [routerLink]="fixesOnly ? ['/requests', routeKey] : '/requests'"
-            [attr.aria-label]="fixesOnly ? 'กลับหน้ารายละเอียด' : 'กลับไปรายการ'"
+            [routerLink]="fixesOnly || supplementView ? ['/requests', routeKey] : '/requests'"
+            [attr.aria-label]="fixesOnly || supplementView ? 'กลับหน้ารายละเอียด' : 'กลับไปรายการ'"
           >
             <img src="assets/icons/arrow-left.svg" width="24" height="24" alt="" />
-            @if (!fixesOnly) {
+            @if (!fixesOnly && !supplementView) {
               <span>กลับไปรายการ</span>
             }
           </a>
           <div class="head__title">
             <div class="head__name">
-              <h1>{{ listed && !fixesOnly ? requestRef : (fixesOnly ? 'รายการที่ต้องแก้ไข' : title) }}</h1>
-              @if (listed) {
+              <h1>{{ supplementView ? 'ยื่นข้อมูลเพิ่มเติม' : listed && !fixesOnly ? requestRef : (fixesOnly ? 'รายการที่ต้องแก้ไข' : title) }}</h1>
+              @if (listed && !fixesOnly && !supplementView) {
                 <app-status-tag [tone]="listed.tone" [label]="listed.status" />
               }
             </div>
-            @if (listed && !fixesOnly) {
+            @if (listed && !fixesOnly && !supplementView) {
               <p class="head__goods">{{ goodsName }}</p>
             }
           </div>
         </div>
-        @if (listed && !fixesOnly) {
+        @if (supplementView) {
+          <div class="head__actions">
+            <app-button type="outline" label="บันทึกร่าง" (click)="saveSupplementDraft()" />
+            <app-button type="primary" label="ยื่นข้อมูลเพิ่มเติม" (click)="sendSupplement()" />
+          </div>
+        } @else if (listed && !fixesOnly) {
           <div class="head__tools">
             <app-button class="icon-before" type="outline" label="พิมพ์" (click)="printCase()">
               <img src="assets/icons/print.svg" width="16" height="16" alt="" />
@@ -57,6 +62,43 @@
           </div>
         }
       </header>
+      @if (supplementView) {
+        <div class="panel supplement-work">
+          @if (supplementStep < 4) {
+          <div class="sheet extra-list">
+            <h2 class="forms__title">
+              รายการข้อมูลที่ต้องเพิ่มเติม
+              <span>{{ extraItems.length }} รายการ</span>
+            </h2>
+            @for (item of extraItems; track item.title; let i = $index) {
+              <article class="extra__task extra__task--open">
+                <span class="extra__no">{{ i + 1 }}</span>
+                <div>
+                  <p class="extra__pills">
+                    <strong>{{ item.title }}</strong>
+                    @if (extraSubmitted) {
+                      <app-status-tag tone="success" label="ยื่นข้อมูลเพิ่มเติมแล้ว" />
+                    }
+                  </p>
+                  <small>{{ item.kind }}</small>
+                  <p class="extra__hint">{{ item.detail }}</p>
+                  @if (item.kind === 'เอกสารประกอบ') {
+                    <app-file-field class="block" [label]="'แนบไฟล์' + item.title" [required]="true" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpeg,.jpg,.png,.tiff" note="เฉพาะนามสกุล doc, docx, xls, xlsx, ppt, pptx, pdf, jpeg, jpg, png, tiff" (valueChange)="addExtraProof(item.title, $event)" />
+                    <app-data-table class="fill index" [columns]="extendColumns" [rows]="extraProofRows(item.title)" />
+                  } @else {
+                    <app-input-field class="block" kind="textarea" [label]="item.title" [required]="true" [editable]="true" placeholder="ระบุ" [value]="extraAnswers[item.title] || ''" (valueChange)="setExtraAnswer(item.title, $event)" />
+                  }
+                </div>
+              </article>
+            }
+          </div>
+          } @else if (supplementStep === 6) {
+          <div class="sheet">
+            <ng-container *ngTemplateOutlet="feeProofForm" />
+          </div>
+          }
+        </div>
+      } @else {
       <div class="panel">
       @if (fixesOnly && !reviewPassed && !reviewWaiting) {
         <div class="sheet sheet--tight">
@@ -318,15 +360,15 @@
       <div class="sheet">
         <header class="stage">
           <h2>{{ viewLabel }}</h2>
-          <app-status-tag [tone]="stageDone ? 'success' : 'info'" [label]="stageStatus" />
+          <app-status-tag [tone]="stageTone" [label]="stageStatus" />
           @if (stageFormRoute) {
             <div class="stage__act">
               <app-button type="outline" label="ดูแบบฟอร์ม" (click)="openFormView(stageFormRoute, $event)" />
             </div>
           }
-          @if (viewLabel === 'ยื่นคำขอ' && !listed) {
+          @if (filedView && !listed) {
             <div class="stage__act">
-              @if (!reviewPassed && !reviewPending) {
+              @if (!reviewPassed && !reviewPending && !supplement) {
                 <app-button class="icon-before" type="outline" label="ขอปรึกษา" (click)="openConsult()">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
                 </app-button>
@@ -400,53 +442,42 @@
               </span>
               <div>
                 <h3>เจ้าหน้าที่ขอข้อมูลเพิ่มเติม</h3>
-                <p>เจ้าหน้าที่ตรวจสอบคำขอของคุณแล้ว พบว่าต้องการข้อมูลเพิ่มเติม กรุณาส่งภายใน {{ supplementDue }}</p>
+                <p>เจ้าหน้าที่ตรวจสอบคำขอของคุณแล้ว พบว่าต้องการข้อมูลเพิ่มเติม กรุณาตรวจสอบรายการด้านล่างและส่งข้อมูลภายในวันที่กำหนด</p>
+                <p class="extra__due">
+                  <img src="assets/icons/calendar.svg" width="16" height="16" alt="" />
+                  กำหนดส่ง: <strong>{{ supplementDue }}</strong>
+                </p>
               </div>
-              <app-button type="primary" label="ยื่นข้อมูลเพิ่มเติม" (click)="openSupplement()" />
-            </div>
-            <dl class="extra__facts">
-              @for (fact of supplementFacts; track fact.label) {
-                <div>
-                  <dt>{{ fact.label }}</dt>
-                  <dd [class.extra__due]="fact.due">{{ fact.value }}</dd>
-                </div>
+              @if (!extraSubmitted) {
+                <app-button type="primary" label="ดำเนินการ" (click)="openSupplement()" />
               }
-            </dl>
+            </div>
           </article>
-          <h2 id="supplement-tasks" class="forms__title">รายละเอียดที่ต้องดำเนินการ <span class="count">{{ supplementTasks.length }}</span></h2>
-          @for (task of supplementTasks; track task.title; let i = $index) {
-            <article class="extra__task" [class.extra__task--open]="supplementOpen[task.title]">
-              <span class="extra__no">{{ i + 1 }}</span>
-              <div>
-                <div class="extra__head">
+          <section class="fixes extra-list" aria-label="รายการข้อมูลที่ต้องเพิ่มเติม">
+            <h2 class="forms__title">
+              รายการข้อมูลที่ต้องเพิ่มเติม
+              <span>{{ extraItems.length }} รายการ</span>
+            </h2>
+            <ol>
+              @for (item of extraItems; track item.title; let i = $index) {
+                <li [class.fixes__open]="!!supplementOpen[item.title]">
+                  <span class="extra__no">{{ i + 1 }}</span>
                   <div>
-                    <h3>{{ task.title }}</h3>
                     <p class="extra__pills">
-                      <span class="extra__form">{{ task.kind }}</span>
-                      <span class="extra__ask">{{ task.ask }}</span>
+                      <strong>{{ item.title }}</strong>
                     </p>
+                    <small>{{ item.kind }}</small>
+                    @if (supplementOpen[item.title]) {
+                      <p>{{ item.detail }}</p>
+                    }
                   </div>
-                  <button type="button" class="more" [attr.aria-expanded]="!!supplementOpen[task.title]" [attr.aria-label]="supplementOpen[task.title] ? 'หุบรายละเอียด' : 'ขยายรายละเอียด'" (click)="toggleSupplement(task.title)">
+                  <button type="button" class="more" [attr.aria-expanded]="!!supplementOpen[item.title]" [attr.aria-label]="supplementOpen[item.title] ? 'หุบรายละเอียด' : 'ขยายรายละเอียด'" (click)="toggleSupplement(item.title)">
                     <img src="assets/icons/case-chevron.svg" width="24" height="24" alt="" />
                   </button>
-                </div>
-                @if (supplementOpen[task.title]) {
-                <div class="extra__body">
-                  <p class="extra__label">เหตุผลจากเจ้าหน้าที่</p>
-                  <p>{{ task.reason }}</p>
-                  <p class="extra__label">สิ่งที่ต้องดำเนินการ</p>
-                  <ul class="extra__steps">
-                    @for (step of task.steps; track step) {
-                      <li>{{ step }}</li>
-                    }
-                  </ul>
-                  <p class="extra__meta"><span>ไฟล์ที่ต้องการ</span> {{ task.file }}</p>
-                  <p class="extra__meta"><span>รูปแบบที่รับ</span> {{ task.accept }}</p>
-                </div>
-                }
-              </div>
-            </article>
-          }
+                </li>
+              }
+            </ol>
+          </section>
         } @else if (viewLabel === 'ตรวจสอบข้อมูล' && !listed) {
           <div class="alert">
             <p>
@@ -481,65 +512,59 @@
               }
             </ul>
           </article>
-        } @else if (viewLabel === 'ยื่นคำขอ') {
-          <dl class="overview">
-            <div>
-              <dt>เลขที่คำขอ</dt>
-              <dd>{{ requestRef }}</dd>
-            </div>
-            <div>
-              <dt>เลขเคส</dt>
-              <dd>{{ shownCode }}</dd>
-            </div>
-            <div>
-              <dt>ประเภทมาตรการ</dt>
-              <dd>{{ measureLabel }}</dd>
-            </div>
-            <div>
-              <dt>ชื่อสินค้า</dt>
-              <dd>{{ goodsName }}</dd>
-            </div>
-            <div>
-              <dt>แบบฟอร์มที่ยื่น</dt>
-              <dd class="chips">
-                @if (listed) {
+        } @else if (filedView) {
+          @if (listed) {
+            <dl class="overview">
+              <div>
+                <dt>เลขที่คำขอ</dt>
+                <dd>{{ requestRef }}</dd>
+              </div>
+              <div>
+                <dt>เลขเคส</dt>
+                <dd>{{ shownCode }}</dd>
+              </div>
+              <div>
+                <dt>ประเภทมาตรการ</dt>
+                <dd>{{ measureLabel }}</dd>
+              </div>
+              <div>
+                <dt>ชื่อสินค้า</dt>
+                <dd>{{ goodsName }}</dd>
+              </div>
+              <div>
+                <dt>แบบฟอร์มที่ยื่น</dt>
+                <dd class="chips">
                   <span class="chip">{{ caseKind }}</span>
-                } @else {
-                  @for (form of filedForms; track form.code) {
-                    <span class="chip">{{ form.label }}</span>
+                </dd>
+              </div>
+              @if (shownCountries.length) {
+              <div>
+                <dt>ประเทศ</dt>
+                <dd class="chips">
+                  @for (name of shownCountries; track name) {
+                    <span class="chip">{{ name }}</span>
                   }
-                }
-              </dd>
-            </div>
-            @if (shownCountries.length) {
-            <div>
-              <dt>แหล่งกำเนิดสินค้า</dt>
-              <dd class="chips">
-                @for (name of shownCountries; track name) {
-                  <span class="chip">{{ name }}</span>
-                }
-              </dd>
-            </div>
-            }
-            <div>
-              <dt>ครั้งที่ยื่น</dt>
-              <dd>{{ filingRound }} ครั้ง</dd>
-            </div>
-            <div>
-              <dt>วันที่ยื่นคำขอ</dt>
-              <dd>{{ filedOn }}</dd>
-            </div>
-            @if (shownApplicants.length) {
-            <div>
-              <dt>ผู้ยื่นคำขอ</dt>
-              <dd>
-                @for (party of shownApplicants; track party.name; let last = $last) {
-                  {{ party.name }}@if (!last) {, }
-                }
-              </dd>
-            </div>
-            }
-          </dl>
+                </dd>
+              </div>
+              }
+              <div>
+                <dt>วันที่ยื่นคำขอ</dt>
+                <dd>{{ filedOn }}</dd>
+              </div>
+              @if (shownApplicants.length) {
+              <div>
+                <dt>ผู้ยื่นคำขอ</dt>
+                <dd>
+                  @for (party of shownApplicants; track party.name; let last = $last) {
+                    {{ party.name }}@if (!last) {, }
+                  }
+                </dd>
+              </div>
+              }
+            </dl>
+          } @else {
+            <ng-container *ngTemplateOutlet="caseOverview" />
+          }
           @if (reviewPassed) {
             <article class="result result--pass" aria-label="ผลการตรวจสอบคำขอ">
               <span class="result__mark" aria-hidden="true">
@@ -549,11 +574,6 @@
                 <p class="result__title">ผลการตรวจสอบ : <span>ผ่าน</span></p>
                 <p>ตรวจสอบครบถ้วนแล้ว</p>
                 <p class="result__dates">วันที่ยื่นครั้งแรก {{ reviewFiledOn }}</p>
-              </div>
-              <div class="result__act">
-                <app-button class="icon-before" type="outline" label="แก้ไขคำขอ" [routerLink]="revisePath" [queryParams]="reviseQuery" (click)="reviseFiling()">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                </app-button>
               </div>
             </article>
           } @else if (reviewWaiting) {
@@ -570,7 +590,7 @@
                 </div>
               </div>
             </article>
-          } @else if (!listed) {
+          } @else if (!supplement && !listed) {
           <article class="result" aria-label="ผลการตรวจสอบคำขอ">
             <span class="result__mark" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 6.5v8" /><circle cx="12" cy="17.5" r="1.2" fill="currentColor" stroke="none" /></svg>
@@ -752,6 +772,7 @@
       }
       }
       </div>
+      }
     </main>
   </div>
 </div>
@@ -934,8 +955,305 @@
     </section>
   </div>
 }
+@if (supplementDraftSaved) {
+  <div class="notice">
+    <app-modal kind="success" heading="บันทึกร่างแล้ว" detail="ข้อมูลเพิ่มเติมถูกบันทึกเป็นร่าง" (choose)="closeSupplementDraft()" />
+  </div>
+}
+@if (supplementSent) {
+  <div class="notice">
+    <app-modal kind="success" heading="ส่งข้อมูลเพิ่มเติมสำเร็จ" detail="ระบบได้รับข้อมูลแล้ว และจะแจ้งเจ้าหน้าที่ให้ตรวจสอบ" (choose)="finishSupplement()" />
+  </div>
+}
 @if (filedOpen) {
   <div class="notice">
     <app-modal kind="success" heading="ยื่นคำขอสำเร็จ" detail="คำขอเข้าสู่ขั้นตอนที่ 2 ตรวจสอบข้อมูล" (choose)="finishOfficial()" />
   </div>
 }
+@if (coverPreview) {
+  <div class="sample sample--submit" (click)="closeCoverPreview()">
+    <section role="dialog" aria-modal="true" aria-labelledby="cover-title" (click)="$event.stopPropagation()">
+      <div class="submit__bar">
+        <h2 id="cover-title">หนังสือนำส่ง</h2>
+        <button type="button" class="submit__close" (click)="closeCoverPreview()">✕ ปิด</button>
+      </div>
+      <div class="consult-sent">
+        <dl class="consult-slip">
+          <div>
+            <dt>วันที่หนังสือ</dt>
+            <dd>{{ coverDate }}</dd>
+          </div>
+          <div>
+            <dt>เลขที่หนังสือ</dt>
+            <dd>{{ coverNo }}</dd>
+          </div>
+          <div>
+            <dt>เรียน</dt>
+            <dd>{{ coverTo }}</dd>
+          </div>
+          <div>
+            <dt>เรื่อง</dt>
+            <dd>{{ coverSubject }}</dd>
+          </div>
+          <div>
+            <dt>อ้างอิง</dt>
+            <dd>{{ coverRef }}</dd>
+          </div>
+          <div>
+            <dt>สิ่งที่แนบมาด้วย</dt>
+            <dd>{{ coverEnclosed }}</dd>
+          </div>
+          <div>
+            <dt>รายละเอียด</dt>
+            <dd>{{ coverDetail }}</dd>
+          </div>
+          <div>
+            <dt>มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา</dt>
+            <dd>{{ coverPurpose }}</dd>
+          </div>
+        </dl>
+      </div>
+      <div class="submit__actions">
+        <app-button type="primary" label="ปิด" (click)="closeCoverPreview()" />
+      </div>
+    </section>
+  </div>
+}
+<ng-template #feeProofForm>
+  <div class="letter-form">
+    <app-input-field class="block" kind="text" label="เลขที่อ้างอิง" state="readonly" [value]="feeRefNo" />
+    <app-input-field class="block" kind="text" label="ชื่อบริษัท" state="readonly" [value]="applicants[0].name" />
+    <app-input-field class="block" kind="text" label="ชื่อสินค้า" state="readonly" [value]="'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน'" />
+    <app-input-field class="block" kind="text" label="ประเทศ" state="readonly" [value]="countries.join(', ')" />
+    <app-thai-date-field label="วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)" state="readonly" [value]="amendDueOn" />
+    <app-input-field class="block" kind="text" label="แจ้งชำระค่าธรรมเนียม" state="readonly" [value]="feeNotice" />
+    <div>
+      <p class="extend-form__label">ไฟล์แจ้งชำระค่าธรรมเนียม</p>
+      <button type="button" class="overview__file" (click)="downloadFeeNotice()">
+        <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+        {{ feeNoticeFile }}
+      </button>
+    </div>
+    <app-thai-date-field label="ภายในวันที่" state="readonly" [value]="feeNoticeDue" />
+    <div>
+      <p class="extend-form__label">ผลการชำระค่าธรรมเนียม</p>
+      <div class="extend-form__choices">
+        <button type="button">
+          <img [src]="feePaid ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ชำระค่าธรรมเนียมแล้ว
+        </button>
+      </div>
+    </div>
+    <app-thai-date-field label="ชำระเมื่อวันที่" [value]="feePaidOn" (valueChange)="setFeePaidOn($event)" />
+    <app-input-field class="block wide" kind="text" label="จำนวนเงิน" [editable]="true" placeholder="ระบุ" [value]="feeAmount" (valueChange)="setFeeAmount($event)" />
+    <app-file-field class="wide" label="แนบไฟล์หลักฐานการชำระค่าธรรมเนียม" [required]="true" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpeg,.jpg,.png,.tiff" note="เฉพาะนามสกุล doc, docx, xls, xlsx, ppt, pptx, pdf, jpeg, jpg, png, tiff" (valueChange)="addFeeProofFile($event)" />
+    <app-data-table class="fill index wide" [columns]="extendColumns" [rows]="feeProofRows" />
+  </div>
+  <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
+  <div class="letter-form">
+    <app-thai-date-field label="วันที่หนังสือ" [required]="true" [value]="coverDate" (valueChange)="setCover('coverDate', $event)" />
+    <app-thai-date-field label="เลขที่หนังสือ" [required]="true" [value]="coverNo" (valueChange)="setCover('coverNo', $event)" />
+    <app-input-field class="block wide" kind="text" label="เรียน" [required]="true" state="readonly" [value]="coverTo" />
+    <app-input-field class="block wide" kind="text" label="เรื่อง" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverSubject" (valueChange)="setCover('coverSubject', $event)" />
+    <app-input-field class="block wide" kind="text" label="อ้างอิง" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverRef" (valueChange)="setCover('coverRef', $event)" />
+    <app-input-field class="block wide" kind="text" label="สิ่งที่แนบมาด้วย" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverEnclosed" (valueChange)="setCover('coverEnclosed', $event)" />
+    <app-input-field class="block wide" kind="textarea" label="รายละเอียด" [required]="true" [editable]="true" placeholder="text" [counter]="coverCount" [value]="coverDetail" (valueChange)="setCover('coverDetail', $event)" />
+    <app-input-field class="block wide" kind="text" label="มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา" [required]="true" [editable]="true" placeholder="ระบุ" [value]="coverPurpose" (valueChange)="setCover('coverPurpose', $event)" />
+    <app-file-field label="แนบไฟล์ตราประทับบริษัท" [required]="true" accept=".png,.jpg,.jpeg" note="เฉพาะนามสกุล png, jpg, jpeg" [value]="coverSeal" (valueChange)="setCover('coverSeal', $event)" />
+    <app-file-field label="แนบไฟล์หนังสือนำส่งฉบับจริง" [required]="true" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" note="เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx" [value]="coverLetterFile" (valueChange)="setCover('coverLetterFile', $event)" />
+    <div class="letter-note">
+      <p>หมายเหตุ : สามารถ Preview ตัวอย่างใบนำส่งเมื่อกรอกข้อมูลครบถ้วน</p>
+      <app-button type="primary" size="sm" label="ตัวอย่างนำส่ง" [state]="coverReady ? 'default' : 'disabled'" (click)="openCoverPreview()" />
+    </div>
+  </div>
+</ng-template>
+<ng-template #feeProofRead>
+  <div class="letter-form">
+    <app-input-field class="block" kind="text" label="เลขที่อ้างอิง" state="readonly" [value]="feeRefNo" />
+    <app-input-field class="block" kind="text" label="ชื่อบริษัท" state="readonly" [value]="applicants[0].name" />
+    <app-input-field class="block" kind="text" label="ชื่อสินค้า" state="readonly" [value]="'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน'" />
+    <app-input-field class="block" kind="text" label="ประเทศ" state="readonly" [value]="countries.join(', ')" />
+    <app-thai-date-field label="วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)" state="readonly" [value]="amendDueOn" />
+    <app-input-field class="block" kind="text" label="แจ้งชำระค่าธรรมเนียม" state="readonly" [value]="feeNotice" />
+    <div>
+      <p class="extend-form__label">ไฟล์แจ้งชำระค่าธรรมเนียม</p>
+      <button type="button" class="overview__file" (click)="downloadFeeNotice()">
+        <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+        {{ feeNoticeFile }}
+      </button>
+    </div>
+    <app-thai-date-field label="ภายในวันที่" state="readonly" [value]="feeNoticeDue" />
+    <div>
+      <p class="extend-form__label">ผลการชำระค่าธรรมเนียม</p>
+      <div class="extend-form__choices">
+        <span>
+          <img [src]="feePaid ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ชำระค่าธรรมเนียมแล้ว
+        </span>
+      </div>
+    </div>
+    <app-thai-date-field label="ชำระเมื่อวันที่" state="readonly" [value]="feePaidOn" />
+    <app-input-field class="block wide" kind="text" label="จำนวนเงิน" state="readonly" [value]="feeAmount || '—'" />
+    <app-data-table class="fill index wide" [columns]="extendColumns" [rows]="feeProofRows" />
+  </div>
+  <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
+  <div class="letter-form">
+    <app-thai-date-field label="วันที่หนังสือ" state="readonly" [value]="coverDate" />
+    <app-thai-date-field label="เลขที่หนังสือ" state="readonly" [value]="coverNo" />
+    <app-input-field class="block wide" kind="text" label="เรียน" state="readonly" [value]="coverTo" />
+    <app-input-field class="block wide" kind="text" label="เรื่อง" state="readonly" [value]="coverSubject" />
+    <app-input-field class="block wide" kind="text" label="อ้างอิง" state="readonly" [value]="coverRef" />
+    <app-input-field class="block wide" kind="text" label="สิ่งที่แนบมาด้วย" state="readonly" [value]="coverEnclosed" />
+    <app-input-field class="block wide" kind="textarea" label="รายละเอียด" state="readonly" [value]="coverDetail" />
+    <app-input-field class="block wide" kind="text" label="มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา" state="readonly" [value]="coverPurpose" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์ตราประทับบริษัท" state="readonly" [value]="coverSeal" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์หนังสือนำส่งฉบับจริง" state="readonly" [value]="coverLetterFile" />
+  </div>
+</ng-template>
+<ng-template #requestExtraRead>
+  <ng-container *ngTemplateOutlet="caseOverview" />
+  <div class="extend-form">
+    <div>
+      <p class="extend-form__label">ดำเนินการ</p>
+      <div class="extend-form__choices">
+        <span>
+          <img [src]="supplementKind === 'fix' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ส่งคำขอที่แก้ไข
+        </span>
+        <span>
+          <img [src]="supplementKind === 'extend' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ขอขยายเวลา
+        </span>
+      </div>
+    </div>
+    @if (supplementKind === 'extend') {
+      <app-input-field class="block" kind="textarea" label="หมายเหตุความจำเป็นในการขอขยายเวลา" state="readonly" [value]="extendReason" />
+      <div class="extend-form__date">
+        <app-thai-date-field label="วันที่ครบกำหนดส่งใหม่" state="readonly" [value]="extendNewDue" />
+      </div>
+      <p class="extend-form__label">แนบไฟล์ประกอบการขอขยายเวลา</p>
+      <app-data-table class="fill index" [columns]="extendColumns" [rows]="extendFileRows" />
+    } @else {
+      <div class="supplement-files">
+        @for (task of supplementTasks; track task.title) {
+          <app-input-field class="block" kind="text" [label]="task.title" state="readonly" [value]="supplementFiles[task.title] || '—'" />
+        }
+      </div>
+    }
+  </div>
+  <h2 class="forms__title">ข้อมูลหนังสือนำส่งของบริษัท</h2>
+  <div class="letter-form">
+    <app-thai-date-field label="วันที่หนังสือ" state="readonly" [value]="coverDate" />
+    <app-thai-date-field label="เลขที่หนังสือ" state="readonly" [value]="coverNo" />
+    <app-input-field class="block wide" kind="text" label="เรียน" state="readonly" [value]="coverTo" />
+    <app-input-field class="block wide" kind="text" label="เรื่อง" state="readonly" [value]="coverSubject" />
+    <app-input-field class="block wide" kind="text" label="อ้างอิง" state="readonly" [value]="coverRef" />
+    <app-input-field class="block wide" kind="text" label="สิ่งที่แนบมาด้วย" state="readonly" [value]="coverEnclosed" />
+    <app-input-field class="block wide" kind="textarea" label="รายละเอียด" state="readonly" [value]="coverDetail" />
+    <app-input-field class="block wide" kind="text" label="มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา" state="readonly" [value]="coverPurpose" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์ตราประทับบริษัท" state="readonly" [value]="coverSeal" />
+    <app-input-field class="block" kind="text" label="แนบไฟล์หนังสือนำส่งฉบับจริง" state="readonly" [value]="coverLetterFile" />
+  </div>
+</ng-template>
+<ng-template #requestExtra>
+  <ng-container *ngTemplateOutlet="caseOverview" />
+  <div class="extend-form">
+    <div>
+      <p class="extend-form__label">ดำเนินการ <span>*</span></p>
+      <div class="extend-form__choices">
+        <button type="button" (click)="setSupplementKind('fix')">
+          <img [src]="supplementKind === 'fix' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ส่งคำขอที่แก้ไข
+        </button>
+        <button type="button" (click)="setSupplementKind('extend')">
+          <img [src]="supplementKind === 'extend' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+          ขอขยายเวลา
+        </button>
+      </div>
+    </div>
+    @if (supplementKind === 'extend') {
+      <app-input-field class="block" kind="textarea" label="หมายเหตุความจำเป็นในการขอขยายเวลา" [value]="extendReason" (valueChange)="setExtendReason($event)" />
+      <div class="extend-form__date">
+        <app-thai-date-field label="วันที่ครบกำหนดส่งใหม่" [required]="true" [value]="extendNewDue" (valueChange)="setExtendDue($event)" />
+      </div>
+      <app-file-field label="แนบไฟล์ประกอบการขอขยายเวลา" [required]="true" accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.jpeg,.jpg,.png,.tiff" note="เฉพาะนามสกุล doc, docx, xls, xlsx, ppt, pptx, pdf, jpeg, jpg, png, tiff" (valueChange)="addExtendFile($event)" />
+      <app-data-table class="fill index" [columns]="extendColumns" [rows]="extendFileRows" />
+    } @else {
+      <p class="status-note">แนบไฟล์ที่เจ้าหน้าที่ขอ แล้วส่งภายใน {{ supplementDue }}</p>
+      <div class="supplement-files">
+        @for (task of supplementTasks; track task.title) {
+          <app-file-field [label]="task.title" [required]="true" [accept]="task.accept.includes('Excel') ? '.pdf,.xls,.xlsx' : '.pdf'" [note]="'รูปแบบที่รับ ' + task.accept" [value]="supplementFiles[task.title] || ''" (valueChange)="setSupplementFile(task.title, $event)" />
+        }
+      </div>
+    }
+  </div>
+</ng-template>
+<ng-template #caseOverview>
+  <dl class="overview">
+    <div>
+      <dt>เลขที่คำขอ</dt>
+      <dd>{{ requestRef }}</dd>
+    </div>
+    <div>
+      <dt>ประเภทมาตรการ</dt>
+      <dd>AD (ตอบโต้การทุ่มตลาด)</dd>
+    </div>
+    <div>
+      <dt>ชื่อสินค้า</dt>
+      <dd>เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน</dd>
+    </div>
+    <div>
+      <dt>ประเทศ</dt>
+      <dd class="chips">
+        @for (name of countries; track name) {
+          <span class="chip">{{ name }}</span>
+        }
+      </dd>
+    </div>
+    @if (!reviewOverview) {
+      <div>
+        <dt>แบบฟอร์มที่ยื่น</dt>
+        <dd class="chips">
+          @for (form of filedForms; track form.code) {
+            <span class="chip">{{ form.label }}</span>
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>ครั้งที่ยื่น</dt>
+        <dd>{{ filingRound }} ครั้ง</dd>
+      </div>
+      <div>
+        <dt>วันที่ยื่นคำขอ</dt>
+        <dd>{{ filedOn }}</dd>
+      </div>
+    }
+    @if (reviewOverview) {
+      <div>
+        <dt>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)</dt>
+        <dd>{{ amendDueOn }}</dd>
+      </div>
+      <div>
+        <dt>วันที่ครบกำหนด</dt>
+        <dd>{{ dueOn }}</dd>
+      </div>
+      <div>
+        <dt>หมายเหตุ</dt>
+        <dd>{{ overviewNote }}</dd>
+      </div>
+      <div>
+        <dt>กำหนดวันสิ้นสุด</dt>
+        <dd>{{ endOn }}</dd>
+      </div>
+      <div class="overview__doc">
+        <dt>เอกสารผลการพิจารณาขยายเวลา</dt>
+        <dd>
+          <button type="button" class="overview__file" (click)="downloadExtendDecision()">
+            <img src="assets/icons/case-file.svg" width="15" height="20" alt="" />
+            {{ extendDecisionFile }}
+          </button>
+        </dd>
+      </div>
+    }
+  </dl>
+</ng-template>

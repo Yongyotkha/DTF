@@ -509,26 +509,6 @@ h2 {
   margin: 0;
 }
 
-.actions .to-login {
-  margin-right: auto;
-  align-self: center;
-  color: var(--color-link);
-  font-family: var(--font-sans-thai);
-  font-size: 14px;
-  line-height: 21px;
-  text-decoration: none;
-  transition: color var(--motion-state);
-}
-
-.actions .to-login:hover {
-  color: var(--color-link-hover);
-}
-
-.actions .to-login:focus-visible {
-  outline: none;
-  box-shadow: var(--state-focus-ring);
-}
-
 .hint {
   margin: 0 0 8px;
   color: var(--color-error-red);
@@ -630,6 +610,7 @@ h2 {
 
 .sso__btn {
   display: inline-flex;
+  position: relative;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -659,13 +640,11 @@ h2 {
   white-space: nowrap;
 }
 
-.sso__btn--linked {
-  justify-content: flex-start;
-}
-
-.sso__btn--linked span {
-  flex: 1;
-  text-align: left;
+.sso__btn app-status-tag {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
 }
 
 .sso__btn:hover {

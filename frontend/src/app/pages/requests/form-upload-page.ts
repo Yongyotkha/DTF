@@ -132,7 +132,6 @@ export class FormUploadPage {
 
   protected finishNotice(): void {
     this.notice = false;
-    void this.router.navigate(['/requests'], { queryParams: { tab: 'draft' } });
   }
 
   protected closeHistory(): void {

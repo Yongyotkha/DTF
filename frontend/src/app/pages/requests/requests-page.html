@@ -26,7 +26,6 @@
                     @if (row.applicant) {
                       <p class="item__who">{{ row.applicant }}</p>
                     }
-                    <p class="item__goods">{{ row.goods }}</p>
                   </div>
                   <app-status-tag [tone]="row.tone" [label]="row.status" />
                 </header>
@@ -45,8 +44,8 @@
                     </div>
                     <div>
                       <img src="assets/icons/menu-list.svg" width="16" height="16" alt="" />
-                      <dt>ครั้งที่ยื่น</dt>
-                      <dd>{{ row.round ? 'ครั้งที่ ' + row.round : '—' }}</dd>
+                      <dt>ชื่อสินค้า</dt>
+                      <dd>{{ row.goods }}</dd>
                     </div>
                   </div>
                   <div class="item__col">
@@ -59,6 +58,11 @@
                       <img src="assets/icons/menu-folder.svg" width="16" height="16" alt="" />
                       <dt>เลขเคส</dt>
                       <dd>{{ caseNo(row) }}</dd>
+                    </div>
+                    <div>
+                      <img src="assets/icons/menu-list.svg" width="16" height="16" alt="" />
+                      <dt>ประเทศ</dt>
+                      <dd>{{ row.countries.length ? row.countries.join(', ') : '—' }}</dd>
                     </div>
                   </div>
                 </dl>

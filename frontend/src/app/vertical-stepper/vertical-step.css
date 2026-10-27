@@ -60,6 +60,19 @@
   color: var(--color-text-muted);
 }
 
+.vstep__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .vstep__label {
   line-height: 21px;
+}
+
+.vstep__note {
+  color: var(--color-text-muted);
+  font-size: var(--type-label-size);
+  font-weight: 400;
+  line-height: 18px;
 }

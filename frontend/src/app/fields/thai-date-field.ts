@@ -13,7 +13,7 @@ import { InputField, InputState } from '../input-field/input-field';
       [dateLimit]="limit"
       [label]="label"
       [required]="required"
-      [editable]="true"
+      [editable]="editable"
       [placeholder]="placeholder"
       [state]="state"
       [helper]="helper"
@@ -27,6 +27,7 @@ import { InputField, InputState } from '../input-field/input-field';
 export class ThaiDateField {
   @Input() label = 'วันที่';
   @Input() required = true;
+  @Input() editable = true;
   @Input() placeholder = '30/04/2538';
   @Input() limit: DateLimit = 'any';
   @Input() state: InputState = 'default';

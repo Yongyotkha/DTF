@@ -20,5 +20,6 @@ export class RegisterDraft {
   values: Record<string, string> = {};
   directors: DraftDirector[] = [];
   directorsReady = false;
+  regnoVerified = false;
   sso: DraftSso[] = [];
 }

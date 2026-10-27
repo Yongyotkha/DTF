@@ -9,6 +9,11 @@
     }
   </span>
   @if (label) {
-    <span class="vstep__label">{{ label }}</span>
+    <span class="vstep__text">
+      <span class="vstep__label">{{ label }}</span>
+      @if (note) {
+        <span class="vstep__note">{{ note }}</span>
+      }
+    </span>
   }
 </div>
