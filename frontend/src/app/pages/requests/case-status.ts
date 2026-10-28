@@ -179,6 +179,29 @@ export function writeCaseStatus(status: CaseStatus): void {
   sessionStorage.setItem(key, status);
 }
 
+/** คำปรึกษาที่ปิดแล้วและยื่นแบบแล้ว ส่งกลับผู้อำนวยการให้มอบหมายรอบใหม่ */
+export function releaseFilingToDirector(): boolean {
+  if (sessionStorage.getItem('dft-por1-filing-assign') === 'open') return false;
+  if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') return true;
+  if (readCaseStatus() !== 'official') return false;
+  if (readFilingGate()?.state === 'pending') return false;
+  let jobs: { delivery?: string }[] = [];
+  try {
+    const value = JSON.parse(sessionStorage.getItem(consultJobKey) || '[]') as { delivery?: string }[];
+    jobs = Array.isArray(value) ? value : [];
+  } catch {
+    jobs = [];
+  }
+  const closed = !!sessionStorage.getItem('dft-por1-consult-closed');
+  const settled = jobs.length > 0 && jobs.every((job) => job?.delivery === 'close' || job?.delivery === 'board');
+  if (!closed && !settled) return false;
+  sessionStorage.setItem('dft-por1-filing-assign', 'wait');
+  sessionStorage.setItem('dft-por1-await-official', '0');
+  sessionStorage.removeItem(consultJobKey);
+  sessionStorage.removeItem('dft-por1-consult-closed');
+  return true;
+}
+
 export function readApprovedBy(): string {
   return sessionStorage.getItem(approvedByKey) || '';
 }

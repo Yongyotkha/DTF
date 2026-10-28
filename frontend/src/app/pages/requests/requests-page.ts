@@ -1,13 +1,13 @@
 import { Component, HostListener, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Accounts } from '../../accounts';
+import { Accounts, secondApplicant } from '../../accounts';
 import { AskAiState } from '../../ask-ai/ask-ai';
 import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
 import { RequestForm, formOf, formsFor, measureOf, purposeOf, requestForms, requestMeasures } from './form-catalog';
-import { startFilingCase } from './case-status';
+import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus, startFilingCase } from './case-status';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
 import { joinedCaseIds } from './interest-invite';
 import { allowedCaseIds, isActingAgent } from './proxy-grant';
@@ -79,12 +79,46 @@ export class RequestsPage implements OnDestroy {
   }
 
   protected get filedRows(): RequestRow[] {
-    return this.visibleCases(archiveCases).map((item) => this.asRow(item));
+    const rows = this.visibleCases(archiveCases).map((item) => this.asRow(item));
+    const live = this.liveFilingRow();
+    if (!live || live.draft) return rows;
+    return [live, ...rows];
   }
 
   protected get draftRows(): RequestRow[] {
-    if (isActingAgent(this.accounts.username) || this.accounts.role === 'interest' || this.ownFilings().length) return [];
-    return draftCases.map((item) => this.asRow(item));
+    const live = this.liveFilingRow();
+    const ownDraft = live?.draft ? [live] : [];
+    if (isActingAgent(this.accounts.username) || this.accounts.role === 'interest' || this.ownFilings().length) return ownDraft;
+    return [...ownDraft, ...draftCases.map((item) => this.asRow(item))];
+  }
+
+  private liveFilingRow(): RequestRow | null {
+    if (this.accounts.username !== secondApplicant.username) return null;
+    if (!sessionStorage.getItem('dft-por1-case')) return null;
+    const status = readCaseStatus();
+    const created = sessionStorage.getItem('dft-por1-action-on') || '';
+    const waiting = sessionStorage.getItem('dft-por1-await-official') === '1';
+    const label = waiting ? 'รอผู้ยื่นยื่นแบบทางการ' : status === 'official' ? 'ยื่นแบบทางการแล้ว' : caseStatusLabel(status);
+    const item: ListedCase = {
+      id: 'live-por1',
+      code: '—',
+      ref: filingRefId,
+      goods: 'เหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์',
+      countries: ['เวียดนาม', 'อียิปต์'],
+      kind: 'แบบ ปร.1',
+      measure: 'AD (ตอบโต้การทุ่มตลาด)',
+      status: label,
+      tone: waiting ? 'warning' : caseStatusTone(status),
+      created,
+      round: 1,
+      waiting: waiting || status === 'revision' || status === 'consult' || status === 'approval',
+      draft: status === 'draft',
+      steps: [{ name: label, state: 'current', date: created }],
+      applicant: secondApplicant.name,
+      filer: secondApplicant.username,
+      documents: ['แบบ ปร.1 คำขอเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'],
+    };
+    return { ...this.asRow(item), filing: true, ready: status !== 'cancelled' };
   }
 
   private ownFilings(): ListedCase[] {
@@ -130,6 +164,10 @@ export class RequestsPage implements OnDestroy {
   protected openRow(row: RequestRow, event?: Event): void {
     event?.stopPropagation();
     if (!row.ready) return;
+    if (row.id === 'live-por1') {
+      void this.router.navigate(['/requests', 'por-1']);
+      return;
+    }
     if (row.draft || row.status === 'ร่าง' || row.status === 'ฉบับร่าง') {
       const form = this.formFor(row);
       if (form?.route) {

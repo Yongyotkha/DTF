@@ -109,24 +109,6 @@
         }
       </header>
       @if (reviewRole) {
-        @if (screenCheck; as check) {
-          <section class="sheet review" aria-label="ผลการตรวจก่อนส่งต่อ">
-            <div class="review__lead">
-              <div>
-                <h2>AI ตรวจ 3 ระดับ</h2>
-                <p>{{ check.state === 'checking' ? 'กำลังตรวจคำขอ ครั้งที่ ' + check.round : check.passed ? 'ไม่พบประเด็น รวบรวมผลแล้ว ขั้นถัดไปคือเปิดเคสและงานสารบรรณลงทะเบียนรับ' : 'พบประเด็น แจ้งผู้ยื่นให้แก้ไขแล้ว ยังไม่เปิดเคส' }}</p>
-              </div>
-            </div>
-            <ol class="review__steps">
-              @for (item of check.items; track item.label) {
-                <li [class.review__done]="item.pass">
-                  <span aria-hidden="true"></span>
-                  {{ item.label }} · {{ item.detail }}
-                </li>
-              }
-            </ol>
-          </section>
-        }
         @if (caseStatus === 'approval') {
           <section class="approve-band" aria-label="ส่งมาขออนุมัติ">
             @if (filingGate?.state === 'pending') {
@@ -344,6 +326,24 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
                 </app-button>
               }
+            </div>
+          </section>
+        } @else if (caseStatus === 'official' && awaitingOfficialFiling) {
+          <section class="sheet review" aria-label="รอผู้ยื่นยื่นแบบทางการ">
+            <div class="review__lead">
+              <span class="review__badge review__badge--info" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 17h.01M12 7v6M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
+              </span>
+              <div>
+                <h2>ปิดคำปรึกษาแล้ว</h2>
+                <p>คำขอเลขที่อ้างอิง {{ refId }} ปิดงานคำปรึกษาแล้ว ยื่นแบบทางการเพื่อให้เจ้าหน้าที่ตรวจเอกสาร</p>
+                <p class="amend-note">วันที่ยื่นครั้งแรก {{ filedOn }} · วันครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน) {{ amendUntil }}</p>
+              </div>
+            </div>
+            <div class="review__actions">
+              <app-button class="icon-before" type="primary" label="ยื่นแบบทางการ" (click)="officialOpen = true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
+              </app-button>
             </div>
           </section>
         } @else if (caseStatus === 'official') {
@@ -745,11 +745,17 @@
               }
             </div>
             <div class="fix-banner__act">
-              <app-button type="primary" label="ยืนยันยื่นแบบทางการ" (click)="officialOpen = true" />
+              <app-button class="icon-before wide" type="primary" label="ยืนยันยื่นแบบทางการ" (click)="officialOpen = true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+              </app-button>
               @if (offerConsult) {
-                <app-button type="outline" label="ขอปรึกษาเจ้าหน้าที่" (click)="openConsult()" />
+                <app-button class="icon-before wide" type="outline" label="ขอปรึกษาเจ้าหน้าที่" (click)="openConsult()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v9H8l-3 3z" /></svg>
+                </app-button>
               }
-              <app-button type="outline" label="ไปแก้ในแบบคำขอ" (click)="editAfterCheck()" />
+              <app-button class="icon-before wide" type="outline" label="ไปแก้ในแบบคำขอ" (click)="editAfterCheck()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16z" /><path d="M12 6l4 4" /></svg>
+              </app-button>
             </div>
           </section>
           <section class="sheet fix-board" aria-label="รายการที่ต้องแก้">
@@ -966,8 +972,8 @@
                       <article class="consult-board">
                         <ng-template #consultFields>
                           <div class="assign-dates assign-dates--when">
-                            <app-thai-date-field label="วันที่มอบหมาย" placeholder="16/05/2562" [required]="true" [value]="consultAssignedOn" (valueChange)="consultAssignedOn = $event" />
-                            <app-thai-date-field label="วันที่กำหนดส่ง" placeholder="30/05/2562" [required]="true" [value]="consultDueOn" (valueChange)="consultDueOn = $event" />
+                            <app-thai-date-field label="วันที่มอบหมาย" [placeholder]="consultAssignedOn" [required]="true" [value]="consultAssignedOn" (valueChange)="consultAssignedOn = $event" />
+                            <app-thai-date-field label="วันที่กำหนดส่ง" [placeholder]="consultDueOn" [required]="true" [value]="consultDueOn" (valueChange)="consultDueOn = $event" />
                             <label class="slip-time">เวลาครบกำหนดส่ง
                               <span><input type="text" inputmode="numeric" maxlength="5" placeholder="14:28" aria-label="เวลาครบกำหนดส่ง" [value]="consultDueTime" (input)="consultDueTime = $any($event.target).value" /> น.</span>
                             </label>
@@ -1138,7 +1144,7 @@
                             <header>
                               <span>
                                 <h3>{{ activeDuty?.title === 'กำหนดผู้รับผิดชอบ' ? 'กำหนดผู้รับผิดชอบ' : 'มอบหมายงานให้กลุ่ม' }}</h3>
-                                <p>{{ activeDuty?.title === 'กำหนดผู้รับผิดชอบ' ? 'เลือกกลุ่มที่รับผิดชอบคำขอนี้' : 'เลือกได้มากกว่า 1 กลุ่ม' }}</p>
+                                <p>{{ officialAssign ? 'รับงานแล้วให้ตรวจเอกสารคำขอแบบ ปร.1' : activeDuty?.title === 'กำหนดผู้รับผิดชอบ' ? 'ขอปรึกษาการแก้ไขคำขอส่งให้หัวหน้ากลุ่มรับเรื่องต่อ แล้วเจ้าหน้าที่ตอบกลับก่อนตรวจเอกสาร' : 'เลือกได้มากกว่า 1 กลุ่ม' }}</p>
                               </span>
                               @if (!consultClosed) {
                               <app-button class="icon-before" type="primary" label="มอบหมายงาน" (click)="openConsultForm('groups')">
@@ -1594,7 +1600,7 @@
                         } @else if (reviewRole !== 'director' && reviewRole !== 'staff') {
                           <section class="consult-assign" aria-label="มอบหมายงาน">
                             <header><h3>มอบหมายงาน</h3></header>
-                            <p class="act-note">เห็นรายการที่ยื่นขอเข้ามา ยังมอบหมายงานไม่ได้</p>
+                            <p class="act-note">{{ filingReturned ? 'อนุมัติการยื่นแบบแล้ว ส่งกลับผู้อำนวยการเพื่อมอบหมายงาน' : 'เห็นรายการที่ยื่นขอเข้ามา ยังมอบหมายงานไม่ได้' }}</p>
                           </section>
                         }
                         @if (consultForm) {
@@ -2426,8 +2432,9 @@
                           </div>
                           @if (canDecideReply) {
                             <footer class="doc-foot">
+                              <p class="act-note">แจ้งแก้ไขได้เรื่อย ๆ จนกว่าจะแจ้งว่าได้รับเอกสารครบถ้วน</p>
                               <app-button type="outline" label="แจ้งแก้ไขอีกครั้ง" (click)="askAgain()" />
-                              <app-button type="primary" label="แจ้งคำขอครบถ้วนถูกต้อง" (click)="markComplete()" />
+                              <app-button type="primary" label="แจ้งได้รับเอกสารครบถ้วนแล้ว" (click)="markComplete()" />
                             </footer>
                           }
                         </section>
@@ -2745,14 +2752,73 @@
                       @if (step.group && inquiryNav[i - 1]?.group !== step.group) {
                         <p class="toc__group">{{ step.group }}</p>
                       }
-                      <button type="button" class="toc__child" [class.toc__on]="inquiryPart === step.id" [attr.aria-current]="inquiryPart === step.id ? 'true' : null" (click)="openInquiryStep(step.id)">
+                      <button type="button" class="toc__child" [class.toc__on]="inquiryPart === step.id" [disabled]="step.id !== 'prepare' && !openPrep.approved" [attr.aria-current]="inquiryPart === step.id ? 'true' : null" (click)="openInquiryStep(step.id)">
                         <img [src]="step.done ? 'assets/icons/por1-dot-done.svg' : inquiryPart === step.id ? 'assets/icons/por1-dot-wait.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
                         {{ step.label }}
                       </button>
                     }
                   </nav>
                   <div class="receipt__view">
-                    @if (inquiryDocStep) {
+                    @if (inquiryPart === 'prepare') {
+                      <section class="notice-form" aria-label="เตรียมข้อมูลเปิดไต่สวน">
+                        <h3>เตรียมข้อมูล</h3>
+                        <p class="link-detail">เลขสารบรรณ {{ filingSaraban }} · Ref e-TR {{ etrRefNo }} บันทึกส่ง e-Office ไว้ในประวัติเชื่อมโยงระบบของเคสนี้</p>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th class="col-no">ลำดับ</th>
+                                <th>งาน</th>
+                                <th class="col-fit">สถานะ</th>
+                                <th class="col-act">การจัดการ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of prepRows; track row.kind; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ n + 1 }}</td>
+                                  <td>{{ row.title }}@if (row.office) { <small>ส่ง e-Office</small> }</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="row.done ? 'success' : row.current ? 'warning' : 'neutral'" [label]="row.done ? (row.office ? 'ส่งแล้ว' : 'ทำแล้ว') : row.current ? 'กำลังทำ' : 'ยังไม่ถึง'" /></td>
+                                  <td class="col-act">
+                                    <div class="made-actions">
+                                      @if (row.done) {
+                                        <button type="button" class="office-view" aria-label="ดู" (click)="openPrepDoc(row.kind)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        </button>
+                                      }
+                                      @if (row.current && row.step) {
+                                        <app-button type="primary" [label]="row.action" (click)="advancePrep(row.step)" />
+                                      }
+                                      @if (row.current && row.ai) {
+                                        <app-button type="outline" [label]="row.action" (click)="runOpenAi(row.ai)" />
+                                      }
+                                      @if (row.current && row.finish === 'send') {
+                                        <app-button type="primary" label="สรุปส่งข้อมูล" (click)="sendOpenSummary()" />
+                                      }
+                                      @if (row.current && row.finish === 'approve') {
+                                        <app-button type="primary" label="อนุมัติสรุป" (click)="approveOpenSummary()" />
+                                      }
+                                    </div>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    } @else if (inquiryPart === 'prenotify') {
+                      <section class="notice-form" aria-label="pre-notify">
+                        <h3>pre-notify</h3>
+                        <p class="link-detail">รับคำขอแล้ว บันทึกการแจ้งผู้เกี่ยวข้องกับคำขอไว้บนจอ</p>
+                        @if (!openPrep.prenotify) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="บันทึก pre-notify" (click)="savePrenotify()" />
+                          </footer>
+                        } @else {
+                          <p>บันทึก pre-notify แล้ว ขั้นต่อไปคือจดหมายแจ้งชำระค่าธรรมเนียมคำขอ</p>
+                        }
+                      </section>
+                    } @else if (inquiryDocStep) {
                       <section class="notice-form" [attr.aria-label]="inquiryStepTitle()">
                         <dl class="job__detail">
                           @for (fact of inquiryFacts; track fact.label) {
@@ -5549,7 +5615,7 @@
           <div>
             <strong>{{ sectionsReady ? 'ข้อมูลที่จำเป็นครบถ้วน' : 'ยังมีรายการที่จำเป็นไม่ครบ' }}</strong>
             @if (!sectionsReady) {
-              <span>กลับไปแก้ไขก่อนยื่น</span>
+              <span>ยืนยันยื่นตรวจสอบได้เลย ระบบจะบันทึกรายการที่ไม่ผ่าน</span>
             }
           </div>
           <app-status-tag [tone]="sectionsReady ? 'success' : 'danger'" [label]="sectionsReady ? 'พร้อมยื่น' : 'ยังไม่พร้อม'" />
@@ -5695,6 +5761,9 @@
       </div>
       @if (caseStatus === 'consult' && consultDutyAssigned) {
         <p class="submit__hint">มีการมอบหมายงานแล้ว ส่งให้เจ้าหน้าที่รับผิดชอบตรวจสอบก่อน สถานะจึงเป็นยื่นแบบ ผู้รับผิดชอบคือ {{ filingOwners().join(' และ ') }}</p>
+        @if (!aiReady) {
+          <p class="submit__hint">ส่งขออนุมัติได้เลย ระบบจะบันทึกรายการที่ไม่ผ่าน</p>
+        }
         @if (filingGate?.state === 'rejected') {
           <p class="submit__hint">ครั้งก่อนยังไม่ผ่าน: {{ filingGate.reason }}</p>
         }
@@ -5717,11 +5786,11 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
           </app-button>
         } @else if (caseStatus === 'consult' && consultDutyAssigned) {
-          <app-button class="icon-before" type="primary" label="ส่งขออนุมัติ" [state]="aiReady ? 'default' : 'disabled'" (click)="confirmOfficial()">
+          <app-button class="icon-before" type="primary" label="ส่งขออนุมัติ" (click)="confirmOfficial()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </app-button>
         } @else {
-          <app-button class="icon-before" type="primary" label="ยืนยันยื่นแบบทางการ" [state]="aiReady || checkReturned ? 'default' : 'disabled'" (click)="confirmOfficial()">
+          <app-button class="icon-before" type="primary" label="ยืนยันยื่นแบบทางการ" [state]="aiReady || checkReturned || awaitingOfficialFiling ? 'default' : 'disabled'" (click)="confirmOfficial()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9 15l2 2 4-4" /></svg>
           </app-button>
         }

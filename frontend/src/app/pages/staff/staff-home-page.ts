@@ -8,7 +8,7 @@ import { TopHeader } from '../../top-header/top-header';
 import { assignmentReachesOfficer, groupHead, groupMembers, staffPeople, workGroups } from './staff-roster';
 import { listGrants, powerLabel, reviewGrant } from '../requests/proxy-grant';
 import { archiveCases, findListedCase } from '../requests/request-cases';
-import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readReceipt, readWorkAssignment, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
+import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readDocNotice, readReceipt, readWorkAssignment, releaseFilingToDirector, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
 
 type Bucket = 'in' | 'pending' | 'out' | 'follow' | 'group';
 type WorkKind = 'request' | 'job' | 'track';
@@ -246,6 +246,7 @@ export class StaffHomePage implements OnDestroy {
   }
 
   private flowTasks(): TaskCase[] {
+    releaseFilingToDirector();
     const jobs = this.readFlowJobs();
     if (this.role === 'director') return this.directorFlow(jobs);
     if (this.role === 'head') return this.headFlow(jobs);
@@ -296,7 +297,7 @@ export class StaffHomePage implements OnDestroy {
     }
   }
 
-  private stepCard(title: string, bucket: WorkBucket, status: string, tone: StatusTone, group: string, due = ''): TaskCase {
+  private stepCard(title: string, bucket: WorkBucket, status: string, tone: StatusTone, group: string, due = '', at = ''): TaskCase {
     return {
       code: this.filingRef,
       title,
@@ -305,16 +306,44 @@ export class StaffHomePage implements OnDestroy {
       product: 'เหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์',
       sender: this.applicantName,
       group,
-      at: '16/05/2562',
+      at: at || '16/05/2562',
       status,
       due: due || `ครบกำหนดแก้ไขเพิ่มเติม ${this.amendUntil}`,
       tone,
     };
   }
 
+  private consultCard(): TaskCase | null {
+    const consult = readConsult();
+    const status = readCaseStatus();
+    if (!consult && status !== 'consult') return null;
+    const stamped = (consult?.at || '').split(' ')[0];
+    const clicked = sessionStorage.getItem('dft-por1-action-on') || '';
+    const at = stamped && !stamped.startsWith('15/05/2562') ? stamped : clicked;
+    const due = at ? `ครบกำหนดแก้ไขเพิ่มเติม ${addThaiMonths(at, 4)}` : '';
+    const left = at ? this.daysFromToday(at, 4) : 1;
+    return this.stepCard(consult?.topic || 'ขอปรึกษาการแก้ไขคำขอ', left < 0 ? 'pending' : 'in', left < 0 ? 'เกินกำหนด 4 เดือน' : 'งานรับใหม่', left < 0 ? 'danger' : 'warning', 'ผู้อำนวยการ', due, at);
+  }
+
+  private daysFromToday(date: string, months: number): number {
+    const due = addThaiMonths(date, months);
+    const [day, month, year] = due.split('/').map(Number);
+    if (!day || !month || !year) return 1;
+    const end = new Date(year - 543, month - 1, day);
+    const today = new Date();
+    end.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return Math.round((end.getTime() - today.getTime()) / 86400000);
+  }
+
   private directorFlow(jobs: FlowJob[]): TaskCase[] {
+    if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') {
+      return [this.stepCard('ยื่นคำขอแบบ ปร.1', 'in', 'ยื่นแบบทางการแล้ว', 'info', 'ผู้อำนวยการ', '', sessionStorage.getItem('dft-por1-action-on') || '')];
+    }
     const cards: TaskCase[] = [];
     const status = readCaseStatus();
+    const consult = this.consultCard();
+    if (consult && !jobs.length) cards.push(consult);
     const handedOff = jobs.length > 0 || readWorkAssignment().groupTasks.length > 0;
     if (status === 'approval' && this.canApprove) {
       const pending = this.filingGate?.state === 'pending';
@@ -326,7 +355,10 @@ export class StaffHomePage implements OnDestroy {
     } else if (status === 'revision' && !handedOff) {
       cards.push(this.stepCard('ยื่นคำขอแบบ ปร.1', 'follow', 'รอผู้ยื่นแก้ไข', 'warning', 'ผู้อำนวยการ'));
     }
-    if (jobs.length) return [...cards, ...jobs.map((job) => this.directorJobCard(job))];
+    if (jobs.length) return [...cards, ...jobs.flatMap((job) => {
+      const card = this.directorJobCard(job);
+      return card ? [card] : [];
+    })];
     const saved = readWorkAssignment();
     if (saved.groupTasks.length) {
       return [...cards, ...saved.groupTasks.map((task) => task.reply === 'return'
@@ -339,7 +371,7 @@ export class StaffHomePage implements OnDestroy {
     return cards;
   }
 
-  private directorJobCard(job: FlowJob): TaskCase {
+  private directorJobCard(job: FlowJob): TaskCase | null {
     const head = groupHead(job.group) || 'หัวหน้ากลุ่ม';
     const due = job.dueOn ? `ครบกำหนด ${job.dueOn}` : '';
     if (job.reply === 'return') return this.stepCard(`ส่งคืนจาก ${head}`, 'in', 'หัวหน้ากลุ่มส่งคืน', 'danger', job.group, due);
@@ -354,6 +386,7 @@ export class StaffHomePage implements OnDestroy {
   }
 
   private headFlow(jobs: FlowJob[]): TaskCase[] {
+    if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') return [];
     const group = this.myGroup();
     const job = jobs.find((item) => item.group === group);
     if (job) return [this.headJobCard(job)];
@@ -389,13 +422,17 @@ export class StaffHomePage implements OnDestroy {
   }
 
   private officerFlow(jobs: FlowJob[]): TaskCase[] {
+    if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') return [];
     const me = this.accounts.personName;
+    const approve = this.filingGate?.state === 'pending' && readCaseStatus() === 'approval' && this.filingGate.owners.includes(me)
+      ? [this.stepCard('อนุมัติการยื่นแบบ', 'in', 'ผู้ยื่นส่งยื่นแบบทางการมาแล้ว', 'warning', this.myGroup() || 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)')]
+      : [];
     const cards = jobs.flatMap((job) => {
       const mine = job.officers.find((officer) => officer.name === me);
       if (!mine || job.reply === 'return') return [];
       return [this.officerJobCard(job, mine)];
     });
-    if (cards.length || jobs.length) return cards;
+    if (approve.length || cards.length || jobs.length) return [...approve, ...cards];
     const hand = readWorkAssignment().hands.find((item) => item.name === me);
     if (!hand) return [];
     if (hand.reply === 'return') return [this.stepCard('ส่งคืนหัวหน้ากลุ่ม', 'out', 'ส่งคืนแล้ว', 'danger', hand.group)];
@@ -407,9 +444,28 @@ export class StaffHomePage implements OnDestroy {
     const due = job.dueOn ? `ครบกำหนด ${job.dueOn}` : '';
     if (mine.reply === 'return') return this.stepCard('ส่งคืนหัวหน้ากลุ่ม', 'out', 'ส่งคืนแล้ว', 'danger', job.group, due);
     if (mine.reply === 'pending') return this.stepCard('รับมอบหมายจากหัวหน้ากลุ่ม', 'in', 'รอรับเรื่อง', 'warning', job.group, due);
+    if (mine.reply === 'accept' && !mine.result && this.readyToCheckDocs()) {
+      const sent = this.applicantSentBack();
+      return this.stepCard('ตรวจสอบเอกสาร', 'in', sent ? 'ผู้ยื่นส่งคำขอที่แก้ไขมาแล้ว' : 'รอตรวจสอบเอกสาร', 'warning', job.group, due, sessionStorage.getItem('dft-por1-action-on') || '');
+    }
     if (mine.move === 'forward' && !mine.result) return this.stepCard('ส่งต่อหัวหน้ากลุ่ม', 'out', 'ส่งต่อให้เลือกผู้รับใหม่', 'success', job.group, due);
     if (mine.result) return this.stepCard('รายงานผล', 'out', 'ส่งมอบรายงานแล้ว', 'success', job.group, due);
     return this.stepCard('ดำเนินงานตามที่มอบหมาย', 'follow', 'รับเรื่องแล้ว', 'info', job.group, due);
+  }
+
+  private readyToCheckDocs(): boolean {
+    const mark = sessionStorage.getItem('dft-por1-filing-assign');
+    if (mark === 'wait') return false;
+    if (mark === 'open') return true;
+    if (readCaseStatus() !== 'official') return false;
+    sessionStorage.setItem('dft-por1-await-official', '0');
+    sessionStorage.setItem('dft-por1-filing-assign', 'open');
+    return true;
+  }
+
+  private applicantSentBack(): boolean {
+    const notice = readDocNotice();
+    return !!notice?.reply || (notice?.passes ?? []).some((pass) => !!pass.reply);
   }
 
   private bureauFlow(): TaskCase[] {
@@ -852,7 +908,8 @@ export class StaffHomePage implements OnDestroy {
   protected jobLabel(row: TaskCase): string {
     if (row.code === this.filingRef && this.canApprove) return this.filingGate?.state === 'pending' ? 'ตรวจสอบคำขอ' : 'อนุมัติการยื่นแบบ';
     if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') return 'มอบหมายกลุ่ม';
-    if (row.code === this.filingRef && row.status === 'ยื่นแบบทางการแล้ว') return 'กำหนดผู้รับผิดชอบ';
+    if (row.code === this.filingRef && row.title === 'ตรวจสอบเอกสาร') return 'ตรวจสอบเอกสาร';
+    if (row.code === this.filingRef && (row.status === 'ยื่นแบบทางการแล้ว' || row.status === 'งานรับใหม่')) return 'กำหนดผู้รับผิดชอบ';
     return 'ดูคำขอ';
   }
 
@@ -870,7 +927,11 @@ export class StaffHomePage implements OnDestroy {
       this.assignOpen = true;
       return;
     }
-    if (row.code === this.filingRef && row.status === 'ยื่นแบบทางการแล้ว') {
+    if (row.code === this.filingRef && row.title === 'ตรวจสอบเอกสาร') {
+      this.openFiling('', 'docs');
+      return;
+    }
+    if (row.code === this.filingRef && (row.status === 'ยื่นแบบทางการแล้ว' || row.status === 'งานรับใหม่')) {
       this.openFiling('', 'assign');
       return;
     }
