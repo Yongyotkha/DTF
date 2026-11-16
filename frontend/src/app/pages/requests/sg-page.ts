@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
+import { ThaiDateField } from '../../fields/thai-date-field';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
@@ -22,7 +23,7 @@ type ProducerStat = { name: string; cells: Record<string, string> };
 
 @Component({
   selector: 'app-sg-page',
-  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, FilledUpload, FilingTabs],
+  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, ThaiDateField, FilledUpload, FilingTabs],
   templateUrl: './sg-page.html',
   styleUrl: './por1-page.css',
 })
@@ -68,6 +69,9 @@ export class SgPage {
   protected signer = '';
   protected roleTitle = '';
   protected signedDate = '';
+  protected pledgeText =
+    'ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นตลอดจนข้อความในเอกสารภาคผนวกที่แนบ และเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้ ถูกต้องและเป็นความจริงทุกประการ (โดยได้รับมอบหมายให้ดำเนินการแทนผู้ผลิตรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ)';
+  protected pledgeSignedName = '';
   protected reviewOpen = false;
   protected uploadOpen = false;
   protected readOn = false;
@@ -145,11 +149,11 @@ export class SgPage {
   }
 
   protected get formCode(): string {
-    return this.notice ? 'ประกาศ' : 'ยื่นคำขอ';
+    return this.notice ? 'แบบคำขอประกาศ' : 'แบบคำขอ SG';
   }
 
   protected get heading(): string {
-    return filingMeasureTitle('มาตราการ SG');
+    return filingMeasureTitle('มาตรการ SG');
   }
 
   protected get lead(): string {
@@ -401,6 +405,29 @@ export class SgPage {
 
   protected openDoc(key: string): void {
     this.docKey = key;
+  }
+
+  protected setPledgeSigned(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.pledgeSignedName = file.name;
+  }
+
+  protected draftPledge(): void {
+    const who = this.signer.trim() || 'ผู้ลงนาม';
+    const role = this.roleTitle.trim();
+    const roleLine = role ? ` ตำแหน่ง${role}` : '';
+    const org = this.company.trim() || 'ผู้ยื่นคำขอ';
+    this.pledgeText = `ข้าพเจ้า ${who}${roleLine} ของ${org} ขอรับรองว่าข้อความในแบบคำขอมาตรการปกป้อง (SG) ตลอดจนเอกสารผนวกและเอกสารหลักฐานที่นำมาประกอบคำขอ เป็นความจริงและถูกต้องทุกประการ หากข้อมูลและเอกสารหลักฐานเป็นเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียว`;
+  }
+
+  protected downloadPledge(): void {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>คำรับรองและลงนาม SG</title><style>body{margin:24px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h3{text-align:center}.sign{margin-top:32px;text-align:center}</style></head><body><h3>คำรับรองและลงนาม</h3><p>${this.pledgeText}</p><div class="sign"><p>ลงชื่อ ${this.signer || '................................'} ผู้ยื่นคำขอ</p><p>ตำแหน่ง ${this.roleTitle || '................................'}</p><p>วันที่ ${this.signedDate || '................................'}</p></div><script>window.onload=function(){window.print()}<\/script></body></html>`;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
   }
 
   protected pick(key: string, event: Event): void {

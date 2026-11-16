@@ -162,10 +162,7 @@
                   2.1 ชื่อประกาศคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน<span class="req">*</span>
                   <textarea rows="2" placeholder="ระบุ" [value]="notice" (input)="notice = $any($event.target).value"></textarea>
                 </label>
-                <label class="field">
-                  วันที่ประกาศ<span class="req">*</span>
-                  <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="noticeDate" (input)="noticeDate = $any($event.target).value" />
-                </label>
+                <app-thai-date-field class="sheet-date" label="วันที่ประกาศ" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="noticeDate" (valueChange)="noticeDate = $event" />
                 <label class="field">
                   2.2 สินค้าที่ถูกใช้มาตรการ<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="subjectGoods" (input)="subjectGoods = $any($event.target).value" />
@@ -459,30 +456,44 @@
                 </label>
               }
             } @else if (section === '9') {
-              <h3>คำรับรองและลงนาม</h3>
-              <p>ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียว และขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ</p>
-              <label class="ack">
-                <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
-                <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                <span>ข้าพเจ้ารับทราบและยืนยันตามคำรับรองข้างต้น<span class="req">*</span></span>
-              </label>
-              <div class="grid">
-                <label class="field">
-                  ลงชื่อ (ผู้ยื่นคำขอ/ผู้รับมอบอำนาจ)<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="signer" (input)="signer = $any($event.target).value" />
+              <article class="official-sheet">
+                <header class="official-sheet__head">
+                  <p class="official-sheet__agency">กรมการค้าต่างประเทศ</p>
+                  <h3>คำรับรองและลงนาม</h3>
+                  <p class="official-sheet__meta">ท้ายแบบ ปร.6</p>
+                </header>
+<div class="official-sheet__tools">
+                  <app-button class="ask-ai icon-before" type="primary" label="ช่วยร่าง" (click)="draftPledge()">
+                    <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                  </app-button>
+                </div>
+                <div class="field field--wide official-sheet__field">
+                  <span class="note__label">คำรับรอง<span class="req">*</span></span>
+                  <textarea rows="5" [value]="pledgeText" (input)="pledgeText = $any($event.target).value" placeholder="ระบุข้อความคำรับรองตามแบบราชการ" aria-label="คำรับรอง"></textarea>
+                </div>
+                <label class="ack">
+                  <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
+                  <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                  <span>ข้าพเจ้ารับทราบและยืนยันตามคำรับรองข้างต้น<span class="req">*</span></span>
                 </label>
-                <label class="field">
-                  ชื่อตัวบรรจง
-                  <input type="text" placeholder="ระบุ" [value]="signerPrint" (input)="signerPrint = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  ตำแหน่ง<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  วันที่<span class="req">*</span>
-                  <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="signedDate" (input)="signedDate = $any($event.target).value" />
-                </label>
+                <div class="official-sheet__sign">
+                  <label class="field">
+                    ลงชื่อ ผู้ยื่นคำขอ/ผู้รับมอบอำนาจ<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="signer" (input)="signer = $any($event.target).value" />
+                  </label>
+                  <label class="field">
+                    (ชื่อตัวบรรจง)
+                    <input type="text" placeholder="ระบุ" [value]="signerPrint" (input)="signerPrint = $any($event.target).value" />
+                  </label>
+                  <label class="field">
+                    ตำแหน่ง<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
+                  </label>
+                  <app-thai-date-field class="sheet-date" label="วันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="signedDate" (valueChange)="signedDate = $event" />
+                </div>
+              </article>
+              <div class="form-foot">
+                <app-button class="icon-before" type="outline" label="ดาวน์โหลดแบบราชการ" (click)="downloadPledge()" />
               </div>
             } @else {
               <h3>ภาคผนวก และเอกสารประกอบอื่น</h3>

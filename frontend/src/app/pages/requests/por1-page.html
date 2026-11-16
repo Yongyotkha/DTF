@@ -3903,7 +3903,7 @@
                   @if (finalPart === 'close') {
                     <section class="notice-form" aria-label="ปิดงานผลสิ้นสุด">
                       <h3>ปิดงานผลสิ้นสุด</h3>
-                      <p class="link-detail">เมื่อประกาศและหนังสือแจ้งครบแล้ว ส่งเลขสารบรรณเข้า e-Office อัปเดต e-TR เผยแพร่ ThaiTR แล้วปิดงาน</p>
+                      <p class="link-detail">เมื่อประกาศและหนังสือแจ้งครบแล้ว ส่งเลขสารบรรณเข้า e-Office อัปเดต e-TR เผยแพร่บนเว็บไซต์กอง แล้วปิดงาน</p>
                       @if (casePublished) {
                         <p>ส่งปิดคดีแล้ว เลขสารบรรณ {{ filingSaraban }} · Ref e-TR {{ etrRefNo }}</p>
                       }
@@ -4185,7 +4185,7 @@
         }
         <div class="sheet__split">
           <nav class="toc" aria-label="ส่วนของแบบ ปร. 1">
-            @for (group of toc; track group.label) {
+            @for (group of formToc; track group.label) {
               <p class="toc__group" [class.toc__group--fail]="groupFailed(group)">{{ group.label }}</p>
               @for (item of group.items; track item.label) {
                 <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="failed(item)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">
@@ -4199,28 +4199,44 @@
               }
             }
           </nav>
-          <fieldset class="form" [class.form--fix]="sectionNeedsFix" [disabled]="formLocked" (input)="publishGuide()" (change)="publishGuide()" (click)="publishGuide()" (focusin)="noteField($event)">
+          <div class="form-pane">
+            <div class="help-wrap" (click)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="help-icon"
+                [class.help-icon--on]="sectionHelpOpen"
+                [attr.aria-expanded]="sectionHelpOpen"
+                aria-controls="section-help"
+                aria-label="แนะนำการกรอกส่วนนี้"
+                (click)="toggleSectionHelp($event)"
+              >
+                ?
+              </button>
+              @if (sectionHelpOpen && currentGuide; as guide) {
+                <div id="section-help" class="help-tip" role="dialog" aria-label="แนะนำการกรอกส่วนนี้" (click)="$event.stopPropagation()">
+                  <div class="help-tip__bar">
+                    <strong>{{ guide.title }}</strong>
+                    <button type="button" class="help-tip__close" aria-label="ปิด" (click)="sectionHelpOpen = false; $event.stopPropagation()">✕</button>
+                  </div>
+                  <p>{{ guide.lead }}</p>
+                  @if (guide.tips.length) {
+                    <ul>
+                      @for (tip of guide.tips; track tip) {
+                        <li>{{ tip }}</li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </div>
+            <fieldset class="form" [class.form--fix]="sectionNeedsFix" [disabled]="formLocked" (input)="publishGuide()" (change)="publishGuide()" (click)="publishGuide()" (focusin)="noteField($event)">
             @if (section === '1' && anchor === 'part-1-1') {
               <h3 id="part-1-1">1.1 ผู้ยื่นคำขอ</h3>
               <div class="grid">
                 <fieldset class="field--wide">
-                  <legend>มาตรการที่ขอให้ดำเนินการพิจารณา<span class="req">*</span></legend>
-                  @if (measureLocked) {
-                    <p>{{ measure === 'subsidy' ? 'ตอบโต้การอุดหนุน' : 'ตอบโต้การทุ่มตลาด' }}</p>
-                  } @else {
-                    <div class="choices">
-                      <label>
-                        <input type="radio" name="measure" value="dumping" [checked]="measure === 'dumping'" (change)="measure = 'dumping'" />
-                        <img [src]="measure === 'dumping' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                        ตอบโต้การทุ่มตลาด
-                      </label>
-                      <label>
-                        <input type="radio" name="measure" value="subsidy" [checked]="measure === 'subsidy'" (change)="measure = 'subsidy'" />
-                        <img [src]="measure === 'subsidy' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                        ตอบโต้การอุดหนุน
-                      </label>
-                    </div>
-                  }
+                  <legend>มาตรการที่ขอให้ดำเนินการพิจารณา</legend>
+                  <p class="measure-locked">{{ measureName }}</p>
+                  <small class="field__hint">เลือกจากหน้ารายการยื่นคำขอแล้ว</small>
                 </fieldset>
                 <label class="field">
                   ชื่อ/บริษัท/สมาคม<span class="req">*</span>
@@ -4281,18 +4297,18 @@
                 <label>
                   <input type="radio" name="filing" value="all" [checked]="filing === 'all'" (change)="filing = 'all'" />
                   <img [src]="filing === 'all' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                  ยื่นคำขอแทนผู้ผลิตทั้งหมด
+                  ยื่นคำขอ โดยกระทำการแทนผู้ผลิตทั้งหมด
                 </label>
                 <label>
                   <input type="radio" name="filing" value="part" [checked]="filing === 'part'" (change)="filing = 'part'" />
                   <img [src]="filing === 'part' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
-                  ยื่นคำขอแทนผู้ผลิตบางส่วน
+                  ยื่นคำขอ โดยกระทำการแทนผู้ผลิตบางส่วน
                 </label>
               </fieldset>
               @if (onBehalf) {
                 <div class="table-head">
                   <div class="table-head__copy">
-                    <p>รายชื่อผู้ผลิตที่ไม่ใช่บริษัทเดียวกัน<span class="req">*</span></p>
+                    <p>{{ filing === 'all' ? 'เอกสารผนวก ก. รายชื่อผู้ผลิตทั้งหมด' : 'เอกสารผนวก ข. ส่วนที่ 1 รายชื่อผู้ผลิตที่กระทำการแทน' }}<span class="req">*</span></p>
                     <small>ผู้ผลิตทั้งหมด {{ makers.length }} รายการ</small>
                   </div>
                   <div>
@@ -4356,11 +4372,13 @@
                     </tbody>
                   </table>
                 </div>
-                <label class="note">
-                  ผู้ผลิตที่มิได้ขอให้กระทำการแทน<span class="req">*</span>
-                  <textarea maxlength="200" placeholder="ระบุ" [value]="outsideProducer" (input)="outsideProducer = $any($event.target).value"></textarea>
-                  <small>{{ outsideProducer.length }} / 200</small>
-                </label>
+                @if (filing === 'part') {
+                  <label class="note">
+                    ผู้ผลิตที่มิได้ขอให้กระทำการแทน (เอกสารผนวก ข. ส่วนที่ 2)<span class="req">*</span>
+                    <textarea maxlength="2000" placeholder="ระบุ" [value]="outsideProducer" (input)="outsideProducer = $any($event.target).value"></textarea>
+                    <small>{{ outsideProducer.length }} / 2000</small>
+                  </label>
+                }
               } @else {
                 <div class="table-head">
                   <div class="table-head__copy">
@@ -4500,36 +4518,56 @@
               <h3 id="part-1-2">1.2 ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก</h3>
               <label class="note" [class.note--bad]="bad('related')">
                 ผู้ผลิตสินค้าชนิดเดียวกันที่เป็นผู้นำเข้า หรือเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก<span class="req">*</span>
-                <textarea maxlength="200" placeholder="ระบุ" [value]="relatedImport" (input)="relatedImport = $any($event.target).value"></textarea>
-                <small>{{ relatedImport.length }} / 200</small>
+                <textarea maxlength="2000" placeholder="ระบุชื่อ ที่อยู่ โทรศัพท์ โทรสาร เว็บไซต์ อีเมล ความเกี่ยวข้อง และปริมาณการนำเข้า หรือระบุว่าไม่มี" [value]="relatedImport" (input)="relatedImport = $any($event.target).value"></textarea>
+                <small>{{ relatedImport.length }} / 2000</small>
               </label>
             } @else if (section === '1' && anchor === 'part-1-3') {
               <h3 id="part-1-3">1.3 คำขอมาตรการช่วยเหลือ</h3>
               <label class="note">
                 คำขอมาตรการช่วยเหลือในช่วง 1 ปีก่อนหน้า<span class="req">*</span>
-                <textarea maxlength="200" placeholder="ระบุ" [value]="priorAid" (input)="priorAid = $any($event.target).value"></textarea>
-                <small>{{ priorAid.length }} / 200</small>
+                <textarea maxlength="2000" placeholder="ถ้ามี ระบุเมื่อใด ถึงหน่วยงานใด ขอมาตรการอย่างไร รัฐบาลช่วยหรือไม่ และสถานะล่าสุด — ถ้าไม่มีให้ระบุว่าไม่มี" [value]="priorAid" (input)="priorAid = $any($event.target).value"></textarea>
+                <small>{{ priorAid.length }} / 2000</small>
               </label>
             } @else if (section === '2') {
               <div class="part-head">
                 <div class="part-head__copy">
-                  <h3 id="part-2">ส่วนที่ 2 รายละเอียดสินค้า</h3>
-                  <p>แนบเอกสารรายละเอียดสินค้าที่เกี่ยวข้องกับคำขอของคุณ</p>
+                  <h3 id="part-2">ส่วนที่ 2 รายละเอียดของสินค้า</h3>
+                  <p>เปรียบเทียบสินค้าที่ถูกพิจารณากับสินค้าชนิดเดียวกันที่ผู้ยื่นคำขอผลิตได้ในประเทศ</p>
                 </div>
                 <ng-container *ngTemplateOutlet="fileTools" />
               </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>รายการ</th>
+                      <th>สินค้าที่ถูกพิจารณา</th>
+                      <th>สินค้าชนิดเดียวกัน</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of goodsCompare; track row.item) {
+                      <tr>
+                        <td>{{ row.item }}</td>
+                        <td><textarea rows="2" [value]="row.subject" (input)="row.subject = $any($event.target).value" [attr.aria-label]="row.item + ' สินค้าที่ถูกพิจารณา'"></textarea></td>
+                        <td><textarea rows="2" [value]="row.like" (input)="row.like = $any($event.target).value" [attr.aria-label]="row.item + ' สินค้าชนิดเดียวกัน'"></textarea></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
               <label class="note note--lead" [class.note--bad]="!!fixReason('part-2')">
-                ชื่อและลักษณะสินค้า<span class="req">*</span>
-                <textarea maxlength="200" placeholder="ระบุ" [value]="goodsDetail" (input)="goodsDetail = $any($event.target).value"></textarea>
-                <small>{{ goodsDetail.length }} / 200</small>
+                สรุปชื่อและลักษณะสินค้า<span class="req">*</span>
+                <textarea maxlength="2000" placeholder="ระบุ" [value]="goodsDetail" (input)="goodsDetail = $any($event.target).value"></textarea>
+                <small>{{ goodsDetail.length }} / 2000</small>
                 @if (fixReason('part-2'); as reason) {
                   <small class="field__error">{{ reason }}</small>
                 }
               </label>
               <label class="note">
-                ช่องทางจำหน่ายและผู้ใช้สินค้า<span class="req">*</span>
-                <textarea maxlength="200" placeholder="ระบุ" [value]="channelDetail" (input)="channelDetail = $any($event.target).value"></textarea>
-                <small>{{ channelDetail.length }} / 200</small>
+                สรุปช่องทางจำหน่ายและผู้ใช้สินค้า<span class="req">*</span>
+                <textarea maxlength="2000" placeholder="ระบุ" [value]="channelDetail" (input)="channelDetail = $any($event.target).value"></textarea>
+                <small>{{ channelDetail.length }} / 2000</small>
               </label>
               <ng-container *ngTemplateOutlet="sheet; context: { key: 'goods' }" />
             } @else if (section === '3') {
@@ -4976,12 +5014,22 @@
                   </label>
                 </div>
               }
+            } @else if (section === '5' && anchor === 'part-5-2') {
+              <h3 class="section-title" id="part-5-2">5.2 ราคาส่งออกที่คำนวณขึ้น</h3>
+              <p class="lead">ใช้เมื่อไม่สามารถหาราคาส่งออกตามข้อ 5.1 หรือเมื่อผู้ส่งออกกับผู้นำเข้ามีความเกี่ยวข้องกัน หรือมีเหตุอื่นที่ทำให้ราคาส่งออกไม่น่าเชื่อถือ</p>
+              <label class="note note--lead">
+                เหตุผลและราคาส่งออกที่คำนวณกลับไป ณ หน้าโรงงาน
+                <textarea maxlength="2000" placeholder="ระบุเหตุผลและการคำนวณหักภาษี กำไร ค่านายหน้า ค่าขนส่ง และค่าใช้จ่ายอื่น" [value]="exportConstructed" (input)="exportConstructed = $any($event.target).value"></textarea>
+                <small>{{ exportConstructed.length }} / 2000</small>
+              </label>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'export' }" />
             } @else if (section === '5') {
-              <h3 class="section-title" id="part-5">ส่วนที่ 5 ราคาส่งออก</h3>
+              <h3 class="section-title" id="part-5">5.1 ราคาส่งออก</h3>
+              <p class="lead">แสดงราคาส่งออกสินค้าที่ถูกพิจารณาซึ่งจำหน่ายให้ผู้ซื้ออิสระทอดแรกในประเทศไทย โดยปกติคือราคาที่ผู้ส่งออกจำหน่ายให้ผู้นำเข้า แล้วหักภาษี กำไร ค่านายหน้า ค่าขนส่ง และค่าใช้จ่ายอื่น เพื่อคำนวณกลับไปหาราคาส่งออก ณ หน้าโรงงาน</p>
               <label class="note note--lead" [class.note--bad]="!!fixReason('part-5')">
                 รายละเอียด<span class="req">*</span>
-                <textarea maxlength="200" placeholder="ระบุ" [value]="exportDetail" (input)="exportDetail = $any($event.target).value"></textarea>
-                <small>{{ exportDetail.length }} / 200</small>
+                <textarea maxlength="2000" placeholder="ระบุ" [value]="exportDetail" (input)="exportDetail = $any($event.target).value"></textarea>
+                <small>{{ exportDetail.length }} / 2000</small>
                 @if (fixReason('part-5'); as reason) {
                   <small class="field__error">{{ reason }}</small>
                 }
@@ -4991,9 +5039,70 @@
               <div class="part-head">
                 <div class="part-head__copy">
                   <h3 id="part-6">ส่วนที่ 6 ส่วนเหลื่อมการทุ่มตลาด</h3>
-                  <p>กรุณาระบุข้อมูลราคาแยกตามประเทศ โดยใช้หน่วยและเงื่อนไขราคาที่สามารถเปรียบเทียบกันได้</p>
+                  <p>เปรียบเทียบมูลค่าปกติและราคาส่งออกที่ระดับการค้าเดียวกัน (ปกติ ณ หน้าโรงงาน) แยกเป็นรายประเทศ</p>
                 </div>
+                <app-button class="icon-before" type="primary" label="เพิ่มประเทศ" (click)="addMarginCountry()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                </app-button>
               </div>
+              <label class="field field--pad">
+                หน่วยราคา (ราคาต่อหน่วย)
+                <input type="text" placeholder="เช่น บาท/ตัน" [value]="marginUnit" (input)="marginUnit = $any($event.target).value" />
+              </label>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>รายการ</th>
+                      @for (col of marginCountries; track $index) {
+                        <th>
+                          <div class="margin-col">
+                            <input type="text" [value]="col.name" (input)="col.name = $any($event.target).value" [attr.aria-label]="'ประเทศที่ ' + ($index + 1)" placeholder="ประเทศ" />
+                            @if (marginCountries.length > 1) {
+                              <button type="button" class="trash" [attr.aria-label]="'ลบ ' + (col.name || 'ประเทศ')" (click)="removeMarginCountry($index)">
+                                <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                              </button>
+                            }
+                          </div>
+                        </th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>1. มูลค่าปกติ</td>
+                      @for (col of marginCountries; track $index) {
+                        <td><input type="text" [value]="col.normal" (input)="col.normal = $any($event.target).value" [attr.aria-label]="'มูลค่าปกติ ' + col.name" /></td>
+                      }
+                    </tr>
+                    <tr>
+                      <td>2. ราคาส่งออก</td>
+                      @for (col of marginCountries; track $index) {
+                        <td><input type="text" [value]="col.exportPrice" (input)="col.exportPrice = $any($event.target).value" [attr.aria-label]="'ราคาส่งออก ' + col.name" /></td>
+                      }
+                    </tr>
+                    <tr>
+                      <td>3. ส่วนเหลื่อมการทุ่มตลาด</td>
+                      @for (col of marginCountries; track $index) {
+                        <td><input type="text" [value]="col.margin" (input)="col.margin = $any($event.target).value" [attr.aria-label]="'ส่วนเหลื่อม ' + col.name" /></td>
+                      }
+                    </tr>
+                    <tr>
+                      <td>4. ราคาส่งออกซี ไอ เอฟ</td>
+                      @for (col of marginCountries; track $index) {
+                        <td><input type="text" [value]="col.cif" (input)="col.cif = $any($event.target).value" [attr.aria-label]="'CIF ' + col.name" /></td>
+                      }
+                    </tr>
+                    <tr>
+                      <td>5. อัตราการทุ่มตลาด (%)</td>
+                      @for (col of marginCountries; track $index) {
+                        <td><input type="text" [value]="col.rate" (input)="col.rate = $any($event.target).value" [attr.aria-label]="'อัตรา ' + col.name" /></td>
+                      }
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="remark">หมายเหตุ: ส่วนเหลื่อม = มูลค่าปกติ − ราคาส่งออก · อัตราการทุ่มตลาด = (ส่วนเหลื่อม ÷ ราคาส่งออก CIF) × 100 · แสดงที่มาของราคา CIF ด้วย</p>
               <ng-container *ngTemplateOutlet="sheet; context: { key: 'margin' }" />
             } @else if (section === '7.1') {
               <div class="part-head">
@@ -5005,18 +5114,36 @@
               <ng-container *ngTemplateOutlet="sheet; context: { key: 'subsidy' }" />
             } @else if (section === '7.2') {
               <h3 class="section-title section-title--lg">7.2 อธิบายการอุดหนุน</h3>
+              <p class="lead">อธิบายว่าการอุดหนุนตามโครงการข้อ 7.1 เป็นการได้รับประโยชน์อย่างหนึ่งอย่างใดเนื่องจากรัฐบาลกระทำการ แยกแต่ละโครงการ</p>
               <label class="note note--lead">
-                รายละเอียด
-                <textarea maxlength="200" placeholder="ระบุ" [value]="explainDetail" (input)="explainDetail = $any($event.target).value"></textarea>
-                <small>{{ explainDetail.length }} / 200</small>
+                รายละเอียดแยกโครงการ<span class="req">*</span>
+                <textarea maxlength="2000" placeholder="เช่น โครงการที่ 1 … (ก) โอนเงิน/กู้ยืม (ข) สูญเสียรายได้ภาษี (ค) จัดหาสินค้า/บริการ (ง) ให้เงินผ่านกลไกสนับสนุน" [value]="explainDetail" (input)="explainDetail = $any($event.target).value"></textarea>
+                <small>{{ explainDetail.length }} / 2000</small>
               </label>
               <ng-container *ngTemplateOutlet="sheet; context: { key: 'explain' }" />
+            } @else if (section === '7.3') {
+              <h3 class="section-title section-title--lg">7.3 การอุดหนุนเจาะจง</h3>
+              <p class="lead">ระบุว่าโครงการอุดหนุนตามข้อ 7.1 เป็นการอุดหนุนที่เจาะจงแก่วิสาหกิจบางราย หรือบางพื้นที่ หรือมีเงื่อนไขในการขอรับการอุดหนุนอย่างไร</p>
+              <label class="note note--lead">
+                รายละเอียดแยกโครงการ<span class="req">*</span>
+                <textarea maxlength="2000" placeholder="โครงการที่ 1 … / โครงการที่ 2 …" [value]="subsidySpecific" (input)="subsidySpecific = $any($event.target).value"></textarea>
+                <small>{{ subsidySpecific.length }} / 2000</small>
+              </label>
+            } @else if (section === '7.4') {
+              <h3 class="section-title section-title--lg">7.4 ประโยชน์ที่ผู้ส่งออกได้รับ</h3>
+              <p class="lead">คำนวณประโยชน์ที่ผู้ส่งออกได้รับจากโครงการอุดหนุนแต่ละโครงการตามที่ระบุในข้อ 7.1</p>
+              <label class="note note--lead">
+                การคำนวณแยกโครงการ<span class="req">*</span>
+                <textarea maxlength="2000" placeholder="โครงการที่ 1 … จำนวนประโยชน์ / โครงการที่ 2 …" [value]="subsidyBenefit" (input)="subsidyBenefit = $any($event.target).value"></textarea>
+                <small>{{ subsidyBenefit.length }} / 2000</small>
+              </label>
             } @else if (section === '8.1') {
               <h3 class="section-title section-title--lg">8.1 ข้อมูลการนำเข้าสินค้าที่ถูกพิจารณา</h3>
+              <p class="lead">ระบุปริมาณและมูลค่าการนำเข้าสินค้าที่ถูกพิจารณา และสินค้าชนิดเดียวกัน จากประเทศที่ถูกกล่าวหาและประเทศส่งออกสำคัญอื่น ๆ โดยใช้ข้อมูลปัจจุบันและย้อนหลัง 3 ปี พร้อมแนบหลักฐาน</p>
               <label class="note note--lead">
                 รายละเอียด<span class="req">*</span>
-                <textarea maxlength="200" placeholder="ระบุ" [value]="note('importDetail')" (input)="setNote('importDetail', $any($event.target).value)"></textarea>
-                <small>{{ note('importDetail').length }} / 200</small>
+                <textarea maxlength="2000" placeholder="ระบุ" [value]="note('importDetail')" (input)="setNote('importDetail', $any($event.target).value)"></textarea>
+                <small>{{ note('importDetail').length }} / 2000</small>
               </label>
               <ng-container *ngTemplateOutlet="sheet; context: { key: 'import' }" />
             } @else if (section === '8.2') {
@@ -5186,171 +5313,275 @@
                 <textarea maxlength="200" placeholder="ระบุ" [value]="note('intentDetail')" (input)="setNote('intentDetail', $any($event.target).value)"></textarea>
                 <small>{{ note('intentDetail').length }} / 200</small>
               </label>
+            } @else if (section === 'annex-a') {
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>เอกสารผนวก ก. ผู้ผลิตทั้งหมด</h3>
+                  <p>กรณียื่นคำขอโดยกระทำการแทนผู้ผลิตทั้งหมด — ระบุรายชื่อ ที่อยู่ โทรศัพท์ โทรสาร เว็บไซต์ ไปรษณีย์อิเล็กทรอนิกส์ และแนบหนังสือรับรองบริษัท งบการเงิน หนังสือมอบอำนาจ และรายการปริมาณสินค้าของผู้ผลิตทุกราย</p>
+                </div>
+              </div>
+              <p class="remark">รายชื่อผู้ผลิตกรอกในส่วนที่ 1.1 เมื่อเลือก “ยื่นคำขอ โดยกระทำการแทนผู้ผลิตทั้งหมด” และแนบไฟล์ประกอบด้านล่าง</p>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'other' }" />
+            } @else if (section === 'annex-b') {
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>เอกสารผนวก ข. ผู้ผลิตบางส่วน</h3>
+                  <p>ส่วนที่ 1 รายชื่อผู้ผลิตที่ผู้ยื่นคำขอกระทำการแทน · ส่วนที่ 2 รายชื่อผู้ผลิตที่มิได้ขอให้กระทำการแทน</p>
+                </div>
+              </div>
+              <p class="remark">รายชื่อผู้ผลิตและผู้ที่มิได้ขอให้แทนกรอกในส่วนที่ 1.1 เมื่อเลือก “ยื่นคำขอ โดยกระทำการแทนผู้ผลิตบางส่วน”</p>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'other' }" />
+            } @else if (section === 'annex-c') {
+              <div class="part-head">
+                <div class="part-head__copy">
+                  <h3>เอกสารผนวก ค. หนังสือมอบอำนาจ</h3>
+                  <p>ใช้แบบหนังสือมอบอำนาจ (Power of Attorney) ตามเอกสารผนวก ค. พร้อมอากรแสตมป์ สำเนาหนังสือรับรองนิติบุคคล และสำเนาบัตรประจำตัวประชาชน</p>
+                </div>
+              </div>
+              <p class="remark">อัปโหลดหนังสือมอบอำนาจได้จากส่วนที่ 1.1 ในช่องเอกสารแนบ “หนังสือมอบอำนาจ” หรือแนบเพิ่มด้านล่าง</p>
+              <ng-container *ngTemplateOutlet="sheet; context: { key: 'other' }" />
             } @else if (section === 'other') {
               <div class="part-head">
                 <div class="part-head__copy">
-                  <h3>เอกสารอื่น ๆ ที่แนบประกอบ</h3>
-                  <p>ไฟล์ที่ผู้ยื่นแนบเพิ่ม เช่น ภาคผนวก</p>
+                  <h3>เอกสารประกอบอื่น</h3>
+                  <p>ไฟล์ประกอบเพิ่มเติมนอกจากเอกสารผนวก ก. ข. ค.</p>
                 </div>
               </div>
               <ng-container *ngTemplateOutlet="sheet; context: { key: 'other' }" />
+            } @else if (section === '9' && anchor === 'part-9-letter') {
+              <article class="official-sheet" id="part-9-letter">
+                <header class="official-sheet__head">
+                  <p class="official-sheet__agency">กรมการค้าต่างประเทศ</p>
+                  <h3>หนังสือนำส่ง</h3>
+                  <p class="official-sheet__meta">ประกอบแบบ {{ formCodeName }} · มาตรการ{{ measureName }} · เลขที่อ้างอิง {{ refId }}</p>
+                </header>
+                @if (!formLocked) {
+                  <div class="official-sheet__tools">
+                    <app-button class="ask-ai icon-before" type="primary" label="ช่วยร่าง" (click)="draftLetter()">
+                      <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                    </app-button>
+                  </div>
+                }
+                <div class="official-sheet__sign">
+                  <label class="field">
+                    ที่<span class="req">*</span>
+                    <input type="text" [value]="letterNo" (input)="letterNo = $any($event.target).value" placeholder="เช่น 01/492-019/2563" />
+                  </label>
+                  <app-thai-date-field class="sheet-date" label="วันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="letterDate" (valueChange)="letterDate = $event" />
+                  <label class="field field--wide">
+                    เรื่อง<span class="req">*</span>
+                    <textarea rows="3" [value]="letterSubject" (input)="letterSubject = $any($event.target).value" placeholder="ระบุเรื่อง"></textarea>
+                  </label>
+                  <label class="field field--wide">
+                    เรียน<span class="req">*</span>
+                    <input type="text" [value]="letterTo" (input)="letterTo = $any($event.target).value" placeholder="เช่น อธิบดีกรมการค้าต่างประเทศ" />
+                  </label>
+                  <label class="field field--wide">
+                    อ้างถึง
+                    <input type="text" [value]="letterRef" (input)="letterRef = $any($event.target).value" placeholder="ถ้าไม่มีให้เว้นว่าง" />
+                  </label>
+                  <label class="field field--wide">
+                    รายละเอียด<span class="req">*</span>
+                    <textarea rows="6" [value]="letterBody" (input)="letterBody = $any($event.target).value" placeholder="ระบุรายละเอียด รวมสิ่งที่ส่งมาด้วย (ถ้ามี)"></textarea>
+                  </label>
+                  <label class="field field--wide">
+                    มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา<span class="req">*</span>
+                    <textarea rows="3" [value]="letterPurpose" (input)="letterPurpose = $any($event.target).value" placeholder="ระบุ"></textarea>
+                  </label>
+                  <label class="field">
+                    แนบรูปลายเซ็น<span class="req">*</span>
+                    <span class="pick pick--field">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg" (change)="setSignature($event)" />
+                    </span>
+                    <small class="field__hint">png, jpg, jpeg</small>
+                    @if (signatureUrl) {
+                      <img class="sign-preview" [src]="signatureUrl" alt="รูปลายเซ็น {{ signatureName }}" />
+                    }
+                  </label>
+                  <label class="field">
+                    แนบไฟล์ตราประทับบริษัท
+                    <span class="pick pick--field">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.gif" (change)="setSeal($event)" />
+                    </span>
+                    <small class="field__hint">png, jpg, jpeg, gif</small>
+                    @if (sealUrl) {
+                      <img class="sign-preview" [src]="sealUrl" alt="ตราประทับ {{ sealName }}" />
+                    }
+                  </label>
+                  <label class="field field--wide">
+                    แนบหนังสือนำส่งฉบับที่ลงนามแล้ว<span class="req">*</span>
+                    <span class="pick pick--field">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.gif,.pdf,.doc,.docx" (change)="setLetterFile($event)" />
+                    </span>
+                    <small class="field__hint">png, jpg, jpeg, gif, pdf, doc, docx</small>
+                    @if (letterFileName) {
+                      <small>{{ letterFileName }}</small>
+                    }
+                  </label>
+                </div>
+              </article>
+              @if (!formLocked) {
+                <div class="form-foot">
+                  <app-button class="icon-before" type="outline" label="ดูตัวอย่าง" (click)="previewDocument('letter')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  </app-button>
+                  <app-button class="icon-before" type="outline" label="ดาวน์โหลดแบบราชการ" (click)="saveCertForm('letter'); downloadDocument('letter')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M4 19h16" /></svg>
+                  </app-button>
+                  <app-button class="icon-before" type="primary" label="บันทึก" (click)="saveCertForm('letter')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5V3z" /><path d="M8 3v6h8V3M8 17h8" /></svg>
+                  </app-button>
+                </div>
+              }
+              <div class="issued">
+                <div class="issued__head">
+                  <h3>เอกสารที่ออก</h3>
+                </div>
+                @if (issuedOf('letter').length) {
+                  <ul class="issued__list">
+                    @for (doc of issuedOf('letter'); track doc.code) {
+                      <li>
+                        <div>
+                          <p>{{ doc.code }}</p>
+                          <small>{{ doc.title }} · อัปเดตล่าสุด {{ doc.at }} น.</small>
+                        </div>
+                        <div class="issued__acts">
+                          <button type="button" class="icon-btn" aria-label="ดูตัวอย่าง" (click)="previewDocument(doc.kind)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                          </button>
+                          <button type="button" class="icon-btn" aria-label="ดาวน์โหลด" (click)="downloadDocument(doc.kind)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M4 19h16" /></svg>
+                          </button>
+                          <button type="button" class="icon-btn" aria-label="พิมพ์ PDF" (click)="printDocument(doc.kind)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18H3V9h18v9h-4M7 9V3h10v6M17 14v7H7v-7h10z" /></svg>
+                          </button>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="issued__empty">ยังไม่มีเอกสารที่บันทึก กดบันทึกหรือดาวน์โหลดแบบราชการ</p>
+                }
+              </div>
             } @else if (section === '9') {
-              <div class="part-head">
-                <div class="part-head__copy">
+              <article class="official-sheet" id="part-9-pledge">
+                <header class="official-sheet__head">
+                  <p class="official-sheet__agency">กรมการค้าต่างประเทศ</p>
                   <h3>คำรับรองและลงนาม</h3>
-                  <p>{{ formLocked ? 'ข้อมูลที่ยื่นแล้ว' : (pledgeSource === 'draft' ? 'แนวทางร่างจากข้อมูลในแบบ ยังไม่ใช่การยืนยันตามกฎหมาย แก้ไขได้ก่อนพิมพ์หรือดาวน์โหลด' : 'ข้อความตั้งต้นมาจากแบบ ปร.1 ผู้ยื่นแก้ไขได้ หรือให้ผู้ช่วยร่างแนวทางจากข้อมูลในแบบ') }}</p>
+                  <p class="official-sheet__meta">ท้ายแบบ {{ formCodeName }} · มาตรการ{{ measureName }} · เลขที่อ้างอิง {{ refId }}</p>
+                </header>
+                <div class="official-sheet__sign">
+                  <div class="field field--wide">
+                    <div class="note__bar">
+                      <span class="note__label">คำรับรอง<span class="req">*</span></span>
+                      @if (!formLocked) {
+                        <div class="note__bar-tools">
+                          <app-button class="ask-ai icon-before" type="primary" label="ช่วยร่าง" (click)="draftPledge()">
+                            <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                          </app-button>
+                        </div>
+                      }
+                    </div>
+                    <textarea rows="6" [value]="pledgeText" (input)="pledgeText = $any($event.target).value" placeholder="ระบุข้อความคำรับรองตามแบบราชการ" aria-label="คำรับรอง"></textarea>
+                  </div>
+                  <label class="ack field--wide">
+                    <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
+                    <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
+                    <span>ข้าพเจ้ารับทราบและยืนยันตามคำรับรองข้างต้น<span class="req">*</span></span>
+                  </label>
+                  <label class="field field--wide">
+                    ลงชื่อ ผู้ยื่นคำขอ/ผู้รับมอบอำนาจ<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="signer" (input)="signer = $any($event.target).value" />
+                  </label>
+                  <label class="field field--wide">
+                    (ชื่อตัวบรรจง)<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="signerPrint" (input)="signerPrint = $any($event.target).value" />
+                  </label>
+                  <label class="field">
+                    ตำแหน่ง<span class="req">*</span>
+                    <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
+                  </label>
+                  <app-thai-date-field class="sheet-date" label="วันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="signedOn" (valueChange)="signedOn = $event" />
+                  <label class="field">
+                    รูปลายเซ็น<span class="req">*</span>
+                    <span class="pick pick--field">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg" (change)="setSignature($event)" />
+                    </span>
+                    <small class="field__hint">png, jpg, jpeg</small>
+                    @if (signatureUrl) {
+                      <img class="sign-preview" [src]="signatureUrl" alt="รูปลายเซ็น {{ signatureName }}" />
+                    }
+                  </label>
+                  <label class="field">
+                    แนบไฟล์ตราประทับบริษัท
+                    <span class="pick pick--field">
+                      <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
+                      เลือกไฟล์
+                      <input type="file" accept=".png,.jpg,.jpeg,.gif" (change)="setSeal($event)" />
+                    </span>
+                    <small class="field__hint">png, jpg, jpeg, gif</small>
+                    @if (sealUrl) {
+                      <img class="sign-preview" [src]="sealUrl" alt="ตราประทับ {{ sealName }}" />
+                    }
+                  </label>
                 </div>
-              </div>
-              <label class="note note--doc">
-                คำรับรอง<span class="req">*</span>
-                <textarea rows="6" [value]="pledgeText" (input)="pledgeText = $any($event.target).value"></textarea>
-                <small>{{ pledgeText.length }} ตัวอักษร</small>
-              </label>
-              <div class="file-tools">
-                <button type="button" class="tool" (click)="draftPledge()">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                  ให้ AI ร่างแนวทาง
-                </button>
-                <button type="button" class="tool" (click)="resetPledge()">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2-5.3M4 4v5h5" /></svg>
-                  ใช้ข้อความตั้งต้น
-                </button>
-              </div>
-              <label class="ack">
-                <input type="checkbox" [checked]="ack" (change)="ack = $any($event.target).checked" />
-                <img [src]="ack ? 'assets/icons/por1-check-on.svg' : 'assets/icons/por1-check-off.svg'" width="24" height="24" alt="" />
-                <span>ข้าพเจ้ารับทราบและยืนยันตามคำรับรองข้างต้น<span class="req">*</span></span>
-              </label>
-              <div class="grid">
-                <label class="field">
-                  ลงชื่อ (ผู้ยื่นคำขอ/ผู้รับมอบอำนาจ)<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="signer" (input)="signer = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  ตำแหน่ง<span class="req">*</span>
-                  <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
-                </label>
-                <label class="field">
-                  วันที่<span class="req">*</span>
-                  <span class="date">
-                    <img src="assets/icons/calendar.svg" width="24" height="24" alt="" />
-                    <input type="text" placeholder="22/09/2569" [value]="signedOn" (input)="signedOn = $any($event.target).value" aria-label="วันที่" />
-                  </span>
-                </label>
-              </div>
-              <div class="uploads">
-                <label class="upload">
-                  <span>รูปลายเซ็น<span class="req">*</span></span>
-                  <span class="pick">
-                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
-                    เลือกไฟล์
-                    <input type="file" accept=".png,.jpg,.jpeg" (change)="setSignature($event)" />
-                  </span>
-                  <small>เฉพาะนามสกุล png, jpg, jpeg</small>
-                  @if (signatureUrl) {
-                    <img class="sign-preview" [src]="signatureUrl" alt="รูปลายเซ็น {{ signatureName }}" />
-                  }
-                </label>
-              </div>
-              <div class="part-head">
-                <div class="part-head__copy">
-                  <h3>เอกสารที่ระบบสร้าง</h3>
-                  <p>คำรับรองและหนังสือนำส่งจัดหน้าจากข้อมูลด้านบน พิมพ์หรือดาวน์โหลดได้โดยไม่ต้องแนบไฟล์</p>
+              </article>
+              @if (!formLocked) {
+                <div class="form-foot">
+                  <app-button class="icon-before" type="outline" label="ดูตัวอย่าง" (click)="previewDocument('pledge')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  </app-button>
+                  <app-button class="icon-before" type="outline" label="ดาวน์โหลดแบบราชการ" (click)="saveCertForm('pledge'); downloadDocument('pledge')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M4 19h16" /></svg>
+                  </app-button>
+                  <app-button class="icon-before" type="primary" label="บันทึก" (click)="saveCertForm('pledge')">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5V3z" /><path d="M8 3v6h8V3M8 17h8" /></svg>
+                  </app-button>
                 </div>
-              </div>
-              <div class="table-head">
-                <div class="table-head__copy">
-                  <p>คำรับรองและลงนาม</p>
+              }
+              <div class="issued">
+                <div class="issued__head">
+                  <h3>เอกสารที่ออก</h3>
                 </div>
-                <ng-container *ngTemplateOutlet="docActions; context: { kind: 'pledge' }" />
+                @if (issuedOf('pledge').length) {
+                  <ul class="issued__list">
+                    @for (doc of issuedOf('pledge'); track doc.code) {
+                      <li>
+                        <div>
+                          <p>{{ doc.code }}</p>
+                          <small>{{ doc.title }} · อัปเดตล่าสุด {{ doc.at }} น.</small>
+                        </div>
+                        <div class="issued__acts">
+                          <button type="button" class="icon-btn" aria-label="ดูตัวอย่าง" (click)="previewDocument(doc.kind)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                          </button>
+                          <button type="button" class="icon-btn" aria-label="ดาวน์โหลด" (click)="downloadDocument(doc.kind)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M4 19h16" /></svg>
+                          </button>
+                          <button type="button" class="icon-btn" aria-label="พิมพ์ PDF" (click)="printDocument(doc.kind)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18H3V9h18v9h-4M7 9V3h10v6M17 14v7H7v-7h10z" /></svg>
+                          </button>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="issued__empty">ยังไม่มีเอกสารที่บันทึก กดบันทึกหรือดาวน์โหลดแบบราชการ</p>
+                }
               </div>
-              <ng-container *ngTemplateOutlet="pledgeSheet" />
-              <div class="part-head">
-                <div class="part-head__copy">
-                  <h3>ข้อมูลหนังสือนำส่ง</h3>
-                  <p>ช่องตามแบบหนังสือนำส่งของระบบเดิม ระบบใส่ข้อมูลของเลขที่อ้างอิง {{ refId }} ไว้แล้ว ผู้ยื่นแก้ไขได้</p>
-                </div>
-              </div>
-              <div class="grid">
-                <label class="field">
-                  วันที่หนังสือ<span class="req">*</span>
-                  <span class="date">
-                    <img src="assets/icons/calendar.svg" width="24" height="24" alt="" />
-                    <input type="text" placeholder="15/05/2562" [value]="letterDate" (input)="letterDate = $any($event.target).value" aria-label="วันที่หนังสือ" />
-                  </span>
-                </label>
-                <label class="field">
-                  เลขที่หนังสือ<span class="req">*</span>
-                  <input type="text" [value]="letterNo" (input)="letterNo = $any($event.target).value" />
-                  <small class="field__hint">กรณีไม่มีให้ใส่เครื่องหมายขีด (-)</small>
-                </label>
-                <label class="field field--wide">
-                  เรียน<span class="req">*</span>
-                  <input type="text" [value]="letterTo" (input)="letterTo = $any($event.target).value" />
-                </label>
-                <label class="field field--wide">
-                  เรื่อง<span class="req">*</span>
-                  <textarea rows="2" [value]="letterSubject" (input)="letterSubject = $any($event.target).value"></textarea>
-                </label>
-                <label class="field field--wide">
-                  อ้างถึง<span class="req">*</span>
-                  <input type="text" [value]="letterRef" (input)="letterRef = $any($event.target).value" />
-                  <small class="field__hint">กรณีไม่มีให้ใส่เครื่องหมายขีด (-)</small>
-                </label>
-                <label class="field field--wide">
-                  สิ่งที่แนบมาด้วย<span class="req">*</span>
-                  <input type="text" [value]="letterEnclosed" (input)="letterEnclosed = $any($event.target).value" />
-                </label>
-              </div>
-              <label class="note">
-                รายละเอียด<span class="req">*</span>
-                <textarea rows="4" [value]="letterBody" (input)="letterBody = $any($event.target).value"></textarea>
-              </label>
-              <label class="note">
-                มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา<span class="req">*</span>
-                <textarea rows="3" [value]="letterPurpose" (input)="letterPurpose = $any($event.target).value"></textarea>
-              </label>
-              <div class="uploads">
-                <label class="upload">
-                  <span>แนบไฟล์ตราประทับบริษัท</span>
-                  <span class="pick">
-                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
-                    เลือกไฟล์
-                    <input type="file" accept=".png,.jpg,.jpeg,.gif" (change)="setSeal($event)" />
-                  </span>
-                  <small>เฉพาะนามสกุล png, jpg, jpeg, gif</small>
-                  @if (sealUrl) {
-                    <img class="sign-preview" [src]="sealUrl" alt="ตราประทับ {{ sealName }}" />
-                  }
-                </label>
-                <label class="upload">
-                  <span>แนบไฟล์หนังสือนำส่งฉบับจริง (ถ้ามี)</span>
-                  <span class="pick">
-                    <img src="assets/icons/por1-upload.svg" width="13.8" height="14.8" alt="" />
-                    เลือกไฟล์
-                    <input type="file" accept=".png,.jpg,.jpeg,.gif,.pdf,.doc,.docx" (change)="setLetterFile($event)" />
-                  </span>
-                  <small>เฉพาะนามสกุล png, jpg, jpeg, gif, pdf, doc, docx</small>
-                  @if (letterFileName) {
-                    <small>{{ letterFileName }}</small>
-                  }
-                </label>
-              </div>
-              <div class="table-head">
-                <div class="table-head__copy">
-                  <p>หนังสือนำส่ง</p>
-                  <small>เมื่อกรอกครบ กดตัวอย่างนำส่งเพื่อดูหนังสือที่ระบบจัดหน้า</small>
-                </div>
-                <div>
-                  <button type="button" class="tool" (click)="docView = 'letter'">ตัวอย่างนำส่ง</button>
-                  <ng-container *ngTemplateOutlet="docActions; context: { kind: 'letter' }" />
-                </div>
-              </div>
-              <ng-container *ngTemplateOutlet="coverLetter" />
             } @else {
               <h3>{{ heading(section) }}</h3>
             }
           </fieldset>
+          </div>
         </div>
       </section>
       }
@@ -5361,28 +5592,40 @@
   <app-filled-upload code="ปร. 1" (filled)="applyRead()" (closed)="uploadOpen = false" />
 }
 @if (docView) {
-  <div class="sample sample--submit sample--letter" (click)="docView = null">
+  <div class="sample sample--submit sample--letter sample--pdf" [class.sample--full]="docViewFull" (click)="closeDocView()">
     <section role="dialog" aria-modal="true" [attr.aria-label]="docView === 'letter' ? 'หนังสือนำส่ง' : 'คำรับรองและลงนาม'" (click)="$event.stopPropagation()">
       <div class="submit__bar">
         <h2>{{ docView === 'letter' ? 'หนังสือนำส่ง' : 'คำรับรองและลงนาม' }}</h2>
-        <button type="button" class="submit__close" (click)="docView = null">✕ ปิด</button>
+        <div class="submit__tools">
+          <button type="button" class="submit__tool" [attr.aria-pressed]="docViewFull" [attr.aria-label]="docViewFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" (click)="docViewFull = !docViewFull">
+            @if (docViewFull) {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M20 15h-5v5M4 15h5v5" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /></svg>
+            }
+          </button>
+          <button type="button" class="submit__close" (click)="closeDocView()" aria-label="ปิด">✕ ปิด</button>
+        </div>
       </div>
-      <p class="submit__hint">ระบบจัดหน้าตามเอกสารจากข้อมูลที่กรอก พิมพ์หรือดาวน์โหลดได้โดยไม่ต้องแนบไฟล์เอกสาร</p>
-      @if (docView === 'letter') {
-        <ng-container *ngTemplateOutlet="coverLetter" />
-      } @else {
-        <ng-container *ngTemplateOutlet="pledgeSheet" />
-      }
+      <p class="submit__hint">ตัวอย่างเอกสารแบบหน้าพิมพ์ กดพิมพ์ PDF เพื่อบันทึกหรือส่งออกเป็นไฟล์ PDF</p>
+      <div class="pdf-frame">
+        <div class="pdf-page" [attr.data-kind]="docView">
+          @if (docView === 'letter') {
+            <ng-container *ngTemplateOutlet="coverLetter" />
+          } @else {
+            <ng-container *ngTemplateOutlet="pledgeSheet" />
+          }
+        </div>
+      </div>
       <div class="submit__actions">
-        <button type="button" class="tool" (click)="printDocument(docView)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18H3V9h18v9h-4M7 9V3h10v6M17 14v7H7v-7h10z" /></svg>
-          พิมพ์
-        </button>
         <button type="button" class="tool" (click)="downloadDocument(docView)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
-          ดาวน์โหลด
+          เปิด PDF
         </button>
-        <app-button type="primary" label="ปิด" (click)="docView = null" />
+        <app-button class="icon-before" type="primary" label="พิมพ์ PDF" (click)="printDocument(docView)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18H3V9h18v9h-4M7 9V3h10v6M17 14v7H7v-7h10z" /></svg>
+        </app-button>
+        <app-button type="outline" label="ปิด" (click)="closeDocView()" />
       </div>
     </section>
   </div>
@@ -5390,13 +5633,14 @@
 <ng-template #coverLetter>
   <article class="letter letter--official">
     <div class="letter__top">
-      <p>เลขที่หนังสือ {{ letterNo }}</p>
+      <p>ที่ {{ letterNo }}</p>
       <p class="letter__date">วันที่ {{ letterWhen }}</p>
     </div>
     <p class="letter__row"><strong>เรื่อง</strong> {{ letterSubject }}</p>
     <p class="letter__row"><strong>เรียน</strong> {{ letterTo }}</p>
-    <p class="letter__row"><strong>อ้างถึง</strong> {{ letterRef }}</p>
-    <p class="letter__row"><strong>สิ่งที่ส่งมาด้วย</strong> {{ letterEnclosed }}</p>
+    @if (letterRef.trim()) {
+      <p class="letter__row"><strong>อ้างถึง</strong> {{ letterRef }}</p>
+    }
     <p class="letter__body">{{ letterBody }}</p>
     <p class="letter__body">มีความประสงค์ขอให้กรมการค้าต่างประเทศพิจารณา {{ letterPurpose }}</p>
     <p class="letter__close">จึงเรียนมาเพื่อโปรดพิจารณา</p>
@@ -5412,16 +5656,20 @@
   </article>
 </ng-template>
 <ng-template #pledgeSheet>
-  <article class="letter">
+  <article class="letter letter--pledge">
+    <p class="letter__agency">กรมการค้าต่างประเทศ</p>
     <h3>คำรับรองและลงนาม</h3>
-    <p class="letter__meta">แบบ ปร.1 · เลขที่อ้างอิง {{ refId }}<br />{{ signedWhen }}</p>
-    <p>{{ pledgeText }}</p>
-    <p>{{ ack ? 'ผู้ยื่นยืนยันคำรับรองแล้ว' : 'ยังไม่ได้ยืนยันคำรับรอง' }}</p>
+    <p class="letter__meta">ท้ายแบบ {{ formCodeName }} · มาตรการ{{ measureName }} · เลขที่อ้างอิง {{ refId }}</p>
+    <p class="letter__body letter__body--pledge">{{ pledgeText }}</p>
     <div class="letter__sign">
+      @if (sealUrl) {
+        <img class="letter__seal" [src]="sealUrl" alt="ตราประทับบริษัท" />
+      }
       <ng-container *ngTemplateOutlet="signMark" />
-      <p>{{ signer }}</p>
-      <p>{{ roleTitle }}</p>
-      <p>{{ signedWhen }}</p>
+      <p>ลงชื่อ {{ signer || '..............................................' }} ผู้ยื่นคำขอ/ผู้รับมอบอำนาจ</p>
+      <p class="letter__name">({{ signerPrint || signer || '..........................................' }})</p>
+      <p>ตำแหน่ง {{ roleTitle || '...............................................' }}</p>
+      <p>วันที่ {{ signedWhen || '...... เดือน ........................ พ.ศ. ............' }}</p>
     </div>
   </article>
 </ng-template>
@@ -5431,22 +5679,6 @@
   } @else {
     <p class="letter__blank">ลงชื่อ ................................</p>
   }
-</ng-template>
-<ng-template #docActions let-kind="kind">
-  <div class="generated__actions">
-    <button type="button" class="tool" (click)="docView = kind">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-      ดู
-    </button>
-    <button type="button" class="tool" (click)="printDocument(kind)">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18H3V9h18v9h-4M7 9V3h10v6M17 14v7H7v-7h10z" /></svg>
-      พิมพ์
-    </button>
-    <button type="button" class="tool" (click)="downloadDocument(kind)">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
-      ดาวน์โหลด
-    </button>
-  </div>
 </ng-template>
 <div class="print-root" aria-hidden="true">
   <div data-doc="letter"><ng-container *ngTemplateOutlet="coverLetter" /></div>

@@ -2,6 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DftButton } from '../../button/button';
+import { ThaiDateField } from '../../fields/thai-date-field';
 import { SideNav } from '../../menu-bar/side-nav';
 import { StepperOne, StepperOneItem } from '../../stepper-1/stepper-1';
 import { TopHeader } from '../../top-header/top-header';
@@ -14,11 +15,12 @@ function taskFile(name: string, title = '', saved = '22/09/2569', kind = '', due
 
 @Component({
   selector: 'app-staff-task-page',
-  imports: [TopHeader, SideNav, DftButton, StepperOne, NgTemplateOutlet],
+  imports: [TopHeader, SideNav, DftButton, StepperOne, NgTemplateOutlet, ThaiDateField],
   templateUrl: './staff-task-page.html',
   styleUrl: './staff-task-page.css',
 })
 export class StaffTaskPage {
+  protected dates: Record<string, string> = {};
   protected open = true;
   protected reviseOpen = true;
   protected summaryOpen = true;
@@ -166,6 +168,14 @@ export class StaffTaskPage {
 
   protected openMenu(label: string): void {
     if (label === 'หน้าหลัก') void this.router.navigate([this.home]);
+  }
+
+  protected dateOf(key: string, fallback = ''): string {
+    return this.dates[key] ?? fallback;
+  }
+
+  protected setDate(key: string, value: string): void {
+    this.dates = { ...this.dates, [key]: value };
   }
 
   protected back(): void {

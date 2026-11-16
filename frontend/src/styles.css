@@ -54,6 +54,15 @@ html:has(.fill-upload) {
     overflow: visible;
   }
 
+  body[data-print-doc] .print-root .letter {
+    margin: 0;
+    padding: 24px 32px;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+    color: #000;
+  }
+
   body[data-print-doc='letter'] .print-root [data-doc='pledge'],
   body[data-print-doc='pledge'] .print-root [data-doc='letter'] {
     display: none !important;

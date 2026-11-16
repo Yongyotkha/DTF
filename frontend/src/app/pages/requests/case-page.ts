@@ -151,9 +151,9 @@ export class CasePage implements OnDestroy {
     return file.includes('หนังสือพิมพ์') ? `/join/${this.routeKey}` : '';
   }
 
-  protected get thaiTrUrl(): string {
+  protected get publicNoticeReady(): boolean {
     const numbered = /^[A-Z]{2}\d{3,4}$/u.test(this.code);
-    return this.listed && numbered && this.listed.status.includes('ประกาศ') ? `https://thaitr.dft.go.th/th/search/${this.code}` : '';
+    return !!(this.listed && numbered && this.listed.status.includes('ประกาศ'));
   }
 
   private get actionKey(): string {
@@ -1139,7 +1139,7 @@ function selectedFiling(kind: string | undefined, filed: string[]): { measure: s
   const codes = uniqueCodes(fromKind ? [fromKind] : [...(intent?.codes ?? []), ...filed]);
   const first = codes.map((code) => formOf(code)).find((form) => form?.route);
   return {
-    measure: intent?.measure || 'มาตราการ AD',
+    measure: intent?.measure || 'มาตรการ AD',
     codes: first ? codes.filter((code) => !!formOf(code)?.route) : ['ปร. 1'],
     route: first?.route ?? '/requests/por-1',
   };

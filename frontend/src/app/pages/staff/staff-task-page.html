@@ -66,24 +66,15 @@
               <div class="pair">
                 <label>เลขที่ลงรับ (จากกรมฯ)<input type="text" placeholder="ระบุ" /></label>
                 <label>วันเวลาที่ลงรับ
-                  <span class="date">
-                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
-                    <input type="text" placeholder="22/09/2569 14:30 น." />
-                  </span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t1', '22/09/2569')" (valueChange)="setDate('t1', $event)" />
                 </label>
                 <label>เลขที่ลงรับ (จากระบบสารบรรณฯ)<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
                 <label>วันเวลาที่ลงรับ<span class="req">*</span>
-                  <span class="date">
-                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
-                    <input type="text" placeholder="22/09/2569 14:30 น." />
-                  </span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t2', '22/09/2569')" (valueChange)="setDate('t2', $event)" />
                 </label>
                 <label>เลขที่หนังสือ (จากหน่วยงานภายนอก)<input type="text" placeholder="ระบุ" /></label>
                 <label>วันที่หนังสือ<span class="req">*</span>
-                  <span class="date">
-                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
-                    <input type="text" placeholder="22/09/2569" />
-                  </span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t3', '22/09/2569')" (valueChange)="setDate('t3', $event)" />
                 </label>
               </div>
               <label class="wide">เรื่อง<input type="text" placeholder="ยื่นคำขอ" /></label>
@@ -113,16 +104,10 @@
             </label>
             <div class="pair">
               <label>วันที่มอบหมาย<span class="req">*</span>
-                <span class="date">
-                  <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
-                  <input type="text" placeholder="22/09/2569" />
-                </span>
+                <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t4', '22/09/2569')" (valueChange)="setDate('t4', $event)" />
               </label>
               <label>วันเวลาที่ครบกำหนดส่ง<span class="req">*</span>
-                <span class="date">
-                  <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
-                  <input type="text" placeholder="22/09/2569 14:30 น." />
-                </span>
+                <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t5', '22/09/2569')" (valueChange)="setDate('t5', $event)" />
               </label>
             </div>
             <footer>
@@ -172,10 +157,7 @@
             </label>
             <div class="pair">
               <label>วันที่กำหนดส่ง<span class="req">*</span>
-                <span class="date">
-                  <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
-                  <input type="text" placeholder="22/09/2569" />
-                </span>
+                <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t6', '22/09/2569')" (valueChange)="setDate('t6', $event)" />
                 <small class="hint">แจ้งเตือนผู้รับผิดชอบหลักทางอีเมล ก่อนถึงวันครบกำหนด</small>
               </label>
               <label>เวลาครบกำหนดส่ง<span class="req">*</span>
@@ -358,10 +340,7 @@
             @switch (stage) {
               @case (0) {
                 <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)<span class="req">*</span>
-                  <span class="date is-locked">
-                    <img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" />
-                    <input type="text" value="22/09/2569" disabled />
-                  </span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t7', '22/09/2569')" (valueChange)="setDate('t7', $event)" />
                 </label>
                 <div>
                   <p class="field-label">สถานะการรับ<span class="req">*</span></p>
@@ -378,16 +357,16 @@
               @case (1) {
                 <div class="pair">
                   <label>วันที่ยื่นคำขอ
-                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t8', '22/09/2569')" (valueChange)="setDate('t8', $event)" />
                   </label>
                   <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
-                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t9', '22/09/2569')" (valueChange)="setDate('t9', $event)" />
                   </label>
                   <label>ประสงค์ยื่นเอกสารฉบับจริง
                     <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="ใช่" /></span>
                   </label>
                   <label>วันที่ยื่นคำขอฉบับจริง (เอกสาร)<span class="req">*</span>
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t10', '22/09/2569')" (valueChange)="setDate('t10', $event)" />
                   </label>
                 </div>
                 <p class="field-label">สถานะ<span class="req">*</span></p>
@@ -418,10 +397,10 @@
               @case (2) {
                 <div class="pair">
                   <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)
-                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t11', '22/09/2569')" (valueChange)="setDate('t11', $event)" />
                   </label>
                   <label>วันที่แจ้ง
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t12', '22/09/2569')" (valueChange)="setDate('t12', $event)" />
                   </label>
                 </div>
                 <p class="field-label">การดำเนินการ<span class="req">*</span></p>
@@ -432,7 +411,7 @@
                 </div>
                 <div class="pair">
                   <label>วันที่ครบกำหนด<span class="req">*</span>
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t13', '22/09/2569')" (valueChange)="setDate('t13', $event)" />
                   </label>
                   <label>หมายเหตุ<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
                 </div>
@@ -450,10 +429,10 @@
               @case (3) {
                 <div class="pair">
                   <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)
-                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t14', '22/09/2569')" (valueChange)="setDate('t14', $event)" />
                   </label>
                   <label>วันที่แจ้ง
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t15', '22/09/2569')" (valueChange)="setDate('t15', $event)" />
                   </label>
                 </div>
                 <p class="field-label">การดำเนินการ<span class="req">*</span></p>
@@ -464,7 +443,7 @@
                 </div>
                 <div class="pair">
                   <label>วันที่ครบกำหนด<span class="req">*</span>
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t16', '22/09/2569')" (valueChange)="setDate('t16', $event)" />
                   </label>
                   <label>หมายเหตุ<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
                 </div>
@@ -482,10 +461,10 @@
               @case (4) {
                 <div class="pair">
                   <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)<span class="req">*</span>
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t17', '22/09/2569')" (valueChange)="setDate('t17', $event)" />
                   </label>
                   <label>วันที่ครบกำหนดส่งใหม่
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t18', '22/09/2569')" (valueChange)="setDate('t18', $event)" />
                   </label>
                 </div>
                 <label class="wide">เหตุผลความจำเป็นในการขอขยายเวลา<input type="text" placeholder="เหตุผลความจำเป็นในการขอขยายเวลา" /></label>
@@ -496,7 +475,7 @@
                   <button type="button" (click)="choice = 'deny'"><img [src]="choice === 'deny' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ไม่อนุญาต</button>
                 </div>
                 <label>กำหนดวันสิ้นสุด<span class="req">*</span>
-                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t19', '22/09/2569')" (valueChange)="setDate('t19', $event)" />
                 </label>
                 <div>
                   <p class="field-label">แนบไฟล์ผลการพิจารณาการขยายเวลา<span class="req">*</span></p>
@@ -506,10 +485,10 @@
               @case (5) {
                 <div class="pair">
                   <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)<span class="req">*</span>
-                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t20', '22/09/2569')" (valueChange)="setDate('t20', $event)" />
                   </label>
                   <label>วันที่แจ้ง
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t21', '22/09/2569')" (valueChange)="setDate('t21', $event)" />
                   </label>
                 </div>
                 <p class="field-label">การดำเนินการ<span class="req">*</span></p>
@@ -523,10 +502,10 @@
               @case (6) {
                 <div class="pair">
                   <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)<span class="req">*</span>
-                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t22', '22/09/2569')" (valueChange)="setDate('t22', $event)" />
                   </label>
                   <label>วันที่พิจารณาของคณะกรรมการฯ
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t23', '22/09/2569')" (valueChange)="setDate('t23', $event)" />
                   </label>
                 </div>
                 <p class="field-label">การพิจารณาคำขอ<span class="req">*</span></p>
@@ -542,19 +521,19 @@
                 <label class="wide">หมายเหตุ<span class="req">*</span><input type="text" placeholder="ระบุ" /></label>
                 <div class="chip-row"><span class="chip">คต. มีหนังสือแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบการรับคำขอ</span></div>
                 <label>วันที่แจ้งเรื่อง
-                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t24', '22/09/2569')" (valueChange)="setDate('t24', $event)" />
                 </label>
                 <p class="field-label">แนบไฟล์แจ้งสถานทูต (กรณีรับคำขอ)</p>
                 <ng-container *ngTemplateOutlet="filePane; context: { key: 'embassy', titled: true }" />
               }
               @case (7) {
                 <label>วันครบกำหนดการแก้ไขเพิ่มเติม (4 เดือน)<span class="req">*</span>
-                  <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" disabled /></span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t25', '22/09/2569')" (valueChange)="setDate('t25', $event)" />
                 </label>
                 <div class="chip-row"><span class="chip">แจ้งชำระค่าธรรมเนียม</span></div>
                 <ng-container *ngTemplateOutlet="shownFile; context: { name: 'หนังสือชำระค่าธรรมเนียม.pdf', saved: '22/09/2569' }" />
                 <label>ภายในวันที่
-                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t26', '22/09/2569')" (valueChange)="setDate('t26', $event)" />
                 </label>
                 <p class="field-label">ผลการชำระค่าธรรมเนียม</p>
                 <div class="choice">
@@ -562,7 +541,7 @@
                 </div>
                 <div class="pair">
                   <label>ชำระเมื่อวันที่
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t27', '22/09/2569')" (valueChange)="setDate('t27', $event)" />
                   </label>
                   <label>จำนวนเงิน<input type="text" placeholder="ระบุ" /></label>
                 </div>
@@ -571,7 +550,7 @@
               }
               @case (8) {
                 <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
-                  <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                  <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t28', '22/09/2569')" (valueChange)="setDate('t28', $event)" />
                 </label>
                 <p class="field-label">การพิจารณาเปิดไต่สวน<span class="req">*</span></p>
                 <div class="choice">
@@ -583,10 +562,10 @@
               @case (9) {
                 <div class="pair">
                   <label>วันที่ครบกำหนดการแก้ไขเพิ่มเติมคำขอ (4 เดือน)
-                    <span class="date is-locked"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/01/2569" readonly /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" state="readonly" [value]="dateOf('t29', '22/01/2569')" (valueChange)="setDate('t29', $event)" />
                   </label>
                   <label>วันที่ประกาศในราชกิจจานุเบกษา<span class="req">*</span>
-                    <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span>
+                    <app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t30', '22/09/2569')" (valueChange)="setDate('t30', $event)" />
                   </label>
                 </div>
                 <div class="chip-row">
@@ -621,14 +600,14 @@
                   <label>รายการที่เลือก<input type="text" placeholder="รายการที่เลือก" /></label>
                   <label>ประเทศ<span class="req">*</span><textarea></textarea></label>
                   <label>รายชื่อผู้ส่งออก<textarea>ราชอาณาจักรไทย</textarea></label>
-                  <label>วันที่ให้เปิดเผย<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
-                  <label>วันที่สิ้นสุด<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
-                  <label>วันที่เปิดให้ลงทะเบียนเป็นผู้มีส่วนได้เสีย<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
-                  <label>วันที่สิ้นสุด<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
-                  <label>วันที่เปิดให้แจ้งความจำนงเข้าร่วมแสดงความคิดเห็น<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
-                  <label>วันที่สิ้นสุด<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
-                  <label>วันที่เปิดรับความเห็นเป็นลายลักษณ์อักษร<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
-                  <label>วันที่สิ้นสุด<span class="req">*</span> กำหนดวันส่ง Post Hearing<span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>วันที่ให้เปิดเผย<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t31', '22/09/2569')" (valueChange)="setDate('t31', $event)" /></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t32', '22/09/2569')" (valueChange)="setDate('t32', $event)" /></label>
+                  <label>วันที่เปิดให้ลงทะเบียนเป็นผู้มีส่วนได้เสีย<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t33', '22/09/2569')" (valueChange)="setDate('t33', $event)" /></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t34', '22/09/2569')" (valueChange)="setDate('t34', $event)" /></label>
+                  <label>วันที่เปิดให้แจ้งความจำนงเข้าร่วมแสดงความคิดเห็น<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t35', '22/09/2569')" (valueChange)="setDate('t35', $event)" /></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t36', '22/09/2569')" (valueChange)="setDate('t36', $event)" /></label>
+                  <label>วันที่เปิดรับความเห็นเป็นลายลักษณ์อักษร<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t37', '22/09/2569')" (valueChange)="setDate('t37', $event)" /></label>
+                  <label>วันที่สิ้นสุด<span class="req">*</span> กำหนดวันส่ง Post Hearing<app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t38', '22/09/2569')" (valueChange)="setDate('t38', $event)" /></label>
                 </div>
                 <div class="chip-row"><span class="chip">แจ้งการชำระค่าธรรมเนียม</span><app-button type="primary" label="ใบนำส่ง" /></div>
                 <div class="pair">
@@ -638,7 +617,7 @@
                       <button type="button"><img src="assets/icons/por1-radio-on.svg" width="24" height="24" alt="" />แจ้งชำระ</button>
                     </div>
                   </div>
-                  <label>แจ้งชำระค่าธรรมเนียมภายในวันที่<span class="req">*</span><span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" value="22/09/2569" /></span></label>
+                  <label>แจ้งชำระค่าธรรมเนียมภายในวันที่<span class="req">*</span><app-thai-date-field class="inline-date" label="วันที่" [labelled]="false" [required]="false" [value]="dateOf('t39', '22/09/2569')" (valueChange)="setDate('t39', $event)" /></label>
                 </div>
                 <p class="field-label">แนบไฟล์หนังสือชำระค่าธรรมเนียม<span class="req">*</span></p>
                 <ng-container *ngTemplateOutlet="filePane; context: { key: 'feeLetter', titled: true }" />
@@ -680,7 +659,7 @@
           <p>{{ file.name || 'ยังไม่ได้เลือกไฟล์' }}</p>
           <div class="file-card__meta">
             @if (sent) {
-              <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" [value]="file.saved" (input)="file.saved = $any($event.target).value" aria-label="วันที่ส่ง" /></span>
+              <app-thai-date-field class="inline-date" label="วันที่ส่ง" [labelled]="false" [required]="false" [value]="file.saved" (valueChange)="file.saved = $event" />
             } @else if (file.saved) {
               <time>{{ file.saved }}</time>
             }
@@ -698,7 +677,7 @@
                 <input type="text" [value]="file.title" (input)="file.title = $any($event.target).value" placeholder="ชื่อเอกสาร" aria-label="ชื่อเอกสาร" />
               }
               @if (due) {
-                <span class="date"><img src="assets/icons/task-calendar.svg" width="24" height="24" alt="" /><input type="text" [value]="file.due" (input)="file.due = $any($event.target).value" aria-label="วันครบกำหนดส่งแบบสอบถาม" /></span>
+                <app-thai-date-field class="inline-date" label="วันครบกำหนดส่งแบบสอบถาม" [labelled]="false" [required]="false" [value]="file.due" (valueChange)="file.due = $event" />
               }
               @if (!file.name) {
                 <label class="card-pick">

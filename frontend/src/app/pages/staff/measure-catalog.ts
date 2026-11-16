@@ -1,4 +1,4 @@
-export type ThaitrMeasure = {
+export type MeasureCatalogItem = {
   code: string;
   goods: string;
   origin: string;
@@ -9,7 +9,7 @@ export type ThaitrMeasure = {
   hs: string;
 };
 
-export const thaitrMeasures: ThaitrMeasure[] = [
+export const measureCatalog: MeasureCatalogItem[] = [
   {
     "code": "AC1001",
     "goods": "เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วนเจืออัลลอย (ผู้ผลิตจีน 17 ราย)",

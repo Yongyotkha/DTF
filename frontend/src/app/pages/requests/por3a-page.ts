@@ -113,7 +113,7 @@ export class Por3aPage {
     route: ActivatedRoute,
   ) {
     const measure = readFilingIntent()?.measure;
-    this.agreement = cvdChosen() || measure === 'มาตราการ CVD' ? 'subsidy' : 'dumping';
+    this.agreement = cvdChosen() || measure === 'มาตรการ CVD' ? 'subsidy' : 'dumping';
     const opened = readFormCase(route);
     this.viewing = opened.viewing;
     this.returnCase = opened.returnCase;

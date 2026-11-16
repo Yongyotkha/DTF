@@ -259,6 +259,12 @@ th {
   background: var(--color-white);
 }
 
+app-thai-date-field.inline-date {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
 .date input {
   height: auto;
   padding: 0;

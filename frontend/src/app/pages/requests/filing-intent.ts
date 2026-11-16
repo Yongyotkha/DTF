@@ -42,7 +42,7 @@ export function cvdChosen(): boolean {
   return router.parseUrl(router.url).queryParams['measure'] === 'cvd';
 }
 
-export function filingMeasureTitle(fallback = 'มาตราการ AD'): string {
+export function filingMeasureTitle(fallback = 'มาตรการ AD'): string {
   const measure = readFilingIntent()?.measure || fallback;
   const label = requestMeasures.find((item) => item.value === measure)?.label ?? 'การทุ่มตลาด (AD)';
   return `ยื่นคำขอ ${label}`;
@@ -50,7 +50,7 @@ export function filingMeasureTitle(fallback = 'มาตราการ AD'): st
 
 export function goToFormUpload(router: Router, code: string): void {
   const intent = readFilingIntent();
-  const measure = intent?.measure || 'มาตราการ AD';
+  const measure = intent?.measure || 'มาตรการ AD';
   const codes = intent?.codes?.length ? [...intent.codes] : [code];
   saveFilingIntent({ measure, codes });
   void router.navigateByUrl('/requests/upload', { state: { measure, codes } });

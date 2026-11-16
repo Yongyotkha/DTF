@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Accounts, roleLabel } from '../../accounts';
 import { DftButton } from '../../button/button';
@@ -51,7 +51,7 @@ const flowCatalog: Record<'prelim' | 'draftFinal' | 'finalResult' | 'measures', 
     { id: 'final-announce', label: 'ประกาศผลชั้นที่สุด', detail: 'ออกประกาศผลการตัดสินชั้นที่สุด' },
     { id: 'final-disclose', label: 'การเปิดเผย', detail: 'ถ้าเปิดเผยจึงแจ้งอีเมลผู้มีส่วนได้เสีย', yes: 'เปิดเผย', no: 'ไม่เปิดเผย' },
     { id: 'final-saraban', label: 'สารบรรณและ e-TR', detail: 'งานสารบรรณลงทะเบียนรับเลข แล้วอัปเดต e-TR' },
-    { id: 'final-publish', label: 'เผยแพร่', detail: 'เก็บข้อมูล เผยแพร่บนเว็บไซต์กอง และส่งเข้า ThaiTR' },
+    { id: 'final-publish', label: 'เผยแพร่', detail: 'เก็บข้อมูล เผยแพร่บนเว็บไซต์กอง และอัปเดตสถานะในระบบ' },
   ],
   measures: [
     { id: 'm56', label: 'มาตรา 56', detail: 'ทบทวนความจำเป็นในการใช้บังคับอากร ถ้ามีเหตุจึงเสนอคณะกรรมการปรับอัตราหรือยุติ ถ้าไม่มีเหตุใช้มาตรการเดิมต่อ', yes: 'มีเหตุให้ทบทวน', no: 'ใช้มาตรการเดิม' },
@@ -151,7 +151,7 @@ const flowFields: Record<string, FlowField[]> = {
   'final-publish': [
     { label: 'วันที่เผยแพร่', date: true },
     { label: 'เว็บไซต์กอง' },
-    { label: 'เลข ThaiTR' },
+    { label: 'เลขอ้างอิงเผยแพร่สาธารณะ' },
   ],
   m56: [
     { label: 'วันที่', date: true },
@@ -202,6 +202,9 @@ type ConsultForm = '' | 'groups' | 'officers' | 'group-reply' | 'officer-reply';
 type GoodsRow = { producer: string; goods: string; made: string; sold: string; unit: string };
 type MakerRow = { name: string; address: string; phone: string; fax: string; web: string; email: string };
 type PartyBlock = { key: string; title: string; nameLabel: string; addLabel: string; wrapped: boolean; rows: MakerRow[] };
+type GoodsCompareRow = { item: string; subject: string; like: string };
+type MarginCountry = { name: string; normal: string; exportPrice: string; margin: string; cif: string; rate: string };
+type FormGuide = { title: string; lead: string; tips: string[] };
 
 function field(label: string, value: string, long = false): WorkDraft['fields'][number] {
   return { label, value, long };
@@ -607,7 +610,10 @@ const toc: TocGroup[] = [
   },
   {
     label: 'ส่วนที่ 5 ราคาส่งออก',
-    items: [{ id: '5', label: '5.1 ราคาส่งออก', anchor: 'part-5' }],
+    items: [
+      { id: '5', label: '5.1 ราคาส่งออก', anchor: 'part-5' },
+      { id: '5', label: '5.2 ราคาส่งออกที่คำนวณขึ้น', anchor: 'part-5-2' },
+    ],
   },
   {
     label: 'ส่วนที่ 6 ส่วนเหลื่อมการทุ่มตลาด',
@@ -636,12 +642,20 @@ const toc: TocGroup[] = [
     ],
   },
   {
-    label: 'ส่วนที่ 9 คำรับรองและลงนาม',
-    items: [{ id: '9', label: 'คำรับรองและลงนาม' }],
+    label: 'ส่วนที่ 9 คำรับรองและหนังสือนำส่ง',
+    items: [
+      { id: '9', label: 'คำรับรองและลงนาม', anchor: 'part-9-pledge' },
+      { id: '9', label: 'หนังสือนำส่ง', anchor: 'part-9-letter' },
+    ],
   },
   {
-    label: 'เอกสารอื่น ๆ ที่แนบประกอบ',
-    items: [{ id: 'other', label: 'ภาคผนวก และเอกสารประกอบอื่น' }],
+    label: 'เอกสารผนวก',
+    items: [
+      { id: 'annex-a', label: 'เอกสารผนวก ก. ผู้ผลิตทั้งหมด' },
+      { id: 'annex-b', label: 'เอกสารผนวก ข. ผู้ผลิตบางส่วน' },
+      { id: 'annex-c', label: 'เอกสารผนวก ค. หนังสือมอบอำนาจ' },
+      { id: 'other', label: 'เอกสารประกอบอื่น' },
+    ],
   },
 ];
 
@@ -657,20 +671,199 @@ export class Por1Page {
   private readonly view = inject(ChangeDetectorRef);
   private guideField = '';
   protected readonly toc = toc;
+  protected get formToc(): TocGroup[] {
+    return this.toc.filter((group) => {
+      const dumpOnly = group.items.some((item) => item.id === '4' || item.id === '5' || item.id === '6');
+      const subOnly = group.items.some((item) => item.id.startsWith('7'));
+      if (dumpOnly) return this.wantDumping;
+      if (subOnly) return this.wantSubsidy;
+      return true;
+    });
+  }
   protected refId = filingRefId;
   protected section = '1';
   protected anchor = 'part-1-1';
-  protected measure = cvdChosen() ? 'subsidy' : 'dumping';
+  protected wantDumping = !cvdChosen();
+  protected wantSubsidy = cvdChosen();
+  protected sectionHelpOpen = false;
+  private skipHelpClose = false;
+
+  protected get measure(): 'dumping' | 'subsidy' | 'both' {
+    if (this.wantDumping && this.wantSubsidy) return 'both';
+    return this.wantSubsidy ? 'subsidy' : 'dumping';
+  }
 
   protected get measureLocked(): boolean {
-    if (this.reviewRole) return false;
-    return this.pickedMeasure() !== '';
+    return true;
   }
 
   protected get filingLead(): string {
-    if (this.measureLocked && this.measure === 'subsidy') return 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การอุดหนุน';
-    if (this.measureLocked) return 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาด';
-    return 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน';
+    if (this.wantSubsidy) return 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การอุดหนุน';
+    return 'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาด';
+  }
+
+  protected toggleSectionHelp(event?: Event): void {
+    event?.stopPropagation();
+    this.skipHelpClose = true;
+    this.sectionHelpOpen = !this.sectionHelpOpen;
+  }
+
+  @HostListener('document:click')
+  protected closeSectionHelpOnOutside(): void {
+    if (this.skipHelpClose) {
+      this.skipHelpClose = false;
+      return;
+    }
+    this.sectionHelpOpen = false;
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeSectionHelpOnEsc(): void {
+    this.sectionHelpOpen = false;
+  }
+
+  protected get currentGuide(): FormGuide {
+    const id = this.section;
+    const anchor = this.anchor;
+    if (id === '1' && anchor === 'part-1-1') {
+      return {
+        title: '1.1 ผู้ยื่นคำขอ',
+        lead: 'กรอกข้อมูลผู้ยื่นเหมือนหน้าแรกของแบบกระดาษ ปร.1 ผู้ยื่นต้องเป็นผู้ผลิตสินค้าชนิดเดียวกันกับสินค้านำเข้าที่กล่าวหา',
+        tips: [
+          this.wantSubsidy
+            ? 'มาตรการนี้เป็นตอบโต้การอุดหนุน — กรอกส่วนที่ 1–3 ส่วนที่ 7 และส่วนที่ 8'
+            : 'มาตรการนี้เป็นตอบโต้การทุ่มตลาด — กรอกส่วนที่ 1–6 และส่วนที่ 8',
+          'เลือกประเภทการยื่น: ในนามตนเอง / แทนผู้ผลิตทั้งหมด / แทนผู้ผลิตบางส่วน แล้วแนบเอกสารตามที่ระบบขอ',
+          'ข้อมูลติดต่อและผู้มีอำนาจลงนามต้องกรอกให้ครบเพื่อใช้ในคำรับรองท้ายแบบ',
+        ],
+      };
+    }
+    if (id === '1' && anchor === 'part-1-2') {
+      return {
+        title: '1.2 ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก',
+        lead: 'บอกว่ารายผู้ผลิตสินค้าชนิดเดียวกันมีความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออกหรือไม่',
+        tips: ['ถ้ามี ให้ระบุชื่อ ที่อยู่ ช่องทางติดต่อ ความเกี่ยวข้อง และปริมาณนำเข้า', 'ถ้าไม่มี ให้พิมพ์ว่า “ไม่มี”'],
+      };
+    }
+    if (id === '1' && anchor === 'part-1-3') {
+      return {
+        title: '1.3 คำขอมาตรการช่วยเหลือ',
+        lead: 'ในช่วง 1 ปีก่อนหน้า เคยขอให้รัฐบาลช่วยเหลือการผลิตหรือไม่ เช่น ภาษี โควตา หรือค่าธรรมเนียมพิเศษ',
+        tips: ['ถ้ามี ระบุวันที่ยื่น หน่วยงาน มาตรการที่ขอ ผลที่ได้รับ และสถานะล่าสุด', 'ถ้าไม่มี ให้พิมพ์ว่า “ไม่มี”'],
+      };
+    }
+    if (id === '2') {
+      return {
+        title: 'ส่วนที่ 2 รายละเอียดของสินค้า',
+        lead: 'เปรียบเทียบสินค้าที่ถูกพิจารณากับสินค้าชนิดเดียวกันที่ผลิตในประเทศ ตามตารางในแบบ ปร.1',
+        tips: ['กรอกทีละรายการให้ครบ 10 ข้อ', 'แนบแค็ตตาล็อกหรือเอกสารสินค้าได้ถ้ามี', 'พิกัดศุลกากรและอัตราอากรต้องระบุให้ชัด'],
+      };
+    }
+    if (id === '3') {
+      return {
+        title: 'ส่วนที่ 3 ผู้ผลิต ผู้ส่งออก ผู้นำเข้า และผู้ใช้',
+        lead: 'ใส่รายชื่อและช่องทางติดต่อล่าสุดของคู่ค้าที่เกี่ยวข้องกับสินค้าที่ถูกพิจารณา',
+        tips: ['กรอกชื่อ ที่อยู่ โทรศัพท์ โทรสาร เว็บไซต์ และอีเมล', 'ถ้าไม่มีรายการนั้น ให้พิมพ์ว่า “ไม่มี”'],
+      };
+    }
+    if (id === '4') {
+      return {
+        title: 'ส่วนที่ 4 มูลค่าปกติ',
+        lead: 'หาว่าราคาปกติของสินค้าชนิดเดียวกันในประเทศผู้ส่งออกคือเท่าใด เพื่อเทียบกับราคาส่งเข้าไทย',
+        tips: [
+          'ประเทศที่ใช้กลไกตลาด: กรอก 4.1–4.3 (และ 4.4 ถ้าตลาดมีลักษณะเฉพาะ)',
+          'ประเทศที่ไม่ใช้กลไกตลาด: กรอกเฉพาะ 4.5',
+          'ใช้สกุลเงินเดียวกันทั้งส่วนที่ 4–6 และระบุอัตราแลกเปลี่ยน',
+        ],
+      };
+    }
+    if (id === '5' && anchor === 'part-5-2') {
+      return {
+        title: '5.2 ราคาส่งออกที่คำนวณขึ้น',
+        lead: 'ใช้เมื่อหาราคาตาม 5.1 ไม่ได้ หรือผู้ส่งออกกับผู้นำเข้าเกี่ยวข้องกันจนราคาไม่น่าเชื่อถือ',
+        tips: ['คำนวณกลับไปหาราคาหน้าโรงงาน โดยหักภาษี กำไร ค่านายหน้า ค่าขนส่ง และค่าใช้จ่ายอื่น', 'แนบหลักฐานการคำนวณ'],
+      };
+    }
+    if (id === '5') {
+      return {
+        title: '5.1 ราคาส่งออก',
+        lead: 'ใส่ราคาส่งออกที่ขายให้ผู้ซื้ออิสระทอดแรกในไทย แล้วหักกลับไปหาราคาหน้าโรงงาน',
+        tips: ['แยกราคาตามขนาด แบบ หรือรุ่น', 'แนบหลักฐาน เช่น สถิตินำเข้า ค่าขนส่ง ค่าประกัน'],
+      };
+    }
+    if (id === '6') {
+      return {
+        title: 'ส่วนที่ 6 ส่วนเหลื่อมการทุ่มตลาด',
+        lead: 'เทียบมูลค่าปกติกับราคาส่งออกที่ระดับการค้าเดียวกัน (ปกติที่หน้าโรงงาน) แยกเป็นรายประเทศ',
+        tips: [
+          'ส่วนเหลื่อม = มูลค่าปกติ − ราคาส่งออก',
+          'อัตราการทุ่มตลาด = (ส่วนเหลื่อม ÷ ราคา CIF) × 100',
+          'ถ้าไม่ได้อยู่ระดับการค้าเดียวกัน ให้ปรับเงื่อนไขที่ต่างกันก่อนเทียบ',
+        ],
+      };
+    }
+    if (id.startsWith('7')) {
+      return {
+        title: 'ส่วนที่ 7 การอุดหนุน',
+        lead: 'อธิบายโครงการอุดหนุนของรัฐบาลประเทศผู้ส่งออกที่ทำให้สินค้านำเข้าได้เปรียบ',
+        tips: [
+          '7.1 แนบกฎหมายหรือประกาศโครงการ',
+          '7.2 อธิบายประโยชน์ที่ได้รับแยกโครงการ',
+          '7.3 บอกว่าเจาะจงรายใด พื้นที่ใด หรือมีเงื่อนไขอย่างไร',
+          '7.4 คำนวณมูลค่าประโยชน์ที่ผู้ส่งออกได้รับ',
+        ],
+      };
+    }
+    if (id.startsWith('8')) {
+      return {
+        title: 'ส่วนที่ 8 ความเสียหายของอุตสาหกรรมภายใน',
+        lead: 'แสดงหลักฐานว่าอุตสาหกรรมในประเทศเสียหาย หรืออาจเสียหาย หรือตั้งตัวได้ยาก เพราะสินค้านำเข้า',
+        tips: [
+          'เสียหายที่เกิดแล้ว: กรอก 8.1–8.6',
+          'เสียหายที่อาจเกิด: กรอก 8.1–8.7',
+          'อุปสรรคต่อการก่อตั้ง/พัฒนา: กรอก 8.8',
+          'ใช้ข้อมูลปัจจุบันและย้อนหลัง 3 ปี หน่วยเงินเป็นบาท',
+        ],
+      };
+    }
+    if (id === '9' && anchor === 'part-9-letter') {
+      return {
+        title: 'หนังสือนำส่ง',
+        lead: 'กรอกหนังสือนำส่งแยกจากแบบ ปร.1 แนบรูปลายเซ็นและตราประทับ แล้วดาวน์โหลดตรวจก่อนแนบฉบับที่ลงนามแล้วกลับ',
+        tips: [
+          `มาตรการ${this.measureName} — ระบุแบบ ปร.1 และเอกสารประกอบในช่องสิ่งที่ส่งมาด้วย`,
+          'แนบรูปลายเซ็นผู้มีอำนาจลงนาม',
+          'แนบไฟล์หนังสือนำส่งฉบับที่ลงนามแล้วกลับเข้าระบบ',
+        ],
+      };
+    }
+    if (id === '9') {
+      return {
+        title: 'คำรับรองและลงนาม',
+        lead: 'ข้อความท้ายแบบ ปร.1 ตามแบบราชการ ใช้ได้ทั้งทุ่มตลาดและอุดหนุน ดาวน์โหลดไปลงนามแล้วแนบฉบับจริงกลับ',
+        tips: [
+          'อ่านคำรับรองให้ครบก่อนติ๊กยืนยัน',
+          'กรอกชื่อ ตำแหน่ง วันที่ ให้ตรงผู้มีอำนาจ',
+          'แนบรูปลายเซ็นผู้มีอำนาจลงนาม',
+        ],
+      };
+    }
+    if (id.startsWith('annex') || id === 'other') {
+      return {
+        title: 'เอกสารผนวก',
+        lead: 'แนบรายชื่อผู้ผลิตและหนังสือมอบอำนาจตามท้ายแบบ ปร.1',
+        tips: ['ผนวก ก. = แทนผู้ผลิตทั้งหมด', 'ผนวก ข. = แทนผู้ผลิตบางส่วน', 'ผนวก ค. = หนังสือมอบอำนาจ พร้อมอากรแสตมป์และสำเนาเอกสาร'],
+      };
+    }
+    return { title: 'แนะนำการกรอก', lead: 'กรอกข้อมูลตามแบบ ปร.1 ในระบบแทนการยื่นกระดาษ', tips: [] };
+  }
+
+  protected addMarginCountry(): void {
+    this.marginCountries = [...this.marginCountries, { name: '', normal: '', exportPrice: '', margin: '', cif: '', rate: '' }];
+  }
+
+  protected removeMarginCountry(index: number): void {
+    this.marginCountries = this.marginCountries.filter((_, i) => i !== index);
   }
 
   private pickedMeasure(): 'ad' | 'cvd' | '' {
@@ -678,8 +871,8 @@ export class Por1Page {
     if (query === 'cvd') return 'cvd';
     if (query === 'ad') return 'ad';
     const intent = readFilingIntent()?.measure;
-    if (intent === 'มาตราการ CVD') return 'cvd';
-    if (intent === 'มาตราการ AD') return 'ad';
+    if (intent === 'มาตรการ CVD') return 'cvd';
+    if (intent === 'มาตรการ AD') return 'ad';
     return '';
   }
   protected filing: 'self' | 'all' | 'part' = 'part';
@@ -700,6 +893,18 @@ export class Por1Page {
   protected outsideProducer = 'บมจ. แอล พี เอ็น เพลทมิล 199/9 หมู่ 4 ถนนสุขสวัสดิ์ ตำบลปากคลองบางปลากด อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10900 โทรศัพท์ 02-815-6400-9 โทรสาร 02-815-6427-29';
   protected goodsDetail = 'เหล็กแผ่นรีดร้อนชนิดม้วนและไม่เป็นม้วน (Flat Hot Rolled Steel) หนา 0.9–100.0 มม. กว้าง 100–3,200 มม. อัตราอากร 0–5% แหล่งกำเนิดและผู้ส่งออกคือเวียดนามและอียิปต์ สินค้าในประเทศเหมือนกัน';
   protected channelDetail = 'จำหน่ายโดยตรงแก่ผู้ใช้และศูนย์บริการเหล็ก (Service Center) และจำหน่ายผ่าน Trading Company ผู้ใช้สุดท้ายคืออุตสาหกรรมท่อเหล็ก ตู้คอนเทนเนอร์ ถังแก๊ส ก่อสร้าง เฟอร์นิเจอร์ และต่อเรือ';
+  protected goodsCompare: GoodsCompareRow[] = [
+    { item: '1. ชื่อสินค้า — ชื่อทางการค้า / ชื่อทางวิทยาศาสตร์ / พิกัดอัตราศุลกากร / อัตราอากรขาเข้า', subject: 'Flat Hot Rolled Steel in Coils and not in Coils · HS 7208 · อากร 0–5%', like: 'เหล็กแผ่นรีดร้อนชนิดม้วนและไม่เป็นม้วน · HS 7208 · อากร 0–5%' },
+    { item: '2. ลักษณะทางกายภาพ ลักษณะทางเคมี และโครงสร้างของสินค้า', subject: 'หนา 0.9–100.0 มม. กว้าง 100–3,200 มม. เป็นเหล็กคาร์บอนรีดร้อน', like: 'ลักษณะทางกายภาพและเคมีเหมือนกันกับสินค้านำเข้า' },
+    { item: '3. มาตรฐานทางอุตสาหกรรม', subject: 'JIS / ASTM / EN ตามประเทศผู้ผลิตและผู้ส่งออก', like: 'มาตรฐานเดียวกับที่ใช้ในประเทศไทย' },
+    { item: '4. ขั้นตอนและกระบวนการผลิต', subject: 'หลอม → หล่อต่อเนื่อง → รีดร้อน → ม้วน/ตัด', like: 'กระบวนการผลิตเหมือนกัน' },
+    { item: '5. ช่องทางการจัดจำหน่าย', subject: 'จำหน่ายผ่านผู้ส่งออก/ผู้นำเข้าและ Trading Company', like: 'จำหน่ายโดยตรงแก่ผู้ใช้และศูนย์บริการเหล็ก' },
+    { item: '6. ผู้ใช้สินค้าขั้นสุดท้าย', subject: 'ท่อเหล็ก ตู้คอนเทนเนอร์ ถังแก๊ส ก่อสร้าง เฟอร์นิเจอร์ ต่อเรือ', like: 'กลุ่มผู้ใช้เดียวกัน' },
+    { item: '7. มาตรการในการนำเข้าประเทศไทยซึ่งมิใช่มาตรการทางภาษี', subject: 'ไม่มี', like: '—' },
+    { item: '8. ประเทศแหล่งกำเนิด', subject: 'เวียดนาม และอียิปต์', like: 'ประเทศไทย' },
+    { item: '9. ประเทศผู้ส่งออก', subject: 'เวียดนาม และอียิปต์', like: '—' },
+    { item: '10. ข้อเปรียบเทียบอื่น ๆ', subject: 'ใช้ทดแทนกันได้ในตลาดเดียวกัน', like: 'มีส่วนที่เหมือนกันและใช้ทดแทนกันได้' },
+  ];
   protected goods: GoodsRow[] = [{ producer: '', goods: '', made: '', sold: '', unit: '' }];
   protected makers: MakerRow[] = [
     party('บมจ. จี สตีล', '88 ปาโซ่ ทาวเวอร์ ชั้น 18 ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500', '(02) 634-2222', '(02) 634-4114'),
@@ -851,6 +1056,14 @@ export class Por1Page {
     { name: 'แผนภาพกระบวนการผลิต.pdf', saved: '15/05/2562' },
   ];
   protected exportDetail = 'เวียดนามหน้าโรงงาน 16,761 บาท/ตัน CIF 17,238 ส่วนเหลื่อม 753 บาท (4.36%) อียิปต์หน้าโรงงาน 17,349 CIF 19,026 ส่วนเหลื่อม 2,069 บาท (10.87%) เม.ย. 2562';
+  protected exportConstructed = '';
+  protected marginUnit = 'บาท/ตัน';
+  protected marginCountries: MarginCountry[] = [
+    { name: 'เวียดนาม', normal: '17,514', exportPrice: '16,761', margin: '753', cif: '17,238', rate: '4.36' },
+    { name: 'อียิปต์', normal: '19,418', exportPrice: '17,349', margin: '2,069', cif: '19,026', rate: '10.87' },
+  ];
+  protected subsidySpecific = '';
+  protected subsidyBenefit = '';
   protected exportDocs: DocFile[] = [
     { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562.pdf', saved: '15/05/2562' },
     { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562 เวียดนาม.pdf', saved: '15/05/2562' },
@@ -864,24 +1077,30 @@ export class Por1Page {
   protected explainDetail = 'ไม่มีข้อมูลการอุดหนุน เคสนี้ขอให้ไต่สวนการทุ่มตลาด';
   protected explainDocs: DocFile[] = [];
   protected docView: 'letter' | 'pledge' | null = null;
+  protected docViewFull = false;
+  protected issuedDocs: { kind: 'letter' | 'pledge'; title: string; code: string; at: string }[] = [];
   protected signatureName = 'ลายเซ็น.png';
   protected signatureUrl =
     'data:image/svg+xml,' +
     encodeURIComponent(
       '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="72" viewBox="0 0 180 72"><path d="M12 46c16-30 22 6 34-2 10-6 4 20 16 14 14-8 2-28 18-22 18 6 6 26 22 14 12-8 8 10 20 4 14-8 22 2 36-12" fill="none" stroke="#0E2346" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     );
-  protected letterNo = '01/492-019/2562';
-  protected letterDate = '15/05/2562';
-  protected letterSubject = 'ขอให้พิจารณาดำเนินการใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อน ชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากสาธารณรัฐสังคมนิยมเวียดนามและสาธารณรัฐอาหรับอียิปต์';
+  protected letterNo = '01/492-019/2563';
+  protected letterDate = '15/05/2563';
+  protected letterSubject =
+    'ขอให้พิจารณาดำเนินการใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กกล้าทรงแบนรีดร้อน ชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากสาธารณรัฐสังคมนิยมเวียดนามและสาธารณรัฐอาหรับอียิปต์';
   protected letterTo = 'อธิบดีกรมการค้าต่างประเทศ';
-  protected letterRef = '-';
-  protected letterEnclosed = 'แบบ ปร.1 แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน จำนวน 1 ฉบับ';
-  protected letterBody = 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน) ในฐานะผู้ผลิตภายในประเทศ และผู้ยื่นคำขอแทนผู้ผลิตบางส่วนในอุตสาหกรรม สินค้าเหล็กแผ่นรีดร้อน ชนิดเป็นม้วนและไม่เป็นม้วน จึงขอนำส่งแบบคำขอพร้อมเอกสารประกอบต่อกรมการค้าต่างประเทศไว้เป็นหลักฐานในการพิจารณาใช้มาตรการตอบโต้การทุ่มตลาด';
+  protected letterRef = '';
+  protected letterBody =
+    'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน) ในฐานะผู้ผลิตภายในประเทศ และผู้ยื่นคำขอแทนผู้ผลิตบางส่วนในอุตสาหกรรม สินค้าเหล็กแผ่นรีดร้อน ชนิดเป็นม้วนและไม่เป็นม้วน จึงขอนำส่งแบบคำขอพร้อมเอกสารประกอบต่อกรมการค้าต่างประเทศไว้เป็นหลักฐานในการพิจารณา\n\nสิ่งที่ส่งมาด้วย\n1. แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน\n2. CD บันทึกข้อมูล 1 แผ่น';
   protected letterPurpose = 'ขอให้พิจารณาใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์';
   protected sealName = '';
   protected sealUrl = '';
   protected letterFileName = '';
-  protected readonly pledgeDefault = 'ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียวและขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ';
+  protected pledgeSignedName = '';
+  /** ข้อความท้ายแบบ ปร.1 ตามแบบราชการ (ใช้ได้ทั้ง AD และ CVD) */
+  protected readonly pledgeDefault =
+    'ข้าพเจ้าขอรับรองว่า ข้อความข้างต้นนี้ตลอดจนข้อความในเอกสารภาคผนวกที่แนบและเอกสารหลักฐานที่นำมาประกอบคำขอฉบับนี้เป็นความจริงและถูกต้องทุกประการ และหากข้อมูลและเอกสารหลักฐานที่ปรากฏในคำขอฉบับนี้เป็นข้อมูลเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียวและขอรับรองว่าข้าพเจ้าได้รับมอบหมายให้ดำเนินการแทนผู้ร้องเรียนรายอื่นดังกล่าวในฐานะผู้ยื่นคำขอ';
   protected pledgeText = this.pledgeDefault;
   protected pledgeSource: 'default' | 'draft' = 'default';
   protected otherDocs: DocFile[] = [
@@ -1217,6 +1436,7 @@ export class Por1Page {
   protected officeLink: OfficeLink | null = null;
   protected ack = true;
   protected signer = 'นายประกิต กาญจนการไกร';
+  protected signerPrint = 'นายประกิต กาญจนการไกร';
   protected roleTitle = 'ผู้จัดการสำนักรัฐกิจสัมพันธ์ ผู้รับมอบอำนาจ';
   protected signedOn = '15/05/2562';
 
@@ -1350,13 +1570,33 @@ export class Por1Page {
   }
 
   protected get measureName(): string {
-    return this.measure === 'subsidy' ? 'ตอบโต้การอุดหนุน' : 'ตอบโต้การทุ่มตลาด';
+    if (this.wantDumping && this.wantSubsidy) return 'ตอบโต้การทุ่มตลาดและการอุดหนุน';
+    if (this.wantSubsidy) return 'ตอบโต้การอุดหนุน';
+    return 'ตอบโต้การทุ่มตลาด';
   }
 
-  protected resetPledge(): void {
-    this.pledgeText = this.pledgeDefault;
-    this.pledgeSource = 'default';
-    this.publishGuide();
+  protected get formCodeName(): string {
+    return 'ปร.1';
+  }
+
+  protected get pledgeStatusLabel(): string {
+    if (this.issuedDocs.some((row) => row.kind === 'pledge')) return 'บันทึกแล้ว';
+    return 'ยังไม่ออกเอกสาร';
+  }
+
+  protected get letterStatusLabel(): string {
+    if (this.letterFileName) return 'แนบฉบับจริงแล้ว';
+    if (this.issuedDocs.some((row) => row.kind === 'letter')) return 'รอแนบฉบับจริง';
+    return 'ยังไม่ออกเอกสาร';
+  }
+
+  protected syncCertForMeasure(): void {
+    if (!this.letterPurpose.includes(this.measureName)) {
+      this.letterPurpose = `ขอให้พิจารณาใช้มาตรการ${this.measureName}`;
+    }
+    if (!this.letterSubject.includes(this.measureName) && (this.wantSubsidy || this.wantDumping)) {
+      this.letterSubject = `ขอให้พิจารณาดำเนินการใช้มาตรการ${this.measureName}`;
+    }
   }
 
   protected draftPledge(): void {
@@ -1368,6 +1608,18 @@ export class Por1Page {
       : 'และขอยื่นคำขอนี้ในนามของผู้ยื่นเอง';
     this.pledgeText = `ข้าพเจ้า ${who}${roleLine} ของ${this.company} ขอรับรองว่าข้อความในแบบ ปร.1 เลขที่อ้างอิง ${filingRefId} เรื่องมาตรการ${this.measureName} ตลอดจนเอกสารผนวกและเอกสารหลักฐานที่นำมาประกอบคำขอ เป็นความจริงและถูกต้องทุกประการ หากข้อมูลและเอกสารหลักฐานเป็นเท็จ ข้าพเจ้าขอรับผิดตามกฎหมายแต่เพียงผู้เดียว ${behalf}`;
     this.pledgeSource = 'draft';
+    this.publishGuide();
+  }
+
+  protected draftLetter(): void {
+    const who = this.company.trim() || 'ผู้ยื่นคำขอ';
+    const goods = this.caseGoods || 'สินค้าที่ถูกพิจารณา';
+    const measure = this.measureName;
+    this.letterTo = this.letterTo.trim() || 'อธิบดีกรมการค้าต่างประเทศ';
+    this.letterSubject = `ขอให้พิจารณาดำเนินการใช้มาตรการ${measure}สินค้า${goods}`;
+    this.letterBody = `${who} ในฐานะผู้ผลิตภายในประเทศ จึงขอนำส่งแบบ ${this.formCodeName} เลขที่อ้างอิง ${this.refId} พร้อมเอกสารประกอบต่อกรมการค้าต่างประเทศ เพื่อพิจารณาใช้มาตรการ${measure}สินค้า${goods}\n\nสิ่งที่ส่งมาด้วย\n1. แบบคำขอให้ดำเนินการพิจารณา${measure}\n2. CD บันทึกข้อมูล 1 แผ่น`;
+    this.letterPurpose = `ขอให้พิจารณาใช้มาตรการ${measure}สินค้า${goods}`;
+    this.syncCertForMeasure();
     this.publishGuide();
   }
 
@@ -1389,6 +1641,14 @@ export class Por1Page {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     this.letterFileName = file.name;
+    this.publishGuide();
+  }
+
+  protected setPledgeSigned(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.pledgeSignedName = file.name;
+    this.publishGuide();
   }
 
   private readImage(event: Event, apply: (url: string, name: string) => void): void {
@@ -1402,27 +1662,55 @@ export class Por1Page {
     reader.readAsDataURL(file);
   }
 
+  protected previewDocument(kind: 'letter' | 'pledge' = 'pledge'): void {
+    this.docViewFull = false;
+    this.docView = kind;
+  }
+
+  protected closeDocView(): void {
+    this.docView = null;
+    this.docViewFull = false;
+  }
+
+  protected saveCertForm(kind: 'letter' | 'pledge' = 'pledge'): void {
+    this.saveDraft();
+    const title = kind === 'letter' ? 'หนังสือนำส่ง' : 'คำรับรองและลงนาม';
+    const code = kind === 'letter'
+      ? `หนังสือนำส่ง-${this.refId}`
+      : `คำรับรองและลงนาม-${this.refId}`;
+    const at = this.replyStamp();
+    const next = this.issuedDocs.filter((row) => row.kind !== kind);
+    next.unshift({ kind, title, code, at });
+    this.issuedDocs = next;
+    this.view.detectChanges();
+  }
+
+  protected issuedOf(kind: 'letter' | 'pledge'): { kind: 'letter' | 'pledge'; title: string; code: string; at: string }[] {
+    return this.issuedDocs.filter((row) => row.kind === kind);
+  }
+
   protected printDocument(kind: 'letter' | 'pledge'): void {
+    if (!this.docView) this.docView = kind;
+    this.view.detectChanges();
     document.body.dataset['printDoc'] = kind;
     const done = () => {
       delete document.body.dataset['printDoc'];
       window.removeEventListener('afterprint', done);
     };
     window.addEventListener('afterprint', done);
-    window.print();
+    window.setTimeout(() => window.print(), 50);
   }
 
   protected downloadDocument(kind: 'letter' | 'pledge'): void {
     const node = document.querySelector(`.print-root [data-doc="${kind}"]`);
     if (!(node instanceof HTMLElement)) return;
     const title = kind === 'letter' ? 'หนังสือนำส่ง' : 'คำรับรองและลงนาม';
-    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${title} ${filingRefId}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h3{margin:0 0 16px;text-align:center;font-size:18px;font-weight:500}.letter__top{display:flex;justify-content:space-between;gap:24px}.letter__date{margin-left:auto;text-align:right;white-space:nowrap}.letter__body{margin:20px 0;text-indent:48px}.letter__sign{margin-top:28px;text-align:center}img{display:block;max-height:88px;margin:0 auto}p{margin:0 0 8px}</style></head><body>${node.innerHTML}</body></html>`;
-    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title}-${filingRefId}.html`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${title} ${filingRefId}</title><style>@page{size:A4;margin:18mm 16mm}body{margin:0;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h3{margin:0 0 16px;text-align:center;font-size:18px;font-weight:500}.letter{padding:8px 0}.letter__top{display:flex;justify-content:space-between;gap:24px}.letter__date{margin-left:auto;text-align:right;white-space:nowrap}.letter__row{white-space:pre-wrap}.letter__body{margin:20px 0;text-indent:48px;white-space:pre-wrap}.letter__body--pledge{text-indent:0;text-align:justify;white-space:pre-wrap}.letter__sign{margin-top:28px;text-align:center}.letter__meta,.letter__ack{text-align:center}img{display:block;max-height:88px;margin:0 auto}p{margin:0 0 8px}</style></head><body>${node.innerHTML}<script>window.onload=function(){window.print()}<\/script></body></html>`;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
   }
 
   protected get formLocked(): boolean {
@@ -4533,7 +4821,7 @@ export class Por1Page {
     const code = this.sampleCase?.code || this.refId;
     this.pushLink('e-Office', 'ส่งเรื่องปิดคดี', `เลขสารบรรณ ${this.filingSaraban} ส่งเข้า e-Office แล้ว`, this.filingSaraban, at);
     this.pushLink('eTR', 'อัปเดตผลสิ้นสุด', `Ref Case ID (eTR) ${this.etrRefNo} อัปเดตผลของ ${this.refId} แล้ว`, this.etrRefNo, at);
-    this.pushLink('ThaiTR', 'เผยแพร่ผลบน ThaiTR', `https://thaitr.dft.go.th/th/search/${code}`, code, at);
+    this.pushLink('เว็บไซต์กอง', 'เผยแพร่ผลบนเว็บไซต์กอง', `เผยแพร่ผลคดี ${code} บนเว็บไซต์กองแล้ว`, code, at);
     this.keepNote('published', at);
     this.closeFinal();
   }
@@ -6183,11 +6471,13 @@ export class Por1Page {
     this.agentEmail = '';
     if (item.applicant?.includes('ในประเทศ')) this.nationality = 'ไทย';
     const goods = item.goods.replace(/\s+/g, ' ').trim();
-    this.goodsDetail = goods.length > 200 ? goods.slice(0, 200) : goods;
+    this.goodsDetail = goods.length > 2000 ? goods.slice(0, 2000) : goods;
     this.relatedImport = '';
     this.priorAid = '';
     this.outsideProducer = '';
     this.channelDetail = '';
+    this.exportConstructed = '';
+    this.goodsCompare = this.goodsCompare.map((row) => ({ ...row, subject: '', like: '' }));
     this.originDetail = '';
     this.factoryNote = '';
     this.thirdReason = '';
@@ -6267,7 +6557,7 @@ export class Por1Page {
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ที่อยู่', value: this.address },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'โทรศัพท์', value: this.phone },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'โทรสาร', value: this.fax },
-      { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'เลขที่หนังสือ', value: this.letterNo },
+      { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ที่', value: this.letterNo },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'วันที่หนังสือ', value: this.letterDate },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ผู้ลงนาม', value: this.signer },
       { group: 'ส่วนที่ 2 สินค้า', label: 'รายละเอียดสินค้า', value: this.goodsDetail },
@@ -6368,15 +6658,25 @@ export class Por1Page {
   protected submitAck = false;
 
   protected get requestReady(): boolean {
-    return !!(this.company.trim() && this.letterNo.trim() && this.letterDate.trim());
+    return !!(
+      this.company.trim() &&
+      this.letterNo.trim() &&
+      this.letterDate.trim() &&
+      this.letterSubject.trim() &&
+      this.letterTo.trim() &&
+      this.letterBody.trim() &&
+      this.letterPurpose.trim() &&
+      this.signatureUrl &&
+      this.letterFileName
+    );
   }
 
   protected get signReady(): boolean {
-    return !!(this.signer.trim() && this.signedOn.trim() && this.signatureUrl);
+    return !!(this.signer.trim() && this.signerPrint.trim() && this.roleTitle.trim() && this.signedOn.trim());
   }
 
   protected get pledgeReady(): boolean {
-    return this.ack;
+    return this.ack && !!this.signatureUrl;
   }
 
   protected get submitReady(): boolean {
@@ -7104,10 +7404,38 @@ export class Por1Page {
   protected open(item: TocLink, event?: Event): void {
     this.section = item.id;
     this.anchor = item.anchor ?? '';
+    this.sectionHelpOpen = false;
     this.guideField = '';
+    this.persistFormNav();
     this.publishGuide();
     this.view.detectChanges();
     scrollFormToTop(event);
+  }
+
+  private persistFormNav(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        sec: this.section || null,
+        nav: this.anchor || null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private restoreFormNav(): void {
+    const sec = this.route.snapshot.queryParamMap.get('sec');
+    const nav = this.route.snapshot.queryParamMap.get('nav') ?? '';
+    if (!sec && !nav) return;
+    const links = this.formToc.flatMap((group) => group.items);
+    const hit =
+      links.find((item) => item.id === (sec || item.id) && (item.anchor ?? '') === nav) ||
+      (nav ? links.find((item) => (item.anchor ?? '') === nav) : undefined) ||
+      (sec ? links.find((item) => item.id === sec) : undefined);
+    if (!hit) return;
+    this.section = hit.id;
+    this.anchor = hit.anchor ?? '';
   }
 
   protected current(item: TocLink): boolean {
@@ -7115,7 +7443,7 @@ export class Por1Page {
   }
 
   protected filled(item: TocLink): boolean {
-    return item.id !== '7.3' && item.id !== '7.4' && item.anchor !== 'part-4-5';
+    return item.anchor !== 'part-4-5';
   }
 
   protected failed(item: TocLink): boolean {
@@ -7127,14 +7455,11 @@ export class Por1Page {
   }
 
   protected get sectionNeedsFix(): boolean {
-    return this.toc.some((group) => group.items.some((item) => item.id === this.section && (!item.anchor || item.anchor === this.anchor) && this.failed(item)));
+    return this.formToc.some((group) => group.items.some((item) => item.id === this.section && (!item.anchor || item.anchor === this.anchor) && this.failed(item)));
   }
 
   protected get checkForms(): { code: string; groups: TocGroup[] }[] {
-    const groups = this.measure === 'subsidy'
-      ? this.toc
-      : this.toc.filter((group) => !group.items.some((item) => item.id.startsWith('7')));
-    return [{ code: 'ปร. 1', groups }];
+    return [{ code: 'ปร. 1', groups: this.formToc }];
   }
 
   protected groupComplete(group: TocGroup): boolean {
@@ -7142,14 +7467,18 @@ export class Por1Page {
   }
 
   protected get sectionsReady(): boolean {
-    return this.toc.every((group) => this.groupComplete(group));
+    return this.formToc.every((group) => this.groupComplete(group));
   }
 
   protected itemComplete(item: TocLink): boolean {
     if (this.failed(item)) return false;
     const id = item.id;
     const anchor = item.anchor ?? '';
-    if (id.startsWith('7') && this.measure !== 'subsidy') return !this.formView;
+    if (id.startsWith('7') && !this.wantSubsidy) return !this.formView;
+    if ((id === '4' || id === '5' || id === '6') && !this.wantDumping) return !this.formView;
+    if (id === 'annex-a') return this.filing !== 'all' || this.makers.every((row) => this.hasText(row.name));
+    if (id === 'annex-b') return this.filing !== 'part' || (this.makers.every((row) => this.hasText(row.name)) && this.hasText(this.outsideProducer));
+    if (id === 'annex-c') return !this.onBehalf || this.namesOf('power').length > 0;
     if (id === 'other') return this.formView ? this.otherDocs.length > 0 : true;
     if (id === '1' && anchor === 'part-1-1') {
       if (!this.hasText(this.company) || !this.hasText(this.nationality) || !this.hasText(this.address) || !this.hasText(this.phone)) return false;
@@ -7157,7 +7486,9 @@ export class Por1Page {
     }
     if (id === '1' && anchor === 'part-1-2') return this.hasText(this.relatedImport);
     if (id === '1' && anchor === 'part-1-3') return this.hasText(this.priorAid);
-    if (id === '2') return this.hasText(this.goodsDetail) && this.hasText(this.channelDetail);
+    if (id === '2') {
+      return this.goodsCompare.every((row) => this.hasText(row.subject) || this.hasText(row.like)) && this.hasText(this.goodsDetail) && this.hasText(this.channelDetail);
+    }
     if (id === '3') {
       const block = this.parties.find((entry) => anchor === `part-${entry.key}`);
       return !!block && block.rows.some((row) => this.hasText(row.name));
@@ -7168,11 +7499,15 @@ export class Por1Page {
     if (id === '4' && anchor === 'part-4-3-2') return this.hasText(this.thaiPeriod) && this.hasText(this.thaiDetail);
     if (id === '4' && anchor === 'part-4-4') return this.hasText(this.specialDetail);
     if (id === '4' && anchor === 'part-4-5') return this.hasText(this.compareReason) && (this.market === 'yes' || this.hasText(this.method));
+    if (id === '5' && anchor === 'part-5-2') return !this.hasText(this.relatedImport) || this.relatedImport.includes('ไม่') || this.hasText(this.exportConstructed);
     if (id === '5') return this.hasText(this.exportDetail);
-    if (id === '6') return this.docsOf('margin').length > 0;
+    if (id === '6') {
+      return this.marginCountries.some((row) => this.hasText(row.name) && this.hasText(row.normal) && this.hasText(row.exportPrice) && this.hasText(row.margin));
+    }
     if (id === '7.1') return this.docsOf('subsidy').length > 0;
     if (id === '7.2') return this.hasText(this.explainDetail);
-    if (id === '7.3' || id === '7.4') return false;
+    if (id === '7.3') return this.hasText(this.subsidySpecific);
+    if (id === '7.4') return this.hasText(this.subsidyBenefit);
     if (id === '8.1') return this.hasText(this.note('importDetail'));
     if (id === '8.2') return this.hasText(this.note('priceEffect')) && this.hasText(this.note('costEffect'));
     if (id === '8.3') return this.conditions.every((entry) => this.hasText(this.note(entry.key)));
@@ -7181,6 +7516,18 @@ export class Por1Page {
     if (id === '8.6') return this.hasText(this.note('buyerDetail'));
     if (id === '8.7') return this.hasText(this.note('trendCapacity')) && this.hasText(this.note('trendPrice')) && this.hasText(this.note('trendOther'));
     if (id === '8.8') return this.hasText(this.note('intentDetail'));
+    if (id === '9' && anchor === 'part-9-letter') {
+      return (
+        this.hasText(this.letterNo) &&
+        this.hasText(this.letterDate) &&
+        this.hasText(this.letterSubject) &&
+        this.hasText(this.letterTo) &&
+        this.hasText(this.letterBody) &&
+        this.hasText(this.letterPurpose) &&
+        !!this.signatureUrl &&
+        !!this.letterFileName
+      );
+    }
     if (id === '9') return this.pledgeReady && this.signReady;
     return this.filled(item);
   }
@@ -7567,7 +7914,14 @@ export class Por1Page {
 
   ngOnInit(): void {
     const picked = this.pickedMeasure();
-    if (!this.reviewRole && picked) this.measure = picked === 'cvd' ? 'subsidy' : 'dumping';
+    if (!this.reviewRole && picked === 'cvd') {
+      this.wantDumping = false;
+      this.wantSubsidy = true;
+    } else if (!this.reviewRole && picked === 'ad') {
+      this.wantDumping = true;
+      this.wantSubsidy = false;
+    }
+    this.syncCertForMeasure();
     this.caseStatus = readCaseStatus();
     this.filingGate = readFilingGate();
     this.caseNotes = readCaseNotes();
@@ -7633,6 +7987,7 @@ export class Por1Page {
     if (this.caseStatus === 'consult' && this.consultAssigned && this.consultByChat) this.openTalk();
     if (this.caseStatus === 'consult' && !this.consultAssigned) this.watchAssign();
     this.watchApproval();
+    this.restoreFormNav();
     this.publishGuide();
     this.useClickDate();
   }
@@ -7827,8 +8182,12 @@ export class Por1Page {
       see('คำขอมาตรการช่วยเหลือ', this.priorAid);
     } else if (section === '2') {
       fieldsChecked = true;
-      see('ชื่อและลักษณะสินค้า', this.goodsDetail);
-      see('ช่องทางจำหน่ายและผู้ใช้สินค้า', this.channelDetail);
+      for (const row of this.goodsCompare) {
+        see(row.item + ' (สินค้าที่ถูกพิจารณา)', row.subject);
+        see(row.item + ' (สินค้าชนิดเดียวกัน)', row.like);
+      }
+      see('สรุปชื่อและลักษณะสินค้า', this.goodsDetail);
+      see('สรุปช่องทางจำหน่ายและผู้ใช้สินค้า', this.channelDetail);
       attachments.push(this.fileMeta('เอกสารรายละเอียดสินค้าที่ถูกพิจารณา', true, this.docsOf('goods')));
     } else if (section === '3') {
       fieldsChecked = true;
@@ -7859,17 +8218,30 @@ export class Por1Page {
       fieldsChecked = true;
       see('เหตุผลข้อ 4.5', this.compareReason);
       if (this.market !== 'yes') see('วิธีคำนวณมูลค่าปกติ', this.method);
+    } else if (section === '5' && anchor === 'part-5-2') {
+      fieldsChecked = true;
+      see('ราคาส่งออกที่คำนวณขึ้น', this.exportConstructed);
+      attachments.push(this.fileMeta('เอกสารราคาส่งออกที่คำนวณขึ้น', false, this.docsOf('export')));
     } else if (section === '5') {
       fieldsChecked = true;
       see('รายละเอียดราคาส่งออก', this.exportDetail);
       attachments.push(this.fileMeta('เอกสารราคาส่งออก', true, this.docsOf('export')));
     } else if (section === '6') {
       fieldsChecked = true;
-      attachments.push(this.fileMeta('เอกสารส่วนเหลื่อมการทุ่มตลาด', true, this.docsOf('margin')));
+      see('หน่วยราคา', this.marginUnit);
+      for (const col of this.marginCountries) {
+        see(`ประเทศ ${col.name || '(ยังไม่ระบุ)'}`, col.name);
+        see(`มูลค่าปกติ ${col.name}`, col.normal);
+        see(`ราคาส่งออก ${col.name}`, col.exportPrice);
+        see(`ส่วนเหลื่อม ${col.name}`, col.margin);
+      }
+      attachments.push(this.fileMeta('เอกสารส่วนเหลื่อมการทุ่มตลาด', false, this.docsOf('margin')));
     } else if (section.startsWith('7')) {
-      sectionRequired = this.measure === 'subsidy';
-      fieldsChecked = section === '7.1' || section === '7.2';
+      sectionRequired = this.wantSubsidy;
+      fieldsChecked = section === '7.1' || section === '7.2' || section === '7.3' || section === '7.4';
       if (section === '7.2') see('รายละเอียดการอุดหนุน', this.explainDetail);
+      if (section === '7.3') see('การอุดหนุนเจาะจง', this.subsidySpecific);
+      if (section === '7.4') see('ประโยชน์ที่ผู้ส่งออกได้รับ', this.subsidyBenefit);
       const key = section === '7.2' ? 'explain' : 'subsidy';
       if (section === '7.1' || section === '7.2') attachments.push(this.fileMeta(section === '7.1' ? 'เอกสารโครงการอุดหนุน' : 'เอกสารอธิบายการอุดหนุน', sectionRequired, this.docsOf(key)));
     } else if (section === '8.1') {
@@ -7912,27 +8284,34 @@ export class Por1Page {
       attachments.push(this.fileMeta('หลักฐานอุปสรรคอุตสาหกรรม', false, this.docsOf('intent')));
     } else if (section === '9') {
       fieldsChecked = true;
-      see('ข้อความคำรับรอง', this.pledgeText);
-      see('คำรับรอง', this.ack ? 'รับรอง' : '');
-      see('ผู้ลงนาม', this.signer);
-      see('ตำแหน่ง', this.roleTitle);
-      see('วันที่ลงนาม', this.signedOn);
-      see('รูปลายเซ็น', this.signatureUrl);
-      see('วันที่หนังสือ', this.letterDate);
-      see('เลขที่หนังสือ', this.letterNo);
-      see('เรื่อง', this.letterSubject);
-      see('เรียน', this.letterTo);
-      see('อ้างถึง', this.letterRef);
-      see('สิ่งที่แนบมาด้วย', this.letterEnclosed);
-      see('รายละเอียดหนังสือนำส่ง', this.letterBody);
-      see('ความประสงค์ให้พิจารณา', this.letterPurpose);
-      if (this.letterDate.trim() && !/^\d{2}\/\d{2}\/\d{4}$/.test(this.letterDate.trim())) {
-        errors.push({ id: 'nav:9|::วันที่หนังสือ', label: 'วันที่หนังสือ', hint: 'ใช้รูปแบบ วัน/เดือน/ปี' });
+      if (anchor === 'part-9-letter') {
+        see('วันที่หนังสือ', this.letterDate);
+        see('ที่', this.letterNo);
+        see('เรื่อง', this.letterSubject);
+        see('เรียน', this.letterTo);
+        see('อ้างถึง', this.letterRef);
+        see('รายละเอียดหนังสือนำส่ง', this.letterBody);
+        see('ความประสงค์ให้พิจารณา', this.letterPurpose);
+        see('รูปลายเซ็นหนังสือนำส่ง', this.signatureUrl);
+        see('ตราประทับบริษัท', this.sealUrl);
+        see('หนังสือนำส่งฉบับจริง', this.letterFileName);
+        if (this.letterDate.trim() && !/^\d{2}\/\d{2}\/\d{4}$/.test(this.letterDate.trim())) {
+          errors.push({ id: 'nav:9|part-9-letter::วันที่หนังสือ', label: 'วันที่หนังสือ', hint: 'ใช้รูปแบบ วัน/เดือน/ปี' });
+        }
+        checked.push('หนังสือนำส่ง');
+      } else {
+        see('ข้อความคำรับรอง', this.pledgeText);
+        see('คำรับรอง', this.ack ? 'รับรอง' : '');
+        see('ผู้ลงนาม', this.signer);
+        see('ชื่อตัวบรรจง', this.signerPrint);
+        see('ตำแหน่ง', this.roleTitle);
+        see('วันที่ลงนาม', this.signedOn);
+        see('รูปลายเซ็น', this.signatureUrl);
+        if (this.signedOn.trim() && !/^\d{2}\/\d{2}\/\d{4}$/.test(this.signedOn.trim())) {
+          errors.push({ id: 'nav:9|part-9-pledge::วันที่ลงนาม', label: 'วันที่ลงนาม', hint: 'ใช้รูปแบบ วัน/เดือน/ปี' });
+        }
+        checked.push('คำรับรองและลงนาม');
       }
-      if (this.signedOn.trim() && !/^\d{2}\/\d{2}\/\d{4}$/.test(this.signedOn.trim())) {
-        errors.push({ id: 'nav:9|::วันที่ลงนาม', label: 'วันที่ลงนาม', hint: 'ใช้รูปแบบ วัน/เดือน/ปี' });
-      }
-      checked.push('หนังสือนำส่ง');
     } else if (section === 'other') {
       fieldsChecked = true;
       attachments.push(this.fileMeta('เอกสารอื่นที่แนบประกอบ', false, this.docsOf('other')));
@@ -7946,7 +8325,7 @@ export class Por1Page {
     if (section === '4' && anchor === 'part-4-5' && this.market === 'yes') formData['marketEconomy'] = 'ใช้กลไกตลาด';
 
     return {
-      measureType: this.measure === 'subsidy' ? 'CVD' : 'AD',
+      measureType: this.wantDumping && this.wantSubsidy ? 'AD+CVD' : this.wantSubsidy ? 'CVD' : 'AD',
       formType: 'ปร.1',
       requestId: filingRefId,
       currentSection: section,

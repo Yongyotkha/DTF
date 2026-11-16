@@ -25,7 +25,7 @@ type RequestRow = ListedCase & { ready: boolean; filing: boolean; result: string
 export class RequestsPage implements OnDestroy {
   protected readonly measures = requestMeasures;
   protected readonly forms = requestForms;
-  protected measure = 'มาตราการ AD';
+  protected measure = 'มาตรการ AD';
 
   protected get visibleForms(): RequestForm[] {
     return formsFor(this.measure);
@@ -220,7 +220,7 @@ export class RequestsPage implements OnDestroy {
     this.choosing = false;
     document.body.classList.remove('chooser-open');
     void this.router.navigate([route], {
-      queryParams: this.measure === 'มาตราการ CVD' ? { measure: 'cvd' } : this.measure === 'มาตราการ AD' ? { measure: 'ad' } : {},
+      queryParams: this.measure === 'มาตรการ CVD' ? { measure: 'cvd' } : this.measure === 'มาตรการ AD' ? { measure: 'ad' } : {},
     });
   }
 

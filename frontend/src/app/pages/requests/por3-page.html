@@ -340,12 +340,7 @@
                 <label class="field">ตำแหน่ง<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
                 </label>
-                <label class="field">วันที่<span class="req">*</span>
-                  <span class="date">
-                    <img src="assets/icons/calendar.svg" width="24" height="24" alt="" />
-                    <input type="text" placeholder="22/09/2569" [value]="signedOn" (input)="signedOn = $any($event.target).value" aria-label="วันที่" />
-                  </span>
-                </label>
+                <app-thai-date-field class="sheet-date" label="วันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="signedOn" (valueChange)="signedOn = $event" />
               </div>
             } @else if (step === 'เอกสารประกอบอื่นๆ') {
               <h3 id="por3-step">เอกสารประกอบอื่นๆ</h3>

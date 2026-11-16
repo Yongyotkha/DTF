@@ -8,7 +8,7 @@ import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus } from '../requests/case-status';
 import { archiveCases, caseKey } from '../requests/request-cases';
-import { thaitrMeasures } from './thaitr-measures';
+import { measureCatalog } from './measure-catalog';
 
 type Band = 'all' | 'measure' | 'doing' | 'wait' | 'cancel';
 
@@ -54,7 +54,7 @@ const years: SearchOption[] = Array.from({ length: 2569 - 2533 + 1 }, (_, index)
   return { value: year, label: year };
 });
 
-const catalog: RegistryCase[] = thaitrMeasures.map((item, index) => ({
+const catalog: RegistryCase[] = measureCatalog.map((item, index) => ({
   code: item.code,
   ref: '',
   goods: item.goods,
@@ -68,7 +68,7 @@ const catalog: RegistryCase[] = thaitrMeasures.map((item, index) => ({
   tone: toneOf(item.status),
   live: false,
   internal: false,
-  key: `thaitr-${index}-${item.code}`,
+  key: `measure-${index}-${item.code}`,
   openCode: '',
 }));
 
@@ -234,8 +234,8 @@ export class CaseRegistryPage {
     return !row.internal;
   }
 
-  protected publicUrl(row: RegistryCase): string {
-    return `https://thaitr.dft.go.th/th/search/${row.code}`;
+  protected publishedLabel(row: RegistryCase): string {
+    return this.published(row) ? 'เผยแพร่บนเว็บไซต์กองแล้ว' : 'ยังไม่เผยแพร่';
   }
 
   protected sideLabel(row: RegistryCase): string {
@@ -321,7 +321,7 @@ export class CaseRegistryPage {
 
   protected exportRows(): void {
     const source = this.picked.size ? this.visible.filter((row) => this.picked.has(row.key)) : this.visible;
-    const header = ['เลขอ้างอิงคำขอ', 'เลขคดี', 'สินค้า', 'ประเทศ', 'มาตรการ', 'สถานะ', 'วันที่ยื่น', 'ลิงก์ thaitr'];
+    const header = ['เลขอ้างอิงคำขอ', 'เลขคดี', 'สินค้า', 'ประเทศ', 'มาตรการ', 'สถานะ', 'วันที่ยื่น', 'การเผยแพร่'];
     const lines = source.map((row) => [
       row.live ? row.code : '',
       row.live ? '' : row.code,
@@ -330,7 +330,7 @@ export class CaseRegistryPage {
       row.measure,
       row.status,
       row.date,
-      row.live ? '' : this.publicUrl(row),
+      row.live ? '' : this.publishedLabel(row),
     ].map(csvCell).join(','));
     const blob = new Blob([`\uFEFF${header.join(',')}\n${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);

@@ -322,10 +322,7 @@
                   ตำแหน่ง<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
                 </label>
-                <label class="field">
-                  วันที่<span class="req">*</span>
-                  <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="signedDate" (input)="signedDate = $any($event.target).value" />
-                </label>
+                <app-thai-date-field class="sheet-date" label="วันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="signedDate" (valueChange)="signedDate = $event" />
               </div>
             } @else {
               <h3>{{ section }}</h3>

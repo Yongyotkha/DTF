@@ -188,10 +188,7 @@
                     จำนวน<span class="req">*</span>
                     <input type="text" placeholder="ระบุ" [value]="qty" (input)="qty = $any($event.target).value" />
                   </label>
-                  <label class="field">
-                    เมื่อวันที่<span class="req">*</span>
-                    <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="importDate" (input)="importDate = $any($event.target).value" />
-                  </label>
+                  <app-thai-date-field class="sheet-date" label="เมื่อวันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="importDate" (valueChange)="importDate = $event" />
                   <label class="field">
                     สำเนาใบขนเลขที่<span class="req">*</span>
                     <input type="text" placeholder="ระบุ" [value]="entryNo" (input)="entryNo = $any($event.target).value" />
@@ -204,10 +201,7 @@
                     ตามประกาศคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน เรื่อง<span class="req">*</span>
                     <textarea rows="3" placeholder="ระบุ" [value]="notice" (input)="notice = $any($event.target).value"></textarea>
                   </label>
-                  <label class="field">
-                    ชำระอากรแล้ว เมื่อวันที่<span class="req">*</span>
-                    <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="paidOn" (input)="paidOn = $any($event.target).value" />
-                  </label>
+                  <app-thai-date-field class="sheet-date" label="ชำระอากรแล้ว เมื่อวันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="paidOn" (valueChange)="paidOn = $event" />
                   <label class="field">
                     เป็นจำนวนเงิน (บาท)<span class="req">*</span>
                     <input type="text" placeholder="ระบุ" [value]="paidAmount" (input)="paidAmount = $any($event.target).value" />
@@ -315,10 +309,7 @@
                   ตำแหน่ง<span class="req">*</span>
                   <input type="text" placeholder="ระบุ" [value]="roleTitle" (input)="roleTitle = $any($event.target).value" />
                 </label>
-                <label class="field">
-                  วันที่<span class="req">*</span>
-                  <input type="text" placeholder="วันที่ เดือน พ.ศ." [value]="signedDate" (input)="signedDate = $any($event.target).value" />
-                </label>
+                <app-thai-date-field class="sheet-date" label="วันที่" placeholder="วัน/เดือน/พ.ศ." [required]="true" [value]="signedDate" (valueChange)="signedDate = $event" />
               </div>
             } @else {
               <h3>{{ section }}</h3>

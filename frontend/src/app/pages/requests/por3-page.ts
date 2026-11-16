@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DftButton } from '../../button/button';
+import { ThaiDateField } from '../../fields/thai-date-field';
 import { FilingTabs } from './filing-tabs';
 import { FilledUpload } from './filled-upload';
 import { fillApplicant, fillKnown, valueIsWrong, wrongHint } from './form-extract';
@@ -13,7 +14,7 @@ import { findListedCase } from './request-cases';
 import { scrollFormToTop } from './form-scroll';
 @Component({
   selector: 'app-por3-page',
-  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, FilledUpload, FilingTabs],
+  imports: [TopHeader, SideNav, RouterLink, DftButton, StatusTag, ThaiDateField, FilledUpload, FilingTabs],
   templateUrl: './por3-page.html',
   styleUrl: './por1-page.css',
 })
