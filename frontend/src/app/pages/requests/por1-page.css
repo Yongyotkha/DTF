@@ -1028,6 +1028,13 @@ main {
   gap: 8px;
 }
 
+.talk__bar-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .talk__tools {
   display: flex;
   flex-wrap: wrap;
@@ -5728,9 +5735,17 @@ body.workspace-split .head {
   min-width: 0;
 }
 
+.consult-docs header app-button,
+.consult-docs header .consult-reply,
 .consult-assign > header app-button,
 .consult-assign > header .consult-reply {
   flex: none;
+}
+
+.consult-docs header .consult-reply {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .consult-assign > .act-note {

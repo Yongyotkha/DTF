@@ -57,8 +57,8 @@
           <button type="button" class="head__history" aria-label="ประวัติคำขอ" (click)="historyOpen = true">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg>
           </button>
-          @if (showConsultHeaderAction || (reviewRole && hasConsultRounds)) {
-            <button type="button" class="head__history" [class.head__history--new]="needsNewConsult || (!!openConsultRound && !reviewRole)" [class.on]="consultPanelOpen" [attr.aria-label]="needsNewConsult ? 'ขอปรึกษาใหม่' : 'ปรึกษา'" (click)="requestConsultFromHeader()">
+          @if (showConsultHeaderAction || reviewRole) {
+            <button type="button" class="head__history" [class.head__history--new]="needsNewConsult || !!openConsultRound" [class.on]="consultPanelOpen" [attr.aria-label]="needsNewConsult ? 'ขอปรึกษาใหม่' : 'ปรึกษา'" (click)="requestConsultFromHeader()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
             </button>
           }
@@ -1091,6 +1091,18 @@
                         <section class="consult-docs" aria-label="เอกสารที่ยื่นขอเข้ามา">
                           <header>
                             <h3>เอกสารที่ยื่นขอเข้ามา</h3>
+                            @if (reviewRole) {
+                              <div class="consult-reply">
+                                <app-button class="icon-before" type="outline" label="เพิ่มข้อมูล" (click)="openConsultPanel(openConsultRound?.id || '', openConsultRound ? 'talk' : 'summary')">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                                </app-button>
+                                @if (openConsultRound) {
+                                  <app-button class="icon-before" type="primary" label="ปิดงาน" (click)="closeConsultRoundFromPanel()">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7" /></svg>
+                                  </app-button>
+                                }
+                              </div>
+                            }
                           </header>
                           <div class="table-wrap consult-table">
                             <table>
@@ -5865,11 +5877,15 @@
           <p>{{ refId }} · {{ consultRounds.length }} รอบ</p>
         </div>
         <div class="history__tools">
-          @if (!openConsultRound) {
+          @if (reviewRole && openConsultRound) {
+            <app-button class="icon-before" type="primary" label="ปิดงาน" (click)="closeConsultRoundFromPanel()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7" /></svg>
+            </app-button>
+          } @else if (!reviewRole && !openConsultRound) {
             <app-button class="icon-before" type="outline" label="ขอปรึกษารอบใหม่" (click)="closeConsultPanel(); openConsult()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
             </app-button>
-          } @else {
+          } @else if (!reviewRole && openConsultRound) {
             <p class="consult-panel__limit">ขอได้ทีละ 1 รอบ · รอปิดรอบ #{{ openConsultRound.no }} ก่อน</p>
           }
           <button type="button" class="history__tool" [attr.aria-pressed]="consultPanelFull" [attr.aria-label]="consultPanelFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" (click)="consultPanelFull = !consultPanelFull">
@@ -5958,7 +5974,7 @@
                     }
                   </ol>
                 </div>
-                @if (consultRoundLive || reviewRole) {
+                @if (consultRoundLive) {
                   <div class="talk__send">
                     <textarea rows="3" [attr.aria-label]="reviewRole ? 'ข้อความถึงผู้ยื่น' : 'ข้อความถึงเจ้าหน้าที่'" [placeholder]="reviewRole ? 'พิมพ์ข้อความถึงผู้ยื่น...' : 'พิมพ์ข้อความถึงเจ้าหน้าที่...'" [value]="consultDraft" (input)="consultDraft = $any($event.target).value"></textarea>
                     @if (pendingFiles.length) {
@@ -5978,9 +5994,16 @@
                           <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx" multiple (change)="addTalkFiles($event)" />
                         </label>
                       </div>
-                      <app-button class="icon-before" type="primary" label="ส่งข้อความ" (click)="sendConsultNote()">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                      </app-button>
+                      <div class="talk__bar-acts">
+                        <app-button class="icon-before" type="primary" label="ส่งข้อความ" (click)="sendConsultNote()">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                        </app-button>
+                        @if (reviewRole) {
+                          <app-button class="icon-before" type="outline" label="ปิดงาน" (click)="closeConsultRoundFromPanel()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7" /></svg>
+                          </app-button>
+                        }
+                      </div>
                     </div>
                   </div>
                 } @else {
@@ -6002,7 +6025,9 @@
                   <textarea rows="3" maxlength="1000" placeholder="พิมพ์บันทึกสำหรับตัวคุณเอง..." [value]="consultPrivateDraft" (input)="consultPrivateDraft = $any($event.target).value"></textarea>
                 </label>
                 <div class="consult-panel__private-act">
-                  <app-button type="primary" label="บันทึก" [state]="consultPrivateDraft.trim() ? 'default' : 'disabled'" (click)="saveConsultPrivateNote()" />
+                  <app-button class="icon-before" type="primary" label="เพิ่มบันทึก" [state]="consultPrivateDraft.trim() ? 'default' : 'disabled'" (click)="saveConsultPrivateNote()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                  </app-button>
                 </div>
                 <ol class="consult-panel__notes">
                   @for (note of selectedPrivateNotes; track note.id) {
@@ -6075,16 +6100,29 @@
                     </section>
                   }
                 }
-                @if (!reviewRole) {
-                  <div class="consult-panel__actions">
+                <div class="consult-panel__actions">
+                  @if (!reviewRole) {
                     <p class="consult-panel__hint">ระหว่างปรึกษา สามารถแก้ไขแบบจากหน้าสถานะคำขอได้ โดยไม่ต้องรอปิดรอบ</p>
                     <div class="review__actions">
                       <app-button class="icon-before" type="outline" label="แก้ไขคำขอ" (click)="closeConsultPanel(); startRevise()">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
                       </app-button>
                     </div>
-                  </div>
-                }
+                  } @else if (round.status === 'open') {
+                    <p class="consult-panel__hint">ตอบผู้ยื่นในแท็บการสนทนา หรือเพิ่มบันทึกส่วนตัวได้เช่นเดียวกับผู้ยื่น เมื่อเสร็จแล้วกดปิดงานได้เลย</p>
+                    <div class="review__actions">
+                      <app-button class="icon-before" type="outline" label="ไปการสนทนา" (click)="consultPanelTab = 'talk'">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
+                      </app-button>
+                      <app-button class="icon-before" type="outline" label="เพิ่มบันทึก" (click)="consultPanelTab = 'private'">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                      </app-button>
+                      <app-button class="icon-before" type="primary" label="ปิดงาน" (click)="closeConsultRoundFromPanel()">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7" /></svg>
+                      </app-button>
+                    </div>
+                  }
+                </div>
               </div>
             }
           } @else {

@@ -2338,6 +2338,25 @@ export class Por1Page {
     if (summary) this.publishApplicantNotice(`ผลการปิดงานขอคำปรึกษา\n${summary}`, 'ขอคำปรึกษา');
   }
 
+  /** เจ้าหน้าที่ปิดรอบปรึกษาจากแผงได้เลย */
+  protected closeConsultRoundFromPanel(): void {
+    if (!this.reviewRole) return;
+    const round = this.openConsultRound || (this.selectedConsultRound?.status === 'open' ? this.selectedConsultRound : null);
+    if (!round) return;
+    const at = this.replyStamp();
+    const notes = [...round.notes, { from: 'officer' as const, text: `ปิดงานปรึกษารอบ #${round.no}`, at }];
+    this.consultRounds = patchConsultRound(round.id, { status: 'closed', closedAt: at, notes, assigned: true });
+    writeConsultAssigned(true);
+    sessionStorage.setItem('dft-por1-consult-closed', JSON.stringify({ at }));
+    sessionStorage.setItem('dft-por1-await-official', '1');
+    this.consultClosed = { at };
+    this.consultAssigned = true;
+    this.consultNotes = notes;
+    this.consultRoundId = round.id;
+    this.publishApplicantNotice(`ปิดงานขอคำปรึกษารอบ #${round.no} แล้ว ผู้ยื่นสามารถยื่นแบบทางการได้`, 'ขอคำปรึกษา');
+    this.consultPanelTab = 'summary';
+  }
+
   private readConsultClosed(): { at: string } | null {
     try {
       const value = JSON.parse(sessionStorage.getItem('dft-por1-consult-closed') || 'null') as { at?: string } | null;
@@ -7387,10 +7406,10 @@ export class Por1Page {
     this.consultOpen = true;
   }
 
-  /** ปุ่มข้างประวัติคำขอ — มีรอบเปิดแล้วเข้าแผง / ไม่มี → ฟอร์มใหม่ */
+  /** ปุ่มข้างประวัติคำขอ — เจ้าหน้าที่เข้าแผงได้เสมอ / ผู้ยื่นมีรอบเปิดแล้วเข้าแผง */
   protected requestConsultFromHeader(): void {
     if (this.reviewRole) {
-      if (this.hasConsultRounds) this.openConsultPanel('', 'talk');
+      this.openConsultPanel(this.openConsultRound?.id || '', this.openConsultRound ? 'talk' : 'summary');
       return;
     }
     if (this.openConsultRound) {
@@ -7579,25 +7598,19 @@ export class Por1Page {
     const text = this.consultDraft.trim();
     const staff = !!this.reviewRole;
     const round = this.selectedConsultRound || this.openConsultRound;
-    const canTalk = staff || !!round || this.caseStatus === 'consult' || !!this.openConsultRound;
-    if ((!text && !this.pendingFiles.length) || !canTalk) return;
-    if (round && round.status === 'closed' && !staff) return;
+    if ((!text && !this.pendingFiles.length) || !round || round.status !== 'open') return;
     const note: ConsultNote = {
       from: staff ? 'officer' : 'applicant',
       text,
       at: this.replyStamp(),
       files: this.pendingFiles.length ? this.pendingFiles : undefined,
     };
-    if (round) {
-      const notes = [...round.notes, note];
-      this.consultRounds = patchConsultRound(round.id, { notes, assigned: round.assigned || staff });
-      this.consultNotes = notes;
-      this.shownCount = Math.min(notes.length, this.shownCount + 1);
-    } else {
-      this.consultNotes = [...this.consultNotes, note];
-      writeConsultThread(this.consultNotes);
-      this.shownCount = Math.min(this.consultNotes.length, this.shownCount + 1);
-    }
+    const notes = [...round.notes, note];
+    const assigned = round.assigned || staff;
+    this.consultRounds = patchConsultRound(round.id, { notes, assigned });
+    this.consultNotes = notes;
+    this.consultAssigned = assigned;
+    this.shownCount = Math.min(notes.length, this.shownCount + 1);
     this.consultDraft = '';
     this.pendingFiles = [];
     this.view.detectChanges();
