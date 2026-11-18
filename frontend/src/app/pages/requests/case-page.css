@@ -2126,7 +2126,7 @@ li {
   width: min(702px, 100%);
   max-height: calc(100vh - 48px);
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 20px;
   background: var(--color-white);
   box-shadow: 0 8px 20.4px rgb(0 0 0 / 25%);
@@ -2223,6 +2223,18 @@ li {
   align-items: baseline;
 }
 
+.sample .ask-contact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .sample .ask-contact {
+    grid-template-columns: 1fr;
+  }
+}
+
 .sample .ask-way {
   display: flex;
   flex-direction: column;
@@ -2233,6 +2245,142 @@ li {
   font-family: var(--font-sans-thai);
   font-size: 14px;
   line-height: 21px;
+}
+
+.sample .ask-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.sample .ask-slots__head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.sample .ask-slots__add {
+  box-sizing: border-box;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background-color var(--motion-state), border-color var(--motion-state), color var(--motion-state);
+}
+
+.sample .ask-slots__add:hover:not(:disabled) {
+  background: var(--color-bg-page);
+}
+
+.sample .ask-slots__add:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.sample .ask-slots__add:disabled {
+  border-color: var(--color-disabled-bg);
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+.sample .ask-slot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sample .ask-slot__no {
+  flex: none;
+  width: 20px;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+  text-align: center;
+}
+
+.sample .ask-slot__date {
+  flex: none;
+  width: 168px;
+  min-width: 0;
+}
+
+:host ::ng-deep .ask-slot__date .picker {
+  top: auto;
+  bottom: calc(100% + 4px);
+  z-index: 60;
+}
+
+.sample .ask-slot__time {
+  display: flex;
+  flex-direction: row;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.sample .ask-slot__time input {
+  box-sizing: border-box;
+  flex: none;
+  width: 60px;
+  min-width: 60px;
+  height: 40px;
+  margin: 0;
+  padding: 8px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+  text-align: center;
+}
+
+.sample .ask .ask-slot__time input {
+  width: 60px;
+}
+
+.sample .ask-slot__time input:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+}
+
+.sample .ask-slot__remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .sample .ask-slot__date {
+    width: min(168px, calc(100% - 28px));
+  }
 }
 
 .req {

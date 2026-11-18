@@ -14,17 +14,52 @@ export type RequestForm = {
   purposes: Record<string, FormPurpose>;
 };
 
+/** ยื่นมาตรการใหม่ vs ทบทวน — กรองแบบ ปร. ให้เลือกง่ายขึ้น */
+export type FilingKind = 'new' | 'review';
+
 export type RequestMeasure = {
   value: string;
   label: string;
   note: string;
+  notes?: Partial<Record<FilingKind, string>>;
 };
 
 export const requestMeasures: RequestMeasure[] = [
-  { value: 'มาตรการ AD', label: 'การทุ่มตลาด (AD)', note: 'ใช้แบบ ปร.1 ถึง ปร.5 — ในแบบให้เลือกช่องตอบโต้การทุ่มตลาด' },
-  { value: 'มาตรการ CVD', label: 'การอุดหนุน (CVD)', note: 'ใช้แบบ ปร.1 ถึง ปร.5 ชุดเดียวกับ AD — ในแบบให้เลือกช่องตอบโต้การอุดหนุน' },
-  { value: 'มาตรการ SG', label: 'มาตรการปกป้อง (SG)', note: 'เลือกแบบคำขอมาตรการปกป้องจากการนำเข้าสินค้าที่เพิ่มขึ้น — มี 2 แบบตามประกาศกระทรวงพาณิชย์' },
-  { value: 'มาตรการ AC', label: 'การหลบเลี่ยงมาตรการ (AC)', note: 'ใช้แบบ ปร.6 ถึง ปร.8 — ตามมาตรา 71/6 วรรคหนึ่ง มาตรา 71/17 และมาตรา 71/18' },
+  {
+    value: 'มาตรการ AD',
+    label: 'การทุ่มตลาด (AD)',
+    note: 'ใช้แบบ ปร.1 ถึง ปร.5 — ในแบบให้เลือกช่องตอบโต้การทุ่มตลาด',
+    notes: {
+      new: 'เปิดมาตรการตอบโต้การทุ่มตลาดครั้งแรก — ในแบบให้เลือกช่องตอบโต้การทุ่มตลาด',
+      review: 'ทบทวนการใช้บังคับอากรหรือขอคืนอากร — ในแบบให้เลือกช่องตอบโต้การทุ่มตลาด',
+    },
+  },
+  {
+    value: 'มาตรการ CVD',
+    label: 'การอุดหนุน (CVD)',
+    note: 'ใช้แบบ ปร.1 ถึง ปร.5 ชุดเดียวกับ AD — ในแบบให้เลือกช่องตอบโต้การอุดหนุน',
+    notes: {
+      new: 'เปิดมาตรการตอบโต้การอุดหนุนครั้งแรก — ในแบบให้เลือกช่องตอบโต้การอุดหนุน',
+      review: 'ทบทวนการใช้บังคับอากรหรือขอคืนอากร — ในแบบให้เลือกช่องตอบโต้การอุดหนุน',
+    },
+  },
+  {
+    value: 'มาตรการ SG',
+    label: 'มาตรการปกป้อง (SG)',
+    note: 'เลือกแบบคำขอมาตรการปกป้องจากการนำเข้าสินค้าที่เพิ่มขึ้น — มี 2 แบบตามประกาศกระทรวงพาณิชย์',
+    notes: {
+      new: 'เปิดมาตรการปกป้องจากการนำเข้าสินค้าที่เพิ่มขึ้น — เลือกแบบคำขอที่ตรงกับประกาศที่ใช้',
+    },
+  },
+  {
+    value: 'มาตรการ AC',
+    label: 'การหลบเลี่ยงมาตรการ (AC)',
+    note: 'ใช้แบบ ปร.6 ถึง ปร.8 — ตามมาตรา 71/6 วรรคหนึ่ง มาตรา 71/17 และมาตรา 71/18',
+    notes: {
+      new: 'เปิดคำขอตอบโต้การหลบเลี่ยงมาตรการ — ใช้แบบ ปร. 6',
+      review: 'ทบทวนหรือขอคืนอากรจากการหลบเลี่ยงมาตรการ — ใช้แบบ ปร. 7 หรือ ปร. 8',
+    },
+  },
 ];
 
 const ad = 'มาตรการ AD';
@@ -264,4 +299,22 @@ export function purposeOf(form: RequestForm, measure: string): FormPurpose {
 
 export function formsFor(measure: string): RequestForm[] {
   return requestForms.filter((item) => !!item.purposes[measure]);
+}
+
+const newMeasureCodes = new Set(['ปร. 1', 'ปร. 6', 'แบบคำขอ SG', 'แบบคำขอประกาศ']);
+const reviewMeasureCodes = new Set(['ปร. 2', 'ปร. 2ก', 'ปร. 3', 'ปร. 3ก', 'ปร. 4', 'ปร. 5', 'ปร. 7', 'ปร. 8']);
+
+export function formsForKind(measure: string, kind: FilingKind): RequestForm[] {
+  const codes = kind === 'new' ? newMeasureCodes : reviewMeasureCodes;
+  return formsFor(measure).filter((item) => codes.has(item.code));
+}
+
+export function measuresForKind(kind: FilingKind): RequestMeasure[] {
+  return requestMeasures.filter((item) => formsForKind(item.value, kind).length > 0);
+}
+
+export function measureNoteFor(measure: string, kind?: FilingKind | ''): string {
+  const item = measureOf(measure);
+  if (kind === 'new' || kind === 'review') return item.notes?.[kind] || item.note;
+  return item.note;
 }

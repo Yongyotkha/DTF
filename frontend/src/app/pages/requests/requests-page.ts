@@ -3,22 +3,26 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Accounts, secondApplicant } from '../../accounts';
 import { AskAiState } from '../../ask-ai/ask-ai';
 import { DftButton } from '../../button/button';
+import { InputField } from '../../input-field/input-field';
 import { SideNav } from '../../menu-bar/side-nav';
 import { Tabs } from '../../tabs/tabs';
 import { TopHeader } from '../../top-header/top-header';
-import { RequestForm, formOf, formsFor, measureOf, purposeOf, requestForms, requestMeasures } from './form-catalog';
-import { caseStatusLabel, caseStatusTone, filingRefId, readCaseStatus, startFilingCase } from './case-status';
+import { RequestForm, FilingKind, formOf, formsForKind, measureNoteFor, measuresForKind, purposeOf, requestForms, requestMeasures } from './form-catalog';
+import { applicantFilingLabel, applicantOptionTags, filingRefId, readCaseStatus, readFilingFiler, startFilingCase, writeFilingFiler } from './case-status';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
 import { joinedCaseIds } from './interest-invite';
 import { allowedCaseIds, isActingAgent } from './proxy-grant';
-import { archiveCases, caseBrief, caseKey, caseNumberLabel, draftCases, latestDate, ListedCase } from './request-cases';
-import { StatusTag } from '../../status-tag/status-tag';
+import { archiveCases, caseBrief, caseKey, caseNumberLabel, draftCases, findListedCase, latestDate, ListedCase } from './request-cases';
+import { StatusTag, StatusTone } from '../../status-tag/status-tag';
 
-type RequestRow = ListedCase & { ready: boolean; filing: boolean; result: string; updated: string };
+type RequestTag = { label: string; tone: StatusTone };
+type RequestRow = ListedCase & { ready: boolean; filing: boolean; result: string; updated: string; tags: RequestTag[] };
+
+const applicantRoles = new Set(['corporate', 'individual', 'association']);
 
 @Component({
   selector: 'app-requests-page',
-  imports: [TopHeader, SideNav, DftButton, Tabs, StatusTag],
+  imports: [TopHeader, SideNav, DftButton, Tabs, StatusTag, InputField],
   templateUrl: './requests-page.html',
   styleUrl: './requests-page.css',
 })
@@ -26,14 +30,26 @@ export class RequestsPage implements OnDestroy {
   protected readonly measures = requestMeasures;
   protected readonly forms = requestForms;
   protected measure = 'มาตรการ AD';
+  protected filingKind: FilingKind | '' = '';
+  protected filingCaseId = '';
+  protected caseQuery = '';
+
+  protected get visibleMeasures() {
+    return this.filingKind ? measuresForKind(this.filingKind) : this.measures;
+  }
 
   protected get visibleForms(): RequestForm[] {
-    return formsFor(this.measure);
+    if (!this.filingKind) return [];
+    return formsForKind(this.measure, this.filingKind);
   }
   protected readonly picked = signal<Readonly<Record<string, readonly string[]>>>({});
   protected choosing = false;
-  protected filingStep: 'forms' | 'method' = 'forms';
+  protected filingStep: 'kind' | 'case' | 'forms' | 'method' = 'kind';
   protected filingMethod: 'system' | 'upload' | '' = '';
+  protected readonly filingKinds: { value: FilingKind; label: string; summary: string }[] = [
+    { value: 'new', label: 'ยื่นมาตรการใหม่', summary: 'ยังไม่มีมาตรการกับสินค้านี้ หรือต้องการเปิดมาตรการครั้งแรก' },
+    { value: 'review', label: 'ทบทวน', summary: 'มีมาตรการใช้อยู่แล้ว และต้องการทบทวน ปรับเงื่อนไข หรือขอคืนอากร' },
+  ];
   protected readonly filingMethods: { value: 'system' | 'upload'; label: string; summary: string }[] = [
     { value: 'system', label: 'กรอกข้อมูลผ่านทางระบบ', summary: 'กรอกแบบฟอร์มออนไลน์ทีละช่องผ่านเว็บไซต์' },
     { value: 'upload', label: 'อัปโหลดไฟล์', summary: 'แนบไฟล์แบบฟอร์มที่จัดทำไว้แล้วเข้าสู่ระบบ' },
@@ -55,13 +71,14 @@ export class RequestsPage implements OnDestroy {
         const intent = readFilingIntent();
         if (intent?.codes.length) {
           this.measure = intent.measure;
+          this.filingKind = intent.kind === 'review' ? 'review' : 'new';
+          this.filingCaseId = intent.caseId || '';
           this.picked.set({ [intent.measure]: [...intent.codes] });
           this.filingMethod = 'upload';
           this.filingStep = 'method';
         }
       }
       if (next && !this.choosing) {
-        this.pickLoneForm();
         setTimeout(() => document.getElementById('chooser-close')?.focus({ preventScroll: true }), 0);
       }
       if (!next && this.choosing) setTimeout(() => this.opener?.focus(), 0);
@@ -93,12 +110,20 @@ export class RequestsPage implements OnDestroy {
   }
 
   private liveFilingRow(): RequestRow | null {
-    if (this.accounts.username !== secondApplicant.username) return null;
+    if (!applicantRoles.has(this.accounts.role)) return null;
     if (!sessionStorage.getItem('dft-por1-case')) return null;
+    const mine = this.accounts.username.trim();
+    let filer = readFilingFiler();
+    if (!filer && mine) {
+      writeFilingFiler(mine);
+      filer = mine;
+    }
+    if (filer && mine && filer !== mine) return null;
     const status = readCaseStatus();
     const created = sessionStorage.getItem('dft-por1-action-on') || '';
     const waiting = sessionStorage.getItem('dft-por1-await-official') === '1';
-    const label = waiting ? 'รอผู้ยื่นยื่นแบบทางการ' : status === 'official' ? 'ยื่นแบบทางการแล้ว' : caseStatusLabel(status);
+    const shown = applicantFilingLabel(status);
+    const tags = applicantOptionTags(status);
     const item: ListedCase = {
       id: 'live-por1',
       code: '—',
@@ -107,18 +132,18 @@ export class RequestsPage implements OnDestroy {
       countries: ['เวียดนาม', 'อียิปต์'],
       kind: 'แบบ ปร.1',
       measure: 'AD (ตอบโต้การทุ่มตลาด)',
-      status: label,
-      tone: waiting ? 'warning' : caseStatusTone(status),
+      status: shown.label,
+      tone: shown.tone,
       created,
       round: 1,
-      waiting: waiting || status === 'revision' || status === 'consult' || status === 'approval',
+      waiting: waiting || status === 'revision' || status === 'consult' || status === 'approval' || shown.label === 'ให้แก้ไข' || tags.length > 0,
       draft: status === 'draft',
-      steps: [{ name: label, state: 'current', date: created }],
-      applicant: secondApplicant.name,
-      filer: secondApplicant.username,
+      steps: [{ name: shown.label, state: 'current', date: created }],
+      applicant: this.accounts.displayName || secondApplicant.name,
+      filer: filer || mine || secondApplicant.username,
       documents: ['แบบ ปร.1 คำขอเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'],
     };
-    return { ...this.asRow(item), filing: true, ready: status !== 'cancelled' };
+    return { ...this.asRow(item), filing: true, ready: status !== 'cancelled', tags };
   }
 
   private ownFilings(): ListedCase[] {
@@ -150,7 +175,11 @@ export class RequestsPage implements OnDestroy {
   }
 
   private asRow(item: ListedCase): RequestRow {
-    return { ...item, ready: true, filing: false, result: caseBrief(item), updated: latestDate(item) };
+    const tags: RequestTag[] = [];
+    if (item.waiting && item.status !== 'ให้แก้ไข' && !/ปรึกษา|อนุมัติ|ยื่นแบบ/u.test(item.status)) {
+      tags.push({ label: 'มีงานรอดำเนินการ', tone: 'info' });
+    }
+    return { ...item, ready: true, filing: false, result: caseBrief(item), updated: latestDate(item), tags };
   }
 
   protected setListTab(index: number): void {
@@ -205,6 +234,12 @@ export class RequestsPage implements OnDestroy {
   protected openChooser(event?: Event): void {
     const host = event?.currentTarget as HTMLElement | undefined;
     this.opener = host?.querySelector('button') ?? host ?? null;
+    this.filingStep = 'kind';
+    this.filingKind = '';
+    this.filingCaseId = '';
+    this.caseQuery = '';
+    this.filingMethod = '';
+    this.picked.set({});
     this.choosing = true;
     void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
   }
@@ -216,7 +251,7 @@ export class RequestsPage implements OnDestroy {
       this.closeChooser();
       return;
     }
-    if (form?.code === 'ปร. 1') startFilingCase();
+    if (form?.code === 'ปร. 1') startFilingCase(this.accounts.username);
     this.choosing = false;
     document.body.classList.remove('chooser-open');
     void this.router.navigate([route], {
@@ -226,31 +261,152 @@ export class RequestsPage implements OnDestroy {
 
   protected closeChooser(): void {
     this.choosing = false;
-    this.filingStep = 'forms';
+    this.filingStep = 'kind';
+    this.filingKind = '';
+    this.filingCaseId = '';
+    this.caseQuery = '';
     this.filingMethod = '';
     void this.router.navigate(['/requests']);
   }
 
-  protected pickMeasure(value: string): void {
-    this.measure = value;
-    this.pickLoneForm();
+  protected pickFilingKind(value: FilingKind): void {
+    this.filingKind = value;
+    if (value !== 'review') this.filingCaseId = '';
   }
 
-  private pickLoneForm(): void {
-    const forms = this.visibleForms;
-    if (forms.length !== 1 || this.isPicked(forms[0].code)) return;
-    this.setPicked(forms[0].code, true);
+  protected canContinueKind(): boolean {
+    return this.filingKind === 'new' || this.filingKind === 'review';
+  }
+
+  protected continueKind(): void {
+    if (!this.canContinueKind() || !this.filingKind) return;
+    if (this.filingKind !== 'review') this.filingCaseId = '';
+    this.goToFormsStep();
+  }
+
+  protected backToKind(): void {
+    this.filingStep = 'kind';
+    this.filingMethod = '';
+  }
+
+  /** เคสที่ประกาศผลแล้วเท่านั้น จึงยื่นทบทวน/คืนอากรได้ */
+  private isAnnouncedCase(item: ListedCase): boolean {
+    return /ประกาศผลชั้นที่สุด|ประกาศผลการทบทวน/u.test(item.status);
+  }
+
+  private caseMatchesMeasure(item: ListedCase, measure: string): boolean {
+    const raw = `${item.measure} ${item.kind}`.toUpperCase();
+    if (measure === 'มาตรการ CVD') return /CVD|อุดหนุน/u.test(raw);
+    if (measure === 'มาตรการ SG') return /SG|ปกป้อง/u.test(raw);
+    if (measure === 'มาตรการ AC') return /AC|หลบเลี่ยง/u.test(raw);
+    return /AD|ทุ่มตลาด|มาตรา\s*5[6-9]/u.test(raw) || (!/CVD|SG|AC|อุดหนุน|ปกป้อง|หลบเลี่ยง/u.test(raw) && caseNumberLabel(item).startsWith('AD'));
+  }
+
+  protected get reviewCaseOptions(): ListedCase[] {
+    const seen = new Set<string>();
+    const rows: ListedCase[] = [];
+    for (const item of this.visibleCases(archiveCases)) {
+      const code = caseNumberLabel(item);
+      if (code === '—' || seen.has(code)) continue;
+      if (!this.isAnnouncedCase(item)) continue;
+      if (!this.caseMatchesMeasure(item, this.measure)) continue;
+      seen.add(code);
+      rows.push(item);
+    }
+    return rows;
+  }
+
+  protected get filteredReviewCases(): ListedCase[] {
+    const query = this.caseQuery.trim().toLowerCase();
+    if (!query) return this.reviewCaseOptions;
+    return this.reviewCaseOptions.filter((item) => {
+      const hay = [caseNumberLabel(item), item.ref, item.goods, item.measure, item.status, item.countries.join(' ')].join(' ').toLowerCase();
+      return hay.includes(query);
+    });
+  }
+
+  protected get selectedReviewCase(): ListedCase | null {
+    if (!this.filingCaseId) return null;
+    return findListedCase(this.filingCaseId) ?? this.reviewCaseOptions.find((item) => caseNumberLabel(item) === this.filingCaseId) ?? null;
+  }
+
+  protected get chosenFormLabel(): string {
+    const codes = this.chosenCodes();
+    return codes.length ? codes.join(', ') : '';
+  }
+
+  protected pickReviewCase(code: string): void {
+    this.filingCaseId = code;
+  }
+
+  protected canContinueCase(): boolean {
+    return !!this.filingCaseId && this.reviewCaseOptions.some((item) => caseNumberLabel(item) === this.filingCaseId);
+  }
+
+  protected continueCase(): void {
+    if (!this.canContinueCase()) return;
+    const picked = this.chosenCodes();
+    saveFilingIntent(this.intentPayload(picked));
+    const form = this.visibleForms.find((item) => picked.includes(item.code) && item.route);
+    if (form) {
+      this.openForm(form.code);
+      return;
+    }
+    this.filingMethod = '';
+    this.filingStep = 'method';
+  }
+
+  protected backFromCase(): void {
+    this.filingStep = 'forms';
+    this.filingMethod = '';
+  }
+
+  private goToFormsStep(): void {
+    const options = this.filingKind ? measuresForKind(this.filingKind) : this.measures;
+    if (!options.some((item) => item.value === this.measure)) {
+      this.measure = options[0]?.value ?? this.measure;
+    }
+    this.filingStep = 'forms';
+  }
+
+  private goToCaseStep(): void {
+    this.caseQuery = '';
+    if (this.filingCaseId && !this.reviewCaseOptions.some((item) => caseNumberLabel(item) === this.filingCaseId)) {
+      this.filingCaseId = '';
+    }
+    this.filingStep = 'case';
+  }
+
+  private intentPayload(codes: readonly string[]) {
+    return {
+      measure: this.measure,
+      codes,
+      kind: this.filingKind || undefined,
+      caseId: this.filingKind === 'review' ? this.filingCaseId || undefined : undefined,
+    } as const;
+  }
+
+  protected pickMeasure(value: string): void {
+    this.measure = value;
   }
 
   protected chosenCodes(): string[] {
-    const picked = this.picked()[this.measure] ?? [];
-    if (picked.length) return [...picked];
-    const forms = this.visibleForms;
-    return forms.length === 1 ? [forms[0].code] : [];
+    return [...(this.picked()[this.measure] ?? [])];
   }
 
   protected isPicked(code: string): boolean {
-    return this.chosenCodes().includes(code);
+    return (this.picked()[this.measure] ?? []).includes(code);
+  }
+
+  protected togglePicked(code: string, event?: Event): void {
+    event?.preventDefault();
+    this.setPicked(code, !this.isPicked(code));
+  }
+
+  protected pickedCount(measure: string): number {
+    if (!this.filingKind) return 0;
+    const allowed = new Set(formsForKind(measure, this.filingKind).map((item) => item.code));
+    return (this.picked()[measure] ?? []).filter((code) => allowed.has(code)).length;
   }
 
   protected canContinue(): boolean {
@@ -259,8 +415,13 @@ export class RequestsPage implements OnDestroy {
 
   protected continueFiling(): void {
     const picked = this.chosenCodes();
-    if (!picked.length) return;
-    saveFilingIntent({ measure: this.measure, codes: picked });
+    if (!picked.length || !this.filingKind) return;
+    if (this.filingKind === 'review') {
+      saveFilingIntent(this.intentPayload(picked));
+      this.goToCaseStep();
+      return;
+    }
+    saveFilingIntent(this.intentPayload(picked));
     const form = this.visibleForms.find((item) => picked.includes(item.code) && item.route);
     if (form) {
       this.openForm(form.code);
@@ -279,6 +440,7 @@ export class RequestsPage implements OnDestroy {
 
   protected backToForms(): void {
     this.filingStep = 'forms';
+    this.filingMethod = '';
   }
 
   protected pickFilingMethod(value: 'system' | 'upload'): void {
@@ -288,14 +450,14 @@ export class RequestsPage implements OnDestroy {
   protected confirmMethod(): void {
     const picked = this.picked()[this.measure] ?? [];
     if (this.filingMethod === 'upload') {
-      saveFilingIntent({ measure: this.measure, codes: picked });
+      saveFilingIntent(this.intentPayload(picked));
       this.choosing = false;
       document.body.classList.remove('chooser-open');
-      void this.router.navigateByUrl('/requests/upload', { state: { measure: this.measure, codes: [...picked] } });
+      void this.router.navigateByUrl('/requests/upload', { state: { measure: this.measure, codes: [...picked], caseId: this.filingCaseId || undefined } });
       return;
     }
     if (!this.canConfirmMethod()) return;
-    saveFilingIntent({ measure: this.measure, codes: picked });
+    saveFilingIntent(this.intentPayload(picked));
     const form = this.visibleForms.find((item) => picked.includes(item.code) && item.route);
     if (form) this.openForm(form.code);
   }
@@ -315,7 +477,7 @@ export class RequestsPage implements OnDestroy {
   }
 
   protected get measureNote(): string {
-    return measureOf(this.measure).note;
+    return measureNoteFor(this.measure, this.filingKind);
   }
 
   @HostListener('document:keydown.escape')
@@ -326,10 +488,34 @@ export class RequestsPage implements OnDestroy {
 
   protected openMenu(label: string): void {
     if (label === 'ยื่นคำขอ') {
-      this.choosing = true;
-      void this.router.navigate(['/requests'], { queryParams: { choose: '1' } });
+      this.openChooser();
       return;
     }
     if (label === 'รายการยื่นคำขอ') this.closeChooser();
+  }
+
+  protected get chooserTitle(): string {
+    if (this.filingStep === 'kind') return 'เลือกประเภทการยื่นคำขอ';
+    if (this.filingStep === 'case') return 'เลือก Case ID ที่จะทบทวน';
+    if (this.filingStep === 'forms') {
+      return this.filingKind === 'review' ? 'เลือกแบบฟอร์มทบทวน' : 'เลือกแบบฟอร์มยื่นมาตรการใหม่';
+    }
+    return 'คุณต้องการยื่นแบบฟอร์มอย่างไร?';
+  }
+
+  protected get chooserNote(): string {
+    if (this.filingStep === 'kind') return 'เลือกประเภทให้ตรงกับสถานะมาตรการของคุณ แล้วระบบจะแสดงแบบฟอร์มที่เกี่ยวข้อง';
+    if (this.filingStep === 'case') {
+      const forms = this.chosenFormLabel;
+      return forms
+        ? `แสดงเฉพาะเคสที่ประกาศผลแล้วในมาตรการที่เลือก · แบบ ${forms}`
+        : 'แสดงเฉพาะเคสที่ประกาศผลแล้วในมาตรการที่เลือก';
+    }
+    if (this.filingStep === 'forms') {
+      return this.filingKind === 'review'
+        ? 'เลือกมาตรการและแบบ ปร. ก่อน แล้วจึงเลือก Case ID ที่ประกาศผลแล้ว'
+        : 'เลือกมาตรการแล้วเลือกแบบเปิดมาตรการครั้งแรก';
+    }
+    return 'เลือกกรอกข้อมูลผ่านระบบ หรืออัปโหลดไฟล์เข้าสู่ระบบ';
   }
 }

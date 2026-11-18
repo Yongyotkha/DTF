@@ -4,6 +4,7 @@ import { groupHead } from '../staff/staff-roster';
 export type CaseStatus = 'draft' | 'review' | 'revision' | 'consult' | 'approval' | 'official' | 'cancelled';
 
 const key = 'dft-por1-case';
+const filerKey = 'dft-por1-filer';
 const roundsKey = 'dft-por1-rounds';
 const reviewUntilKey = 'dft-por1-review-until';
 const approvalUntilKey = 'dft-por1-approval-until';
@@ -13,7 +14,51 @@ const consultJobKey = 'dft-por1-consult-jobs';
 const filingGateKey = 'dft-por1-filing-gate';
 
 export type ConsultWay = 'phone' | 'online' | 'onsite';
-export type ConsultRequest = { topic: string; detail: string; when: string; channel?: ConsultWay; by?: string; at?: string };
+export type ConsultSlot = { date: string; time: string; endTime: string };
+export type ConsultRequest = {
+  topic: string;
+  detail: string;
+  when: string;
+  slots?: ConsultSlot[];
+  channel?: ConsultWay;
+  contactName?: string;
+  contactPhone?: string;
+  by?: string;
+  at?: string;
+};
+
+export const minConsultSlots = 3;
+export const maxConsultSlots = 8;
+
+export function defaultConsultSlots(): ConsultSlot[] {
+  const shift = (days: number): string => {
+    const now = new Date();
+    now.setDate(now.getDate() + days);
+    return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear() + 543}`;
+  };
+  return [
+    { date: shift(1), time: '09:00', endTime: '10:00' },
+    { date: shift(2), time: '13:00', endTime: '14:00' },
+    { date: shift(3), time: '15:00', endTime: '16:00' },
+  ];
+}
+
+export function nextConsultSlot(slots: ConsultSlot[]): ConsultSlot {
+  const shift = (days: number): string => {
+    const now = new Date();
+    now.setDate(now.getDate() + days);
+    return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear() + 543}`;
+  };
+  return { date: shift(slots.length + 1), time: '10:00', endTime: '11:00' };
+}
+
+export function normalizeConsultSlot(slot: Partial<ConsultSlot> | null | undefined): ConsultSlot {
+  return {
+    date: slot?.date?.trim() || '',
+    time: slot?.time?.trim() || '',
+    endTime: slot?.endTime?.trim() || '',
+  };
+}
 export type ConsultNote = {
   from: 'applicant' | 'officer';
   text: string;
@@ -21,7 +66,17 @@ export type ConsultNote = {
   files?: { name: string; image?: string }[];
 };
 
+/** ผลแจ้งผู้ยื่น/ผู้ขอ จากงานขอคำปรึกษาหรืองานอื่น */
+export type ApplicantNotice = {
+  id: string;
+  kind: string;
+  text: string;
+  by: string;
+  at: string;
+};
+
 const threadKey = 'dft-por1-consult-thread';
+const noticeKey = 'dft-por1-applicant-notices';
 const assignKey = 'dft-por1-consult-assigned';
 const planKey = 'dft-por1-consult-plan';
 const rosterKey = 'dft-por1-assignees';
@@ -179,6 +234,16 @@ export function writeCaseStatus(status: CaseStatus): void {
   sessionStorage.setItem(key, status);
 }
 
+export function readFilingFiler(): string {
+  return sessionStorage.getItem(filerKey)?.trim() || '';
+}
+
+export function writeFilingFiler(username: string): void {
+  const id = username.trim();
+  if (!id) sessionStorage.removeItem(filerKey);
+  else sessionStorage.setItem(filerKey, id);
+}
+
 /** คำปรึกษาที่ปิดแล้วและยื่นแบบแล้ว ส่งกลับผู้อำนวยการให้มอบหมายรอบใหม่ */
 export function releaseFilingToDirector(): boolean {
   if (sessionStorage.getItem('dft-por1-filing-assign') === 'open') return false;
@@ -199,7 +264,94 @@ export function releaseFilingToDirector(): boolean {
   sessionStorage.setItem('dft-por1-await-official', '0');
   sessionStorage.removeItem(consultJobKey);
   sessionStorage.removeItem('dft-por1-consult-closed');
+  writeEofficeDirectorHandoff(null);
   return true;
+}
+
+const eofficeDirectorKey = 'dft-por1-eoffice-director';
+
+/** มอบหมายของผู้อำนวยการทำใน e-Office แล้วดึงกลับมาแสดงในระบบนี้ */
+export type EofficeDirectorHandoff = {
+  state: 'idle' | 'sent' | 'assigned' | 'error';
+  mode: 'auto' | 'manual';
+  sentAt: string;
+  pulledAt: string;
+  refNo: string;
+  groups: string[];
+  detail: string;
+  error: string;
+};
+
+export function emptyEofficeDirectorHandoff(): EofficeDirectorHandoff {
+  return { state: 'idle', mode: 'auto', sentAt: '', pulledAt: '', refNo: '', groups: [], detail: '', error: '' };
+}
+
+export function readEofficeDirectorHandoff(): EofficeDirectorHandoff {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(eofficeDirectorKey) || 'null') as Partial<EofficeDirectorHandoff> | null;
+    if (!value) return emptyEofficeDirectorHandoff();
+    const state = value.state === 'sent' || value.state === 'assigned' || value.state === 'error' ? value.state : 'idle';
+    const mode = value.mode === 'manual' ? 'manual' : 'auto';
+    return {
+      state,
+      mode,
+      sentAt: typeof value.sentAt === 'string' ? value.sentAt : '',
+      pulledAt: typeof value.pulledAt === 'string' ? value.pulledAt : '',
+      refNo: typeof value.refNo === 'string' ? value.refNo : '',
+      groups: Array.isArray(value.groups) ? value.groups.filter((item): item is string => typeof item === 'string' && !!item) : [],
+      detail: typeof value.detail === 'string' ? value.detail : '',
+      error: typeof value.error === 'string' ? value.error : '',
+    };
+  } catch {
+    return emptyEofficeDirectorHandoff();
+  }
+}
+
+export function writeEofficeDirectorHandoff(value: EofficeDirectorHandoff | null): void {
+  if (!value || value.state === 'idle') sessionStorage.removeItem(eofficeDirectorKey);
+  else sessionStorage.setItem(eofficeDirectorKey, JSON.stringify(value));
+}
+
+/** ส่งงานมอบหมายผู้อำนวยการเข้า e-Office (prototype) */
+export function sendDirectorWorkToEoffice(opts: { at: string; mode?: 'auto' | 'manual'; reason?: string }): EofficeDirectorHandoff {
+  const refNo = `EO-DIR-${filingRefId.slice(-6)}`;
+  const next: EofficeDirectorHandoff = {
+    state: 'sent',
+    mode: opts.mode || 'auto',
+    sentAt: opts.at,
+    pulledAt: '',
+    refNo,
+    groups: [],
+    detail: opts.reason?.trim() || `ส่งคำขอ ${filingRefId} ให้ผู้อำนวยการมอบหมายใน e-Office`,
+    error: '',
+  };
+  writeEofficeDirectorHandoff(next);
+  writeConsultStep('director');
+  return next;
+}
+
+/** ดึงผลการมอบหมายจาก e-Office กลับมา (prototype) */
+export function pullDirectorAssignFromEoffice(at: string): EofficeDirectorHandoff {
+  const current = readEofficeDirectorHandoff();
+  if (current.state !== 'sent' && current.state !== 'assigned' && current.state !== 'error') {
+    return { ...emptyEofficeDirectorHandoff(), state: 'error', error: 'ยังไม่มีการส่งงานเข้า e-Office' };
+  }
+  const groups = current.groups.length ? current.groups : ['กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'];
+  const next: EofficeDirectorHandoff = {
+    ...current,
+    state: 'assigned',
+    pulledAt: at,
+    groups,
+    detail: `e-Office มอบหมายแล้ว: ${groups.join(', ')}`,
+    error: '',
+  };
+  writeEofficeDirectorHandoff(next);
+  writeConsultStep('group');
+  writeConsultGroup(groups[0] || '');
+  if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') {
+    sessionStorage.setItem('dft-por1-filing-assign', 'open');
+  }
+  return next;
 }
 
 export function readApprovedBy(): string {
@@ -260,19 +412,55 @@ export function consultFilingOwners(): string[] {
 
 export function caseStatusLabel(status: CaseStatus): string {
   if (status === 'review') return 'อยู่ระหว่างตรวจสอบ';
-  if (status === 'revision') return 'กรุณาแก้ไขข้อมูล';
+  if (status === 'revision') return 'ให้แก้ไข';
   if (status === 'consult' && readFilingGate()?.state === 'rejected') return 'ยังไม่ผ่าน';
   if (status === 'consult' && !readConsultAssigned()) {
     const step = readConsultStep();
     if (step === 'receive' || step === 'forward') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
     if (step === 'group') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่';
-    return 'รอผู้อำนวยการมอบหมายกลุ่ม';
+    const eo = readEofficeDirectorHandoff();
+    if (eo.state === 'sent') return 'รอผู้อำนวยการมอบหมายใน e-Office';
+    if (eo.state === 'assigned') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่';
+    return 'รอส่งมอบหมายเข้า e-Office';
   }
   if (status === 'consult') return 'รอนัดพบเจ้าหน้าที่';
   if (status === 'approval') return readFilingGate()?.state === 'pending' ? 'ส่งมาขออนุมัติ' : 'รอผู้รับมอบหมายอนุมัติ';
   if (status === 'official') return 'ยื่นแบบ';
   if (status === 'cancelled') return 'ยกเลิก';
   return 'ร่าง';
+}
+
+/** สถานะที่ผู้ยื่นเห็นในรายการ ต้องตรงกับ badge ในหน้ารายละเอียด */
+export function applicantFilingLabel(status = readCaseStatus()): { label: string; tone: StatusTone } {
+  const flow = readFlowFile();
+  if (flow?.state === 'fix') return { label: 'ให้แก้ไข', tone: 'warning' };
+  if (flow?.state === 'checking' || flow?.state === 'receive') return { label: 'ตรวจสอบคำขอ', tone: 'info' };
+  if (sessionStorage.getItem('dft-por1-await-official') === '1') return { label: 'รอผู้ยื่นยื่นแบบทางการ', tone: 'warning' };
+  if (status === 'official') return { label: 'ยื่นแบบทางการแล้ว', tone: caseStatusTone(status) };
+  return { label: caseStatusLabel(status), tone: caseStatusTone(status) };
+}
+
+/** สถานะชั้นเสริม (ปรึกษา / อนุมัติยื่นแบบ) แสดงคู่กับสถานะคำขอ */
+export function applicantOptionTags(status = readCaseStatus()): { label: string; tone: StatusTone }[] {
+  const tags: { label: string; tone: StatusTone }[] = [];
+  const main = applicantFilingLabel(status).label;
+  const gate = readFilingGate();
+  if (gate?.state === 'pending' && main !== 'ส่งมาขออนุมัติ') tags.push({ label: 'รออนุมัติยื่นแบบ', tone: 'info' });
+  if (gate?.state === 'rejected') tags.push({ label: 'ยื่นแบบยังไม่ผ่าน', tone: 'danger' });
+  if (sessionStorage.getItem('dft-por1-await-official') === '1' && main !== 'รอผู้ยื่นยื่นแบบทางการ') {
+    tags.push({ label: 'รอผู้ยื่นยื่นแบบทางการ', tone: 'warning' });
+  }
+  const open = openConsultRound(readConsultRounds());
+  if (open) {
+    const assigned = open.assigned || readConsultAssigned();
+    tags.push({
+      label: assigned ? `ปรึกษา รอบ #${open.no}` : `รอรับปรึกษา #${open.no}`,
+      tone: 'info',
+    });
+  } else if (sessionStorage.getItem('dft-por1-need-consult') === '1') {
+    tags.push({ label: 'แนะนำขอปรึกษาใหม่', tone: 'warning' });
+  }
+  return tags.filter((tag) => tag.label !== main);
 }
 
 export function readRounds(): FilingRound[] {
@@ -321,6 +509,7 @@ export function readConsult(): ConsultRequest | null {
 export function writeConsult(request: ConsultRequest | null): void {
   if (!request) sessionStorage.removeItem(consultKey);
   else sessionStorage.setItem(consultKey, JSON.stringify(request));
+  syncActiveRoundRequest(request);
 }
 
 export function readConsultThread(): ConsultNote[] {
@@ -335,6 +524,199 @@ export function readConsultThread(): ConsultNote[] {
 export function writeConsultThread(notes: ConsultNote[]): void {
   if (!notes.length) sessionStorage.removeItem(threadKey);
   else sessionStorage.setItem(threadKey, JSON.stringify(notes));
+  syncActiveRoundNotes(notes);
+}
+
+/** บันทึกส่วนตัวในรอบปรึกษา — เห็นเฉพาะผู้เขียน */
+export type ConsultPrivateNote = {
+  id: string;
+  at: string;
+  authorId: string;
+  author: string;
+  text: string;
+};
+
+/** หนึ่งรอบขอปรึกษา (แชท + สรุป + note ส่วนตัว) */
+export type ConsultRound = {
+  id: string;
+  no: number;
+  request: ConsultRequest;
+  notes: ConsultNote[];
+  privateNotes: ConsultPrivateNote[];
+  assigned: boolean;
+  status: 'open' | 'closed';
+  closedAt: string;
+};
+
+const consultRoundsKey = 'dft-por1-consult-rounds';
+
+function parseConsultRounds(raw: unknown): ConsultRound[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const row = item as Partial<ConsultRound>;
+    const request = row.request && typeof row.request.topic === 'string' ? row.request : null;
+    if (!request?.topic) return [];
+    const notes = Array.isArray(row.notes) ? row.notes.filter((note): note is ConsultNote => !!note && (note.from === 'applicant' || note.from === 'officer') && typeof note.at === 'string') : [];
+    const privateNotes = Array.isArray(row.privateNotes)
+      ? row.privateNotes.flatMap((note) => {
+          if (!note || typeof note.id !== 'string' || typeof note.text !== 'string' || !note.text.trim()) return [];
+          return [{
+            id: note.id,
+            at: typeof note.at === 'string' ? note.at : '',
+            authorId: typeof note.authorId === 'string' ? note.authorId : '',
+            author: typeof note.author === 'string' && note.author ? note.author : 'ผู้ใช้',
+            text: note.text.trim(),
+          }];
+        })
+      : [];
+    return [{
+      id: typeof row.id === 'string' && row.id ? row.id : `consult-round-${index + 1}`,
+      no: typeof row.no === 'number' && row.no > 0 ? row.no : index + 1,
+      request,
+      notes,
+      privateNotes,
+      assigned: !!row.assigned,
+      status: row.status === 'closed' ? 'closed' : 'open',
+      closedAt: typeof row.closedAt === 'string' ? row.closedAt : '',
+    }];
+  });
+}
+
+function migrateConsultRounds(): ConsultRound[] {
+  const legacy = readConsult();
+  if (!legacy) return [];
+  const notes = readConsultThread();
+  const closed = !!sessionStorage.getItem('dft-por1-consult-closed');
+  let closedAt = '';
+  try {
+    const value = JSON.parse(sessionStorage.getItem('dft-por1-consult-closed') || 'null') as { at?: string } | null;
+    closedAt = value?.at || '';
+  } catch {
+    closedAt = '';
+  }
+  const round: ConsultRound = {
+    id: 'consult-round-1',
+    no: 1,
+    request: legacy,
+    notes,
+    privateNotes: [],
+    assigned: readConsultAssigned(),
+    status: closed ? 'closed' : 'open',
+    closedAt,
+  };
+  writeConsultRounds([round]);
+  return [round];
+}
+
+export function readConsultRounds(): ConsultRound[] {
+  try {
+    const raw = sessionStorage.getItem(consultRoundsKey);
+    if (!raw) return migrateConsultRounds();
+    const rounds = parseConsultRounds(JSON.parse(raw));
+    return rounds.length ? rounds : migrateConsultRounds();
+  } catch {
+    return migrateConsultRounds();
+  }
+}
+
+export function writeConsultRounds(rounds: ConsultRound[]): void {
+  if (!rounds.length) sessionStorage.removeItem(consultRoundsKey);
+  else sessionStorage.setItem(consultRoundsKey, JSON.stringify(rounds));
+}
+
+export function activeConsultRound(rounds = readConsultRounds()): ConsultRound | null {
+  return [...rounds].reverse().find((round) => round.status === 'open') || rounds.at(-1) || null;
+}
+
+export function openConsultRound(rounds: ConsultRound[]): ConsultRound | null {
+  return [...rounds].reverse().find((round) => round.status === 'open') || null;
+}
+
+function syncActiveRoundRequest(request: ConsultRequest | null): void {
+  const rounds = readConsultRounds();
+  if (!rounds.length) return;
+  const open = openConsultRound(rounds);
+  const target = open || rounds.at(-1);
+  if (!target) return;
+  if (!request) {
+    writeConsultRounds(rounds.map((round) => (round.id === target.id ? { ...round, status: 'closed' as const, closedAt: round.closedAt || '' } : round)));
+    return;
+  }
+  writeConsultRounds(rounds.map((round) => (round.id === target.id ? { ...round, request } : round)));
+}
+
+function syncActiveRoundNotes(notes: ConsultNote[]): void {
+  const rounds = readConsultRounds();
+  if (!rounds.length) return;
+  const open = openConsultRound(rounds);
+  const target = open || rounds.at(-1);
+  if (!target) return;
+  writeConsultRounds(rounds.map((round) => (round.id === target.id ? { ...round, notes } : round)));
+}
+
+export function upsertConsultRound(input: {
+  request: ConsultRequest;
+  notes?: ConsultNote[];
+  assigned?: boolean;
+}): ConsultRound {
+  const rounds = readConsultRounds().map((round) => (
+    round.status === 'open'
+      ? { ...round, status: 'closed' as const, closedAt: round.closedAt || input.request.at || '' }
+      : round
+  ));
+  const next: ConsultRound = {
+    id: `consult-round-${Date.now()}`,
+    no: (rounds.at(-1)?.no || 0) + 1,
+    request: input.request,
+    notes: input.notes || [],
+    privateNotes: [],
+    assigned: !!input.assigned,
+    status: 'open',
+    closedAt: '',
+  };
+  const list = [...rounds, next];
+  writeConsultRounds(list);
+  sessionStorage.setItem(consultKey, JSON.stringify(input.request));
+  if (!next.notes.length) sessionStorage.removeItem(threadKey);
+  else sessionStorage.setItem(threadKey, JSON.stringify(next.notes));
+  sessionStorage.setItem(assignKey, next.assigned ? '1' : '0');
+  return next;
+}
+
+export function patchConsultRound(id: string, patch: Partial<ConsultRound>): ConsultRound[] {
+  const rounds = readConsultRounds().map((round) => (round.id === id ? { ...round, ...patch, id: round.id, no: round.no } : round));
+  writeConsultRounds(rounds);
+  const active = openConsultRound(rounds) || rounds.find((round) => round.id === id) || rounds.at(-1) || null;
+  if (active) {
+    sessionStorage.setItem(consultKey, JSON.stringify(active.request));
+    if (!active.notes.length) sessionStorage.removeItem(threadKey);
+    else sessionStorage.setItem(threadKey, JSON.stringify(active.notes));
+    sessionStorage.setItem(assignKey, active.assigned ? '1' : '0');
+  }
+  return rounds;
+}
+
+export function closeActiveConsultRound(at: string): ConsultRound[] {
+  const rounds = readConsultRounds().map((round) => (
+    round.status === 'open' ? { ...round, status: 'closed' as const, closedAt: at } : round
+  ));
+  writeConsultRounds(rounds);
+  return rounds;
+}
+
+export function readApplicantNotices(): ApplicantNotice[] {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(noticeKey) || '[]') as ApplicantNotice[];
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeApplicantNotices(notes: ApplicantNotice[]): void {
+  if (!notes.length) sessionStorage.removeItem(noticeKey);
+  else sessionStorage.setItem(noticeKey, JSON.stringify(notes));
 }
 
 export function readConsultAssigned(): boolean {
@@ -345,7 +727,15 @@ export function readConsultAssigned(): boolean {
 }
 
 export function consultAwaitingDirector(): boolean {
-  return readCaseStatus() === 'consult' && !!readConsult() && readConsultStep() === 'director';
+  // ชั้นปรึกษาแยกจากสถานะคำขอ — ดูจากคำขอปรึกษาที่เปิดอยู่
+  return !!readConsult() && readConsultStep() === 'director' && !!openConsultRound(readConsultRounds());
+}
+
+/** งานถึงผู้อำนวยการแล้ว ต้องส่ง/ดึงผ่าน e-Office */
+export function directorWorkNeedsEoffice(): boolean {
+  if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') return true;
+  if (consultAwaitingDirector()) return true;
+  return readConsultStep() === 'director';
 }
 
 export type ConsultStep = 'receive' | 'forward' | 'director' | 'group' | 'member';
@@ -375,6 +765,12 @@ export function writeConsultGroup(name: string): void {
 
 export function writeConsultAssigned(assigned: boolean): void {
   sessionStorage.setItem(assignKey, assigned ? '1' : '0');
+  const rounds = readConsultRounds();
+  if (!rounds.length) return;
+  const open = openConsultRound(rounds);
+  const target = open || rounds.at(-1);
+  if (!target || target.assigned === assigned) return;
+  writeConsultRounds(rounds.map((round) => (round.id === target.id ? { ...round, assigned } : round)));
 }
 
 export function readConsultPlan(): ConsultPlan | null {
@@ -1136,26 +1532,16 @@ export function readFlowFile(): FlowFile | null {
   return null;
 }
 
-/** เริ่มคำขอต้นแบบใหม่จากหน้าเลือกแบบฟอร์ม */
-export function startFilingCase(): void {
-  writeFlowFile(null);
+/** เริ่มคำขอต้นแบบใหม่จากหน้าเลือกแบบฟอร์ม — ล้าง state เดิมทั้งชุดเพื่อ demo */
+export function startFilingCase(filer = ''): void {
+  const doomed: string[] = [];
+  for (let i = 0; i < sessionStorage.length; i += 1) {
+    const name = sessionStorage.key(i);
+    if (name?.startsWith('dft-por1-')) doomed.push(name);
+  }
+  for (const name of doomed) sessionStorage.removeItem(name);
   writeCaseStatus('draft');
-  writeRounds([]);
-  writeReviewUntil(0);
-  writeApprovalUntil(0);
-  writeConsult(null);
-  writeConsultThread([]);
-  writeConsultPlan(null);
-  sessionStorage.removeItem(consultStepKey);
-  sessionStorage.removeItem(consultGroupKey);
-  writeWorkAssignment(null);
-  writeReceipt(null);
-  writeEtrLink(null);
-  writeSystemLinks([]);
-  writeDocNotice(null);
-  writeWorkDrafts([]);
-  writeMadeDocs([]);
-  sessionStorage.removeItem(assignKey);
+  writeFilingFiler(filer);
 }
 
 export function caseStatusTone(status: CaseStatus): StatusTone {

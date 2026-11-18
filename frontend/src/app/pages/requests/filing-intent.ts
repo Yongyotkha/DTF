@@ -7,6 +7,9 @@ const key = 'dft-filing-intent';
 export type FilingIntent = {
   measure: string;
   codes: readonly string[];
+  kind?: 'new' | 'review';
+  /** Case ID ของมาตรการเดิม เมื่อยื่นทบทวน */
+  caseId?: string;
 };
 
 export function saveFilingIntent(intent: FilingIntent): void {

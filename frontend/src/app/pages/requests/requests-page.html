@@ -27,7 +27,12 @@
                       <p class="item__who">{{ row.applicant }}</p>
                     }
                   </div>
-                  <app-status-tag [tone]="row.tone" [label]="row.status" />
+                  <div class="item__tags">
+                    <app-status-tag [tone]="row.tone" [label]="row.status" />
+                    @for (tag of row.tags; track tag.label) {
+                      <app-status-tag variant="soft" [tone]="tag.tone" [label]="tag.label" />
+                    }
+                  </div>
                 </header>
                 <p class="item__ask">{{ row.result }}</p>
                 <dl class="item__facts item__facts--split">
@@ -86,29 +91,68 @@
 
 @if (choosing) {
   <div class="chooser">
-    <section role="dialog" aria-modal="true" aria-labelledby="chooser-title" aria-describedby="chooser-note" [class.chooser--method]="filingStep === 'method'">
+    <section role="dialog" aria-modal="true" aria-labelledby="chooser-title" aria-describedby="chooser-note" [class.chooser--method]="filingStep === 'kind' || filingStep === 'method'">
       <header class="chooser__head">
         <div>
-          <h2 id="chooser-title">{{ filingStep === 'forms' ? 'คุณต้องการยื่นคำขอเรื่องใด?' : 'คุณต้องการยื่นแบบฟอร์มอย่างไร?' }}</h2>
-          <p id="chooser-note">{{ filingStep === 'forms' ? 'เลือกแบบฟอร์มให้ตรงกับวัตถุประสงค์' : 'เลือกกรอกข้อมูลผ่านระบบ หรืออัปโหลดไฟล์เข้าสู่ระบบ' }}</p>
+          <h2 id="chooser-title">{{ chooserTitle }}</h2>
+          <p id="chooser-note">{{ chooserNote }}</p>
         </div>
         <button id="chooser-close" type="button" aria-label="ปิด" (click)="closeChooser()">✕</button>
       </header>
-      @if (filingStep === 'forms') {
+      @if (filingStep === 'kind') {
+      <div class="chooser__body">
+        <div class="cards method-cards">
+          @for (item of filingKinds; track item.value) {
+            <article class="card method-card" [class.card--picked]="filingKind === item.value">
+              <label class="method-card__hit">
+                <span class="card__check">
+                  <input type="radio" name="filing-kind" [checked]="filingKind === item.value" (change)="pickFilingKind(item.value)" />
+                  <img [src]="filingKind === item.value ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                </span>
+                @if (item.value === 'new') {
+                  <svg class="method-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                } @else {
+                  <svg class="method-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 12a8 8 0 0 1 14.5-4.5M20 12a8 8 0 0 1-14.5 4.5" />
+                    <path d="M18.5 4v3.5H15M5.5 20v-3.5H9" />
+                  </svg>
+                }
+                <div class="card__main">
+                  <h3 class="method-title">{{ item.label }}</h3>
+                  <p class="method-summary">{{ item.summary }}</p>
+                </div>
+              </label>
+            </article>
+          }
+        </div>
+      </div>
+      <footer class="chooser__foot">
+        <app-button type="primary" label="ถัดไป" [state]="canContinueKind() ? 'default' : 'disabled'" (click)="continueKind()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </app-button>
+      </footer>
+      } @else if (filingStep === 'forms') {
       <div class="chooser__body">
         <div class="chooser__bar">
           <div class="measures" role="tablist" aria-label="มาตรการ">
-            @for (item of measures; track item.value) {
-              <button type="button" role="tab" [class.active]="measure === item.value" [attr.aria-selected]="measure === item.value" (click)="pickMeasure(item.value)">{{ item.label }}</button>
+            @for (item of visibleMeasures; track item.value) {
+              <button type="button" role="tab" [class.active]="measure === item.value" [class.measures__has]="pickedCount(item.value) > 0" [attr.aria-selected]="measure === item.value" [attr.aria-label]="item.label + (pickedCount(item.value) ? ' เลือกแล้ว ' + pickedCount(item.value) + ' แบบ' : '')" (click)="pickMeasure(item.value)">
+                <span>{{ item.label }}</span>
+                @if (pickedCount(item.value) > 0) {
+                  <span class="measure-count" aria-hidden="true">{{ pickedCount(item.value) }}</span>
+                }
+              </button>
             }
           </div>
         </div>
         <p class="measure-note">{{ measureNote }}</p>
         <div class="cards">
           @for (form of visibleForms; track form.code) {
-            <label class="card" [class.card--picked]="isPicked(form.code)">
+            <label class="card" [class.card--picked]="isPicked(form.code)" (click)="togglePicked(form.code, $event)">
               <span class="card__check">
-                <input type="checkbox" [checked]="isPicked(form.code)" [attr.aria-label]="'เลือก ' + form.code" (change)="setPicked(form.code, $any($event.target).checked)" />
+                <input type="checkbox" [checked]="isPicked(form.code)" [attr.aria-label]="'เลือก ' + form.code" tabindex="-1" />
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M5.25 3H18.75C19.9926 3 21 4.00736 21 5.25V18.75C21 19.9926 19.9926 21 18.75 21H5.25C4.00736 21 3 19.9926 3 18.75V5.25C3 4.00736 4.00736 3 5.25 3Z" />
                   @if (isPicked(form.code)) {
@@ -137,7 +181,53 @@
         </div>
       </div>
       <footer class="chooser__foot">
-        <app-button type="primary" label="ถัดไป" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()">
+        <app-button class="icon-before" type="outline" label="ย้อนกลับ" (click)="backToKind()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+        </app-button>
+        <app-button type="primary" [label]="filingKind === 'review' ? 'ถัดไป เลือก Case ID' : 'ถัดไป'" [state]="canContinue() ? 'default' : 'disabled'" (click)="continueFiling()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </app-button>
+      </footer>
+      } @else if (filingStep === 'case') {
+      <div class="chooser__body">
+        @if (chosenFormLabel) {
+          <p class="case-picked">
+            <span>แบบที่เลือก <strong>{{ chosenFormLabel }}</strong></span>
+            <span>{{ measureNote }}</span>
+          </p>
+        }
+        <app-input-field class="block case-search" label="ค้นหา Case ID" placeholder="ค้นหาเลขเคส สินค้า หรือมาตรการ" [editable]="true" [value]="caseQuery" (valueChange)="caseQuery = $event" />
+        @if (!filteredReviewCases.length) {
+          <p class="chooser__empty">ไม่พบเคสที่ประกาศผลแล้วในมาตรการนี้</p>
+        } @else {
+          <div class="cards case-cards" role="radiogroup" aria-label="Case ID">
+            @for (item of filteredReviewCases; track item.id) {
+              <label class="card case-card" [class.card--picked]="filingCaseId === caseNo(item)">
+                <span class="card__check">
+                  <input type="radio" name="filing-case" [checked]="filingCaseId === caseNo(item)" (change)="pickReviewCase(caseNo(item))" />
+                  <img [src]="filingCaseId === caseNo(item) ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />
+                </span>
+                <div class="card__main">
+                  <div class="card__body">
+                    <span class="card__top">
+                      <span class="card__badge">Case ID {{ caseNo(item) }}</span>
+                      <app-status-tag [tone]="item.tone" [label]="item.status" />
+                    </span>
+                    <h3>{{ item.goods }}</h3>
+                    <p>{{ item.measure }} · {{ item.countries.length ? item.countries.join(', ') : '—' }}</p>
+                    <p class="card__hint">เลขอ้างอิง {{ item.ref }} · ยื่นเมื่อ {{ dateOnly(item.created) }}</p>
+                  </div>
+                </div>
+              </label>
+            }
+          </div>
+        }
+      </div>
+      <footer class="chooser__foot">
+        <app-button class="icon-before" type="outline" label="ย้อนกลับ" (click)="backFromCase()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+        </app-button>
+        <app-button type="primary" label="ถัดไป" [state]="canContinueCase() ? 'default' : 'disabled'" (click)="continueCase()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </app-button>
       </footer>

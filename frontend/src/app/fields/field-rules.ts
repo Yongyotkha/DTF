@@ -86,7 +86,8 @@ const emptyMessage = 'โปรดกรอกข้อมูลให้คร�
 export function fieldMessage(key: string, value: string, password = ''): string {
   const text = value.trim();
   if (!text) {
-    if (key === 'cert' || key === 'consent' || key === 'signature' || key === 'proxyDoc' || key === 'proxySign') return 'โปรดเลือกไฟล์';
+    if (key === 'cert' || key === 'consent' || key === 'signature' || key === 'proxyDoc' || key === 'proxySign' || key === 'identityDoc') return 'โปรดเลือกไฟล์';
+    if (key === 'selfVerify') return 'โปรดยืนยันว่าข้อมูลเป็นของท่าน';
     if (key === 'proxyStart') return 'โปรดเลือกวันที่';
     if (key === 'proxyName') return 'โปรดกรอกชื่อผู้รับมอบอำนาจ';
     if (key === 'proxyPowers') return 'โปรดเลือกอำนาจกระทำการแทน';
@@ -129,7 +130,10 @@ export function fieldMessage(key: string, value: string, password = ''): string 
     case 'cert':
     case 'consent':
     case 'signature':
+    case 'identityDoc':
       return 'รองรับเฉพาะไฟล์ PDF, PNG หรือ JPG';
+    case 'selfVerify':
+      return 'โปรดยืนยันว่าข้อมูลเป็นของท่าน';
     case 'proxyDoc':
       return 'รองรับเฉพาะไฟล์ PDF, PNG, JPG, DOC หรือ DOCX';
     case 'proxySign':

@@ -155,6 +155,40 @@ const corporateSample: Record<string, string> = {
   confirm: 'Dft@2569',
 };
 
+const individualSample: Record<string, string> = {
+  identity: 'บัตรประจำตัวประชาชน',
+  prefix: 'นาย',
+  name: 'สมชาย',
+  surname: 'ใจดี',
+  prefixEn: 'Mr.',
+  givenEn: 'Somchai',
+  surnameEn: 'Jaidee',
+  cardNo: '1101700123456',
+  nationality: 'ไทย',
+  birth: '15/03/2535',
+  cardIssued: '10/06/2565',
+  cardExpiry: '09/06/2575',
+  issueProvince: 'กรุงเทพมหานคร',
+  issueDistrict: 'คลองเตย',
+  phone: '02-348-8700',
+  mobile: '0812345678',
+  email: 'somchai.jaidee@example.com',
+  address: 'เลขที่ 88/12 ซอยสุขุมวิท 42 ถนนสุขุมวิท',
+  province: 'กรุงเทพมหานคร',
+  district: 'คลองเตย',
+  subdistrict: 'คลองเตย',
+  postcode: '10110',
+  proxy: 'no',
+  proxyDoc: 'หนังสือมอบอำนาจ.pdf',
+  identityDoc: 'สำเนาหนังสือเดินทาง.pdf',
+  selfVerify: 'yes',
+  username: '1101700123456',
+  password: 'Dft@2569',
+  confirm: 'Dft@2569',
+};
+
+const individualThaiId: DraftSso = { provider: 'thaiid', account: 'นายสมชาย ใจดี' };
+
 const regnoLookupKeys = ['registered', 'name', 'nameEn'] as const;
 
 const corporateDirectors: Director[] = [
@@ -285,6 +319,16 @@ export class RegisterStepPage implements OnInit, OnDestroy {
         if (!this.draft.values['password']) this.draft.values['password'] = corporateSample['password'];
         if (!this.draft.values['confirm']) this.draft.values['confirm'] = corporateSample['confirm'];
       }
+      if (kind === 'individual') {
+        for (const [key, sample] of Object.entries(individualSample)) {
+          this.draft.values[key] = sample;
+        }
+        this.draft.accepted[kind] = true;
+        this.draft.read[kind] = true;
+        this.readToEnd = true;
+        this.seedIndividualVerify();
+        void this.places.load();
+      }
       if (kind === 'corporate' && !this.draft.directorsReady) {
         if (this.draft.directors.length === 0) this.draft.directors = corporateDirectors.map((row) => ({ ...row }));
         this.draft.directorsReady = true;
@@ -297,9 +341,6 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       if ((kind === 'corporate' || kind === 'association') && !this.draft.values['certSame']) {
         this.draft.values['certSame'] = 'yes';
         this.copyCertAddress();
-      }
-      if (kind === 'individual' && !this.draft.values['identity']) {
-        this.draft.values['identity'] = 'บัตรประจำตัวประชาชน';
       }
       if (step >= 3) this.assignUsername();
       if (step === 4 && !this.mailboxVerified && !this.otpDone()) this.ensureOtpClock();
@@ -361,7 +402,26 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   protected get proceedState(): 'default' | 'disabled' {
     if (this.step === 1 && !this.accepted) return 'disabled';
     if (this.step === 3 && this.fields.some((field) => !this.fieldOk(field.key))) return 'disabled';
+    if (this.step === 3 && this.kind === 'individual' && !this.identityVerified) return 'disabled';
     return 'default';
+  }
+
+  protected get usesThaiIdVerify(): boolean {
+    return this.kind === 'individual' && this.value('identity') !== 'หนังสือเดินทาง';
+  }
+
+  protected get usesDocSelfVerify(): boolean {
+    return this.kind === 'individual' && this.value('identity') === 'หนังสือเดินทาง';
+  }
+
+  protected get identityVerified(): boolean {
+    if (this.usesThaiIdVerify) return !!this.ssoAccount('thaiid');
+    if (this.usesDocSelfVerify) return fileOk(this.value('identityDoc'), true) && this.value('selfVerify') === 'yes';
+    return true;
+  }
+
+  protected get addressPartTitle(): string {
+    return this.value('identity') === 'หนังสือเดินทาง' ? '2. ที่อยู่ตามหนังสือเดินทาง' : '2. ที่อยู่ตามบัตรประจำตัวประชาชน';
   }
 
   protected get isCorporateForm(): boolean {
@@ -429,10 +489,32 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       this.draft.regnoVerified = false;
       this.clearRegnoLookup();
     }
+    const previousIdentity = this.draft.values['identity'];
     this.draft.values[key] = value;
+    if (key === 'identity' && previousIdentity !== value) this.onIdentityChange(value);
     if (key === 'regno' && this.step >= 3) this.assignUsername();
     const certKey = certFromThai[key];
     if (certKey && this.kind === 'association' && this.value('certSame') !== 'no') this.draft.values[certKey] = value;
+  }
+
+  private onIdentityChange(value: string): void {
+    if (value === 'หนังสือเดินทาง') {
+      this.draft.sso = this.draft.sso.filter((row) => row.provider !== 'thaiid');
+      if (!this.draft.values['identityDoc']) this.draft.values['identityDoc'] = '';
+      if (!this.draft.values['selfVerify']) this.draft.values['selfVerify'] = '';
+      return;
+    }
+    this.draft.values['identityDoc'] = '';
+    this.draft.values['selfVerify'] = '';
+  }
+
+  private seedIndividualVerify(): void {
+    if (this.value('identity') === 'หนังสือเดินทาง') {
+      this.draft.sso = this.draft.sso.filter((row) => row.provider !== 'thaiid');
+      return;
+    }
+    if (this.ssoAccount('thaiid')) return;
+    this.draft.sso = [...this.draft.sso.filter((row) => row.provider !== 'thaiid'), { ...individualThaiId }];
   }
 
   protected setCertSame(value: 'yes' | 'no'): void {
@@ -454,6 +536,16 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   }
 
   protected linkSso(provider: DraftSsoProvider): void {
+    if (this.kind === 'individual') {
+      if (provider !== 'thaiid' || !this.usesThaiIdVerify) return;
+      if (this.ssoAccount('thaiid')) {
+        this.draft.sso = this.draft.sso.filter((row) => row.provider !== 'thaiid');
+        return;
+      }
+      const account = this.grantorName() || individualThaiId.account;
+      this.draft.sso = [...this.draft.sso.filter((row) => row.provider !== 'thaiid'), { provider: 'thaiid', account }];
+      return;
+    }
     if (this.kind !== 'corporate') return;
     if (this.ssoAccount(provider)) {
       this.draft.sso = this.draft.sso.filter((row) => row.provider !== provider);
@@ -464,10 +556,20 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     this.draft.sso = [...this.draft.sso, { ...sample }];
   }
 
+  protected setSelfVerify(checked: boolean): void {
+    this.setValue('selfVerify', checked ? 'yes' : '');
+    this.touch('selfVerify');
+  }
+
   private assignUsername(): void {
     const regno = (this.draft.values['regno'] ?? '').replace(/[^A-Za-z0-9]/g, '').slice(0, 32);
     if (regno) {
       this.draft.values['username'] = regno;
+      return;
+    }
+    const cardNo = (this.draft.values['cardNo'] ?? '').replace(/\D/g, '').slice(0, 13);
+    if (cardNo.length === 13) {
+      this.draft.values['username'] = cardNo;
       return;
     }
     if (usernameOk(this.draft.values['username'] ?? '')) return;
@@ -764,8 +866,10 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       case 'nationality':
         return textOk(value, 2);
       case 'issueProvince':
+        if (this.places.provinces().length === 0) return value.length > 0;
         return this.places.provinces().some((item) => item.name.th === value);
       case 'issueDistrict':
+        if (this.places.provinces().length === 0) return value.length > 0;
         return this.places.districtOptions(this.value('issueProvince')).some((item) => item.name.th === value);
       case 'regno':
       case 'taxId':
@@ -785,6 +889,10 @@ export class RegisterStepPage implements OnInit, OnDestroy {
         return value.split('|').some((item) => this.proxyPowerOptions.some((option) => option.key === item));
       case 'proxyDoc':
         return /\.(pdf|png|jpe?g|docx?)$/i.test(value);
+      case 'identityDoc':
+        return fileOk(value, true);
+      case 'selfVerify':
+        return value === 'yes';
       case 'proxySign':
         return /\.(png|jpe?g)$/i.test(value);
       case 'proxyKind':
@@ -819,11 +927,17 @@ export class RegisterStepPage implements OnInit, OnDestroy {
       case 'district':
       case 'subdistrict':
       case 'postcode':
+        if (this.places.provinces().length === 0) {
+          return !!(this.value('province') && this.value('district') && this.value('subdistrict') && this.value('postcode'));
+        }
         return this.places.matches(this.value('province'), this.value('district'), this.value('subdistrict'), this.value('postcode'));
       case 'provinceCert':
       case 'districtCert':
       case 'subdistrictCert':
       case 'postcodeCert':
+        if (this.places.provinces().length === 0) {
+          return !!(this.value('provinceCert') && this.value('districtCert') && this.value('subdistrictCert') && this.value('postcodeCert'));
+        }
         return this.places.matches(this.value('provinceCert'), this.value('districtCert'), this.value('subdistrictCert'), this.value('postcodeCert'));
       default:
         return value.length > 0;
@@ -842,9 +956,9 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     this.tried.set(true);
     this.failed = false;
     if (this.proceedState === 'disabled') return;
-    if (this.fields.some((field) => this.stateOf(field) === 'error')) {
+    if (this.fields.some((field) => this.stateOf(field) === 'error') || (this.step === 3 && this.kind === 'individual' && !this.identityVerified)) {
       if (this.step === 3) this.failed = true;
-      queueMicrotask(() => document.querySelector('.field--error, .upload--error, label.error, .choice.error')?.scrollIntoView({ block: 'center' }));
+      queueMicrotask(() => document.querySelector('.field--error, .upload--error, label.error, .choice.error, .verify-gap')?.scrollIntoView({ block: 'center' }));
       return;
     }
     if (this.step === 3) this.accounts.save(this.value('username'), this.value('password'), this.kind, this.value('email'));

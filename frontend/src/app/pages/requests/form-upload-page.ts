@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { Accounts } from '../../accounts';
 import { DftButton } from '../../button/button';
 import { SideNav } from '../../menu-bar/side-nav';
 import { DftModal } from '../../modal/modal';
@@ -21,6 +22,7 @@ const extraAccept = /\.(pdf|docx?|png|jpe?g)$/i;
   styleUrl: './form-upload-page.css',
 })
 export class FormUploadPage {
+  private readonly accounts = inject(Accounts);
   private readonly measure: string;
   protected readonly measureLabel: string;
   protected readonly forms: RequestForm[];
@@ -149,7 +151,7 @@ export class FormUploadPage {
 
   protected submit(): void {
     if (!this.canSubmit) return;
-    if (this.forms.some((form) => form.code === 'ปร. 1')) startFilingCase();
+    if (this.forms.some((form) => form.code === 'ปร. 1')) startFilingCase(this.accounts.username);
     clearFilingIntent();
     void this.router.navigate(['/requests']);
   }

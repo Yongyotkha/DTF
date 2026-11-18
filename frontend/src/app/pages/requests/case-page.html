@@ -875,6 +875,41 @@
             <button type="button" role="radio" [attr.aria-checked]="consultChannel === 'onsite'" (click)="pickConsultChannel('onsite')"><img [src]="consultChannel === 'onsite' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />OnSite</button>
           </div>
         </div>
+        <div class="ask-contact">
+          <label>
+            <span>ชื่อผู้ติดต่อ<span class="req">*</span></span>
+            <input type="text" placeholder="ระบุชื่อผู้ติดต่อ" [value]="consultContactName" (input)="consultContactName = $any($event.target).value" />
+          </label>
+          <label>
+            <span>เบอร์โทรติดต่อ<span class="req">*</span></span>
+            <input type="text" inputmode="tel" placeholder="0XXXXXXXXX" [value]="consultContactPhone" (input)="consultContactPhone = $any($event.target).value" />
+          </label>
+        </div>
+        <div class="ask-slots">
+          <div class="ask-slots__head">
+            <span>วันและเวลาที่สะดวกให้ติดต่อ<span class="req">*</span></span>
+            <button type="button" class="ask-slots__add" aria-label="เพิ่มช่วงเวลา" [disabled]="!canAddConsultSlot" (click)="addConsultSlot()">
+              <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M5 12h14M12 5v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+            </button>
+          </div>
+          @for (slot of consultSlots; track $index; let i = $index) {
+            <div class="ask-slot">
+              <span class="ask-slot__no">{{ i + 1 }}</span>
+              <app-thai-date-field class="ask-slot__date" label="วันที่ช่วงที่ {{ i + 1 }}" [labelled]="false" [required]="true" [value]="slot.date" (valueChange)="setConsultSlotDate(i, $event)" />
+              <div class="ask-slot__time">
+                <input type="text" inputmode="numeric" maxlength="5" placeholder="09:00" [attr.aria-label]="'เวลาเริ่มช่วงที่ ' + (i + 1)" [value]="slot.time" (input)="setConsultSlotTime(i, $any($event.target).value)" />
+                <span>–</span>
+                <input type="text" inputmode="numeric" maxlength="5" placeholder="10:00" [attr.aria-label]="'เวลาจบช่วงที่ ' + (i + 1)" [value]="slot.endTime" (input)="setConsultSlotEndTime(i, $any($event.target).value)" />
+                <span>น.</span>
+              </div>
+              @if (canRemoveConsultSlot(i)) {
+                <button type="button" class="trash ask-slot__remove" aria-label="ลบช่วงที่ {{ i + 1 }}" (click)="removeConsultSlot(i)">
+                  <img src="assets/icons/por1-trash.svg" width="16" height="17.5" alt="" />
+                </button>
+              }
+            </div>
+          }
+        </div>
       </div>
       <div class="submit__actions">
         <app-button class="icon-before" type="primary" label="ส่งคำร้อง" [state]="consultReady ? 'default' : 'disabled'" (click)="sendConsult()">
@@ -945,6 +980,18 @@
           <div>
             <dt>ช่องทางที่ต้องการปรึกษา</dt>
             <dd>{{ consultChannelLabel }}</dd>
+          </div>
+          <div>
+            <dt>ชื่อผู้ติดต่อ</dt>
+            <dd>{{ sentConsult.contactName }}</dd>
+          </div>
+          <div>
+            <dt>เบอร์โทรติดต่อ</dt>
+            <dd>{{ sentConsult.contactPhone }}</dd>
+          </div>
+          <div>
+            <dt>ช่วงเวลาที่สะดวกติดต่อ</dt>
+            <dd>{{ consultSlotSummary }}</dd>
           </div>
         </dl>
       </div>

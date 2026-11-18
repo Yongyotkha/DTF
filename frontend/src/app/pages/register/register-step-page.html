@@ -154,7 +154,7 @@
         <app-phone-field label="โทรศัพท์" placeholder="ระบุ" [state]="stateOf(fieldBy('phone'))" [helper]="message('phone')" [value]="value('phone')" (valueChange)="setValue('phone', $event)" (blurred)="touch('phone')" />
         <app-phone-field label="โทรศัพท์มือถือ" placeholder="ระบุ" [state]="stateOf(fieldBy('mobile'))" [helper]="message('mobile')" [value]="value('mobile')" (valueChange)="setValue('mobile', $event)" (blurred)="touch('mobile')" />
         <app-email-field placeholder="ระบุ" [state]="stateOf(fieldBy('email'))" [helper]="message('email')" [value]="value('email')" (valueChange)="setValue('email', $event)" (blurred)="touch('email')" />
-        <h3 class="part span-2">2. ที่อยู่ตามบัตรประจำตัวประชาชน</h3>
+        <h3 class="part span-2">{{ addressPartTitle }}</h3>
         <app-input-field class="block span-2" label="ที่อยู่" [required]="true" [editable]="true" placeholder="เลขที่, อาคาร/หมู่บ้าน, ซอย, ถนน" [state]="stateOf(fieldBy('address'))" [helper]="message('address')" [value]="value('address')" (valueChange)="setValue('address', $event)" (blurred)="touch('address')" />
         <app-address-select
           class="span-2"
@@ -280,6 +280,47 @@
         }
       </div>
       <p class="pass-help">รหัสผ่านต้องมีความยาว 8-16 ตัวอักษร และประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักขระพิเศษ</p>
+      @if (kind === 'individual' && step === 3) {
+        <div class="sso-link" [class.verify-gap]="tried() && !identityVerified">
+          @if (usesThaiIdVerify) {
+            <h2>ยืนยันตัวตนด้วย ThaiID <span class="req">*</span></h2>
+            <p>กรณีใช้บัตรประจำตัวประชาชน ต้องยืนยันตัวตนผ่าน ThaiID ก่อนลงทะเบียน</p>
+            <div class="sso">
+              <button type="button" class="sso__btn sso__btn--full" [class.sso__btn--linked]="!!ssoAccount('thaiid')" (click)="linkSso('thaiid')">
+                <img src="assets/auth/thaid.webp" width="30" height="30" alt="" />
+                <span>ดำเนินการต่อด้วย ThaiID</span>
+                @if (ssoAccount('thaiid')) {
+                  <app-status-tag tone="success" label="ยืนยันแล้ว" />
+                }
+              </button>
+            </div>
+            @if (tried() && !ssoAccount('thaiid')) {
+              <p class="hint">โปรดยืนยันตัวตนด้วย ThaiID</p>
+            }
+          } @else if (usesDocSelfVerify) {
+            <h2>ยืนยันตัวตนด้วยเอกสาร <span class="req">*</span></h2>
+            <p>แนบสำเนาหนังสือเดินทาง และยืนยันว่าข้อมูลที่กรอกเป็นของท่าน</p>
+            <div class="verify-docs">
+              <app-file-field
+                label="สำเนาหนังสือเดินทาง"
+                [required]="true"
+                [error]="invalid('identityDoc')"
+                [message]="message('identityDoc')"
+                [value]="value('identityDoc')"
+                (valueChange)="setValue('identityDoc', $event)"
+                (blurred)="touch('identityDoc')"
+              />
+              <label class="verify-ack" [class.error]="tried() && value('selfVerify') !== 'yes'">
+                <input type="checkbox" [checked]="value('selfVerify') === 'yes'" (change)="setSelfVerify($any($event.target).checked)" />
+                <span>ข้าพเจ้ายืนยันว่าข้อมูลและเอกสารแนบเป็นของข้าพเจ้า และถูกต้องตามความเป็นจริง</span>
+              </label>
+              @if (tried() && value('selfVerify') !== 'yes') {
+                <p class="hint">โปรดยืนยันว่าข้อมูลเป็นของท่าน</p>
+              }
+            </div>
+          }
+        </div>
+      }
       @if (kind === 'corporate' && step === 3) {
         <div class="sso-link">
           <h2>ผูกวิธีเข้าสู่ระบบ</h2>

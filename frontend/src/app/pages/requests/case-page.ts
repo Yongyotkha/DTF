@@ -18,6 +18,8 @@ import { formCodeIn } from './case-form';
 import { readFilingIntent, saveFilingIntent } from './filing-intent';
 import { joinedCaseIds } from './interest-invite';
 import { allows, isActingAgent, powersOnCase, powerLabel, ProxyPower } from './proxy-grant';
+import { phoneOk } from '../../fields/field-rules';
+import { defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot } from './case-status';
 import { hearingStatus, readHearing, writeHearing } from './hearing-lane';
 import { caseBrief, CaseParty, caseNumberLabel, documentsForStage, findListedCase, ListedCase, PartyAudience, partyDocuments, partyDocumentsForStage, stageResult, stepLabel } from './request-cases';
 
@@ -396,9 +398,22 @@ export class CasePage implements OnDestroy {
   consultOpen = false;
   consultTopic = 'ขอปรึกษาการแก้ไขคำขอ';
   consultDetail = 'รายการที่ยังไม่ผ่านมีหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตในประเทศ ต้องการให้นัดหมายเพื่อชี้แจงก่อนส่งแบบคำร้องทางการ';
-  consultChannel: 'phone' | 'online' | 'onsite' | '' = '';
+  consultSlots = defaultConsultSlots();
+  protected readonly minConsultSlots = minConsultSlots;
+  protected readonly maxConsultSlots = maxConsultSlots;
+  consultChannel: 'phone' | 'online' | 'onsite' | '' = 'phone';
+  consultContactName = 'นายประกิต กาญจนการไกร';
+  consultContactPhone = '081-234-5678';
   consultSent = false;
-  sentConsult: { topic: string; detail: string; channel: 'phone' | 'online' | 'onsite'; filedOn: string } | null = null;
+  sentConsult: {
+    topic: string;
+    detail: string;
+    channel: 'phone' | 'online' | 'onsite';
+    contactName: string;
+    contactPhone: string;
+    filedOn: string;
+    slots: { date: string; time: string; endTime: string }[];
+  } | null = null;
   filedOpen = false;
   officialReview = false;
   extraAnswers: Record<string, string> = {};
@@ -1090,8 +1105,67 @@ export class CasePage implements OnDestroy {
     this.view.detectChanges();
   }
 
+  setConsultSlotDate(index: number, value: string): void {
+    this.consultSlots = this.consultSlots.map((slot, item) => (item === index ? { ...slot, date: value } : slot));
+    this.view.detectChanges();
+  }
+
+  setConsultSlotTime(index: number, value: string): void {
+    this.consultSlots = this.consultSlots.map((slot, item) => (item === index ? { ...slot, time: value } : slot));
+    this.view.detectChanges();
+  }
+
+  setConsultSlotEndTime(index: number, value: string): void {
+    this.consultSlots = this.consultSlots.map((slot, item) => (item === index ? { ...slot, endTime: value } : slot));
+    this.view.detectChanges();
+  }
+
+  addConsultSlot(): void {
+    if (this.consultSlots.length >= maxConsultSlots) return;
+    this.consultSlots = [...this.consultSlots, nextConsultSlot(this.consultSlots)];
+    this.view.detectChanges();
+  }
+
+  removeConsultSlot(index: number): void {
+    if (index < minConsultSlots || this.consultSlots.length <= minConsultSlots) return;
+    this.consultSlots = this.consultSlots.filter((_, item) => item !== index);
+    this.view.detectChanges();
+  }
+
+  canRemoveConsultSlot(index: number): boolean {
+    return index >= minConsultSlots && this.consultSlots.length > minConsultSlots;
+  }
+
+  get canAddConsultSlot(): boolean {
+    return this.consultSlots.length < maxConsultSlots;
+  }
+
+  private slotTimeOk(value: string): boolean {
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(value.trim());
+  }
+
+  private get consultSlotsReady(): boolean {
+    return (
+      this.consultSlots.length >= minConsultSlots &&
+      this.consultSlots.every((slot) => !!slot.date.trim() && this.slotTimeOk(slot.time) && this.slotTimeOk(slot.endTime))
+    );
+  }
+
   get consultReady(): boolean {
-    return !!this.consultTopic.trim() && !!this.consultDetail.trim() && !!this.consultChannel;
+    return (
+      !!this.consultTopic.trim() &&
+      !!this.consultDetail.trim() &&
+      !!this.consultChannel &&
+      !!this.consultContactName.trim() &&
+      phoneOk(this.consultContactPhone) &&
+      this.consultSlotsReady
+    );
+  }
+
+  protected get consultSlotSummary(): string {
+    const slots = this.sentConsult?.slots ?? [];
+    if (!slots.length) return '—';
+    return slots.map((slot) => `${slot.date} ${slot.time}–${slot.endTime} น.`).join(' · ');
   }
 
   sendConsult(): void {
@@ -1102,7 +1176,14 @@ export class CasePage implements OnDestroy {
       topic: this.consultTopic.trim(),
       detail: this.consultDetail.trim(),
       channel: this.consultChannel,
+      contactName: this.consultContactName.trim(),
+      contactPhone: this.consultContactPhone.trim(),
       filedOn,
+      slots: this.consultSlots.map((slot) => ({
+        date: slot.date.trim(),
+        time: slot.time.trim(),
+        endTime: slot.endTime.trim(),
+      })),
     };
     this.consultOpen = false;
     this.consultSent = true;
