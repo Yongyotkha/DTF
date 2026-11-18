@@ -12,6 +12,28 @@ body {
   background: var(--color-bg-page);
   color: var(--color-primary);
   font-family: var(--font-family);
+  --top-header-offset: 65px;
+  /* ปุ่มแชท AI fixed bottom-right · กันเนื้อหาโดนบัง */
+  --ask-fab-clearance: 88px;
+}
+
+body.top-header-fixed {
+  padding-top: var(--top-header-offset);
+  transition: padding-top var(--motion-state);
+}
+
+body.top-header-fixed .por1 {
+  min-height: calc(100vh - var(--top-header-offset));
+}
+
+body.top-header-away {
+  --top-header-offset: 0px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.top-header-fixed {
+    transition: none;
+  }
 }
 
 body.ask-docked main {

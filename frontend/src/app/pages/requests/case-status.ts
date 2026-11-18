@@ -188,6 +188,8 @@ export type RoundAnswer = { group: string; label: string; value: string };
 export type FilingRound = {
   round: number;
   submittedOn: string;
+  /** ชื่อโฟลเดอร์รอบยื่น แบบแฟ้มจริง เช่น 1. 15 พค 63 */
+  folder?: string;
   state: RoundState;
   company: string;
   measure: string;
@@ -197,11 +199,77 @@ export type FilingRound = {
   answers?: RoundAnswer[];
 };
 
-/** เลขที่อ้างอิงระหว่างยื่นคำขอ ยังไม่ใช่เลข Case ID */
-export const filingRefId = 'REF256205150001';
+/** เลขที่อ้างอิงเคส รูปแบบ R6201 รันต่อเนื่อง (R6201, R6202, …) */
+export function formatFilingRef(seq: number): string {
+  return `R${seq}`;
+}
+
+export const filingRefStart = 6201;
+export const filingRefId = formatFilingRef(filingRefStart);
+
+const activeRefKey = 'dft-por1-ref';
+const refSeqKey = 'dft-filing-ref-seq';
+
+export function parseFilingRefSeq(ref: string): number | null {
+  const match = /^R(\d+)$/i.exec(ref.trim());
+  if (!match) return null;
+  const seq = Number(match[1]);
+  return Number.isFinite(seq) ? seq : null;
+}
+
+/** ค่าถัดไปที่จะออกเลขใหม่ (ยังไม่จอง) */
+export function peekNextFilingRefSeq(): number {
+  if (typeof sessionStorage === 'undefined') return filingRefStart + 1;
+  const raw = Number(sessionStorage.getItem(refSeqKey) || '');
+  if (Number.isFinite(raw) && raw > filingRefStart) return raw;
+  return filingRefStart + 1;
+}
+
+/** จองเลขถัดไปแล้วคืนค่า เช่น R6202 */
+export function nextFilingRefId(): string {
+  const seq = peekNextFilingRefSeq();
+  if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(refSeqKey, String(seq + 1));
+  return formatFilingRef(seq);
+}
+
+/** ดันตัวนับให้สูงกว่าเลขที่ใช้อยู่แล้ว (หลัง seed รายการเคส) */
+export function ensureFilingRefSeqAtLeast(seq: number): void {
+  if (typeof sessionStorage === 'undefined') return;
+  if (!Number.isFinite(seq) || seq < filingRefStart) return;
+  const next = peekNextFilingRefSeq();
+  if (seq + 1 > next) sessionStorage.setItem(refSeqKey, String(seq + 1));
+}
+
+export function readActiveFilingRef(): string {
+  if (typeof sessionStorage === 'undefined') return filingRefId;
+  return sessionStorage.getItem(activeRefKey)?.trim() || filingRefId;
+}
+
+export function writeActiveFilingRef(ref: string): void {
+  if (typeof sessionStorage === 'undefined') return;
+  const id = ref.trim();
+  if (!id) sessionStorage.removeItem(activeRefKey);
+  else sessionStorage.setItem(activeRefKey, id);
+}
 
 /** วันที่ยื่นคำขอครั้งแรกของคำขอต้นแบบนี้ */
-export const firstFiledOn = '15/05/2562';
+export const firstFiledOn = '15/05/2563';
+
+/** วันที่ยื่นแบบทางการ (สถานะยื่นแบบ) — จุดเริ่มนับกำหนด 4 เดือน */
+const officialOnKey = 'dft-por1-official-on';
+
+export function readOfficialOn(): string {
+  if (typeof sessionStorage === 'undefined') return '';
+  const value = sessionStorage.getItem(officialOnKey)?.trim() || '';
+  return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value) ? value : '';
+}
+
+export function writeOfficialOn(value: string): void {
+  if (typeof sessionStorage === 'undefined') return;
+  const day = value.trim().split(' ')[0] || '';
+  if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day)) sessionStorage.removeItem(officialOnKey);
+  else sessionStorage.setItem(officialOnKey, day);
+}
 
 /** นับเดือนจากวันที่แบบ วว/ดด/ปปปป โดยไม่ข้ามวันสิ้นเดือน */
 export function addThaiMonths(value: string, months: number): string {
@@ -432,11 +500,20 @@ export function caseStatusLabel(status: CaseStatus): string {
 
 /** สถานะที่ผู้ยื่นเห็นในรายการ ต้องตรงกับ badge ในหน้ารายละเอียด */
 export function applicantFilingLabel(status = readCaseStatus()): { label: string; tone: StatusTone } {
+  // สถานะคำขอที่ยื่น/รออนุมัติแล้ว ชนะผลตรวจเก่า — ไม่ให้แท็กค้างที่ "ให้แก้ไข"
+  if (status === 'official') {
+    if (sessionStorage.getItem('dft-por1-await-official') === '1') {
+      return { label: 'รอผู้ยื่นยื่นแบบทางการ', tone: 'warning' };
+    }
+    return { label: caseStatusLabel(status), tone: caseStatusTone(status) };
+  }
+  if (status === 'approval') {
+    return { label: caseStatusLabel(status), tone: caseStatusTone(status) };
+  }
   const flow = readFlowFile();
   if (flow?.state === 'fix') return { label: 'ให้แก้ไข', tone: 'warning' };
   if (flow?.state === 'checking' || flow?.state === 'receive') return { label: 'ตรวจสอบคำขอ', tone: 'info' };
   if (sessionStorage.getItem('dft-por1-await-official') === '1') return { label: 'รอผู้ยื่นยื่นแบบทางการ', tone: 'warning' };
-  if (status === 'official') return { label: 'ยื่นแบบทางการแล้ว', tone: caseStatusTone(status) };
   return { label: caseStatusLabel(status), tone: caseStatusTone(status) };
 }
 
@@ -987,6 +1064,9 @@ export function writeSystemLinks(rows: SystemLink[]): void {
 
 export type DocFile = { name: string; title: string; sentOn: string };
 export type DocAction = 'amend' | 'complete' | 'late';
+
+/** ท่อแจ้งผลการตรวจ: เจ้าหน้าที่ → หัวหน้ากอง → e-Office/ผอ. → ออกเลข → ส่งผู้ยื่น */
+export type NoticePipe = 'draft' | 'to-head' | 'head-ok' | 'eoffice' | 'signed' | 'sent';
 export type ReplyFile = { name: string; title: string; group: 'closed' | 'open' | 'extra' | 'extend' };
 
 /** ผู้ยื่นส่งกลับหลังได้รับแจ้งแก้ไข ตามคู่มือ e-TR */
@@ -1032,6 +1112,11 @@ export type DocNotice = {
   inquiry: InquiryRecord | null;
   sent: boolean;
   sentBy: string;
+  /** สถานะท่ออนุมัติหนังสือแจ้ง */
+  pipe: NoticePipe;
+  pipeAt: string;
+  headBy: string;
+  officeRef: string;
 };
 
 export type InquiryPayFile = { name: string; title: string; sentOn: string };
@@ -1204,10 +1289,20 @@ export function readDocNotice(): DocNotice | null {
       inquiry: readInquiry(value.inquiry),
       sent: value.sent === true,
       sentBy: typeof value.sentBy === 'string' ? value.sentBy : '',
+      pipe: readNoticePipe(value),
+      pipeAt: typeof (value as { pipeAt?: string }).pipeAt === 'string' ? (value as { pipeAt: string }).pipeAt : '',
+      headBy: typeof (value as { headBy?: string }).headBy === 'string' ? (value as { headBy: string }).headBy : '',
+      officeRef: typeof (value as { officeRef?: string }).officeRef === 'string' ? (value as { officeRef: string }).officeRef : '',
     };
   } catch {
     return null;
   }
+}
+
+function readNoticePipe(value: DocNotice | { sent?: boolean; pipe?: string }): NoticePipe {
+  const raw = typeof value.pipe === 'string' ? value.pipe : '';
+  if (raw === 'draft' || raw === 'to-head' || raw === 'head-ok' || raw === 'eoffice' || raw === 'signed' || raw === 'sent') return raw;
+  return value.sent === true ? 'sent' : 'draft';
 }
 
 export type CaseNoteFile = { name: string; title: string };
@@ -1542,6 +1637,7 @@ export function startFilingCase(filer = ''): void {
   for (const name of doomed) sessionStorage.removeItem(name);
   writeCaseStatus('draft');
   writeFilingFiler(filer);
+  writeActiveFilingRef(nextFilingRefId());
 }
 
 export function caseStatusTone(status: CaseStatus): StatusTone {

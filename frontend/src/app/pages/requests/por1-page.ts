@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectorRef, Component, HostListener, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, HostListener, ViewChild, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Accounts, roleLabel } from '../../accounts';
 import { DftButton } from '../../button/button';
@@ -12,13 +12,14 @@ import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, readApprovalUntil, readApprovedBy, readApplicantNotices, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot, readFilingFiler, readFilingGate, releaseFilingToDirector, readEofficeDirectorHandoff, sendDirectorWorkToEoffice, pullDirectorAssignFromEoffice, directorWorkNeedsEoffice, writeEofficeDirectorHandoff, type EofficeDirectorHandoff, writeFilingFiler, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readFlowFile, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeApplicantNotices, writeCaseStatus, writeFlowFile, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, upsertConsultRound, patchConsultRound, closeActiveConsultRound, readConsultRounds, openConsultRound as findOpenConsultRound, type ApplicantNotice, type AssignFile, type AssignReply, type AssignSlip, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultPrivateNote, type ConsultRequest, type ConsultRound, type FilingGate, type DocAction, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, ensureFilingRefSeqAtLeast, parseFilingRefSeq, readActiveFilingRef, writeActiveFilingRef, readOfficialOn, writeOfficialOn, readApprovalUntil, readApprovedBy, readApplicantNotices, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot, readFilingFiler, readFilingGate, releaseFilingToDirector, readEofficeDirectorHandoff, sendDirectorWorkToEoffice, pullDirectorAssignFromEoffice, directorWorkNeedsEoffice, writeEofficeDirectorHandoff, type EofficeDirectorHandoff, writeFilingFiler, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readFlowFile, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeApplicantNotices, writeCaseStatus, writeFlowFile, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, upsertConsultRound, patchConsultRound, closeActiveConsultRound, readConsultRounds, openConsultRound as findOpenConsultRound, type ApplicantNotice, type AssignFile, type AssignReply, type AssignSlip, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultPrivateNote, type ConsultRequest, type ConsultRound, type FilingGate, type DocAction, type NoticePipe, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type RoundAnswer, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 import { FilingTabs } from './filing-tabs';
 import { readHearing, writeHearing } from './hearing-lane';
 import { FilledUpload } from './filled-upload';
 import { caseFormExtra } from './case-form';
 import { cvdChosen, readFilingIntent } from './filing-intent';
 import { downloadFormTemplate } from './form-template';
+import { requestForms } from './form-catalog';
 import { caseKey, findListedCase, type ListedCase } from './request-cases';
 import { invitePath, joinedFor } from './interest-invite';
 import { readParty, readText, valueIsWrong, wrongHint } from './form-extract';
@@ -29,7 +30,6 @@ type OpenPrep = { ask: boolean; analyze: boolean; summary: boolean; report: bool
 type ReviewTab = 'form' | 'assign' | 'docs' | 'inquiry' | 'prelim' | 'draftFinal' | 'finalResult' | 'measures' | 'link';
 type FlowStep = { id: string; label: string; detail: string; yes?: string; no?: string };
 type FlowField = { label: string; long?: boolean; date?: boolean };
-
 const flowCatalog: Record<'prelim' | 'draftFinal' | 'finalResult' | 'measures', FlowStep[]> = {
   prelim: [
     { id: 'prelim-analyse', label: 'ประมวลผลขั้นต้น', detail: 'เจ้าหน้าที่วิเคราะห์ข้อมูลการไต่สวน AI ช่วยสืบค้นและร่างสรุป' },
@@ -215,6 +215,34 @@ type PartyBlock = { key: string; title: string; nameLabel: string; addLabel: str
 type GoodsCompareRow = { item: string; subject: string; like: string };
 type MarginCountry = { name: string; normal: string; exportPrice: string; margin: string; cif: string; rate: string };
 type FormGuide = { title: string; lead: string; tips: string[] };
+type BundleComment = { id: string; target: string; text: string; at: string; author: string; resolved?: boolean };
+type BundlePage = {
+  id: string;
+  kind: 'cover' | 'text' | 'file';
+  chapter: string;
+  title: string;
+  heading?: string;
+  fields?: { label: string; value: string }[];
+  body?: string;
+  group?: string;
+  fileName?: string;
+  saved?: string;
+};
+
+/** บล็อกแสดงผลแบบ Word ปร.1 จาก document/แบบฟอร์ม/มาตรการ AD */
+type PorWordBlock =
+  | { kind: 'head'; title: string; lines: string[] }
+  | { kind: 'measure'; ad: boolean; cvd: boolean }
+  | { kind: 'toc'; items: string[] }
+  | { kind: 'hint'; text: string }
+  | { kind: 'section'; text: string }
+  | { kind: 'item'; text: string }
+  | { kind: 'prompt'; text: string }
+  | { kind: 'fill'; label: string; value: string }
+  | { kind: 'check'; on: boolean; label: string; detail?: string }
+  | { kind: 'para'; text: string }
+  | { kind: 'table'; headers: string[]; rows: string[][] }
+  | { kind: 'sign'; name: string; role: string; date: string };
 
 function field(label: string, value: string, long = false): WorkDraft['fields'][number] {
   return { label, value, long };
@@ -230,9 +258,9 @@ function defaultWorkDrafts(): WorkDraft[] {
         field('วันที่', '20/05/2562'),
         field('เรื่อง', 'ขอความอนุเคราะห์ข้อมูลผู้ผลิตสินค้าเหล็กแผ่นรีดร้อน'),
         field('เรียน', 'ผู้อำนวยการศูนย์สารสนเทศโรงงานอุตสาหกรรม กรมโรงงานอุตสาหกรรม\nผู้อำนวยการสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nประธานกลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย\nผู้อำนวยการศูนย์สารสนเทศเศรษฐกิจอุตสาหกรรม สำนักงานเศรษฐกิจอุตสาหกรรม', true),
-        field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 ลงวันที่ 15/05/2562'),
+        field('อ้างถึง', 'คำขอเลขที่อ้างอิง R6201 ลงวันที่ 15/05/2563'),
         field('สิ่งที่ส่งมาด้วย', '1. แบบแสดงรายชื่อผู้ผลิต พร้อมสถานที่ตั้ง\n2. แบบแสดงกำลังการผลิตและปริมาณการผลิต\n3. แบบแสดงปริมาณความต้องการใช้ภายในประเทศ', true),
-        field('เนื้อความ', 'ด้วยกรมการค้าต่างประเทศได้รับคำขอเลขที่อ้างอิง REF256205150001 จากบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้พิจารณาตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอข้อมูลผู้ผลิตในประเทศ ได้แก่ รายชื่อและสถานที่ตั้ง กำลังการผลิตและปริมาณการผลิตช่วงปี 2561 ถึงต้นปี 2562 และปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน', true),
+        field('เนื้อความ', 'ด้วยกรมการค้าต่างประเทศได้รับคำขอเลขที่อ้างอิง R6201 จากบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้พิจารณาตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอข้อมูลผู้ผลิตในประเทศ ได้แก่ รายชื่อและสถานที่ตั้ง กำลังการผลิตและปริมาณการผลิตช่วงปี 2561 ถึงต้นปี 2562 และปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน', true),
         field('กำหนดส่งข้อมูล', '20/06/2562'),
         field('โทรศัพท์', ''),
         field('โทรสาร', ''),
@@ -244,7 +272,7 @@ function defaultWorkDrafts(): WorkDraft[] {
       title: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง',
       file: 'Sum ข้อมูลจาก 4 หน่วยงาน_V2.xlsx',
       fields: [
-        field('วัตถุประสงค์', 'รวมอุปสงค์และอุปทานให้สอดคล้องกับฐานะผู้ยื่นในคำขอ REF256205150001 และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
+        field('วัตถุประสงค์', 'รวมอุปสงค์และอุปทานให้สอดคล้องกับฐานะผู้ยื่นในคำขอ R6201 และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
         field('วิธีจัดทำ', '1. รวมรายชื่อผู้ผลิตจาก 4 หน่วยงาน\n2. ดูยอดรวมของแต่ละรายการ\n3. ใช้รายการที่ใหญ่ที่สุดเป็นรายชื่อหลัก\n4. ตรวจชื่อซ้ำจากการพิมพ์หรือบริษัทเดียวกันแต่คนละที่อยู่', true),
         field('หน่วยงาน', 'กรมโรงงานอุตสาหกรรม\nสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nสภาอุตสาหกรรมแห่งประเทศไทย\nสำนักงานเศรษฐกิจอุตสาหกรรม', true),
         field('วันที่ได้รับข้อมูล', '28/05/2562'),
@@ -262,7 +290,7 @@ function defaultWorkDrafts(): WorkDraft[] {
       fields: [
         field('ชื่อแบบ', 'แบบสอบถามเบื้องต้น กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
         field('กลุ่มผู้รับแบบ', 'ผู้ผลิตเหล็กแผ่นรีดร้อนในประเทศที่อยู่ในรายชื่อหลักจาก 4 หน่วยงาน'),
-        field('คำขอ', 'REF256205150001 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
+        field('คำขอ', 'R6201 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
         field('วันที่จัดทำ', '28/05/2562'),
         field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'เป็นผู้ผลิตในประเทศ ผู้ยื่นคำขอ หรือผู้ที่เกี่ยวข้องอย่างอื่น', true),
         field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'กำลังการผลิตและปริมาณการผลิต ปี 2561 ถึงต้นปี 2562', true),
@@ -291,10 +319,10 @@ function gapSentence(gap: DocGap): string {
 }
 
 function noticeBody(action: DocAction, dueOn: string, gaps: DocGap[]): string {
-  if (action === 'complete') return 'ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด แล้ว เห็นว่าคำขอและเอกสารประกอบครบถ้วนถูกต้อง';
+  if (action === 'complete') return 'ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง R6201 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด แล้ว เห็นว่าคำขอและเอกสารประกอบครบถ้วนถูกต้อง';
   const lines = gaps.map((gap, index) => `${index + 1}. ${gapSentence(gap)}`).filter((line) => !line.endsWith('. ')).join('\n');
   if (action === 'late') return `ด้วยครบกำหนดแก้ไขเพิ่มเติมคำขอเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้องในเรื่องดังนี้\n${lines}`;
-  return `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง REF256205150001 แล้ว ยังไม่ครบถ้วนดังนี้ จึงขอให้ส่งข้อมูลเพิ่มภายใน ${dueOn}\n${lines}`;
+  return `ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอเลขที่อ้างอิง R6201 แล้ว ยังไม่ครบถ้วนดังนี้ จึงขอให้ส่งข้อมูลเพิ่มภายใน ${dueOn}\n${lines}`;
 }
 
 function noticeLetterFields(action: DocAction, noticedOn: string, dueOn: string, signer: string): WorkDraft['fields'] {
@@ -309,7 +337,7 @@ function noticeLetterFields(action: DocAction, noticedOn: string, dueOn: string,
     field('วันที่', noticedOn),
     field('เรื่อง', subject),
     field('เรียน', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
-    field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 ลงวันที่ 15/05/2562 เลขสารบรรณ สบ.1605/2562'),
+    field('อ้างถึง', 'คำขอเลขที่อ้างอิง R6201 ลงวันที่ 15/05/2563 เลขสารบรรณ สบ.1605/2562'),
     field('สิ่งที่ส่งมาด้วย', '-'),
     field('เนื้อความ', body, true),
     field('กำหนดส่งข้อมูล', action === 'complete' ? '-' : dueOn),
@@ -323,9 +351,9 @@ function embassyLetterFields(on: string, signer: string): WorkDraft['fields'] {
     field('วันที่แจ้งเรื่อง', on),
     field('เรื่อง', 'แจ้งการรับคำขอให้พิจารณาตอบโต้การทุ่มตลาด'),
     field('เรียน', 'สถานเอกอัครราชทูตเวียดนามประจำประเทศไทย และสถานเอกอัครราชทูตอาหรับรีพับลิกแห่งอียิปต์ประจำประเทศไทย'),
-    field('อ้างถึง', 'คำขอเลขที่อ้างอิง REF256205150001 เลขสารบรรณ สบ.1605/2562'),
+    field('อ้างถึง', 'คำขอเลขที่อ้างอิง R6201 เลขสารบรรณ สบ.1605/2562'),
     field('สิ่งที่ส่งมาด้วย', '-'),
-    field('เนื้อความ', 'ด้วยคณะกรรมการได้พิจารณารับคำขอเลขที่อ้างอิง REF256205150001 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้ไต่สวนการทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบ หนังสือนี้เก็บไว้ในระบบและไม่ส่งให้ผู้ยื่นคำขอ', true),
+    field('เนื้อความ', 'ด้วยคณะกรรมการได้พิจารณารับคำขอเลขที่อ้างอิง R6201 ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้ไต่สวนการทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอแจ้งรัฐบาลประเทศผู้ส่งออกเพื่อทราบ หนังสือนี้เก็บไว้ในระบบและไม่ส่งให้ผู้ยื่นคำขอ', true),
     field('ลงชื่อ', signer || 'นางสาวจรีณา กิจส่งเสริมกุล'),
   ];
 }
@@ -547,11 +575,11 @@ function agendaFieldList(): { label: string; value: string; long?: boolean }[] {
     field('ผู้ยื่นคำขอ', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
     field('สินค้าที่ถูกพิจารณา', 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน'),
     field('ประเทศแหล่งกำเนิด', 'เวียดนาม และอียิปต์'),
-    field('วันที่ยื่นคำขอ', '15/05/2562'),
-    field('วันที่คำขอครบถ้วน', '28/05/2562'),
-    field('วันครบกำหนด 4 เดือน', '15/09/2562'),
+    field('วันที่ยื่นคำขอ', '15/05/2563'),
+    field('วันที่คำขอครบถ้วน', '28/07/2563'),
+    field('วันครบกำหนด 4 เดือน', '15/09/2563'),
     field('สาระสำคัญ', 'ผู้ยื่นขอดำเนินการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากเวียดนามและอียิปต์', true),
-    field('ผลการตรวจสอบความครบถ้วน', 'คำขอครบถ้วนถูกต้องเมื่อ 28/05/2562 อยู่ภายในกำหนด 4 เดือนซึ่งครบวันที่ 15/09/2562', true),
+    field('ผลการตรวจสอบความครบถ้วน', 'คำขอครบถ้วนถูกต้องเมื่อ 28/07/2563 อยู่ภายในกำหนด 4 เดือนซึ่งครบวันที่ 15/09/2563', true),
     field('สถานะอุตสาหกรรมภายใน', 'ผู้ยื่นและผู้ผลิตที่สนับสนุนมีปริมาณการผลิตรวมมากกว่าร้อยละ 25 ของสินค้าชนิดเดียวกันในประเทศ', true),
     field('หลักฐานการทุ่มตลาดและความเสียหาย', 'มีหลักฐานเบื้องต้นเรื่องส่วนเหลื่อมการทุ่มตลาดและความเสียหายของอุตสาหกรรมภายในเพียงพอให้พิจารณาเปิดไต่สวน', true),
     field('ข้อกฎหมาย', 'พระราชบัญญัติการตอบโต้การทุ่มตลาดและการอุดหนุนซึ่งสินค้าจากต่างประเทศ พ.ศ. 2542 มาตรา 39', true),
@@ -693,7 +721,7 @@ export class Por1Page {
       return true;
     });
   }
-  protected refId = filingRefId;
+  protected refId = readActiveFilingRef();
   protected section = '1';
   protected anchor = 'part-1-1';
   protected wantDumping = !cvdChosen();
@@ -733,6 +761,7 @@ export class Por1Page {
   @HostListener('document:keydown.escape')
   protected closeSectionHelpOnEsc(): void {
     this.sectionHelpOpen = false;
+    if (this.bundleViewerFull) this.bundleViewerFull = false;
   }
 
   protected get currentGuide(): FormGuide {
@@ -768,8 +797,12 @@ export class Por1Page {
     if (id === '2') {
       return {
         title: 'ส่วนที่ 2 รายละเอียดของสินค้า',
-        lead: 'เปรียบเทียบสินค้าที่ถูกพิจารณากับสินค้าชนิดเดียวกันที่ผลิตในประเทศ ตามตารางในแบบ ปร.1',
-        tips: ['กรอกทีละรายการให้ครบ 10 ข้อ', 'แนบแค็ตตาล็อกหรือเอกสารสินค้าได้ถ้ามี', 'พิกัดศุลกากรและอัตราอากรต้องระบุให้ชัด'],
+        lead: 'กรอกตารางเปรียบเทียบ 2.1.1–2.1.10 ในแบบ และแนบสิ่งที่ส่งมาด้วยที่อ้างอิงในแต่ละช่อง (พิกัด มาตรฐาน กระบวนการผลิต ฯลฯ)',
+        tips: [
+          'กรอกข้อความสั้นในตารางให้ครบทั้งสองคอลัมน์',
+          'รายการยาว เช่น พิกัดศุลกากรเต็ม ให้สรุปในตารางแล้วแนบไฟล์สิ่งที่ส่งมาด้วย',
+          'ช่องที่แบบระบุ “โปรดดูสิ่งที่ส่งมาด้วย …” ต้องมีไฟล์แนบคู่กัน',
+        ],
       };
     }
     if (id === '3') {
@@ -893,7 +926,7 @@ export class Por1Page {
   protected readonly nationalities = ['ไทย'];
   protected readonly countries = ['เวียดนาม', 'อียิปต์'];
   protected company = 'บมจ. สหวิริยาสตีลอินดัสตรี';
-  protected address = '28/1 อาคารประภาวิทย์ ชั้น 2-3 ถนนสุรวงศ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500';
+  protected address = '28/1 อาคารประภาวิทย์ ชั้น 2-3 ถนนสุรศักดิ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500';
   protected phone = '(02) 238-3063-82';
   protected fax = '(02) 236-8890, (02) 236-8892';
   protected email = '';
@@ -904,25 +937,85 @@ export class Por1Page {
   protected relatedImport = 'ไม่มี';
   protected priorAid = '5 มิถุนายน 2562 อุตสาหกรรมภายในผู้ผลิตเหล็กแผ่นรีดร้อนยื่นแบบคำขอให้กระทรวงพาณิชย์ขยายระยะเวลาการบังคับใช้มาตรการปกป้องการนำเข้าสินค้าเหล็กแผ่นรีดร้อนไม่เจือที่เพิ่มขึ้น และอยู่ในกระบวนการไต่สวน';
   protected outsideProducer = 'บมจ. แอล พี เอ็น เพลทมิล 199/9 หมู่ 4 ถนนสุขสวัสดิ์ ตำบลปากคลองบางปลากด อำเภอพระสมุทรเจดีย์ สมุทรปราการ 10900 โทรศัพท์ 02-815-6400-9 โทรสาร 02-815-6427-29';
-  protected goodsDetail = 'เหล็กแผ่นรีดร้อนชนิดม้วนและไม่เป็นม้วน (Flat Hot Rolled Steel) หนา 0.9–100.0 มม. กว้าง 100–3,200 มม. อัตราอากร 0–5% แหล่งกำเนิดและผู้ส่งออกคือเวียดนามและอียิปต์ สินค้าในประเทศเหมือนกัน';
-  protected channelDetail = 'จำหน่ายโดยตรงแก่ผู้ใช้และศูนย์บริการเหล็ก (Service Center) และจำหน่ายผ่าน Trading Company ผู้ใช้สุดท้ายคืออุตสาหกรรมท่อเหล็ก ตู้คอนเทนเนอร์ ถังแก๊ส ก่อสร้าง เฟอร์นิเจอร์ และต่อเรือ';
+  protected goodsDetail =
+    'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน (Flat Hot Rolled Steel in Coils and not in Coils) ความหนา 0.9–100.0 มม. ความกว้าง 100–3,200 มม. พิกัดอัตราศุลกากร พ.ศ. 2555 และ พ.ศ. 2560 กลุ่ม 7208 / 7211 / 7225 / 7226 อัตราอากรขาเข้า ร้อยละ 0–5% แหล่งกำเนิดและผู้ส่งออกคือสาธารณรัฐสังคมนิยมเวียดนามและสาธารณรัฐอาหรับอียิปต์ สินค้าชนิดเดียวกันที่ผลิตในประเทศมีลักษณะเหมือนกับสินค้าที่ถูกพิจารณา';
+  protected channelDetail =
+    'จำหน่ายโดยตรงแก่ผู้ใช้และศูนย์บริการเหล็ก (Service Center) และจำหน่ายผ่าน Trading Company ผู้ใช้ขั้นสุดท้ายอยู่ในอุตสาหกรรมผลิตท่อเหล็ก ตู้คอนเทนเนอร์ ถังแก๊ส ก่อสร้าง เฟอร์นิเจอร์ และต่อเรือ';
+  /** ส่วนที่ 2 จากต้นแบบ Sub1 (ปร.1 AD เวียดนาม–อียิปต์) — กรอกตารางครบ + แนบสิ่งที่ส่งมาด้วย */
   protected goodsCompare: GoodsCompareRow[] = [
-    { item: '1. ชื่อสินค้า — ชื่อทางการค้า / ชื่อทางวิทยาศาสตร์ / พิกัดอัตราศุลกากร / อัตราอากรขาเข้า', subject: 'Flat Hot Rolled Steel in Coils and not in Coils · HS 7208 · อากร 0–5%', like: 'เหล็กแผ่นรีดร้อนชนิดม้วนและไม่เป็นม้วน · HS 7208 · อากร 0–5%' },
-    { item: '2. ลักษณะทางกายภาพ ลักษณะทางเคมี และโครงสร้างของสินค้า', subject: 'หนา 0.9–100.0 มม. กว้าง 100–3,200 มม. เป็นเหล็กคาร์บอนรีดร้อน', like: 'ลักษณะทางกายภาพและเคมีเหมือนกันกับสินค้านำเข้า' },
-    { item: '3. มาตรฐานทางอุตสาหกรรม', subject: 'JIS / ASTM / EN ตามประเทศผู้ผลิตและผู้ส่งออก', like: 'มาตรฐานเดียวกับที่ใช้ในประเทศไทย' },
-    { item: '4. ขั้นตอนและกระบวนการผลิต', subject: 'หลอม → หล่อต่อเนื่อง → รีดร้อน → ม้วน/ตัด', like: 'กระบวนการผลิตเหมือนกัน' },
-    { item: '5. ช่องทางการจัดจำหน่าย', subject: 'จำหน่ายผ่านผู้ส่งออก/ผู้นำเข้าและ Trading Company', like: 'จำหน่ายโดยตรงแก่ผู้ใช้และศูนย์บริการเหล็ก' },
-    { item: '6. ผู้ใช้สินค้าขั้นสุดท้าย', subject: 'ท่อเหล็ก ตู้คอนเทนเนอร์ ถังแก๊ส ก่อสร้าง เฟอร์นิเจอร์ ต่อเรือ', like: 'กลุ่มผู้ใช้เดียวกัน' },
-    { item: '7. มาตรการในการนำเข้าประเทศไทยซึ่งมิใช่มาตรการทางภาษี', subject: 'ไม่มี', like: '—' },
-    { item: '8. ประเทศแหล่งกำเนิด', subject: 'เวียดนาม และอียิปต์', like: 'ประเทศไทย' },
-    { item: '9. ประเทศผู้ส่งออก', subject: 'เวียดนาม และอียิปต์', like: '—' },
-    { item: '10. ข้อเปรียบเทียบอื่น ๆ', subject: 'ใช้ทดแทนกันได้ในตลาดเดียวกัน', like: 'มีส่วนที่เหมือนกันและใช้ทดแทนกันได้' },
+    {
+      item: '2.1.1 ชื่อสินค้า — ชื่อทางการค้า',
+      subject: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน (Flat Hot Rolled Steel in Coils and not in Coils)',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา',
+    },
+    {
+      item: '2.1.1 ชื่อสินค้า — ชื่อทางวิทยาศาสตร์',
+      subject: '—',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา',
+    },
+    {
+      item: '2.1.1 ชื่อสินค้า — พิกัดอัตราศุลกากร',
+      subject:
+        'พิกัดอัตราศุลกากร พ.ศ. 2555\n72081000020,72081000030,72081000040,72081000090\n72083600011,72083600012,72083600013,72083600021\n72083600022,72083600023,72083600031,72083600032\n72083600033,72083600041,72083600042,72083600043\n72083600090,72083700041,72083700042,72083700043\n72083700051,72083700052,72083700053,72083700071\n72083700072,72083700073,72083700090,72083800041\n72083800042,72083800043,72083800051,72083800052\n72083800053,72083800071,72083800072,72083800073\n72083800090,72083900041,72083900042,72083900043\n72083900051,72083900052,72083900053,72083900071\n72083900072,72083900073,72083900081,72083900082\n72083900083,72083900090,72084000020,72084000030\n72084000040,72084000090,72085100011,72085100012\n72085100013,72085100021,72085100022,72085100023\n72085100031,72085100032,72085100033,72085100041\n72085100042,72085100043,72085100051,72085100052\n72085100053,72085100090,72085200011,72085200012\n72085200013,72085200021,72085200022,72085200023\n72085200031,72085200032,72085200033,72085200090\n72085300011,72085300012,72085300013,72085300021\n72085300022,72085300023,72085300090,72085400011\n72085400012,72085400013,72085400021,72085400022\n72085400023,72085400041,72085400042,72085400043\n72085400051,72085400052,72085400053,72085400090\n72089000090,72111310000,72111390000,72111411020\n72111411030,72111411090,72111419020,72111419030\n72111419090,72111421020,72111421030,72111421090\n72111429020,72111429030,72111429090,72111911020\n72111911030,72111911090,72111919000,72111921020\n72111921030,72111921090,72111929000,72253090011\n72253090012,72253090013,72253090014,72253090021\n72253090022,72253090023,72253090024,72254090011\n72254090012,72254090013,72254090014,72254090021\n72254090022,72254090023,72254090024,72269110011\n72269110012,72269110013,72269110014,72269110021\n72269110022,72269110023,72269110024,72269190011\n72269190012,72269190013,72269190014,72269190021\n72269190022,72269190023,72269190024\n\nพิกัดอัตราศุลกากร พ.ศ. 2560\n72081000020,72081000030,72081000040,72081000090\n72083600011,72083600012,72083600013,72083600021\n72083600022,72083600023,72083600031,72083600032\n72083600033,72083600041,72083600042,72083600043\n72083600090,72083700041,72083700042,72083700043\n72083700051,72083700052,72083700053,72083700071\n72083700072,72083700073,72083700090,72083800041\n72083800042,72083800043,72083800051,72083800052\n72083800053,72083800071,72083800072,72083800073\n72083800090,72083990041,72083990042,72083990043\n72083990051,72083990052,72083990053,72083990071\n72083990072,72083990073,72083990081,72083990082\n72083990083,72083990090,72084000020,72084000030\n72084000040,72084000090,72085100011,72085100012\n72085100013,72085100021,72085100022,72085100023\n72085100031,72085100032,72085100033,72085100041\n72085100042,72085100043,72085100051,72085100052\n72085100053,72085100090,72085200011,72085200012\n72085200013,72085200021,72085200022,72085200023\n72085200031,72085200032,72085200033,72085200090\n72085300011,72085300012,72085300013,72085300021\n72085300022,72085300023,72085300090,72085490011\n72085490012,72085490013,72085490021,72085490022\n72085490023,72085490041,72085490042,72085490043\n72085490051,72085490052,72085490053,72085490090\n72089090090,72111311000,72111319000,72111413020\n72111413030,72111413090,72111419020,72111419030\n72111419090,72111913020,72111913030,72111913090\n72111919020,72111919030,72111919090,72253090031\n72253090032,72253090041,72253090042,72254090021\n72254090022,72254090023,72254090024,72254090031\n72254090032,72254090041,72254090042,72269110031\n72269110032,72269110041,72269110042,72269190031\n72269190032,72269190041,72269190042\n\n(โปรดดูสิ่งที่ส่งมาด้วย 1)',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา\n(โปรดดูสิ่งที่ส่งมาด้วย 1)',
+    },
+    {
+      item: '2.1.1 ชื่อสินค้า — อัตราอากรขาเข้า',
+      subject: 'ร้อยละ 0–5%\n(โปรดดูสิ่งที่ส่งมาด้วย 2.1–2.3)',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา\n(โปรดดูสิ่งที่ส่งมาด้วย 2.1–2.3)',
+    },
+    {
+      item: '2.1.2 ลักษณะทางกายภาพ ลักษณะทางเคมีและโครงสร้างของสินค้า',
+      subject: 'เหล็กแผ่นรีดร้อน ชนิดเป็นม้วนและไม่เป็นม้วน ความหนา 0.9–100.0 มม. และความกว้าง 100–3,200 มม.',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา\n(โปรดดูสิ่งที่ส่งมาด้วย 3)',
+    },
+    {
+      item: '2.1.3 มาตรฐานทางอุตสาหกรรม',
+      subject: '(โปรดดูสิ่งที่ส่งมาด้วย 4)',
+      like: '(โปรดดูสิ่งที่ส่งมาด้วย 4)',
+    },
+    {
+      item: '2.1.4 ขั้นตอนและกระบวนการผลิต',
+      subject:
+        'ผู้ผลิตส่วนใหญ่ใช้ขบวนการถลุงและหล่อเหล็กจนได้เหล็กแท่งแบนนำมาผลิตเป็นเหล็กแผ่นรีดร้อนต่อไป ผู้ผลิตบางรายใช้กระบวนการผลิตด้วยเตาอาร์คไฟฟ้า และผ่านเครื่องรีดเป็นเหล็กแผ่นรีดร้อนต่อไป',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา\n(โปรดดูสิ่งที่ส่งมาด้วย 5)',
+    },
+    {
+      item: '2.1.5 ช่องทางการจัดจำหน่าย',
+      subject: 'จำหน่ายโดยตรงแก่ผู้ใช้และศูนย์บริการเหล็ก (Service Center) และจำหน่ายผ่าน Trading Company',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา',
+    },
+    {
+      item: '2.1.6 ผู้ใช้สินค้าขั้นสุดท้าย',
+      subject: 'อุตสาหกรรมผลิตท่อเหล็ก ตู้คอนเทนเนอร์ ถังแก๊ส ก่อสร้าง เฟอร์นิเจอร์ ต่อเรือ',
+      like: 'เหมือนกับสินค้าที่ถูกพิจารณา\n(โปรดดูสิ่งที่ส่งมาด้วย 5)',
+    },
+    {
+      item: '2.1.7 มาตรการในการนำเข้าประเทศไทยซึ่งมิใช่มาตรการทางภาษี',
+      subject: '—',
+      like: '—',
+    },
+    {
+      item: '2.1.8 ประเทศแหล่งกำเนิด',
+      subject: 'สาธารณรัฐสังคมนิยมเวียดนาม, สาธารณรัฐอาหรับอียิปต์',
+      like: '—',
+    },
+    {
+      item: '2.1.9 ประเทศผู้ส่งออก',
+      subject: 'สาธารณรัฐสังคมนิยมเวียดนาม, สาธารณรัฐอาหรับอียิปต์',
+      like: '—',
+    },
+    {
+      item: '2.1.10 ข้อเปรียบเทียบอื่น ๆ — ในส่วนที่เหมือนกัน / ในส่วนที่แตกต่างกัน',
+      subject: 'ไม่มี',
+      like: '—',
+    },
   ];
   protected goods: GoodsRow[] = [{ producer: '', goods: '', made: '', sold: '', unit: '' }];
   protected makers: MakerRow[] = [
     party('บมจ. จี สตีล', '88 ปาโซ่ ทาวเวอร์ ชั้น 18 ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500', '(02) 634-2222', '(02) 634-4114'),
     party('บมจ. จี เจ สตีล', '88 ปาโซ่ ทาวเวอร์ ชั้น 24 ถนนสีลม แขวงสุริยวงศ์ เขตบางรัก กรุงเทพฯ 10500', '(02) 267-8222', '(02) 267-9048'),
-    party('บมจ. สหวิริยาเพลทมิลล์', '28/1 อาคารประภาวิทย์ ชั้น 4 ถนนสุรวงศ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', '(02) 630-0257-61', '(02) 630-0267'),
+    party('บมจ. สหวิริยาเพลทมิลล์', '28/1 อาคารประภาวิทย์ ชั้น 4 ถนนสุรศักดิ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', '(02) 630-0257-61', '(02) 630-0267'),
   ];
   protected readonly parties: PartyBlock[] = [
     {
@@ -976,7 +1069,7 @@ export class Por1Page {
       wrapped: true,
       rows: [
         party('กลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย', 'ชั้น 8 อาคารปฏิบัติการเทคโนโลยีเชิงสร้างสรรค์ เลขที่ 2 ถนนนางลิ้นจี่ แขวงทุ่งมหาเมฆ เขตสาทร กรุงเทพฯ 10120', '02-345-1000', '02-345-1295-9'),
-        party('สมาคมเหล็กแผ่นรีดร้อนไทย', '28/1 อาคารประภาวิทย์ ชั้น 3 ถนนสุรวงศ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', '02-238-3063', '02-236-8892'),
+        party('สมาคมเหล็กแผ่นรีดร้อนไทย', '28/1 อาคารประภาวิทย์ ชั้น 3 ถนนสุรศักดิ์ แขวงสีลม เขตบางรัก กรุงเทพฯ 10500', '02-238-3063', '02-236-8892'),
         party('สมาคมผู้ผลิตท่อโลหะและแปรรูปเหล็กแผ่น', 'อาคารสำนักพัฒนาอุตสาหกรรมรายสาขา ชั้น 1 ซอยตรีมิตร ถนนพระราม 4 แขวงพระโขนง เขตคลองเตย กรุงเทพฯ 10110', '02-712-1179', '02-712-1179'),
         party('สมาคมอุตสาหกรรมยานยนต์ไทย', 'อาคารปฏิบัติการเทคโนโลยีเชิงสร้างสรรค์ ถนนนางลิ้นจี่ แขวงทุ่งมหาเมฆ เขตสาทร กรุงเทพฯ', '02-712-1179', '02-712-1179'),
         party('สมาคมต่อเรือและซ่อมเรือไทย', 'ถนนพระราม 2 แขวงบางมด เขตจอมทอง กรุงเทพฯ', '02-452-1266, 02-840-2110', '02-452-1267'),
@@ -1031,8 +1124,10 @@ export class Por1Page {
       'สิ่งที่ส่งมาด้วย 8 ราคาจำหน่ายในประเทศอียิปต์ เม.ย. 62.pdf',
     ],
   };
-  protected filedOn = '15/05/2562';
-  protected amendUntil = addThaiMonths(this.filedOn, 4);
+  protected filedOn = firstFiledOn;
+  /** วันที่ยื่นแบบทางการ — จุดเริ่มนับกำหนด 4 เดือน */
+  protected officialOn = readOfficialOn() || firstFiledOn;
+  protected amendUntil = addThaiMonths(this.officialOn, 4);
   protected docKey = 'cert';
   protected readonly supportDocs: { key: string; label: string; accept: string; hint: string; behalf: boolean }[] = [
     { key: 'cert', label: 'หนังสือรับรองบริษัท', accept: '.png,.jpg,.jpeg,.pdf', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf', behalf: false },
@@ -1049,7 +1144,7 @@ export class Por1Page {
   protected exportCountry = 'เวียดนาม';
   protected compareCountry = 'ไทย';
   protected currency = 'บาท';
-  protected factoryNote = 'เวียดนาม CFR 566 ดอลลาร์/ตัน หักค่าเรือ 200 บาท ได้หน้าโรงงาน 17,514 บาท/ตัน อียิปต์ 601 ดอลลาร์ เป็น 19,418 บาท/ตัน อัตรา 31.8596 บาทต่อดอลลาร์ เม.ย. 2562';
+  protected factoryNote = 'อ้างอิงราคาจาก http://www.metalexpert.com เดือนเมษายน 2562 อัตราแลกเปลี่ยน ธปท. 31.8596 บาท/ดอลลาร์สหรัฐ (สิ่งที่ส่งมาด้วย 7, 8, 10)\nเวียดนาม: ราคา CFR 566 ดอลลาร์/ตัน = 17,714 บาท/ตัน หักค่าขนส่งทางเรือในประเทศ 200 บาท/ตัน (บางสะพาน–กรุงเทพฯ) ได้มูลค่าปกติหน้าโรงงาน 17,514 บาท/ตัน\nอียิปต์: ราคาหน้าโรงงาน (ex-work) 601 ดอลลาร์/ตัน = 19,418 บาท/ตัน';
   protected thirdReason = 'ไม่มี';
   protected originDetail = 'ไม่มี';
   protected thaiDetail = 'ไม่มี';
@@ -1060,16 +1155,17 @@ export class Por1Page {
   protected originCosts: CostRow[] = [{ item: 'ไม่มี', amount: '-', percent: '-' }];
   protected thaiCosts: CostRow[] = [{ item: 'ไม่มี', amount: '-', percent: '-' }];
   protected docs: DocFile[] = [
-    { name: 'สิ่งที่ส่งมาด้วย 1 พิกัดอัตราศุลกากรสินค้าที่ถูกพิจารณา.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 2.1 พระราชกำหนดพิกัดอัตราศุลกากร.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 2.2 ประกาศลดอัตราอากร ม.12.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 2.3 ประกาศลดอัตราอากร ASEAN FTA.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่สงมาด้วย 4 มาตรฐานและชั้นคุณภาพ.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 5 กระบวนการผลิต rev.01.pdf', saved: '15/05/2562' },
-    { name: 'แผนภาพกระบวนการผลิต.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 1 พิกัดอัตราศุลกากรสินค้าที่ถูกพิจารณา.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 2.1 พระราชกำหนดพิกัดอัตราศุลกากร.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 2.2 ประกาศลดอัตราอากร ม.12.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 2.3 ประกาศลดอัตราอากร ASEAN FTA.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 3 แค็ตตาล็อกและลักษณะสินค้า.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 4 มาตรฐานและชั้นคุณภาพ.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 5 กระบวนการผลิต rev.01.pdf', saved: '15/05/2563' },
+    { name: 'แผนภาพกระบวนการผลิต.pdf', saved: '15/05/2563' },
   ];
-  protected exportDetail = 'เวียดนามหน้าโรงงาน 16,761 บาท/ตัน CIF 17,238 ส่วนเหลื่อม 753 บาท (4.36%) อียิปต์หน้าโรงงาน 17,349 CIF 19,026 ส่วนเหลื่อม 2,069 บาท (10.87%) เม.ย. 2562';
-  protected exportConstructed = '';
+  protected exportDetail = 'ใช้ราคานำเข้า C.I.F. จากสถิติกรมศุลกากรตามพิกัดข้อ 2.1.1 เดือนเมษายน 2562 (สิ่งที่ส่งมาด้วย 9)\nเวียดนาม: ปริมาณ 5,061 ตัน มูลค่า 87,246,040 บาท → CIF 17,238 บาท/ตัน หักประกันภัย 0.015% (≈3 บาท) และค่าระวาง 15 ดอลลาร์ (=477 บาท ไม่มีค่าขนส่งในประเทศเพราะ FHS ริมทะเล) ได้ราคาส่งออกหน้าโรงงาน 16,761 บาท/ตัน\nอียิปต์: ปริมาณ 118 ตัน มูลค่า 2,239,666 บาท → CIF 19,026 บาท/ตัน หักประกัน ≈3 บาท ค่าระวาง 40 ดอลลาร์ (=1,274 บาท) และค่าขนส่งในประเทศ 400 บาท ได้หน้าโรงงาน 17,349 บาท/ตัน';
+  protected exportConstructed = 'ไม่มี';
   protected marginUnit = 'บาท/ตัน';
   protected marginCountries: MarginCountry[] = [
     { name: 'เวียดนาม', normal: '17,514', exportPrice: '16,761', margin: '753', cif: '17,238', rate: '4.36' },
@@ -1078,26 +1174,23 @@ export class Por1Page {
   protected subsidySpecific = '';
   protected subsidyBenefit = '';
   protected exportDocs: DocFile[] = [
-    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562 เวียดนาม.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562 อียิปต์.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 11 ค่าขนส่งทางเรือระหว่างประเทศ.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 12 ค่าขนส่งในประเทศ บางสะพาน-กรุงเทพฯ.pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 13 ค่าประกันภัยการเดินเรือ.pdf', saved: '15/05/2562' },
+    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562 เวียดนาม.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 9 สถิตินำเข้าเดือนเมษายน 2562 อียิปต์.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 11 ค่าขนส่งทางเรือระหว่างประเทศ.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 12 ค่าขนส่งในประเทศ บางสะพาน-กรุงเทพฯ.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 13 ค่าประกันภัยการเดินเรือ.pdf', saved: '15/05/2563' },
   ];
-  protected marginDocs: DocFile[] = [{ name: 'สิ่งที่ส่งมาด้วย 10 อัตราแลกเปลี่ยนรายเดือน 2562.pdf', saved: '15/05/2562' }];
+  protected marginDocs: DocFile[] = [{ name: 'สิ่งที่ส่งมาด้วย 10 อัตราแลกเปลี่ยนรายเดือน 2562.pdf', saved: '15/05/2563' }];
   protected subsidyDocs: DocFile[] = [];
   protected explainDetail = 'ไม่มีข้อมูลการอุดหนุน เคสนี้ขอให้ไต่สวนการทุ่มตลาด';
   protected explainDocs: DocFile[] = [];
   protected docView: 'letter' | 'pledge' | null = null;
   protected docViewFull = false;
   protected issuedDocs: { kind: 'letter' | 'pledge'; title: string; code: string; at: string }[] = [];
-  protected signatureName = 'ลายเซ็น.png';
-  protected signatureUrl =
-    'data:image/svg+xml,' +
-    encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="72" viewBox="0 0 180 72"><path d="M12 46c16-30 22 6 34-2 10-6 4 20 16 14 14-8 2-28 18-22 18 6 6 26 22 14 12-8 8 10 20 4 14-8 22 2 36-12" fill="none" stroke="#0E2346" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    );
+  protected signatureName = 'ลายเซ็น-ประกิต.png';
+  /** ลายเซ็นจำลองผู้ลงนามต้นแบบ AD1046 */
+  protected signatureUrl = 'assets/samples/ad1046/por1-sign-prakit.jpg';
   protected letterNo = '01/492-019/2563';
   protected letterDate = '15/05/2563';
   protected letterSubject =
@@ -1109,7 +1202,8 @@ export class Por1Page {
   protected letterPurpose = 'ขอให้พิจารณาใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์';
   protected sealName = '';
   protected sealUrl = '';
-  protected letterFileName = '';
+  /** ชื่อไฟล์หนังสือนำส่งตามเคสจริง AD1046 */
+  protected letterFileName = 'หนังสือนำส่ง.pdf';
   protected pledgeSignedName = '';
   /** ข้อความท้ายแบบ ปร.1 ตามแบบราชการ (ใช้ได้ทั้ง AD และ CVD) */
   protected readonly pledgeDefault =
@@ -1117,9 +1211,9 @@ export class Por1Page {
   protected pledgeText = this.pledgeDefault;
   protected pledgeSource: 'default' | 'draft' = 'default';
   protected otherDocs: DocFile[] = [
-    { name: 'ภาคผนวก ก.pdf', saved: '15/05/2562' },
-    { name: 'เอกสารผนวก ข-2 (LPN).pdf', saved: '15/05/2562' },
-    { name: 'สิ่งที่ส่งมาด้วย 6 รายชื่อผู้นำเข้า.pdf', saved: '15/05/2562' },
+    { name: 'เอกสารผนวก ข. ส่วนที่ 1 ผู้ผลิตที่กระทำการแทน.pdf', saved: '15/05/2563' },
+    { name: 'เอกสารผนวก ข. ส่วนที่ 2 ผู้ผลิตที่มิได้ขอให้กระทำการแทน.pdf', saved: '15/05/2563' },
+    { name: 'สิ่งที่ส่งมาด้วย 6 รายชื่อผู้นำเข้า.pdf', saved: '15/05/2563' },
   ];
   protected readonly conditions = [
     { key: 'sales', label: 'ยอดจำหน่ายภายในประเทศ' },
@@ -1140,14 +1234,14 @@ export class Por1Page {
     { key: 'otherIndex', label: 'ปัจจัยและดัชนีทางเศรษฐกิจอื่น ๆ นอกจากที่ระบุมาข้างต้น' },
   ];
   protected sheets: Record<'import' | 'factor' | 'summary' | 'trend' | 'intent', DocFile[]> = {
-    import: [{ name: 'AD VN-EG_Table 8.1, 8.2, 8.7-ALL rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
+    import: [{ name: 'AD VN-EG_Table 8.1, 8.2, 8.7-ALL rev.01_15.05.20.xlsx', saved: '15/05/2563' }],
     factor: [
-      { name: 'AD VN-EG_Table 8.4-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2562' },
-      { name: 'สิ่งที่ส่งมาด้วย 14 SEAISI Pro.-Cap..pdf', saved: '15/05/2562' },
+      { name: 'AD VN-EG_Table 8.4-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2563' },
+      { name: 'สิ่งที่ส่งมาด้วย 14 SEAISI Pro.-Cap..pdf', saved: '15/05/2563' },
     ],
-    summary: [{ name: 'AD VN-EG_Table 8.5-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
-    trend: [{ name: 'AD VN-EG_Table 8.8-ALL rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
-    intent: [{ name: 'AD VN-EG_Table 8.6-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2562' }],
+    summary: [{ name: 'AD VN-EG_Table 8.5-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2563' }],
+    trend: [{ name: 'AD VN-EG_Table 8.8-ALL rev.01_15.05.20.xlsx', saved: '15/05/2563' }],
+    intent: [{ name: 'AD VN-EG_Table 8.6-ALL_rev.01_15.05.20.xlsx', saved: '15/05/2563' }],
   };
   protected notes: Record<string, string> = {
     importDetail: 'ปี 2562 นำเข้าจากเวียดนามและอียิปต์ 115,737 ตัน จาก 17,257 ตันในปี 2561 เพิ่มร้อยละ 571',
@@ -1170,7 +1264,7 @@ export class Por1Page {
     marginSize: 'ส่วนเหลื่อมการทุ่มตลาดเวียดนาม 4.36% และอียิปต์ 10.87%',
     otherIndex: 'ปัจจัยอื่นไม่ได้ก่อให้เกิดความเสียหาย การบริโภคและเทคโนโลยีของสินค้าอุตสาหกรรมเปลี่ยนอย่างช้า',
     factorDetail: 'การนำเข้าสินค้าที่ถูกพิจารณาเป็นปัจจัยหลักของความเสียหาย ปัจจัยอื่นไม่ได้ก่อให้เกิดความเสียหาย',
-    summaryDetail: 'ความเสียหายอยู่ที่การผลิตที่อัตราใช้กำลังการผลิตต่ำกว่าร้อยละ 50 การจำหน่ายที่ต่ำกว่าต้นทุน ราคาที่ถูกตัดและกด และการจ้างงาน',
+    summaryDetail: 'ผลจากการทุ่มตลาดก่อให้เกิดความเสียหายแก่อุตสาหกรรมภายในดังนี้ (1) การผลิตและอัตราการใช้กำลังการผลิตต่ำกว่าร้อยละ 50 ทำให้ไม่เกิดการประหยัดต่อขนาด (2) ปริมาณจำหน่ายลดลง ถูกตัดราคา กดราคา และชะลอการขึ้นราคา ต้องขายต่ำกว่าต้นทุน (3) ต้องหยุดผลิตเป็นระยะ ลดแรงงานและชั่วโมงการผลิต (4) หากไม่ดำเนินมาตรการ อุตสาหกรรมภายในอาจหยุดกิจการ',
     buyerDetail: 'ไม่มีข้อมูลรายชื่อผู้ซื้อที่สูญเสียยอดขาย และไม่มีหลักฐานการลดราคาเพื่อรักษาตลาด',
     trendCapacity: 'กำลังการผลิตต่างประเทศยังพร้อมส่งออกหากความต้องการในไทยฟื้น',
     trendPrice: 'สินค้านำเข้ากดราคาและทำให้ขึ้นราคาตามต้นทุนไม่ได้',
@@ -1280,17 +1374,17 @@ export class Por1Page {
   protected fixesOpen = true;
   protected rounds: FilingRound[] = readRounds();
   private readonly revisionFindings: RoundFinding[] = [
-    { place: 'ส่วนที่ 2 รายละเอียดสินค้า', title: 'เอกสารเปรียบเทียบสินค้ายังไม่ครบ', detail: 'รายการเอกสารที่ใช้เปรียบเทียบสินค้ายังไม่ครบตามที่แบบเรียก ให้แนบไฟล์เพิ่มในรอบถัดไป', action: 'เพิ่มเอกสาร' },
-    { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ข้อมูลปริมาณยังไม่สอดคล้องกับเอกสารประกอบ', detail: 'ตัวเลขปริมาณในแบบยังไม่ตรงกับไฟล์ที่แนบไว้ ให้ปรับข้อมูลในแบบให้ตรงกับเอกสาร', action: 'ปรับข้อมูล' },
-    { place: 'ส่วนที่ 1 เอกสารมอบอำนาจ', title: 'หนังสือมอบอำนาจยังแนบไม่ครบ', detail: 'กรณียื่นแทนผู้ผลิต ต้องแนบหนังสือมอบอำนาจให้ครบก่อนยื่นรอบถัดไป', action: 'เพิ่มเอกสาร' },
+    { place: 'ส่วนที่ 1 ผนวก ข.', title: 'รายการปริมาณของ LPN ยังไม่ครบ', detail: 'กรณีกระทำการแทนผู้ผลิตบางส่วน ให้แนบรายการและปริมาณสินค้าที่ผลิต/จำหน่ายของ บมจ. แอล พี เอ็น เพลทมิล ในผนวก ข. ส่วนที่ 2', action: 'เพิ่มเอกสาร' },
+    { place: 'ส่วนที่ 2 พิกัดศุลกากร', title: 'พิกัดศุลกากรต้องตรวจสอบ', detail: 'ตรวจพิกัด พ.ศ. 2555/2560 ตามสิ่งที่ส่งมาด้วย 1 และแก้รหัสที่ระบุในหนังสือแก้ไขครั้งที่ 1', action: 'ปรับข้อมูล' },
+    { place: 'ส่วนที่ 3 ผู้ผลิตต่างประเทศ', title: 'ยังไม่ได้ระบุ Al Ezz Flat Steel (EFS)', detail: 'ให้เพิ่มผู้ผลิตอียิปต์ Al Ezz Flat Steel (EFS) ตามข้อ 1.6 ของหนังสือแก้ไขคำขอ ครั้งที่ 1', action: 'ปรับข้อมูล' },
   ];
   private readonly secondFindings: RoundFinding[] = [
-    { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคาส่งออกยังไม่ครอบคลุมช่วงเวลา', detail: 'เอกสารราคาที่แนบยังไม่ครอบคลุมช่วงที่ขอให้ไต่สวน ให้เพิ่มหลักฐานราคาหรือปรับช่วงข้อมูล', action: 'เพิ่มเอกสาร' },
-    { place: 'ส่วนที่ 6 ความเสียหาย', title: 'ตัวชี้วัดความเสียหายยังไม่สอดคล้องกับปริมาณนำเข้า', detail: 'ข้อมูลความเสียหายในแบบยังอธิบายไม่ครบว่าเชื่อมกับปริมาณนำเข้าอย่างไร', action: 'ปรับข้อมูล' },
-    { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'สัดส่วนผู้ผลิตในประเทศที่ร่วมยื่นยังขาดเอกสารยืนยัน', action: 'เพิ่มเอกสาร' },
+    { place: 'ส่วนที่ 4 มูลค่าปกติ', title: 'ตรวจตาราง 4.1.2 ระดับราคา', detail: 'ให้ตรวจสอบว่าราคาในตาราง 4.1.2 เป็นราคาหน้าโรงงานหรือราคารวมค่าขนส่งทางเรือ', action: 'ปรับข้อมูล' },
+    { place: 'ส่วนที่ 8 ตาราง 8.1–8.8', title: 'ตัวเลขตารางความเสียหายยังไม่สอดคล้อง', detail: 'ตรวจ utilization ปี 2562, %yield, ส่วนแบ่งตลาด และปริมาณขายโดยไม่รวมส่งออก ให้สอดคล้องตาราง 8.8', action: 'ปรับข้อมูล' },
+    { place: 'ส่วนที่ 2 ข้อ 2.1.10', title: 'ยังไม่ระบุส่วนเหมือน/ต่าง', detail: 'ให้ระบุข้อเปรียบเทียบระหว่างสินค้าที่ถูกพิจารณาและสินค้าชนิดเดียวกันทั้งส่วนที่เหมือนกันและแตกต่างกัน', action: 'ปรับข้อมูล' },
   ];
   private readonly thirdFindings: RoundFinding[] = [
-    { place: 'ส่วนที่ 8 ความเสียหาย', title: 'คำอธิบายความเสียหายยังไม่ครบเงื่อนไข', detail: 'ยังอธิบายไม่ครบว่าความเสียหายเชื่อมกับสินค้าที่ขอยื่นอย่างไร', action: 'ปรับข้อมูล' },
+    { place: 'ส่วนที่ 8 ตาราง 8.3–8.8', title: 'ข้อมูลรายบริษัทยังต้องปรับ', detail: 'ตรวจตาราง 8.3–8.8 ของ SSI / G Steel / GJ Steel ให้สอดคล้องงบการเงินและกันเองตามหนังสือแก้ไข', action: 'ปรับข้อมูล' },
   ];
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -1347,6 +1441,12 @@ export class Por1Page {
   protected viewingMade: MadeDoc | null = null;
   protected docGaps: DocGap[] = defaultNoticeGaps.map((gap) => ({ ...gap }));
   protected docAction: DocAction = 'amend';
+  /** ท่อ: ร่าง → รายงานหัวหน้ากอง → เห็นชอบ → e-Office → ลงนาม/ออกเลข → ส่งผู้ยื่น */
+  protected noticePipe: NoticePipe = 'draft';
+  protected noticePipeAt = '';
+  protected noticeHeadBy = '';
+  protected noticeOfficeRef = '';
+
   protected docNoticedOn = '20/05/2562';
   protected docDueOn = '20/06/2562';
   protected docNote = 'ขอเพิ่มหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
@@ -1357,7 +1457,7 @@ export class Por1Page {
   protected replyLetterDate = '22/05/2562';
   protected replyLetterNo = 'สห.2205/2562';
   protected replyLetterTo = 'อธิบดีกรมการค้าต่างประเทศ';
-  protected replyLetterSubject = 'ส่งคำขอที่แก้ไขเพิ่มเติม เลขที่อ้างอิง REF256205150001';
+  protected replyLetterSubject = 'ส่งคำขอที่แก้ไขเพิ่มเติม เลขที่อ้างอิง R6201';
   protected replyLetterBody = 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด ขอส่งคำขอที่แก้ไขเพิ่มเติม ตามหนังสือแจ้งลงวันที่ 20/05/2562 ได้แก่ หลักฐานราคา ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
   protected replyFiles: ReplyFile[] = defaultReplyFiles();
   protected replySent = false;
@@ -1469,7 +1569,7 @@ export class Por1Page {
   protected signer = 'นายประกิต กาญจนการไกร';
   protected signerPrint = 'นายประกิต กาญจนการไกร';
   protected roleTitle = 'ผู้จัดการสำนักรัฐกิจสัมพันธ์ ผู้รับมอบอำนาจ';
-  protected signedOn = '15/05/2562';
+  protected signedOn = '15/05/2563';
 
   protected closeHistory(): void {
     this.historyOpen = false;
@@ -1499,7 +1599,7 @@ export class Por1Page {
     const work = this.slips.map((slip) => ({
       phase: 'การมอบหมาย',
       title: `${slip.from} มอบหมายให้ ${slip.to}`,
-      when: slip.assignedOn || '16/05/2562',
+      when: slip.assignedOn || '16/05/2563',
       detail: `${this.receiptText(slip.receipt)} · ${this.kindText(slip.kind)} · กำหนดส่ง ${slip.dueOn}${slip.dueTime ? ` ${slip.dueTime} น.` : ''} · ${slip.order}`,
       label: slip.receipt === 'return' ? 'ส่งคืน' : 'มอบหมาย',
       tone: slip.receipt === 'return' ? 'warning' as const : 'info' as const,
@@ -1537,10 +1637,10 @@ export class Por1Page {
   }
 
   private readonly historyActivity: HistoryItem[] = [
-    { phase: 'การจัดทำคำขอ', title: 'สร้างคำขอ', when: '15/05/2562 · 09:30 น.', detail: 'ผู้ยื่นสร้างคำขอและเริ่มกรอกข้อมูล', label: 'ร่าง', tone: 'neutral' },
-    { phase: 'การจัดทำคำขอ', title: 'บันทึกข้อมูล', when: '15/05/2562 · 10:15 น.', detail: 'ปรับปรุงข้อมูลผู้ยื่นและรายละเอียดสินค้า', label: 'ร่าง', tone: 'neutral' },
-    { phase: 'การจัดทำคำขอ', title: 'แนบเอกสาร', when: '15/05/2562 · 11:00 น.', detail: 'แนบเอกสารประกอบคำขอ', label: 'ร่าง', tone: 'neutral' },
-    { phase: 'การจัดทำคำขอ', title: 'ยื่นครั้งแรก', when: '15/05/2562 · 16:00 น.', detail: 'นำส่งแบบ ปร.1 พร้อมหนังสือนำส่ง', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'การจัดทำคำขอ', title: 'สร้างคำขอ', when: '15/05/2563 · 09:30 น.', detail: 'ผู้ยื่นสร้างคำขอและเริ่มกรอกข้อมูล', label: 'ร่าง', tone: 'neutral' },
+    { phase: 'การจัดทำคำขอ', title: 'บันทึกข้อมูล', when: '15/05/2563 · 10:15 น.', detail: 'ปรับปรุงข้อมูลผู้ยื่นและรายละเอียดสินค้า', label: 'ร่าง', tone: 'neutral' },
+    { phase: 'การจัดทำคำขอ', title: 'แนบเอกสาร', when: '15/05/2563 · 11:00 น.', detail: 'แนบเอกสารประกอบคำขอ', label: 'ร่าง', tone: 'neutral' },
+    { phase: 'การจัดทำคำขอ', title: 'ยื่นครั้งแรก', when: '15/05/2563 · 16:00 น.', detail: 'นำส่งแบบ ปร.1 พร้อมหนังสือนำส่ง', label: 'ยื่นแล้ว', tone: 'info' },
     { phase: 'รอบแก้ไขแบบคำขอ', title: 'แก้ไขครั้งที่ 1', when: '22/07/2562', detail: 'ส่งแบบคำขอที่แก้ไขรอบที่ 1', label: 'แก้ไข', tone: 'warning' },
     { phase: 'รอบแก้ไขแบบคำขอ', title: 'แก้ไขครั้งที่ 2', when: '28/08/2562', detail: 'ส่งแบบคำขอที่แก้ไขรอบที่ 2', label: 'แก้ไข', tone: 'warning' },
     { phase: 'รอบแก้ไขแบบคำขอ', title: 'แก้ไขครั้งที่ 3', when: '09/10/2562', detail: 'ส่งแบบคำขอที่แก้ไขรอบที่ 3', label: 'แก้ไข', tone: 'warning' },
@@ -1562,7 +1662,7 @@ export class Por1Page {
   ];
 
   private readonly historyVersions: HistoryItem[] = [
-    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 1 ยื่นครั้งแรก', when: '15/05/2562', detail: 'แบบ ปร.1 พร้อมหนังสือนำส่งและเอกสารประกอบ', label: 'ยื่นแล้ว', tone: 'info' },
+    { phase: 'แบบคำขอ', title: 'เวอร์ชัน 1 ยื่นครั้งแรก', when: '15/05/2563', detail: 'แบบ ปร.1 พร้อมหนังสือนำส่งและเอกสารประกอบ', label: 'ยื่นแล้ว', tone: 'info' },
     { phase: 'แบบคำขอ', title: 'เวอร์ชัน 2 แก้ไขครั้งที่ 1', when: '22/07/2562', detail: 'แบบคำขอที่แก้ไขรอบที่ 1', label: 'แก้ไข', tone: 'warning' },
     { phase: 'แบบคำขอ', title: 'เวอร์ชัน 3 แก้ไขครั้งที่ 2', when: '28/08/2562', detail: 'แบบคำขอที่แก้ไขรอบที่ 2', label: 'แก้ไข', tone: 'warning' },
     { phase: 'แบบคำขอ', title: 'เวอร์ชัน 4 แก้ไขครั้งที่ 3', when: '09/10/2562', detail: 'แบบคำขอที่แก้ไขรอบที่ 3', label: 'แก้ไข', tone: 'warning' },
@@ -3175,7 +3275,8 @@ export class Por1Page {
 
   protected assignPart: 'people' | 'receipt' = 'people';
   protected dutyPick = '';
-  protected docPart = 0;
+  /** -1 = แบบคำขอ */
+  protected docPart = -1;
 
   protected get peopleReady(): boolean {
     return this.pickedGroups.length > 0 || this.pickedPeople.length > 0;
@@ -3900,6 +4001,12 @@ export class Por1Page {
     return 'แจ้งแก้ไขเพิ่มเติม';
   }
 
+  /** จำนวนครั้งที่แจ้งผลการตรวจ (รอบที่ผ่านมา + รอบปัจจุบันถ้ามี) */
+  protected get noticeTimes(): number {
+    const current = this.docSent || this.madeOf('แจ้งผลการตรวจ').length || this.docFiles.length ? 1 : 0;
+    return this.noticePasses.length + current;
+  }
+
   protected get noticeLead(): string {
     const base = this.docAction === 'complete'
       ? 'ตรวจร่างทั้ง 3 รายการแล้ว คำขอครบถ้วนถูกต้อง พร้อมแจ้งผลให้ผู้ยื่น'
@@ -3943,14 +4050,109 @@ export class Por1Page {
   }
 
   protected get canReviewDocs(): boolean {
-    if (this.docSent) return false;
+    if (this.docSent || this.noticePipe !== 'draft') return false;
     return this.canHandleCase;
   }
 
   protected get docCanSend(): boolean {
     const dueOk = this.docAction === 'complete' || thaiDateOk(this.docDueOn, 'any');
     const letterOk = this.noticeLetter.every((item) => item.value.trim());
-    return this.canReviewDocs && !!this.docNote.trim() && letterOk && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
+    // หมายเหตุไม่บังคับ — บันทึกหรือไม่บันทึกก็ได้
+    return this.canReviewDocs && letterOk && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
+  }
+
+  protected get noticePipeLocked(): boolean {
+    return this.noticePipe !== 'draft' || this.docSent;
+  }
+
+  protected noticePipeLabel(pipe = this.noticePipe): string {
+    if (pipe === 'to-head') return 'รอหัวหน้ากองเห็นชอบ';
+    if (pipe === 'head-ok') return 'หัวหน้ากองเห็นชอบแล้ว';
+    if (pipe === 'eoffice') return 'รอผอ.ลงนามใน e-Office';
+    if (pipe === 'signed') return 'ลงนามแล้ว รอออกเลข';
+    if (pipe === 'sent') return 'ส่งถึงผู้ยื่นแล้ว';
+    return 'ร่าง / ตรวจสอบ';
+  }
+
+  protected get canReportNoticeToHead(): boolean {
+    return this.docCanSend && this.noticePipe === 'draft';
+  }
+
+  protected get canHeadApproveNotice(): boolean {
+    // ต้นแบบ: หัวหน้ากอง/เจ้าหน้าที่ที่รับเคสเดินต่อได้ (สลับบทบาทจริงภายหลัง)
+    return this.noticePipe === 'to-head' && (this.isMyGroupHead() || this.reviewRole === 'staff' || this.reviewRole === 'director' || this.canHandleCase);
+  }
+
+  protected get canSendNoticeToEoffice(): boolean {
+    return this.noticePipe === 'head-ok' && this.canHandleCase;
+  }
+
+  protected get canPullNoticeSign(): boolean {
+    return this.noticePipe === 'eoffice' && this.canHandleCase;
+  }
+
+  protected get canIssueNoticeNumber(): boolean {
+    return this.noticePipe === 'signed' && this.canHandleCase;
+  }
+
+  /** เจ้าหน้าที่รายงานผลกลับหัวหน้ากอง (ยังไม่ส่งผู้ยื่น) */
+  protected reportNoticeToHead(): void {
+    if (!this.canReportNoticeToHead) return;
+    this.placeNoticeFile();
+    this.noticePipe = 'to-head';
+    this.noticePipeAt = this.clockToday() || this.thaiToday();
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'saved';
+    this.noticeFormOpen = false;
+  }
+
+  /** หัวหน้ากองเห็นชอบ — เตรียมส่งหนังสือเข้า e-Office */
+  protected approveNoticeByHead(): void {
+    if (!this.canHeadApproveNotice) return;
+    this.noticePipe = 'head-ok';
+    this.noticeHeadBy = this.signedPerson || this.officerName;
+    this.noticePipeAt = this.thaiToday();
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'saved';
+  }
+
+  /** หัวหน้ากองส่งกลับให้เจ้าหน้าที่แก้ */
+  protected returnNoticeToOfficer(): void {
+    if (!this.canHeadApproveNotice) return;
+    this.noticePipe = 'draft';
+    this.noticeHeadBy = '';
+    this.noticeOfficeRef = '';
+    this.noticePipeAt = this.thaiToday();
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'saved';
+  }
+
+  /** ส่งหนังสือเข้า e-Office ให้ผู้อำนวยการพิจารณาลงนาม */
+  protected sendNoticeToEoffice(): void {
+    if (!this.canSendNoticeToEoffice) return;
+    this.noticePipe = 'eoffice';
+    this.noticeOfficeRef = `EO-NOTICE-${Date.now().toString().slice(-6)}`;
+    this.noticePipeAt = this.thaiToday();
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'saved';
+  }
+
+  /** ดึงผลลงนามจาก e-Office (จำลอง) */
+  protected pullNoticeDirectorSign(): void {
+    if (!this.canPullNoticeSign) return;
+    this.noticePipe = 'signed';
+    this.noticePipeAt = this.thaiToday();
+    writeDocNotice(this.docPayload(false));
+    this.notice = 'saved';
+  }
+
+  /** ออกเลขหนังสือแล้วส่งถึงผู้ยื่น */
+  protected issueNoticeAndSend(): void {
+    if (!this.canIssueNoticeNumber) return;
+    this.saveDocs(true);
+    this.noticePipe = 'sent';
+    this.noticePipeAt = this.thaiToday();
+    writeDocNotice(this.docPayload(true));
   }
 
   protected suggestGaps(): void {
@@ -4009,14 +4211,20 @@ export class Por1Page {
   }
 
   protected assistNotice(): void {
-    if (this.docSent) return;
+    if (this.docSent || this.noticePipeLocked) return;
     this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
-    if (this.docAction !== 'complete') this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
-    this.docNote = this.docAction === 'complete'
-      ? 'ตรวจแล้วคำขอและเอกสารประกอบครบถ้วนถูกต้อง'
-      : this.docAction === 'late'
-        ? 'ครบกำหนด 4 เดือนเมื่อ 15/09/2562 แล้วยังไม่ครบถ้วนถูกต้อง'
-        : 'ขอเพิ่มหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 ปริมาณนำเข้าที่เชื่อมกับความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น';
+    if (this.docAction === 'amend') {
+      this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
+      this.applyGapBody();
+      this.docNote = this.docGaps.map((gap) => gap.title).join(' ');
+    } else if (this.docAction === 'late') {
+      this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
+      this.applyGapBody();
+      this.docNote = `ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil || '15/09/2562'} แล้วยังไม่ครบถ้วนถูกต้อง`;
+    } else {
+      this.docGaps = [];
+      this.docNote = 'ตรวจแล้วคำขอและเอกสารประกอบครบถ้วนถูกต้อง';
+    }
     writeDocNotice(this.docPayload(false));
     this.notice = 'check';
   }
@@ -4246,10 +4454,55 @@ export class Por1Page {
   protected docQuery = '';
   protected docSearchOpen = false;
   protected docShelf: 'files' | 'committee' = 'files';
+  /** หดรายการเอกสารคล้ายเมนูหลัก เพื่อขยายพื้นที่เนื้อหา */
+  protected docListCollapsed = false;
+  /** หดสารบัญส่วนของแบบในเล่มรวม */
+  protected bundleTocCollapsed = false;
+  /** หดสารบัญหน้าแบบฟอร์ม ปร. */
+  protected formTocCollapsed = false;
 
   protected toggleDocSearch(): void {
     this.docSearchOpen = !this.docSearchOpen;
     if (!this.docSearchOpen) this.docQuery = '';
+  }
+
+  protected toggleDocList(): void {
+    this.docListCollapsed = !this.docListCollapsed;
+    if (this.docListCollapsed) {
+      this.docSearchOpen = false;
+      this.docQuery = '';
+    }
+  }
+
+  protected toggleBundleToc(): void {
+    this.bundleTocCollapsed = !this.bundleTocCollapsed;
+  }
+
+  protected toggleFormToc(): void {
+    this.formTocCollapsed = !this.formTocCollapsed;
+  }
+
+  protected toggleBundleViewerFull(): void {
+    this.bundleViewerFull = !this.bundleViewerFull;
+    if (this.bundleViewerFull) {
+      this.docListCollapsed = true;
+      this.bundleTocCollapsed = true;
+    }
+  }
+
+  protected zoomBundle(dir: 1 | -1): void {
+    const at = this.bundleZoomSteps.indexOf(this.bundleZoom);
+    const index = at < 0 ? this.bundleZoomSteps.indexOf(100) : at;
+    const next = this.bundleZoomSteps[Math.min(this.bundleZoomSteps.length - 1, Math.max(0, index + dir))];
+    this.bundleZoom = next ?? 100;
+  }
+
+  protected get canZoomBundleIn(): boolean {
+    return this.bundleZoom < this.bundleZoomSteps[this.bundleZoomSteps.length - 1];
+  }
+
+  protected get canZoomBundleOut(): boolean {
+    return this.bundleZoom > this.bundleZoomSteps[0];
   }
 
   protected docMatches(title: string): boolean {
@@ -4258,15 +4511,2020 @@ export class Por1Page {
   }
 
   protected openDocShelf(shelf: 'files' | 'committee'): void {
-    this.docShelf = shelf;
-    if (shelf === 'committee') this.pickDoc(this.workDocs.length + 1);
-    else if (this.docPart > this.workDocs.length) this.pickDoc(0);
+    // แท็บคณะกรรมการซ่อนไว้ก่อน — บังคับอยู่ที่รายการเอกสาร
+    this.docShelf = 'files';
+    if (shelf === 'committee' || this.docPart > this.workDocs.length) this.pickDoc(-1);
   }
 
   protected pickDoc(index: number): void {
-    this.docPart = index;
+    // แท็บคณะกรรมการซ่อนไว้ก่อน
+    const next = index > this.workDocs.length ? -1 : index;
+    this.docPart = next;
     this.editingId = '';
-    this.docShelf = index > this.workDocs.length ? 'committee' : 'files';
+    this.docShelf = 'files';
+  }
+
+  /** เลือกแบบคำขอ — เปิดเล่มรอบยื่นครั้งแรกตาม Prototype */
+  protected pickFilingBundle(): void {
+    this.ensureRoundFolders();
+    this.pickDoc(-1);
+    this.bundleEdition = 'original';
+    this.bundleComments = this.readBundleComments();
+    this.bundleReviewNotes = this.readBundleReviewNotes();
+    this.bundleFormCode = this.caseForms[0]?.code || 'ปร. 1';
+    this.bundleRoundNo = this.bundleRoundOptions[0]?.round || 1;
+    this.placeBundleItem(this.bundleToc[0]?.items[0] || null);
+  }
+
+  protected get showFilingBundle(): boolean {
+    return this.docPart < 0;
+  }
+
+  /** รอบที่เปิดดูเล่ม (หนึ่งรอบ = หนึ่งโฟลเดอร์ เช่น 1. 15 พค 62) */
+  protected bundleRoundNo = 1;
+
+  protected get bundleRoundOptions(): { round: number; folder: string; on: string }[] {
+    const source = this.rounds.length ? this.rounds : this.ad1046SampleRounds();
+    return source.map((round) => ({
+      round: round.round,
+      folder: round.folder || this.roundFolderName(round.round, round.submittedOn),
+      on: round.submittedOn,
+    }));
+  }
+
+  /** จำนวนครั้งที่ยื่น — โชว์ท้ายชื่อ เช่น แบบคำขอ (2) */
+  protected get bundleRoundCount(): number {
+    return Math.max(1, this.bundleRoundOptions.length);
+  }
+
+  /** ชื่อในรายการเอกสาร + หัวหน้าเล่ม */
+  protected get bundleDocTitle(): string {
+    return `แบบคำขอ (${this.bundleRoundCount})`;
+  }
+
+  protected get filingBundleRound(): FilingRound | null {
+    return this.rounds.find((round) => round.round === this.bundleRoundNo) || this.rounds.at(-1) || null;
+  }
+
+  protected get bundleRoundFolder(): string {
+    const picked = this.bundleRoundOptions.find((row) => row.round === this.bundleRoundNo);
+    if (picked) return picked.folder;
+    return this.roundFolderName(this.bundleRoundNo, this.filingBundleRound?.submittedOn || this.filedOn);
+  }
+
+  protected pickBundleRound(round: number): void {
+    if (!this.bundleRoundOptions.some((row) => row.round === round)) return;
+    const wasAmend = this.bundleEdition === 'amend';
+    this.bundleRoundNo = round;
+    if (wasAmend) {
+      this.loadAmendWorkspace();
+      this.fillAmendEditor();
+    } else {
+      const current = this.bundleToc.flatMap((group) => group.items).find((item) => this.bundleItemCurrent(item));
+      this.placeBundleItem(current || this.bundleToc[0]?.items[0] || null);
+    }
+  }
+
+  /** ตารางส่วนที่ 2 ตามรอบยื่น — รอบแก้ไขเติมข้อ 2.1.10 ตามหนังสือกรม */
+  protected get goodsCompareForRound(): GoodsCompareRow[] {
+    if (this.bundleRoundNo < 2) return this.goodsCompare;
+    return this.goodsCompare.map((row) => {
+      if (!row.item.includes('2.1.10')) return row;
+      return {
+        ...row,
+        subject:
+          'ส่วนที่เหมือนกัน: ลักษณะทางกายภาพ เคมี มาตรฐาน และกระบวนการผลิตใช้ทดแทนกันได้\nส่วนที่แตกต่างกัน: แหล่งกำเนิดและช่องทางจำหน่ายต่างกันตามข้อ 2.1.5–2.1.9',
+        like: 'เหมือนกันในส่วนที่ใช้ทดแทนกันได้ในตลาดเดียวกัน',
+      };
+    });
+  }
+
+  /** เติมชื่อโฟลเดอร์รอบยื่น · โหมดเจ้าหน้าที่ใช้รอบตาม Prototype AD1046 */
+  private ensureRoundFolders(): void {
+    const stale =
+      this.rounds.length > 0 &&
+      (!this.rounds.some((round) => /2563/.test(round.submittedOn)) ||
+        !this.rounds.some((round) => round.round <= 1 && /แบบคำขอครั้งที่ 1/.test(round.folder || '')));
+    if (this.reviewRole || !this.rounds.length || stale) {
+      this.rounds = this.ad1046SampleRounds();
+      writeRounds(this.rounds);
+      return;
+    }
+    let changed = false;
+    this.rounds = this.rounds.map((round) => {
+      const folder = this.roundFolderName(round.round, round.submittedOn);
+      if (round.folder === folder) return round;
+      changed = true;
+      return { ...round, folder };
+    });
+    if (changed) writeRounds(this.rounds);
+  }
+
+  /** รอบยื่นตามเคสจริง AD1046 · ยื่นครั้งแรก 15 พ.ค. 2563 แล้วส่งแก้ไขตามหนังสือกรม */
+  private ad1046SampleRounds(): FilingRound[] {
+    const annex = this.realFilingAnnex();
+    const firstOn = this.filedOn || firstFiledOn || '15/05/2563';
+    const baseAnswers = this.formAnswers();
+    const amendAnswers = [
+      ...baseAnswers.filter((row) => row.label !== 'ผู้ผลิตต่างประเทศ'),
+      {
+        group: 'ส่วนที่ 3 ผู้ผลิต ผู้ส่งออก ผู้นำเข้า',
+        label: 'ผู้ผลิตต่างประเทศ',
+        value:
+          'Formosa Ha Tinh Steel Corporation (เวียดนาม); Ezz El Dekheila Steel Company (อียิปต์); Al Ezz Flat Steel (EFS) (อียิปต์ — เพิ่มตามหนังสือแก้ไขครั้งที่ 1)',
+      },
+      {
+        group: 'ส่วนที่ 1 ผู้ยื่นคำขอ',
+        label: 'ผู้ผลิตที่มิได้ขอให้กระทำการแทน (แก้ไข)',
+        value: 'บมจ. แอล พี เอ็น เพลทมิล — แนบรายการและปริมาณสินค้าที่ผลิต/จำหน่าย ตามหนังสือแก้ไขครั้งที่ 1 ข้อ 1.1.2',
+      },
+      {
+        group: 'ส่วนที่ 2 สินค้า',
+        label: '2.1.10 ข้อเปรียบเทียบอื่น ๆ (แก้ไข)',
+        value: 'ส่วนที่เหมือนกัน: ลักษณะทางกายภาพ เคมี มาตรฐาน และกระบวนการผลิตใช้ทดแทนกันได้\nส่วนที่แตกต่างกัน: แหล่งกำเนิดและช่องทางจำหน่ายต่างกันตามข้อ 2.1.5–2.1.9',
+      },
+    ];
+    const make = (
+      round: number,
+      submittedOn: string,
+      folder: string,
+      findings: RoundFinding[],
+      answers: RoundAnswer[],
+    ): FilingRound => ({
+      round,
+      submittedOn,
+      folder,
+      state: findings.length ? 'revision' : 'review',
+      company: this.company,
+      measure: this.measureName,
+      signer: this.signer,
+      files: annex,
+      findings,
+      answers,
+    });
+    return [
+      make(1, firstOn, this.roundFolderName(1, firstOn), this.revisionFindings, baseAnswers),
+      make(2, '22/07/2563', this.roundFolderName(2, '22/07/2563'), this.secondFindings, amendAnswers),
+      make(3, '28/08/2563', this.roundFolderName(3, '28/08/2563'), this.thirdFindings, amendAnswers),
+      make(4, '09/10/2563', this.roundFolderName(4, '09/10/2563'), [], amendAnswers),
+      make(5, '16/10/2563', '5. แก้ไขคำขอเพิ่มเติม นำส่งวันที่ 16 ตค 63', [], amendAnswers),
+      make(6, '22/10/2563', '6. แก้ไขคำขอเพิ่มเติมส่งทาง mail 22 ตค. 63', [], amendAnswers),
+    ];
+  }
+
+  /** ชื่อโฟลเดอร์รอบยื่นตามแบบแฟ้มจริง AD1046 */
+  private roundFolderName(round: number, submittedOn: string): string {
+    const short = this.thaiFolderDate(submittedOn);
+    const compact = short.replace(/\s+/g, '');
+    if (round <= 1) return `1. แบบคำขอครั้งที่ 1 ${compact}`;
+    if (round === 2) return `2. คำขอแก้ไขครั้งที่ 1 ${compact}`;
+    return `${round}. แก้ไขคำขอครั้งที่ ${round - 1} ${compact}`;
+  }
+
+  private thaiFolderDate(value: string): string {
+    const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value.trim());
+    if (!match) return value;
+    const months = ['มค', 'กพ', 'มีค', 'เมย', 'พค', 'มิย', 'กค', 'สค', 'กย', 'ตค', 'พย', 'ธค'];
+    const day = Number(match[1]);
+    const month = months[Number(match[2]) - 1] || match[2];
+    const year = Number(match[3]);
+    const shortYear = String(year > 2400 ? year - 2500 : year % 100).padStart(2, '0');
+    return `${day} ${month} ${shortYear}`;
+  }
+
+  protected get filingBundleReady(): boolean {
+    return this.caseForms.length > 0 && (this.caseStatus === 'official' || this.caseStatus === 'approval' || this.rounds.length > 0 || !!this.reviewRole);
+  }
+
+  /** ต้นฉบับ = อ่านเล่ม · แก้ไขคำขอ = กระดาษว่างให้เจ้าหน้าที่พิมพ์ · ฉบับตรวจซ่อนไว้ก่อน */
+  protected bundleEdition: 'original' | 'review' | 'amend' = 'original';
+  protected bundleComments: BundleComment[] = [];
+  protected bundleCommentTarget = '';
+  protected bundleCommentDraft = '';
+  protected bundleReviewNotes: Record<string, string> = {};
+  /** ข้อความแก้ไขคำขอต่อรอบยื่น (HTML จาก text editor) */
+  protected bundleAmendText = '';
+  protected amendEditorEmpty = true;
+  protected amendMarks: Record<string, boolean> = {};
+  protected amendFontSize = '16px';
+  protected amendColor = '#0E2346';
+  /** ขนาดตัวอักษรที่ใช้งานจริง */
+  protected readonly amendFontSizes = [
+    { label: '12', value: '12px' },
+    { label: '14', value: '14px' },
+    { label: '16', value: '16px' },
+    { label: '18', value: '18px' },
+    { label: '20', value: '20px' },
+    { label: '24', value: '24px' },
+    { label: '28', value: '28px' },
+  ] as const;
+  /** สีตัวอักษรจาก design-system/colors.ts เท่านั้น */
+  protected readonly amendColors = [
+    { label: 'หลัก', value: '#0E2346' },
+    { label: 'รอง', value: '#5B6785' },
+    { label: 'ลิงก์', value: '#2F73B0' },
+    { label: 'ฟ้า', value: '#5CA4D9' },
+    { label: 'เขียว', value: '#1E7F4F' },
+    { label: 'ส้ม', value: '#E8801E' },
+    { label: 'เหลือง', value: '#B7791F' },
+    { label: 'แดง', value: '#C0182B' },
+  ] as const;
+  /** Tree โฟลเดอร์แนบไฟล์ตอนแก้ไขคำขอ */
+  protected amendFolders: { id: string; name: string; open: boolean }[] = [];
+  protected amendFiles: { id: string; folderId: string; name: string; saved: string }[] = [];
+  protected amendFolderId = '';
+  protected amendFolderEditId = '';
+  protected amendFolderDraft = '';
+  protected amendTreeCollapsed = true;
+  @ViewChild('amendEditor') private amendEditorRef?: ElementRef<HTMLElement>;
+  protected bundleFormCode = 'ปร. 1';
+  protected bundleItemId = '';
+  protected bundleItemLabel = '';
+  protected bundleFilePick: Record<string, boolean> = {};
+  protected bundleViewerFull = false;
+  protected bundleZoom = 100;
+  private readonly bundleZoomSteps = [75, 90, 100, 110, 125, 150];
+
+  private readonly bundleCommentKey = 'dft-por1-bundle-comments';
+  private readonly bundleReviewKey = 'dft-por1-bundle-review';
+  private readonly bundleAmendKey = 'dft-por1-bundle-amend-v4';
+  private readonly bundleAmendFilesKey = 'dft-por1-bundle-amend-files';
+
+  private readonly por2BundleToc: TocGroup[] = [
+    {
+      label: '1. ผู้ยื่นคำขอและมาตรการ',
+      items: [
+        { id: 'p2-1a', label: 'มาตรการและประเภทการยื่น' },
+        { id: 'p2-1b', label: 'ข้อมูลและเอกสารประกอบ' },
+      ],
+    },
+    {
+      label: '2. รายการที่ขอให้ทบทวน',
+      items: [{ id: 'p2-2', label: 'สินค้า ประกาศ และเหตุที่เปลี่ยนแปลง' }],
+    },
+    {
+      label: '3. วัตถุประสงค์การทบทวน',
+      items: [{ id: 'p2-3', label: 'วัตถุประสงค์และพยานหลักฐาน' }],
+    },
+    {
+      label: '4. คำรับรอง',
+      items: [{ id: 'p2-4', label: 'คำรับรองและลงนาม' }],
+    },
+  ];
+
+  protected setBundleEdition(edition: 'original' | 'review' | 'amend'): void {
+    this.bundleEdition = edition;
+    if (edition === 'review') {
+      this.bundleComments = this.readBundleComments();
+      this.bundleReviewNotes = this.readBundleReviewNotes();
+    }
+    if (edition === 'amend') {
+      this.loadAmendWorkspace();
+      this.fillAmendEditor();
+    }
+  }
+
+  protected get bundleIsReview(): boolean {
+    return this.bundleEdition === 'review';
+  }
+
+  protected get bundleIsAmend(): boolean {
+    return this.bundleEdition === 'amend';
+  }
+
+  protected setBundleAmendText(value: string): void {
+    this.bundleAmendText = value;
+    this.writeBundleAmend(value);
+  }
+
+  protected amendFormat(command: string, value?: string): void {
+    document.execCommand(command, false, value);
+    this.captureAmendEditor();
+    this.refreshAmendToolbar();
+    this.amendEditorRef?.nativeElement.focus();
+  }
+
+  protected applyAmendFontSize(size: string): void {
+    this.amendFontSize = size;
+    this.amendWrapSelection({ fontSize: size });
+  }
+
+  protected applyAmendColor(color: string): void {
+    this.amendColor = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, color);
+    this.captureAmendEditor();
+    this.refreshAmendToolbar();
+    this.amendEditorRef?.nativeElement.focus();
+  }
+
+  protected amendCmdOn(command: string): boolean {
+    return !!this.amendMarks[command];
+  }
+
+  protected refreshAmendToolbar(): void {
+    const cmds = ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'justifyLeft', 'justifyCenter', 'justifyRight'];
+    const next: Record<string, boolean> = {};
+    for (const cmd of cmds) {
+      try {
+        next[cmd] = document.queryCommandState(cmd);
+      } catch {
+        next[cmd] = false;
+      }
+    }
+    this.amendMarks = next;
+    const node = window.getSelection()?.anchorNode;
+    const el = node instanceof Element ? node : node?.parentElement;
+    const root = this.amendEditorRef?.nativeElement;
+    if (el && root?.contains(el)) {
+      const style = getComputedStyle(el);
+      const hex = this.cssColorToHex(style.color);
+      if (hex) this.amendColor = hex.toUpperCase();
+      if (style.fontSize) this.amendFontSize = style.fontSize;
+    }
+  }
+
+  protected onAmendEditorInput(): void {
+    this.touchAmendNoteOnBlock();
+    this.captureAmendEditor();
+    this.refreshAmendToolbar();
+  }
+
+  private get amendActorName(): string {
+    return this.signedPerson || this.officerName || 'เจ้าหน้าที่';
+  }
+
+  private amendShortName(name: string): string {
+    const clean = name.replace(/^(นาย|นางสาว|นาง|ดร\.)\s*/u, '').trim();
+    return clean.split(/\s+/)[0] || name;
+  }
+
+  private amendStampDateTime(day = ''): string {
+    const date = day || this.clockToday() || this.thaiToday() || '';
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    return date ? `${date} ${hh}:${mm}` : `${hh}:${mm}`;
+  }
+
+  /** ป้ายรู้ผู้กระทำ — แสดงด้วย CSS ไม่ใช่ข้อความในเอกสาร */
+  private composeAmendBadgeLabel(block: HTMLElement): string {
+    const by = block.dataset['amendBy'] || '';
+    const at = block.dataset['amendAt'] || '';
+    const editBy = block.dataset['amendEditBy'] || '';
+    const editAt = block.dataset['amendEditAt'] || '';
+    const parts: string[] = [];
+    if (by) parts.push(`(เพิ่ม:${this.amendShortName(by)}${at ? ` ${at}` : ''})`);
+    if (editBy) parts.push(`(แก้ไข:${this.amendShortName(editBy)}${editAt ? ` ${editAt}` : ''})`);
+    return parts.join(' ');
+  }
+
+  private paintAmendBadge(block: HTMLElement): void {
+    this.stripAmendNoteSpans(block);
+    const label = this.composeAmendBadgeLabel(block);
+    if (!label) {
+      delete block.dataset['amendLabel'];
+      block.removeAttribute('title');
+      return;
+    }
+    block.dataset['amendLabel'] = label;
+    const by = block.dataset['amendBy'] || '';
+    const editBy = block.dataset['amendEditBy'] || '';
+    block.setAttribute(
+      'title',
+      [by ? `เพิ่มโดย ${by}${block.dataset['amendAt'] ? ` · ${block.dataset['amendAt']}` : ''}` : '', editBy ? `แก้ไขโดย ${editBy}${block.dataset['amendEditAt'] ? ` · ${block.dataset['amendEditAt']}` : ''}` : '']
+        .filter(Boolean)
+        .join('\n'),
+    );
+  }
+
+  private stripAmendNoteSpans(root: HTMLElement): void {
+    root.querySelectorAll('.amend-note').forEach((node) => node.remove());
+    // ตัดข้อความป้ายเก่าที่เคยฝังในเนื้อหา — ป้ายจริงแสดงด้วย CSS จาก data-amend-label
+    const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const drop: Text[] = [];
+    let node = walk.nextNode();
+    while (node) {
+      const text = node as Text;
+      const next = text.textContent?.replace(/\s*\((?:เพิ่ม|แก้ไข):[^)]*\)\s*/g, ' ').replace(/\s{2,}/g, ' ') ?? '';
+      if (next !== text.textContent) {
+        if (!next.trim()) drop.push(text);
+        else text.textContent = next;
+      }
+      node = walk.nextNode();
+    }
+    drop.forEach((row) => row.remove());
+  }
+
+  /** ติดป้ายผู้กระทำบนย่อหน้า (metadata) — ไม่แทรกข้อความลงเอกสาร */
+  private touchAmendNoteOnBlock(): void {
+    const root = this.amendEditorRef?.nativeElement;
+    const sel = window.getSelection();
+    if (!root || !sel?.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (!root.contains(range.commonAncestorContainer)) return;
+    const node: Element | null =
+      range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement;
+    const block = node?.closest('p, li, h3, div') as HTMLElement | null;
+    if (!block || block === root || !root.contains(block)) return;
+    const plain = (block.textContent || '').replace(/\u200b/g, '').trim();
+    if (!plain) return;
+
+    const me = this.amendActorName;
+    const stamp = this.amendStampDateTime();
+    const owner = block.dataset['amendBy'] || '';
+
+    if (!owner) {
+      block.dataset['amendBy'] = me;
+      block.dataset['amendAt'] = stamp;
+      delete block.dataset['amendEditBy'];
+      delete block.dataset['amendEditAt'];
+    } else if (owner === me) {
+      block.dataset['amendAt'] = stamp;
+      delete block.dataset['amendEditBy'];
+      delete block.dataset['amendEditAt'];
+    } else {
+      // คนอื่นมาแก้ของเดิม — ป้ายแก้ไขแยกจากป้ายเพิ่ม
+      block.dataset['amendEditBy'] = me;
+      block.dataset['amendEditAt'] = stamp;
+    }
+    this.paintAmendBadge(block);
+  }
+
+  private amendWrapSelection(styles: Record<string, string>): void {
+    const sel = window.getSelection();
+    const root = this.amendEditorRef?.nativeElement;
+    if (!sel || !sel.rangeCount || !root) return;
+    const range = sel.getRangeAt(0);
+    if (!root.contains(range.commonAncestorContainer)) {
+      root.focus();
+      return;
+    }
+    const span = document.createElement('span');
+    Object.assign(span.style, styles);
+    if (range.collapsed) {
+      span.appendChild(document.createTextNode('\u200b'));
+      range.insertNode(span);
+      const caret = document.createRange();
+      caret.selectNodeContents(span);
+      caret.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(caret);
+    } else {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+      const cover = document.createRange();
+      cover.selectNodeContents(span);
+      sel.removeAllRanges();
+      sel.addRange(cover);
+    }
+    this.captureAmendEditor();
+    this.refreshAmendToolbar();
+    root.focus();
+  }
+
+  private cssColorToHex(value: string): string | null {
+    const match = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/i.exec(value.trim());
+    if (!match) {
+      if (/^#[0-9a-f]{6}$/i.test(value.trim())) return value.trim();
+      return null;
+    }
+    const hex = (n: string) => Number(n).toString(16).padStart(2, '0');
+    return `#${hex(match[1])}${hex(match[2])}${hex(match[3])}`;
+  }
+
+  private captureAmendEditor(): void {
+    const el = this.amendEditorRef?.nativeElement;
+    if (!el) return;
+    this.stripAmendNoteSpans(el);
+    const empty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+    this.amendEditorEmpty = empty;
+    this.setBundleAmendText(empty ? '' : el.innerHTML);
+  }
+
+  private fillAmendEditor(tries = 0): void {
+    const run = () => {
+      const el = this.amendEditorRef?.nativeElement;
+      if (!el) {
+        if (tries < 8) window.setTimeout(() => this.fillAmendEditor(tries + 1), 50);
+        return;
+      }
+      const html = this.bundleAmendText || this.amendSampleHtml();
+      if (!this.bundleAmendText) {
+        this.bundleAmendText = html;
+        this.writeBundleAmend(html);
+      }
+      el.innerHTML = html;
+      this.stripAmendNoteSpans(el);
+      el.querySelectorAll<HTMLElement>('[data-amend-by]').forEach((block) => this.paintAmendBadge(block));
+      this.amendEditorEmpty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+      this.refreshAmendToolbar();
+      this.view.markForCheck();
+    };
+    window.setTimeout(run, tries === 0 ? 0 : 50);
+  }
+
+  private amendHtmlIsEmpty(value: string): boolean {
+    const text = value
+      .replace(/<br\s*\/?>/gi, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\u200b/g, '')
+      .trim();
+    return !text;
+  }
+
+  private readBundleAmend(): string {
+    try {
+      const raw = sessionStorage.getItem(`${this.bundleAmendKey}-${this.bundleRoundNo}`) || '';
+      if (!raw || this.amendHtmlIsEmpty(raw)) return '';
+      if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
+      return raw
+        .split('\n')
+        .map((line) => `<p>${this.escapeHtml(line) || '<br>'}</p>`)
+        .join('');
+    } catch {
+      return '';
+    }
+  }
+
+  private writeBundleAmend(value: string): void {
+    const key = `${this.bundleAmendKey}-${this.bundleRoundNo}`;
+    try {
+      if (!value.trim()) sessionStorage.removeItem(key);
+      else sessionStorage.setItem(key, value);
+    } catch {
+      /* ignore quota */
+    }
+  }
+
+  private loadAmendWorkspace(): void {
+    const saved = this.readBundleAmend();
+    // คีย์ v3 ตัดของเก่า; ถ้ายังมีป้ายฝังเป็นข้อความให้ใช้ตัวอย่างใหม่
+    const useSaved =
+      !!saved && /data-ai-suggest=/.test(saved) && /data-amend-label=/.test(saved) && !/class="amend-note"/.test(saved);
+    this.bundleAmendText = useSaved ? saved : this.amendSampleHtml();
+    if (!useSaved) this.writeBundleAmend(this.bundleAmendText);
+    this.amendEditorEmpty = this.amendHtmlIsEmpty(this.bundleAmendText);
+    this.readAmendTree();
+  }
+
+  /**
+   * ตัวอย่างข้อความที่ต้องแก้ไข — จาก หนังสือแก้ไขคำขอ ครั้งที่ 1.pdf (แผ่นที่ 2 เป็นต้นไป)
+   * เคส AD1046 เหล็กแผ่นรีดร้อน VN/EG
+   */
+  private amendSampleHtml(): string {
+    return [
+      '<h3>รายละเอียดข้อมูล/เอกสารหลักฐานที่ขอให้ปรับปรุงแก้ไขและเพิ่มเติม</h3>',
+      '<p><strong>อ้างอิง</strong> หนังสือกรม ที่ พณ 0309.09/460 ลงวันที่ 9 มิถุนายน 2563 อ้างถึงหนังสือ SSI ลงวันที่ 15 พฤษภาคม 2563 · กำหนดส่งแก้ภายใน 7 กรกฎาคม 2563 เวลา 16:30 น.</p>',
+      '<p><strong>1. ข้อมูลบริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน)</strong></p>',
+      '<p data-amend-by="นางสาวจรีณา กิจส่งเสริมกุล" data-amend-at="9/6/2563 10:15" data-amend-label="(เพิ่ม:จรีณา 9/6/2563 10:15)" title="เพิ่มโดย นางสาวจรีณา กิจส่งเสริมกุล · 9/6/2563 10:15"><strong>1.1.1</strong> กรณีการยื่นคำขอโดยกระทำการแทนผู้ผลิตบางส่วนในอุตสาหกรรมภายใน ให้แนบรายชื่อผู้ผลิตที่ผู้ยื่นคำขอกระทำการแทนในภาคผนวก ข. ส่วนที่ 1</p>',
+      '<p><strong>1.1.2</strong> ส่วนที่ 2 ให้แนบรายการและปริมาณสินค้าที่ผลิตและ/หรือจำหน่าย ของ บมจ. แอล พี เอ็น เพลทมิล</p>',
+      '<p><strong>1.2 ข้อ 1.3</strong> ให้เพิ่มข้อมูลที่เกี่ยวข้องกับการใช้มาตรการตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจาก 14 ประเทศ</p>',
+      '<p data-ai-suggest="1" data-ai-label="AI แนะนำ" title="AI ช่วยตรวจพบพิกัดที่อาจไม่ถูกต้อง"><strong>1.3 ข้อ 2.1.1</strong> ให้ตรวจสอบพิกัดศุลกากร พ.ศ. 2555 ที่ 7225.30.90.011 ให้ถูกต้อง</p>',
+      '<p data-ai-suggest="1" data-ai-label="AI แนะนำ" title="AI ช่วยจับคู่พิกัดศุลกากรปี 2560 ที่ต้องแก้"><strong>1.4 สิ่งที่ส่งมาด้วย 1</strong> ให้ตรวจสอบและแก้ไขพิกัดศุลกากรของปี 2560 ให้ครบถ้วนถูกต้อง ดังนี้</p>',
+      '<p data-ai-suggest="1">เดิม → ให้ตรวจสอบเป็น<br>',
+      '7208.39 → เพิ่มแถวบรรทัดล่าง 1 แถว โดยระบุ 7208.39.90 — อื่นๆ<br>',
+      '7208.54.00 → 7208.54<br>',
+      '7208.90.00 → 7208.90.90<br>',
+      '7211.13.1 → ตัดเลขพิกัดศุลกากรในบรรทัดนี้ออก เหลือไว้เพียงคำบรรยายเท่านั้น<br>',
+      '7211.14.10 → ตัดตัวเลขพิกัดศุลกากรในบรรทัดนี้ออก เหลือไว้เพียงคำบรรยายเท่านั้น<br>',
+      '7211.19.1 → ตัดตัวเลขพิกัดศุลกากรในบรรทัดนี้ออก เหลือไว้เพียงคำบรรยายเท่านั้น<br>',
+      '7225.3 → 7225.30</p>',
+      '<p><strong>1.5 ข้อ 2.1.10</strong> ให้ระบุข้อเปรียบเทียบระหว่างสินค้าที่ถูกพิจารณาและสินค้าที่ผลิตภายในประเทศ ทั้งในส่วนที่เหมือนกันและในส่วนที่แตกต่างกัน</p>',
+      '<p data-amend-by="นายอนุชา ศรีเมือง" data-amend-at="22/6/2563 14:20" data-amend-edit-by="นางสาวจรีณา กิจส่งเสริมกุล" data-amend-edit-at="7/7/2563 11:05" data-amend-label="(เพิ่ม:อนุชา 22/6/2563 14:20) (แก้ไข:จรีณา 7/7/2563 11:05)" title="เพิ่มโดย นายอนุชา ศรีเมือง · 22/6/2563 14:20&#10;แก้ไขโดย นางสาวจรีณา กิจส่งเสริมกุล · 7/7/2563 11:05"><strong>1.6 ข้อ 3.1</strong> ให้แสดงรายละเอียดข้อมูลของบริษัทผู้ผลิตจากสาธารณรัฐอียิปต์เพิ่มเติม คือ บริษัท Al Ezz Flat Steel (EFS) ซึ่งเป็นผู้ผลิตที่เข้าร่วมกระบวนการในการไต่สวนการทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อน ชนิดม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากสาธารณรัฐอียิปต์ ครั้งก่อนด้วย</p>',
+      '<p><strong>1.7 ตาราง 4.1.2</strong> ให้ตรวจสอบว่าราคาที่แสดงในตารางเป็นราคาสินค้า ณ หน้าโรงงาน หรือราคาสินค้ารวมค่าขนส่งทางเรือ</p>',
+      '<p><strong>1.11</strong> ให้ชี้แจงว่าราคาขายสินค้าชนิดเดียวกันที่ผู้นำเข้าซื้อจากผู้ผลิตเป็นราคาสินค้า ณ ระดับใด ทั้งนี้ การเปรียบเทียบราคาของสินค้าที่ถูกพิจารณาและราคาสินค้าชนิดเดียวกัน ให้เปรียบเทียบ ณ ระดับการซื้อขายเดียวกัน (เช่น ราคาที่ผู้นำเข้า/ผู้ใช้ ซื้อซึ่งเป็นราคารวมค่าขนส่งถึงผู้นำเข้า/ผู้ใช้)</p>',
+      '<p data-ai-suggest="1" data-ai-label="AI แนะนำ" title="AI พบข้อมูลตัดราคาอียิปต์ปี 2558 ไม่สอดคล้องตาราง 8.2"><strong>1.11.3</strong> ให้แก้ไข/ปรับปรุงข้อมูลการตัดราคาของอียิปต์ ปี 2558 ให้สอดคล้องกับตาราง 8.2</p>',
+      '<p><strong>1.12 ตาราง 8.3</strong></p>',
+      '<p><strong>1.12.1</strong> ให้ตรวจสอบต้นทุนรวมรายปี (ล้านบาท)</p>',
+      '<p><strong>1.12.2</strong> ให้เพิ่มเติมข้อมูล ข. ค่าใช้จ่ายในการจัดการ การขายและอื่นๆ เป็น ข.1 ค่าใช้จ่ายในการจัดการ การขาย และ ข.2 ต้นทุนทางการเงิน</p>',
+      '<p><strong>1.13 ตาราง 8.4</strong> ให้ตรวจสอบอัตราการใช้กำลังการผลิตรวมสำหรับปี 2562</p>',
+      '<p><strong>1.14 ตาราง 8.6</strong></p>',
+      '<p><strong>1.14.1</strong> ให้ตรวจสอบต้นทุนสินค้าที่ขายได้สำหรับปี 2560</p>',
+      '<p><strong>1.14.2</strong> ให้ตรวจสอบ 5. ค่าใช้จ่ายการจัดการ การขายและอื่นๆ และ 6. ต้นทุนทางการเงิน ให้สอดคล้องกับตาราง 8.3</p>',
+      '<p><strong>1.15 ตาราง 8.7</strong> ให้แก้ไข/ปรับปรุงข้อมูลปริมาณขาย โดยไม่รวมปริมาณการขายส่งออก</p>',
+      '<p><strong>1.16 ตาราง 8.8 ข้อมูลสินค้าที่ถูกพิจารณา</strong></p>',
+      '<p><strong>1.16.1</strong> ให้ชี้แจงรายละเอียดข้อมูลค่าใช้จ่ายในการขายและบริหาร (บาท/ตัน) ปี 2562 ที่เพิ่มสูงขึ้น</p>',
+      '<p data-ai-suggest="1" data-ai-label="AI แนะนำ" title="AI พบผลิตภาพ (%yield) ปี 2562 สูงเกิน 100%"><strong>1.16.2</strong> ให้ตรวจสอบรายละเอียดข้อมูลผลิตภาพ (%yield) ปี 2562 เนื่องจากมีมูลค่าสูงเกิน 100%</p>',
+      '<p><strong>1.16.3</strong> ให้ตรวจสอบ/ชี้แจงข้อมูลส่วนแบ่งตลาด ปี 2560 ที่เพิ่มขึ้นมากจากปี 2559</p>',
+      '<p><strong>1.16.4</strong> ให้ตรวจสอบ/ชี้แจงปริมาณความต้องการใช้ในประเทศที่ลดลงอย่างมากตั้งแต่ปี 2560 เป็นต้นมา</p>',
+      '<p><strong>2. ข้อมูลบริษัท จี เจ สตีล จำกัด (มหาชน) / กลุ่มที่เกี่ยวข้อง</strong></p>',
+      '<p><strong>2.1 ตาราง 8.3</strong></p>',
+      '<p><strong>2.1.1</strong> ให้ตรวจสอบมูลค่ารายไตรมาส ให้มูลค่ารวมทั้ง 4 ไตรมาส สอดคล้องกับข้อมูลรายปี เช่น ค่าใช้จ่ายในการจัดการขายอื่นๆ</p>',
+      '<p><strong>2.1.2</strong> ให้แก้ไข/ปรับปรุงปริมาณการขาย ปี 2560 โดยไม่รวมปริมาณการขายส่งออก พร้อมทั้งให้แก้ไขต้นทุนค่าใช้จ่ายในการจัดการการขายและอื่นๆ ให้ถูกต้อง</p>',
+      '<p><strong>2.1.3</strong> ให้ชี้แจงค่าใช้จ่ายในการขาย บริหารและอื่นๆ ที่สูงมากในปี 2558–2559</p>',
+      '<p><strong>2.2 ตาราง 8.5</strong> ให้ตรวจสอบค่าจ้างแรงงาน ปี 2558 ให้สอดคล้องกับตาราง 8.8</p>',
+      '<p><strong>2.3 ตาราง 8.7</strong> ให้ตรวจสอบข้อมูลปริมาณขายปี 2562 เนื่องจากไม่สอดคล้องกับตาราง 8.8.1</p>',
+      '<p><strong>2.4 ตาราง 8.8</strong></p>',
+      '<p data-ai-suggest="1" data-ai-label="AI แนะนำ" title="AI พบผลิตภาพ (%yield) ปี 2562 เกิน 100%"><strong>2.4.1</strong> ให้ตรวจสอบรายละเอียดข้อมูลผลิตภาพ (%yield) ปี 2562 เนื่องจากเกิน 100%</p>',
+      '<p><strong>2.4.2</strong> ให้ชี้แจงสาเหตุที่กระแสเงินสดจากการดำเนินงานมีภาพรวมที่ดีขึ้น</p>',
+      '<p><strong>2.4.3</strong> ให้ตรวจสอบรายได้ทั้งหมดของกิจการ ปี 2561 ให้สอดคล้องกับงบการเงินปรับปรุงใหม่ในปี 2562</p>',
+      '<p><strong>2.4.4</strong> ให้ตรวจสอบหนี้สิน ปี 2560 และ 2561 ให้สอดคล้องกับงบการเงินปรับปรุงใหม่ในปี 2562</p>',
+      '<p><strong>2.4.5</strong> ให้ตรวจสอบการคำนวณผลตอบแทนจากการลงทุน (ROA)</p>',
+      '<p><strong>3. ข้อมูลบริษัท จีสตีล จำกัด (มหาชน)</strong></p>',
+      '<p><strong>3.1 ตาราง 8.3.3</strong> ให้ตรวจสอบค่าใช้จ่ายในการขาย บริหาร และอื่นๆ ต่อหน่วย สำหรับปี 2561–2562</p>',
+      '<p><strong>3.2 ตาราง 8.4.3</strong> ให้ตรวจสอบปริมาณสินค้าคงคลังในเดือนธันวาคม 2562 กับข้อมูลรวมสำหรับปี 2562 ให้สอดคล้องกัน</p>',
+      '<p><strong>3.3 ตาราง 8.5</strong> ให้ตรวจสอบจำนวนการจ้างงานในการผลิต ปี 2558 และ 2559 ให้สอดคล้องกับตาราง 8.8</p>',
+      '<p><strong>3.4 ตาราง 8.7</strong></p>',
+      '<p><strong>3.4.1</strong> ให้ตรวจสอบส่วนแบ่งตลาด ปี 2561 และ 2562 ให้สอดคล้องกับตาราง 8.8</p>',
+      '<p><strong>3.4.2</strong> ให้ตรวจสอบข้อมูลปริมาณขายปี 2562 ให้สอดคล้องกับตาราง 8.8.3</p>',
+      '<p><strong>5. ประเด็นเพิ่มเติมตาราง 8</strong></p>',
+      '<p><strong>5.1 ตาราง 8.3</strong></p>',
+      '<p><strong>5.1.1</strong> ให้ตรวจสอบส่วนแบ่งตลาดปี 2561 และ 2562 ให้สอดคล้องกับตาราง 8.8</p>',
+      '<p><strong>5.1.2</strong> ให้แก้ไข/ปรับปรุงปริมาณการขาย ปี 2562 โดยไม่รวมปริมาณการขายส่งออก พร้อมทั้งแก้ไขต้นทุนค่าใช้จ่ายในการจัดการการขายและอื่นๆ ให้ถูกต้อง</p>',
+      '<p><strong>5.2 ตาราง 8.7</strong></p>',
+      '<p><strong>5.2.1</strong> ให้ตรวจสอบปริมาณการผลิตปี 2562 ให้สอดคล้องกับตาราง 8.8</p>',
+      '<p><strong>5.2.2</strong> ให้ตรวจสอบข้อมูลปริมาณขายปี 2562 ให้สอดคล้องกับตาราง 8.8.4</p>',
+      '<p><strong>5.3 ตาราง 8.8</strong></p>',
+      '<p><strong>5.3.1</strong> ให้ตรวจสอบกำไร (ขาดทุน) สุทธิ หนี้สิน และส่วนของผู้ถือหุ้นปี 2559 ให้สอดคล้องกับงบการเงินปรับปรุงใหม่ ปี 2560</p>',
+      '<p><strong>5.3.2</strong> ให้ตรวจสอบกระแสเงินสดปี 2562 ให้สอดคล้องกับงบการเงินปี 2562</p>',
+      '<p><strong>5.3.3</strong> ให้ตรวจสอบข้อมูลรวมต้นทุนการผลิตต่อหน่วย (บาท/ตัน) ให้สอดคล้องกับข้อมูลต้นทุนผลิตรวมกับค่าใช้จ่ายในการขายและบริหาร</p>',
+      '<p>กองปกป้องและตอบโต้ทางการค้า · กรมการค้าต่างประเทศ · มิถุนายน 2563</p>',
+    ].join('');
+  }
+
+  private seedAmendSampleTree(): void {
+    const folderId = this.newAmendId('folder');
+    this.amendFolders = [{ id: folderId, name: 'รายการแก้ไขครั้งที่ 1', open: true }];
+    this.amendFiles = [
+      {
+        id: this.newAmendId('file'),
+        folderId,
+        name: '1 หนังสือแก้ไขคำขอ ครั้งที่ 1.pdf',
+        saved: this.clockToday() || '22/07/2563',
+      },
+    ];
+    this.amendFolderId = folderId;
+    this.writeAmendTree();
+  }
+
+  private amendTreeKey(): string {
+    return `${this.bundleAmendFilesKey}-${this.bundleRoundNo}`;
+  }
+
+  private readAmendTree(): void {
+    try {
+      const raw = JSON.parse(sessionStorage.getItem(this.amendTreeKey()) || 'null') as {
+        folders?: { id: string; name: string; open?: boolean }[];
+        files?: { id: string; folderId: string; name: string; saved: string }[];
+        selected?: string;
+      } | null;
+      this.amendFolders = (raw?.folders || []).map((folder) => ({
+        id: folder.id,
+        name: folder.name,
+        open: folder.open !== false,
+      }));
+      this.amendFiles = raw?.files || [];
+      this.amendFolderId = raw?.selected && this.amendFolders.some((folder) => folder.id === raw.selected)
+        ? raw.selected
+        : this.amendFolders[0]?.id || '';
+      this.amendFolderEditId = '';
+      this.amendFolderDraft = '';
+    } catch {
+      this.amendFolders = [];
+      this.amendFiles = [];
+      this.amendFolderId = '';
+      this.amendFolderEditId = '';
+      this.amendFolderDraft = '';
+    }
+  }
+
+  private writeAmendTree(): void {
+    try {
+      if (!this.amendFolders.length && !this.amendFiles.length) {
+        sessionStorage.removeItem(this.amendTreeKey());
+        return;
+      }
+      sessionStorage.setItem(
+        this.amendTreeKey(),
+        JSON.stringify({
+          folders: this.amendFolders,
+          files: this.amendFiles,
+          selected: this.amendFolderId,
+        }),
+      );
+    } catch {
+      /* ignore quota */
+    }
+  }
+
+  private newAmendId(prefix: string): string {
+    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  protected amendFilesOf(folderId: string): { id: string; folderId: string; name: string; saved: string }[] {
+    return this.amendFiles.filter((file) => file.folderId === folderId);
+  }
+
+  protected amendFileCount(folderId: string): number {
+    return this.amendFilesOf(folderId).length;
+  }
+
+  protected toggleAmendTree(): void {
+    this.amendTreeCollapsed = !this.amendTreeCollapsed;
+  }
+
+  protected selectAmendFolder(id: string): void {
+    this.amendFolderId = id;
+    this.writeAmendTree();
+  }
+
+  protected toggleAmendFolder(id: string): void {
+    this.amendFolders = this.amendFolders.map((folder) =>
+      folder.id === id ? { ...folder, open: !folder.open } : folder,
+    );
+    this.writeAmendTree();
+  }
+
+  protected addAmendFolder(): void {
+    const id = this.newAmendId('folder');
+    const name = `โฟลเดอร์ใหม่ ${this.amendFolders.length + 1}`;
+    this.amendFolders = [...this.amendFolders, { id, name, open: true }];
+    this.amendFolderId = id;
+    this.amendFolderEditId = id;
+    this.amendFolderDraft = name;
+    this.writeAmendTree();
+  }
+
+  protected startRenameAmendFolder(id: string): void {
+    const folder = this.amendFolders.find((row) => row.id === id);
+    if (!folder) return;
+    this.amendFolderEditId = id;
+    this.amendFolderDraft = folder.name;
+    this.amendFolderId = id;
+  }
+
+  protected setAmendFolderDraft(value: string): void {
+    this.amendFolderDraft = value;
+  }
+
+  protected commitAmendFolderName(id: string): void {
+    const name = this.amendFolderDraft.trim() || 'โฟลเดอร์ไม่มีชื่อ';
+    this.amendFolders = this.amendFolders.map((folder) =>
+      folder.id === id ? { ...folder, name } : folder,
+    );
+    this.amendFolderEditId = '';
+    this.amendFolderDraft = '';
+    this.writeAmendTree();
+  }
+
+  protected cancelAmendFolderRename(): void {
+    this.amendFolderEditId = '';
+    this.amendFolderDraft = '';
+  }
+
+  protected removeAmendFolder(id: string): void {
+    this.amendFolders = this.amendFolders.filter((folder) => folder.id !== id);
+    this.amendFiles = this.amendFiles.filter((file) => file.folderId !== id);
+    if (this.amendFolderId === id) this.amendFolderId = this.amendFolders[0]?.id || '';
+    if (this.amendFolderEditId === id) this.cancelAmendFolderRename();
+    this.writeAmendTree();
+  }
+
+  protected addAmendFolderFiles(folderId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const saved = this.clockToday() || this.filedOn || '15/05/2563';
+    const next = [...(input.files ?? [])].map((file) => ({
+      id: this.newAmendId('file'),
+      folderId,
+      name: file.name,
+      saved,
+    }));
+    if (next.length) {
+      this.amendFiles = [...this.amendFiles, ...next];
+      this.amendFolderId = folderId;
+      this.amendFolders = this.amendFolders.map((folder) =>
+        folder.id === folderId ? { ...folder, open: true } : folder,
+      );
+      this.writeAmendTree();
+    }
+    input.value = '';
+  }
+
+  protected removeAmendFile(id: string): void {
+    this.amendFiles = this.amendFiles.filter((file) => file.id !== id);
+    this.writeAmendTree();
+  }
+
+  protected downloadAmendFile(file: { id: string; folderId: string; name: string; saved: string }): void {
+    const folder = this.amendFolders.find((row) => row.id === file.folderId);
+    this.downloadBundleFile({
+      group: folder?.name || 'แก้ไขคำขอ',
+      name: file.name,
+      saved: file.saved,
+    });
+  }
+
+  protected get bundleFormInfo(): { code: string; measure: string; title: string; summary: string } {
+    const catalog = requestForms.find((form) => form.code === this.bundleFormCode);
+    const caseForm = this.caseForms.find((form) => form.code === this.bundleFormCode);
+    return {
+      code: this.bundleFormCode,
+      measure: caseForm?.measure || this.measureLabel,
+      title: catalog?.title || catalog?.label || `แบบ ${this.bundleFormCode}`,
+      summary: catalog?.summary || '',
+    };
+  }
+
+  /** รายการหัวข้อในแบบคำขอ ปร.1 — ส่วนที่ 1–8 + คำรับรอง */
+  private get bundleFormItems(): TocLink[] {
+    if (this.bundleFormCode !== 'ปร. 1') {
+      return this.por2BundleToc.flatMap((group) => group.items);
+    }
+    const items: TocLink[] = [{ id: 'cover', label: 'หน้าปกแบบ ปร. 1', anchor: 'cover' }];
+    for (const group of toc) {
+      if (group.label.startsWith('เอกสารผนวก')) continue;
+      if (group.label.includes('คำรับรอง')) {
+        items.push(...group.items.filter((item) => item.anchor === 'part-9-pledge' || item.label.includes('คำรับรอง')));
+        continue;
+      }
+      items.push(...group.items);
+    }
+    return items;
+  }
+
+  /**
+   * สารบัญในรอบยื่น — ตามโฟลเดอร์จริง (ไม่ใส่เลข 1. 2. 3. หน้าชื่อ)
+   * หนังสือนำส่ง → แบบคำขอ ปร.1 → มอบอำนาจ → งบ → ตาราง 8.1–8.8 → ภาคผนวก → สิ่งที่ส่งมาด้วย
+   * เลขรอบอยู่ที่แถบโฟลเดอร์ด้านบน เช่น 1. 15 พค 63
+   */
+  protected get bundleToc(): TocGroup[] {
+    const letterName = this.letterFileName || 'หนังสือนำส่ง.pdf';
+    const annexOrder = ['หนังสือมอบอำนาจ', 'งบการเงิน', 'ตารางข้อมูล 8.1–8.8', 'ภาคผนวก', 'สิ่งที่ส่งมาด้วย'];
+    /** กลุ่มไฟล์ — สารบัญเหลือชื่อกลุ่มอย่างเดียว (รายการไฟล์อยู่ในตารางรวมแล้ว) */
+    const annexLabels = new Set(this.filingBundleAnnex.map((file) => file.group).filter(Boolean));
+    const annexToc = [
+      ...annexOrder.filter((label) => annexLabels.has(label)).map((label) => ({
+        label,
+        items: [{ id: 'annex', label, anchor: `file-group-${label}` }],
+      })),
+      ...[...annexLabels]
+        .filter((label) => !annexOrder.includes(label))
+        .map((label) => ({
+          label,
+          items: [{ id: 'annex', label, anchor: `file-group-${label}` }],
+        })),
+    ];
+    return [
+      {
+        label: 'หนังสือนำส่ง',
+        items: [{ id: 'letter-file', label: 'หนังสือนำส่ง', anchor: `file-letter-${letterName}` }],
+      },
+      {
+        label: 'แบบคำขอ ปร. 1',
+        items: this.bundleFormItems,
+      },
+      ...annexToc,
+    ];
+  }
+
+  /** กลุ่มในสารบัญที่เป็นไฟล์รวม — คลิกชื่อกลุ่มพอ ไม่ไล่ทีละไฟล์ */
+  protected isBundleFileTocGroup(group: TocGroup): boolean {
+    return group.items.length > 0 && group.items.every((item) => item.id === 'annex' || item.id === 'letter-file');
+  }
+
+  /** จำนวนไฟล์ในกลุ่ม — โชว์ท้ายชื่อสารบัญ เช่น หนังสือมอบอำนาจ (8) */
+  protected bundleFileGroupCount(group: TocGroup): number {
+    if (group.items.some((item) => item.id === 'letter-file')) return 1;
+    return this.filingBundleAnnex.filter((file) => file.group === group.label).length;
+  }
+
+  /** ใช้จัดหน้าในเล่ม — กลุ่มส่วนของแบบ ปร. */
+  private get bundleFormSections(): TocGroup[] {
+    if (this.bundleFormCode !== 'ปร. 1') return this.por2BundleToc;
+    return toc
+      .filter((group) => !group.label.startsWith('เอกสารผนวก'))
+      .map((group) => {
+        if (!group.label.includes('คำรับรอง')) return group;
+        return {
+          label: 'คำรับรองและลงนาม',
+          items: group.items.filter((item) => item.anchor === 'part-9-pledge' || item.label.includes('คำรับรอง')),
+        };
+      });
+  }
+
+  protected pickBundleForm(code: string): void {
+    if (!this.caseForms.some((form) => form.code === code)) return;
+    this.bundleFormCode = code;
+    this.placeBundleItem(this.bundleToc[0]?.items[0] || null);
+  }
+
+  protected openBundleItem(item: TocLink): void {
+    this.placeBundleItem(item);
+    const id = this.bundlePageId(this.bundleItemId, this.bundleItemLabel);
+    queueMicrotask(() => {
+      document.getElementById(`bundle-${id}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
+  }
+
+  /** หาไฟล์แนบจากชื่อที่อ้างในแบบ ปร. */
+  protected findAnnexFile(name: string): { group: string; name: string; saved: string } | null {
+    const needle = name.trim();
+    if (!needle || needle === '—') return null;
+    const letter = this.letterFileName || 'หนังสือนำส่ง.pdf';
+    if (needle === letter || (needle.includes('หนังสือนำส่ง') && /\.pdf$/i.test(needle))) {
+      return { group: 'หนังสือนำส่ง', name: letter, saved: this.letterDate || this.filedOn };
+    }
+    const exact = this.filingBundleAnnex.find((file) => file.name === needle);
+    if (exact) return exact;
+    const contained = this.filingBundleAnnex.find((file) => needle.includes(file.name));
+    if (contained) return contained;
+    const byPrefix = this.filingBundleAnnex.find((file) => file.name.includes(needle) || needle.replace(/\s+/g, '') === file.name.replace(/\s+/g, ''));
+    return byPrefix || null;
+  }
+
+  /** จำนวนแถว textarea ของตารางส่วนที่ 2 ตามความยาวข้อความ */
+  protected goodsCompareRows(value: string): number {
+    const lines = (value || '').split('\n').length;
+    return Math.min(18, Math.max(3, lines + (value.length > 180 ? 2 : 0)));
+  }
+
+  /** แยกข้อความช่องกรอกเป็นส่วนข้อความธรรมดา / ลิงก์ไฟล์ */
+  protected fillValueParts(value: string): { text: string; fileName: string | null }[] {
+    const raw = (value || '').trim() || '—';
+    if (raw === '—') return [{ text: '—', fileName: null }];
+    const letter = this.letterFileName || 'หนังสือนำส่ง.pdf';
+    const annex = this.filingBundleAnnex;
+    const names = [letter, ...annex.map((file) => file.name)].sort((a, b) => b.length - a.length);
+    const hits: { start: number; end: number; name: string }[] = [];
+    const pushHit = (start: number, end: number, name: string) => {
+      if (hits.some((hit) => start < hit.end && hit.start < end)) return;
+      hits.push({ start, end, name });
+    };
+    for (const name of names) {
+      let from = 0;
+      while (from < raw.length) {
+        const at = raw.indexOf(name, from);
+        if (at < 0) break;
+        pushHit(at, at + name.length, name);
+        from = at + name.length;
+      }
+    }
+    // จับอ้างอิงสั้นในแบบ เช่น “สิ่งที่ส่งมาด้วย 1” / “สิ่งที่ส่งมาด้วย 2.1–2.3”
+    const shortRe = /สิ่งที่ส[่ง]{1,2}มาด้วย\s*([0-9]+(?:\.[0-9]+)?)(?:\s*[–\-]\s*([0-9]+(?:\.[0-9]+)?))?/gu;
+    let match: RegExpExecArray | null;
+    while ((match = shortRe.exec(raw))) {
+      const fromNo = match[1];
+      const toNo = match[2] || fromNo;
+      const file =
+        annex.find((row) => {
+          const hit = /(?:สิ่งที่ส[่ง]{1,2}มาด้วย|ส่งมาด้วย)\s*([0-9]+(?:\.[0-9]+)?)/u.exec(row.name);
+          if (!hit) return false;
+          const n = Number(hit[1]);
+          return n >= Number(fromNo) && n <= Number(toNo);
+        }) || annex.find((row) => row.name.includes(`สิ่งที่ส่งมาด้วย ${fromNo}`));
+      if (file) pushHit(match.index, match.index + match[0].length, file.name);
+    }
+    if (!hits.length) {
+      const file = this.findAnnexFile(raw);
+      return [{ text: raw, fileName: file?.name || null }];
+    }
+    hits.sort((a, b) => a.start - b.start || b.end - a.end);
+    const parts: { text: string; fileName: string | null }[] = [];
+    let cursor = 0;
+    for (const hit of hits) {
+      if (hit.start > cursor) parts.push({ text: raw.slice(cursor, hit.start), fileName: null });
+      parts.push({ text: raw.slice(hit.start, hit.end), fileName: hit.name });
+      cursor = hit.end;
+    }
+    if (cursor < raw.length) parts.push({ text: raw.slice(cursor), fileName: null });
+    return parts.length ? parts : [{ text: raw, fileName: null }];
+  }
+
+  protected openAnnexFile(name: string, event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    const file = this.findAnnexFile(name);
+    if (!file) return;
+    if (file.group === 'หนังสือนำส่ง') {
+      this.openBundleItem({ id: 'letter-file', label: 'หนังสือนำส่ง', anchor: `file-letter-${file.name}` });
+      return;
+    }
+    this.openBundleItem({ id: 'annex', label: file.group, anchor: `file-group-${file.group}` });
+  }
+
+  protected bundleItemCurrent(item: TocLink): boolean {
+    return this.bundleItemLabel === item.label && this.bundleItemId === (item.anchor || item.id || item.label);
+  }
+
+  protected bundlePageIdMatch(pageId: string): boolean {
+    return this.bundlePageId(this.bundleItemId, this.bundleItemLabel) === pageId;
+  }
+
+  protected bundleChapterBreak(index: number): boolean {
+    const pages = this.activeBundlePages;
+    if (index <= 0) return true;
+    return pages[index]?.chapter !== pages[index - 1]?.chapter;
+  }
+
+  /** หาสารบัญกลุ่มเดียวกับหัวข้อที่เลือก */
+  private findBundleTocGroup(itemId: string, label: string): TocGroup | null {
+    const id = this.bundlePageId(itemId, label);
+    for (const group of this.bundleToc) {
+      const hit = group.items.some((item) => {
+        const itemKey = this.bundlePageId(item.anchor || item.id || item.label, item.label);
+        return itemKey === id || item.label === label || item.anchor === itemId;
+      });
+      if (hit) return group;
+      if (this.isBundleFileTocGroup(group) && (group.label === label || itemId === `file-group-${group.label}`)) {
+        return group;
+      }
+    }
+    const annex = this.filingBundleAnnex.find((file) => file.name === label || `file-${file.group}-${file.name}` === itemId);
+    if (annex) return this.bundleToc.find((group) => group.label === annex.group) || null;
+    return null;
+  }
+
+  private pagesForTocGroup(group: TocGroup, pages: BundlePage[]): BundlePage[] {
+    const ids = new Set(group.items.map((item) => this.bundlePageId(item.anchor || item.id || item.label, item.label)));
+    const labels = new Set(group.items.map((item) => item.label));
+    const fileGroup = this.isBundleFileTocGroup(group);
+    return pages.filter((page) => {
+      if (fileGroup && page.kind === 'file' && page.group && (labels.has(page.group) || page.group === group.label)) {
+        return true;
+      }
+      if (ids.has(page.id) || labels.has(page.title)) return true;
+      if (page.heading && labels.has(page.heading)) return true;
+      if (page.fileName && labels.has(page.fileName)) return true;
+      return false;
+    });
+  }
+
+  /** แสดงทั้งกลุ่มต่อกันยาว — ไม่ตัดเป็นหน้าละหัวข้อ */
+  protected get activeBundlePages(): BundlePage[] {
+    const pages = this.filingBundlePages;
+    if (!pages.length) return [];
+    if (!this.bundleItemId && !this.bundleItemLabel) {
+      const firstGroup = this.bundleToc[0];
+      if (firstGroup) {
+        const groupPages = this.pagesForTocGroup(firstGroup, pages);
+        if (groupPages.length) return groupPages.every((page) => page.kind === 'file') ? [groupPages[0]] : groupPages;
+      }
+      return [pages[0]];
+    }
+    const group = this.findBundleTocGroup(this.bundleItemId, this.bundleItemLabel);
+    if (group) {
+      const groupPages = this.pagesForTocGroup(group, pages);
+      if (groupPages.length) {
+        // กลุ่มไฟล์ใช้ตารางรวมอยู่แล้ว — โชว์หน้าเดียวในกลุ่ม
+        if (groupPages.every((page) => page.kind === 'file')) {
+          const id = this.bundlePageId(this.bundleItemId, this.bundleItemLabel);
+          return [groupPages.find((page) => page.id === id) || groupPages[0]];
+        }
+        return groupPages;
+      }
+    }
+    const id = this.bundlePageId(this.bundleItemId, this.bundleItemLabel);
+    const byId = pages.filter((page) => page.id === id);
+    if (byId.length) return byId;
+    const byLabel = pages.filter((page) => page.title === this.bundleItemLabel || page.heading === this.bundleItemLabel || page.fileName === this.bundleItemLabel);
+    return byLabel.length ? byLabel : [pages[0]];
+  }
+
+  protected get activeBundlePage(): BundlePage | null {
+    return this.activeBundlePages[0] || null;
+  }
+
+  /** ไฟล์ในกลุ่มเดียวกับหัวข้อที่เลือก — สำหรับติ๊กโหลด */
+  protected get activeBundleFileRows(): { id: string; group: string; name: string; saved: string }[] {
+    const page = this.activeBundlePage;
+    if (!page || page.kind !== 'file') return [];
+    const group = page.group || '';
+    return this.filingBundlePages
+      .filter((row) => row.kind === 'file' && (row.group || '') === group)
+      .map((row) => ({
+        id: row.id,
+        group: row.group || '',
+        name: row.fileName || row.title,
+        saved: row.saved || this.filedOn,
+      }));
+  }
+
+  protected get bundleFilePickCount(): number {
+    return this.activeBundleFileRows.filter((row) => this.bundleFilePick[row.id]).length;
+  }
+
+  protected get allBundleFilesPicked(): boolean {
+    const rows = this.activeBundleFileRows;
+    return !!rows.length && rows.every((row) => this.bundleFilePick[row.id]);
+  }
+
+  protected toggleBundleFilePick(id: string): void {
+    this.bundleFilePick = { ...this.bundleFilePick, [id]: !this.bundleFilePick[id] };
+  }
+
+  protected toggleAllBundleFilePick(): void {
+    const on = !this.allBundleFilesPicked;
+    const next = { ...this.bundleFilePick };
+    for (const row of this.activeBundleFileRows) next[row.id] = on;
+    this.bundleFilePick = next;
+  }
+
+  protected downloadPickedBundleFiles(): void {
+    const picked = this.activeBundleFileRows.filter((row) => this.bundleFilePick[row.id]);
+    if (!picked.length) return;
+    for (const file of picked) this.downloadBundleFile(file);
+  }
+
+  private placeBundleItem(item: TocLink | null): void {
+    if (!item) {
+      this.bundleItemId = '';
+      this.bundleItemLabel = '';
+      this.bundleFilePick = {};
+      return;
+    }
+    this.bundleItemId = item.anchor || item.id || item.label;
+    this.bundleItemLabel = item.label;
+    this.bundleCommentTarget = '';
+    this.bundleFilePick = {};
+  }
+
+  private bundlePageId(itemId: string, label: string): string {
+    if (itemId === 'cover' || label.startsWith('หน้าปก') || label.startsWith('สรุปเล่ม') || label.startsWith('ใบปก')) {
+      return `cover-${this.bundleFormCode}`;
+    }
+    if (itemId.startsWith('file-') || label.match(/\.(pdf|docx?|xlsx?)$/i) || label === 'หนังสือนำส่ง' || label.includes('หนังสือนำส่ง')) {
+      const letterName = this.letterFileName || 'หนังสือนำส่ง.pdf';
+      if (itemId.startsWith('file-letter-') || label === 'หนังสือนำส่ง' || label === letterName || label.includes('หนังสือนำส่ง')) {
+        return `file-letter-${letterName}`;
+      }
+      if (itemId.startsWith('file-group-')) {
+        const groupName = itemId.slice('file-group-'.length);
+        const first = this.filingBundleAnnex.find((row) => row.group === groupName);
+        return first ? `file-${first.group}-${first.name}` : itemId;
+      }
+      const byGroup = this.filingBundleAnnex.find((row) => row.group === label);
+      if (byGroup && !label.match(/\.(pdf|docx?|xlsx?)$/i)) {
+        return `file-${byGroup.group}-${byGroup.name}`;
+      }
+      const file = this.filingBundleAnnex.find((row) => row.name === label || `file-${row.group}-${row.name}` === itemId);
+      if (file) return `file-${file.group}-${file.name}`;
+    }
+    return `${this.bundleFormCode}-${label}`;
+  }
+
+  /**
+   * ลำดับเล่ม: หนังสือนำส่ง (ไฟล์) → แบบ ปร. ส่วนที่ 1–8 + คำรับรอง → เอกสารแนบ
+   */
+  protected get filingBundlePages(): BundlePage[] {
+    const info = this.bundleFormInfo;
+    const letterName = this.letterFileName || 'หนังสือนำส่ง.pdf';
+    const pages: BundlePage[] = [
+      {
+        id: `file-letter-${letterName}`,
+        kind: 'file',
+        chapter: 'หนังสือนำส่ง',
+        title: letterName,
+        heading: letterName,
+        group: 'หนังสือนำส่ง',
+        fileName: letterName,
+        saved: this.letterDate || this.filedOn,
+        fields: [
+          { label: 'กลุ่มเอกสาร', value: 'หนังสือนำส่ง' },
+          { label: 'ชื่อไฟล์', value: letterName },
+          { label: 'วันที่บันทึก', value: this.letterDate || this.filedOn },
+        ],
+      },
+      {
+        id: `cover-${info.code}`,
+        kind: 'cover',
+        chapter: 'แบบ ปร. 1',
+        title: 'หน้าปกแบบ ปร. 1',
+        heading: 'แบบ ปร. 1',
+        body: '',
+        fields: [],
+      },
+    ];
+    for (const group of this.bundleFormSections) {
+      for (const item of group.items) {
+        const fields = info.code === 'ปร. 1'
+          ? this.bundleFieldsForItem(item, group.label)
+          : this.bundleFieldsForPor2(item.label, group.label);
+        pages.push({
+          id: `${info.code}-${item.label}`,
+          kind: 'text',
+          chapter: group.label,
+          title: item.label,
+          heading: item.label,
+          body: fields.find((row) => row.label === '__body')?.value,
+          fields: fields.filter((row) => row.label !== '__body'),
+        });
+      }
+    }
+    for (const file of this.filingBundleAnnex) {
+      pages.push({
+        id: `file-${file.group}-${file.name}`,
+        kind: 'file',
+        chapter: file.group || 'เอกสารแนบ',
+        title: file.name,
+        heading: file.name,
+        group: file.group,
+        fileName: file.name,
+        saved: file.saved,
+        fields: [
+          { label: 'กลุ่มเอกสาร', value: file.group },
+          { label: 'ชื่อไฟล์', value: file.name },
+          { label: 'วันที่บันทึก', value: file.saved },
+        ],
+      });
+    }
+    return pages;
+  }
+
+  private partyLines(key: string, limit = 0): string {
+    const block = this.parties.find((row) => row.key === key);
+    const rows = block?.rows ?? [];
+    const list = limit > 0 ? rows.slice(0, limit) : rows;
+    if (!list.length) return 'ไม่มี';
+    return list
+      .map((row, index) => {
+        const contact = [row.address, row.phone && `โทร. ${row.phone}`, row.fax && `โทรสาร ${row.fax}`].filter(Boolean).join(' · ');
+        return `${index + 1}) ${row.name}${contact ? `\n   ${contact}` : ''}`;
+      })
+      .join('\n');
+  }
+
+  private bundleFieldsForItem(item: TocLink, _group: string): { label: string; value: string }[] {
+    const anchor = item.anchor || '';
+    const label = item.label;
+    const id = item.id;
+
+    if (anchor === 'part-1-1' || label.includes('1.1')) {
+      return [
+        { label: 'มาตรการที่ขอให้ดำเนินการพิจารณา', value: this.measureName },
+        { label: 'ชื่อผู้ยื่นคำขอ', value: this.company },
+        { label: 'สัญชาติ', value: this.nationality },
+        { label: 'ที่อยู่', value: this.address },
+        { label: 'โทรศัพท์', value: this.phone },
+        { label: 'โทรสาร', value: this.fax || '—' },
+        { label: 'ประเภทการยื่น', value: 'ยื่นคำขอโดยกระทำการแทนผู้ผลิตบางส่วนในอุตสาหกรรมภายใน' },
+        { label: 'ผู้ผลิตที่มอบอำนาจให้ยื่นแทน', value: this.makers.map((row, i) => `${i + 1}) ${row.name}\n   ${row.address}\n   โทร. ${row.phone} · โทรสาร ${row.fax || '—'}`).join('\n') },
+        { label: 'ผู้ผลิตที่ไม่ได้ร่วมยื่น', value: this.outsideProducer || '—' },
+        { label: 'ผู้รับมอบอำนาจ / ผู้ลงนาม', value: `${this.agent || this.signerPrint} · ${this.roleTitle}` },
+      ];
+    }
+    if (anchor === 'part-1-2' || label.includes('1.2')) {
+      return [{ label: 'ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก', value: this.relatedImport || 'ไม่มี' }];
+    }
+    if (anchor === 'part-1-3' || label.includes('1.3')) {
+      return [{ label: 'คำขอมาตรการช่วยเหลือในช่วง 1 ปีก่อนหน้า', value: this.priorAid || 'ไม่มี' }];
+    }
+    if (id === '2' || anchor === 'part-2' || label.includes('เปรียบเทียบสินค้า')) {
+      return [
+        { label: 'สรุปสินค้า', value: this.goodsDetail || '—' },
+        { label: 'ช่องทางการจำหน่าย / ผู้ใช้ขั้นสุดท้าย', value: this.channelDetail || '—' },
+        ...this.goodsCompareForRound.map((row) => ({
+          label: row.item,
+          value: `สินค้าที่ถูกพิจารณา: ${row.subject}\nสินค้าชนิดเดียวกันในประเทศ: ${row.like}`,
+        })),
+        {
+          label: 'เอกสารแนบประกอบส่วนที่ 2',
+          value: this.docs.map((file) => file.name).join('\n') || '—',
+        },
+      ];
+    }
+    if (anchor === 'part-producers' || label.includes('3.1')) {
+      const producers =
+        this.bundleRoundNo >= 2
+          ? `${this.partyLines('producers')}\nAl Ezz Flat Steel (EFS) · สาธารณรัฐอาหรับอียิปต์ (เพิ่มตามหนังสือแก้ไขครั้งที่ 1)`
+          : this.partyLines('producers');
+      return [
+        { label: 'ผู้ผลิตสินค้าที่ถูกพิจารณา', value: producers },
+        { label: 'หมายเหตุ', value: 'แบบคำขระบุว่าไม่มีผู้ส่งออกแยกต่างหากจากผู้ผลิต' },
+      ];
+    }
+    if (anchor === 'part-exporters' || label.includes('3.2')) {
+      return [{ label: 'ผู้ส่งออกสินค้าที่ถูกพิจารณา', value: this.partyLines('exporters') }];
+    }
+    if (anchor === 'part-importers' || label.includes('3.3')) {
+      return [
+        { label: 'ที่มาของรายชื่อ', value: 'ศูนย์เทคโนโลยีสารสนเทศและการสื่อสาร สำนักงานปลัดกระทรวงพาณิชย์ (โปรดดูสิ่งที่ส่งมาด้วย 6)' },
+        { label: 'ผู้นำเข้าสินค้าที่ถูกพิจารณา', value: this.partyLines('importers', 12) },
+      ];
+    }
+    if (anchor === 'part-users' || label.includes('3.4')) {
+      return [{ label: 'สมาคมหรือกลุ่มอุตสาหกรรมผู้ใช้', value: this.partyLines('users') }];
+    }
+    if (anchor === 'part-4-1' || label.includes('4.1')) {
+      return [
+        { label: 'ช่วงเวลาที่ใช้คำนวณ', value: 'เมษายน 2562' },
+        { label: 'อัตราแลกเปลี่ยน', value: '31.8596 บาทต่อดอลลาร์สหรัฐ (ธนาคารแห่งประเทศไทย)' },
+        { label: 'วิธีหามูลค่าปกติ', value: this.factoryNote || '—' },
+        { label: 'มูลค่าปกติหน้าโรงงาน · เวียดนาม', value: '17,514 บาท/ตัน (จากราคา CFR/Metal Expert หักค่าขนส่ง)' },
+        { label: 'มูลค่าปกติหน้าโรงงาน · อียิปต์', value: '19,418 บาท/ตัน (ราคาหน้าโรงงานจากแหล่งเดียวกัน)' },
+        { label: 'เอกสารอ้างอิง', value: 'สิ่งที่ส่งมาด้วย 7–8 และ 10' },
+      ];
+    }
+    if (anchor === 'part-4-2' || label.includes('4.2')) {
+      return [{ label: 'ราคาส่งออกไปประเทศที่สาม', value: this.thirdReason || 'ไม่มี — ใช้ราคาจำหน่ายในประเทศผู้ส่งออกตามข้อ 4.1' }];
+    }
+    if (anchor.includes('part-4-3') || label.includes('4.3')) {
+      return [
+        { label: 'ต้นทุนในประเทศแหล่งกำเนิด / ประเทศไทย', value: 'ไม่ใช้ข้อ 4.3 เพราะสามารถหาราคาตามข้อ 4.1 ได้' },
+        { label: 'รายละเอียด', value: this.originDetail || this.thaiDetail || 'ไม่มี' },
+      ];
+    }
+    if (anchor === 'part-4-4' || label.includes('4.4')) {
+      return [{ label: 'ตลาดมีลักษณะเฉพาะ', value: this.specialDetail || 'ไม่มี' }];
+    }
+    if (anchor === 'part-4-5' || label.includes('4.5')) {
+      return [{ label: 'ประเทศที่ไม่ใช้ระบบกลไกตลาด', value: this.compareReason || 'ไม่มี ประเทศผู้ส่งออกใช้ระบบเศรษฐกิจแบบกลไกตลาด จึงไม่ใช้ข้อ 4.5' }];
+    }
+    if (anchor === 'part-5-2' || label.includes('5.2')) {
+      return [{ label: 'ราคาส่งออกที่คำนวณขึ้น', value: this.exportConstructed || 'ไม่มี — ใช้ราคาส่งออกตามข้อ 5.1 จากสถิตินำเข้ากรมศุลกากร' }];
+    }
+    if (anchor === 'part-5' || label.includes('5.1') || id === '5') {
+      return [
+        { label: 'วิธีหาราคาส่งออก', value: this.exportDetail || '—' },
+        { label: 'ราคาส่งออกหน้าโรงงาน · เวียดนาม', value: '16,761 บาท/ตัน (CIF 17,238 บาท/ตัน หักค่าระวาง ค่าประกัน และค่าขนส่งในประเทศ)' },
+        { label: 'ราคาส่งออกหน้าโรงงาน · อียิปต์', value: '17,349 บาท/ตัน (CIF 19,026 บาท/ตัน)' },
+        { label: 'ค่าระวางเรือ', value: 'เวียดนาม 15 ดอลลาร์/ตัน · อียิปต์ 40 ดอลลาร์/ตัน' },
+        { label: 'เอกสารอ้างอิง', value: 'สิ่งที่ส่งมาด้วย 9, 11, 12, 13' },
+      ];
+    }
+    if (anchor === 'part-6' || id === '6' || label.includes('ส่วนเหลื่อม')) {
+      return [
+        { label: '__body', value: 'เปรียบเทียบมูลค่าปกติและราคาส่งออก ณ ระดับหน้าโรงงาน ตามตารางส่วนที่ 6 ของแบบคำขอ' },
+        ...this.marginCountries.map((row) => ({
+          label: row.name,
+          value: `มูลค่าปกติ ${row.normal} บาท/ตัน\nราคาส่งออกหน้าโรงงาน ${row.exportPrice} บาท/ตัน\nส่วนเหลื่อม ${row.margin} บาท/ตัน\nราคา CIF ${row.cif} บาท/ตัน\nอัตราการทุ่มตลาด ${row.rate}%`,
+        })),
+        { label: 'หน่วย', value: this.marginUnit },
+        { label: 'เอกสารอ้างอิง', value: 'สิ่งที่ส่งมาด้วย 10 อัตราแลกเปลี่ยนรายเดือน 2562.pdf' },
+      ];
+    }
+    if (id === '7.1' || label.includes('7.1')) {
+      return [
+        { label: '__body', value: this.explainDetail || 'ไม่มีข้อมูลการอุดหนุน เคสนี้ขอให้ไต่สวนการทุ่มตลาด' },
+        { label: 'เอกสาร / โครงการอุดหนุน', value: 'ไม่มี' },
+      ];
+    }
+    if (id === '7.2' || label.includes('7.2')) {
+      return [{ label: 'คำอธิบายการอุดหนุน', value: 'ไม่มี' }];
+    }
+    if (id === '7.3' || label.includes('7.3')) {
+      return [{ label: 'การอุดหนุนเจาะจง', value: this.subsidySpecific || 'ไม่มี' }];
+    }
+    if (id === '7.4' || label.includes('7.4') || (id.startsWith('7') && label.includes('อุดหนุน'))) {
+      return [{ label: 'ประโยชน์ที่ผู้ส่งออกได้รับ', value: this.subsidyBenefit || 'ไม่มี' }];
+    }
+    if (id === '8.1' || label.includes('8.1')) {
+      return [
+        { label: 'ปริมาณนำเข้า', value: this.notes['importDetail'] },
+        { label: 'เอกสารตาราง', value: 'AD VN-EG_Table 8.1, 8.2, 8.7-ALL rev.01_15.05.20.xlsx' },
+      ];
+    }
+    if (id === '8.2' || label.includes('8.2')) {
+      return [
+        { label: 'ผลกระทบด้านราคา', value: this.notes['priceEffect'] },
+        { label: 'ผลต่อต้นทุน', value: this.notes['costEffect'] },
+      ];
+    }
+    if (id === '8.3' || label.includes('8.3')) {
+      return [
+        { label: 'ยอดจำหน่ายภายในประเทศ', value: this.notes['sales'] },
+        { label: 'ผลผลิต', value: this.notes['output'] },
+        { label: 'ส่วนแบ่งตลาด', value: this.notes['share'] },
+        { label: 'กำลังการผลิต', value: this.notes['capacity'] },
+        { label: 'สินค้าคงคลัง', value: this.notes['stock'] },
+        { label: 'กำไร (ขาดทุน)', value: this.notes['profit'] },
+        { label: 'เอกสารตาราง', value: 'Table 8.3, 8.4, 8.5, 8.8' },
+      ];
+    }
+    if (id === '8.4' || label.includes('8.4')) {
+      return [
+        { label: 'ปัจจัยอื่น ๆ', value: this.notes['factorDetail'] },
+        { label: 'เอกสารอ้างอิง', value: 'สิ่งที่ส่งมาด้วย 14 SEAISI Pro.-Cap..pdf' },
+      ];
+    }
+    if (id === '8.5' || label.includes('8.5')) {
+      return [{ label: 'สรุปความเสียหาย', value: this.notes['summaryDetail'] }];
+    }
+    if (id === '8.6' || label.includes('8.6')) {
+      return [{ label: 'ข้อมูลผู้ซื้อ', value: this.notes['buyerDetail'] }];
+    }
+    if (id === '8.7' || label.includes('8.7')) {
+      return [
+        { label: 'แนวโน้มกำลังการผลิตต่างประเทศ', value: this.notes['trendCapacity'] },
+        { label: 'แนวโน้มราคา', value: this.notes['trendPrice'] },
+        { label: 'แนวโน้มอื่น', value: this.notes['trendOther'] },
+      ];
+    }
+    if (id === '8.8' || label.includes('8.8')) {
+      return [
+        { label: 'อุปสรรคต่อการก่อตั้งหรือพัฒนา', value: this.notes['intentDetail'] },
+        { label: 'เอกสารตาราง', value: 'AD VN-EG_Table 8.6-ALL_rev.01_15.05.20.xlsx' },
+      ];
+    }
+    if (anchor === 'part-9-pledge' || label.includes('คำรับรอง')) {
+      return [
+        { label: 'คำรับรอง', value: this.pledgeText || this.pledgeDefault },
+        { label: 'ผู้ลงนาม', value: this.signerPrint || this.signer },
+        { label: 'ตำแหน่ง', value: this.roleTitle },
+        { label: 'วันที่ลงนาม', value: this.signedOn },
+      ];
+    }
+    if (anchor === 'part-9-letter' || label.includes('หนังสือนำส่ง')) {
+      return [
+        { label: 'ที่', value: this.letterNo || '—' },
+        { label: 'วันที่', value: this.letterDate || '—' },
+        { label: 'เรื่อง', value: this.letterSubject || '—' },
+        { label: 'เรียน', value: this.letterTo || '—' },
+        { label: 'วัตถุประสงค์', value: this.letterPurpose || '—' },
+        { label: 'ข้อความหนังสือ', value: this.letterBody || '—' },
+      ];
+    }
+    return [{ label: label, value: '—' }];
+  }
+
+  private bundleFieldsForPor2(label: string, group: string): { label: string; value: string }[] {
+    if (label.includes('มาตรการ')) {
+      return [
+        { label: 'แบบ', value: 'ปร. 2' },
+        { label: 'มาตรการ', value: this.measureName },
+        { label: 'ประเภทการยื่น', value: 'ทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้' },
+      ];
+    }
+    if (label.includes('ข้อมูล')) {
+      return [
+        { label: 'ผู้ยื่นคำขอ', value: this.company },
+        { label: 'เลขที่อ้างอิง', value: this.refId },
+        { label: 'วันที่ยื่น', value: this.filedOn },
+      ];
+    }
+    if (label.includes('สินค้า')) {
+      return [
+        { label: 'สินค้าที่ร้อง', value: this.caseGoods },
+        { label: 'ประเทศ', value: 'เวียดนาม, อียิปต์' },
+        { label: group, value: 'ตามประกาศและเหตุที่เปลี่ยนแปลงในคำขอ' },
+      ];
+    }
+    if (label.includes('วัตถุประสงค์')) {
+      return [{ label: 'วัตถุประสงค์และพยานหลักฐาน', value: 'ขอให้ทบทวนความจำเป็นในการใช้บังคับอากรตอบโต้ตามแบบ ปร. 2' }];
+    }
+    if (label.includes('คำรับรอง')) {
+      return [
+        { label: 'คำรับรอง', value: this.pledgeText || '—' },
+        { label: 'ผู้ลงนาม', value: this.signer || '—' },
+      ];
+    }
+    return [{ label, value: '—' }];
+  }
+
+  private bundleAnswersFor(section: string, itemLabel = ''): { label: string; value: string }[] {
+    const round = this.filingBundleRound;
+    const answers = round?.answers?.length ? round.answers : this.formAnswers();
+    const key = section.replace(/^ส่วนที่ \d+\s*/u, '').trim();
+    const matched = answers.filter((row) => {
+      const groupKey = row.group.replace(/^ส่วนที่ \d+\s*/u, '').trim();
+      return row.group.includes(key) || key.includes(groupKey) || section.includes(row.group) || (!!itemLabel && row.label.includes(itemLabel.slice(0, 8)));
+    });
+    return matched.map((row) => ({ label: row.label, value: row.value }));
+  }
+
+  protected get filingBundleAnnex(): { group: string; name: string; saved: string }[] {
+    const round = this.filingBundleRound;
+    if (round?.files?.length) {
+      return round.files.map((file) => ({ group: file.group, name: file.name, saved: file.saved }));
+    }
+    return this.realFilingAnnex();
+  }
+
+  /**
+   * เอกสารแนบหลังแบบ ปร. — มอบอำนาจ → งบ → ตาราง 8.1–8.8 → ภาคผนวก → สิ่งที่ส่งมาด้วย
+   * (หนังสือนำส่งแยกหัวข้อต่างหาก ไม่รวมในนี้)
+   */
+  private realFilingAnnex(): { group: string; name: string; saved: string }[] {
+    const day = this.filedOn;
+    const row = (group: string, name: string, saved = day) => ({ group, name, saved });
+    const fromNames = (group: string, names: string[]) => names.map((name) => row(group, name));
+    const fromDocs = (group: string, files: DocFile[]) => files.map((file) => row(group, file.name, file.saved));
+    const support = this.sortSupportDocs([
+      ...this.docs,
+      ...this.otherDocs.filter((file) => !/ภาคผนวก|ผนวก/.test(file.name)),
+      ...this.groups['otherDoc'].map((name) => ({ name, saved: day })),
+      ...this.exportDocs,
+      ...this.marginDocs,
+      ...this.sheets.factor.filter((file) => !file.name.endsWith('.xlsx')),
+    ]);
+    const tables = [
+      ...this.sheets.import,
+      { name: this.files['unitCost'], saved: day },
+      ...this.sheets.factor.filter((file) => file.name.endsWith('.xlsx')),
+      ...this.sheets.summary,
+      ...this.sheets.intent,
+      ...this.sheets.trend,
+    ];
+    return [
+      ...fromNames('หนังสือมอบอำนาจ', this.groups['power']),
+      ...fromNames('งบการเงิน', this.groups['finance']),
+      ...fromDocs('ตารางข้อมูล 8.1–8.8', tables),
+      ...fromDocs('ภาคผนวก', this.otherDocs.filter((file) => /ภาคผนวก|ผนวก/.test(file.name))),
+      ...fromDocs('สิ่งที่ส่งมาด้วย', support),
+    ];
+  }
+
+  /** เรียงสิ่งที่ส่งมาด้วยตามเลขในชื่อไฟล์ (1, 2.1, 2.2 … 14) */
+  private sortSupportDocs(files: DocFile[]): DocFile[] {
+    const rank = (name: string): number => {
+      const hit = /(?:สิ่งที่ส[่ง]{1,2}มาด้วย|ส่งมาด้วย)\s*([0-9]+(?:\.[0-9]+)?)/u.exec(name);
+      if (hit) return Number(hit[1]);
+      if (/แผนภาพ/.test(name)) return 5.5;
+      return 99;
+    };
+    const seen = new Set<string>();
+    return files
+      .filter((file) => {
+        if (seen.has(file.name)) return false;
+        seen.add(file.name);
+        return true;
+      })
+      .sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name, 'th'));
+  }
+
+  protected commentsFor(pageId: string): BundleComment[] {
+    return this.bundleComments.filter((item) => item.target === pageId && !item.resolved);
+  }
+
+  protected startBundleComment(pageId: string): void {
+    if (!this.bundleIsReview || !this.reviewRole) return;
+    this.bundleCommentTarget = pageId;
+    this.bundleCommentDraft = '';
+  }
+
+  protected cancelBundleComment(): void {
+    this.bundleCommentTarget = '';
+    this.bundleCommentDraft = '';
+  }
+
+  protected saveBundleComment(): void {
+    const text = this.bundleCommentDraft.trim();
+    if (!this.bundleIsReview || !this.reviewRole || !this.bundleCommentTarget || !text) return;
+    const next: BundleComment = {
+      id: `bc-${Date.now()}`,
+      target: this.bundleCommentTarget,
+      text,
+      at: this.replyStamp(),
+      author: this.accounts.displayName || this.signedPerson || 'เจ้าหน้าที่',
+    };
+    this.bundleComments = [next, ...this.bundleComments];
+    this.writeBundleComments(this.bundleComments);
+    this.bundleCommentTarget = '';
+    this.bundleCommentDraft = '';
+  }
+
+  protected resolveBundleComment(id: string): void {
+    this.bundleComments = this.bundleComments.map((item) => (item.id === id ? { ...item, resolved: true } : item));
+    this.writeBundleComments(this.bundleComments);
+  }
+
+  protected removeBundleComment(id: string): void {
+    this.bundleComments = this.bundleComments.filter((item) => item.id !== id);
+    this.writeBundleComments(this.bundleComments);
+  }
+
+  protected reviewNoteOf(pageId: string): string {
+    return this.bundleReviewNotes[pageId] || '';
+  }
+
+  protected setReviewNote(pageId: string, value: string): void {
+    if (!this.bundleIsReview || !this.reviewRole) return;
+    this.bundleReviewNotes = { ...this.bundleReviewNotes, [pageId]: value };
+    this.writeBundleReviewNotes(this.bundleReviewNotes);
+  }
+
+  /** แสดงผลแบบ Word ปร.1 — ใช้รูปแบบจาก document/แบบฟอร์ม/มาตรการ AD */
+  protected porWordBlocks(page: BundlePage): PorWordBlock[] {
+    if (page.kind === 'cover') return this.porWordCover();
+    if (page.kind === 'file') return [];
+    const head = page.heading || page.title;
+    if (head.includes('1.1')) return this.porWordPart11();
+    if (head.includes('1.2')) {
+      return [
+        { kind: 'section', text: 'ส่วนที่ 1  ข้อมูลทั่วไป' },
+        { kind: 'item', text: '1.2 ผู้ผลิตสินค้าชนิดเดียวกันรายใดเป็นผู้นำเข้าสินค้าที่ถูกพิจารณาหรือมีความเกี่ยวข้องกับผู้นำเข้า/ผู้ส่งออก' },
+        { kind: 'prompt', text: 'ให้แจ้งชื่อ ที่อยู่ หมายเลขโทรศัพท์ โทรสาร เว็บไซต์ และไปรษณีย์อิเล็กทรอนิกส์ของผู้ผลิต ผู้นำเข้า ผู้ส่งออก และความเกี่ยวข้อง รวมทั้งปริมาณการนำเข้า' },
+        { kind: 'para', text: this.relatedImport || 'ไม่มี' },
+      ];
+    }
+    if (head.includes('1.3')) {
+      return [
+        { kind: 'section', text: 'ส่วนที่ 1  ข้อมูลทั่วไป' },
+        { kind: 'item', text: '1.3 คำขอมาตรการช่วยเหลือในช่วง 1 ปีก่อนหน้า' },
+        { kind: 'prompt', text: 'ผู้ยื่นคำขอหรือผู้ผลิตรายอื่นที่ให้ผู้ยื่นคำขอกระทำการแทนได้ยื่นคำขอให้รัฐบาลกำหนดมาตรการช่วยเหลือหรือไม่ อย่างไร' },
+        { kind: 'para', text: this.priorAid || 'ไม่มี' },
+      ];
+    }
+    if (head.includes('เปรียบเทียบสินค้า') || page.chapter.includes('ส่วนที่ 2')) {
+      return [
+        { kind: 'section', text: 'ส่วนที่ 2  รายละเอียดของสินค้า' },
+        {
+          kind: 'prompt',
+          text: 'ให้เปรียบเทียบสินค้าที่ถูกพิจารณากับสินค้าชนิดเดียวกัน ที่ผู้ยื่นคำขอผลิตได้ในประเทศและได้รับผลกระทบตามรายการต่อไปนี้ — กรอกข้อความในตาราง และแนบสิ่งที่ส่งมาด้วยที่อ้างอิงในแต่ละช่อง',
+        },
+        {
+          kind: 'table',
+          headers: ['รายการ', 'สินค้าที่ถูกพิจารณา', 'สินค้าชนิดเดียวกัน'],
+          rows: this.goodsCompareForRound.map((row) => [row.item, row.subject || '—', row.like || '—']),
+        },
+        { kind: 'fill', label: 'สรุปสินค้า', value: this.goodsDetail || '—' },
+        { kind: 'fill', label: 'ช่องทางการจำหน่าย / ผู้ใช้ขั้นสุดท้าย', value: this.channelDetail || '—' },
+        {
+          kind: 'fill',
+          label: 'เอกสารแนบประกอบส่วนที่ 2',
+          value: this.docs.map((file) => file.name).join('\n') || '—',
+        },
+      ];
+    }
+    if (head.includes('3.1') || head.includes('ผู้ผลิตสินค้าที่ถูกพิจารณา')) {
+      const blocks = this.porWordParty('ส่วนที่ 3  ข้อมูลเกี่ยวกับผู้ผลิตและ/หรือผู้ส่งออกและผู้นำเข้า', '3.1 ให้แจ้งรายชื่อ ที่อยู่ หมายเลขโทรศัพท์ โทรสาร เว็บไซต์ และไปรษณีย์อิเล็กทรอนิกส์ของผู้ผลิตสินค้าที่ถูกพิจารณา', 'producers');
+      if (this.bundleRoundNo >= 2) {
+        blocks.push({
+          kind: 'fill',
+          label: 'ผู้ผลิตเพิ่มตามหนังสือแก้ไขครั้งที่ 1',
+          value: 'Al Ezz Flat Steel (EFS) · สาธารณรัฐอาหรับอียิปต์ — เพิ่มตามข้อ 1.6 ของหนังสือแก้ไขคำขอ ครั้งที่ 1',
+        });
+      }
+      return blocks;
+    }
+    if (head.includes('3.2') || head.includes('ผู้ส่งออก')) {
+      return this.porWordParty('ส่วนที่ 3  ข้อมูลเกี่ยวกับผู้ผลิตและ/หรือผู้ส่งออกและผู้นำเข้า', '3.2 ให้แจ้งรายชื่อ ที่อยู่ หมายเลขโทรศัพท์ โทรสาร เว็บไซต์ และไปรษณีย์อิเล็กทรอนิกส์ของผู้ส่งออกสินค้าที่ถูกพิจารณา', 'exporters');
+    }
+    if (head.includes('3.3') || head.includes('ผู้นำเข้า')) {
+      return this.porWordParty('ส่วนที่ 3  ข้อมูลเกี่ยวกับผู้ผลิตและ/หรือผู้ส่งออกและผู้นำเข้า', '3.3 ให้แจ้งรายชื่อ ที่อยู่ หมายเลขโทรศัพท์ โทรสาร เว็บไซต์ และไปรษณีย์อิเล็กทรอนิกส์ของผู้นำเข้าสินค้าที่ถูกพิจารณาในประเทศ', 'importers', 12);
+    }
+    if (head.includes('3.4') || head.includes('สมาคม')) {
+      return this.porWordParty('ส่วนที่ 3  ข้อมูลเกี่ยวกับผู้ผลิตและ/หรือผู้ส่งออกและผู้นำเข้า', '3.4 ให้แจ้งรายชื่อ ที่อยู่ หมายเลขโทรศัพท์ โทรสาร เว็บไซต์ และไปรษณีย์อิเล็กทรอนิกส์ของสมาคม หรือกลุ่มอุตสาหกรรมผู้ใช้สินค้าที่ถูกพิจารณาในประเทศ', 'users');
+    }
+    if (head.includes('4.1') || head.includes('ราคาจำหน่ายในประเทศผู้ส่งออก')) {
+      return [
+        { kind: 'section', text: 'ส่วนที่ 4  มูลค่าปกติ' },
+        { kind: 'item', text: '4.1 มูลค่าปกติของสินค้าชนิดเดียวกันที่จำหน่ายในตลาดประเทศผู้ส่งออก' },
+        { kind: 'para', text: this.factoryNote || '—' },
+        {
+          kind: 'table',
+          headers: ['รายการ', 'เวียดนาม', 'อียิปต์'],
+          rows: [
+            ['ราคาอ้างอิง (เม.ย. 2562)', 'CFR 566 USD/ตัน', 'ex-work 601 USD/ตัน'],
+            ['อัตราแลกเปลี่ยน (ธปท.)', '31.8596 บาท/USD', '31.8596 บาท/USD'],
+            ['ราคาเป็นบาท', '17,714 บาท/ตัน', '19,418 บาท/ตัน'],
+            ['หักค่าขนส่งในประเทศ', '200 บาท/ตัน', '—'],
+            ['มูลค่าปกติหน้าโรงงาน', '17,514 บาท/ตัน', '19,418 บาท/ตัน'],
+          ],
+        },
+        { kind: 'fill', label: 'เอกสารอ้างอิง', value: 'สิ่งที่ส่งมาด้วย 7, 8 และ 10' },
+      ];
+    }
+    if (head.includes('5.1') || (head.includes('ราคาส่งออก') && !head.includes('5.2') && !head.includes('คำนวณ'))) {
+      return [
+        { kind: 'section', text: 'ส่วนที่ 5  ราคาส่งออก (Export Price)' },
+        { kind: 'item', text: '5.1 ราคาส่งออกสินค้าที่ถูกพิจารณา' },
+        { kind: 'para', text: this.exportDetail || '—' },
+        {
+          kind: 'table',
+          headers: ['รายการ', 'เวียดนาม', 'อียิปต์'],
+          rows: [
+            ['ปริมาณนำเข้า (เม.ย. 2562)', '5,061 ตัน', '118 ตัน'],
+            ['มูลค่านำเข้า', '87,246,040 บาท', '2,239,666 บาท'],
+            ['ราคา CIF', '17,238 บาท/ตัน', '19,026 บาท/ตัน'],
+            ['ค่าประกันภัย', '≈3 บาท/ตัน', '≈3 บาท/ตัน'],
+            ['ค่าระวางเรือ', '15 USD = 477 บาท/ตัน', '40 USD = 1,274 บาท/ตัน'],
+            ['ค่าขนส่งในประเทศ', 'ไม่มี (FHS ริมทะเล)', '400 บาท/ตัน'],
+            ['ราคาส่งออกหน้าโรงงาน', '16,761 บาท/ตัน', '17,349 บาท/ตัน'],
+          ],
+        },
+        { kind: 'fill', label: 'เอกสารอ้างอิง', value: 'สิ่งที่ส่งมาด้วย 9, 10, 11, 12 และ 13' },
+      ];
+    }
+    if (head.includes('ส่วนเหลื่อม') || (page.chapter.includes('ส่วนที่ 6') && (head.includes('6') || head.includes('เปรียบเทียบมูลค่าปกติ')))) {
+      return [
+        { kind: 'section', text: 'ส่วนที่ 6  ส่วนเหลื่อมการทุ่มตลาด' },
+        { kind: 'prompt', text: 'เปรียบเทียบมูลค่าปกติและราคาส่งออก ณ ระดับหน้าโรงงาน' },
+        {
+          kind: 'table',
+          headers: ['รายการ', 'เวียดนาม', 'อียิปต์'],
+          rows: [
+            ['(1) มูลค่าปกติ', '17,514', '19,418'],
+            ['(2) ราคาส่งออกหน้าโรงงาน', '16,761', '17,349'],
+            ['(3) ส่วนเหลื่อมการทุ่มตลาด', '753', '2,069'],
+            ['(4) ราคา CIF', '17,238', '19,026'],
+            ['(5) อัตราการทุ่มตลาด (%)', '4.36', '10.87'],
+          ],
+        },
+        { kind: 'fill', label: 'หน่วย', value: this.marginUnit || 'บาท/ตัน' },
+        { kind: 'fill', label: 'หมายเหตุ', value: 'ส่วนเหลื่อม = (1)−(2) · อัตรา = (3)/(4)×100%' },
+      ];
+    }
+    if (head.includes('คำรับรอง')) {
+      return [
+        { kind: 'section', text: 'คำรับรองและลงนาม' },
+        { kind: 'para', text: this.pledgeText || this.pledgeDefault },
+        { kind: 'sign', name: this.signerPrint || this.signer, role: this.roleTitle, date: this.signedOn || this.filedOn },
+      ];
+    }
+    return [
+      { kind: 'section', text: page.chapter },
+      { kind: 'item', text: head },
+      ...(page.body ? [{ kind: 'prompt' as const, text: page.body }] : []),
+      ...(page.fields || []).map((row) => ({ kind: 'fill' as const, label: row.label, value: row.value || '—' })),
+    ];
+  }
+
+  private porWordCover(): PorWordBlock[] {
+    const ad = this.measureName.includes('AD') || this.measureName.includes('ทุ่มตลาด') || !this.measureName.includes('CVD');
+    const cvd = this.measureName.includes('CVD') || this.measureName.includes('อุดหนุน');
+    return [
+      {
+        kind: 'head',
+        title: this.bundleFormCode === 'ปร. 1' ? 'แบบ ปร. 1' : `แบบ ${this.bundleFormCode}`,
+        lines: [
+          'แบบคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน',
+          'ตามมาตรา 33 วรรคหนึ่ง และมาตรา 70',
+          'แนบท้ายประกาศกระทรวงพาณิชย์',
+          'เรื่อง การยื่นคำขอให้พิจารณาตอบโต้การทุ่มตลาดหรือการอุดหนุน ตอบโต้การหลบเลี่ยง',
+          'มาตรการตอบโต้ ทบทวนมาตรการ และขอคืนอากร พ.ศ. 2564',
+        ],
+      },
+      { kind: 'hint', text: 'กรอกข้อความหรือทำเครื่องหมาย ✓ ลงในช่อง □ ตามที่เป็นจริง' },
+      { kind: 'measure', ad, cvd },
+      {
+        kind: 'toc',
+        items: [
+          'ส่วนที่ 1      ข้อมูลทั่วไป',
+          'ส่วนที่ 2      รายละเอียดของสินค้า',
+          'ส่วนที่ 3      ข้อมูลเกี่ยวกับผู้ผลิตและ/หรือผู้ส่งออกและผู้นำเข้า',
+          'ส่วนที่ 4     มูลค่าปกติ',
+          'ส่วนที่ 5      ราคาส่งออก',
+          'ส่วนที่ 6      ส่วนเหลื่อมการทุ่มตลาด',
+          'ส่วนที่ 7      การอุดหนุน',
+          'ส่วนที่ 8      การประเมินความเสียหายของอุตสาหกรรมภายใน',
+          'เอกสารผนวก ก.กรณีเป็นการยื่นคำขอ โดยกระทำการแทนผู้ผลิตทั้งหมด',
+          'เอกสารผนวก ข.กรณีเป็นการยื่นคำขอ โดยกระทำการแทนผู้ผลิตบางส่วน',
+          'เอกสารผนวก ค. หนังสือมอบอำนาจ',
+        ],
+      },
+      { kind: 'item', text: 'วิธีการกรอกคำขอ' },
+      { kind: 'para', text: 'ก. ในกรณีที่ขอให้พิจารณาตอบโต้การทุ่มตลาด ให้กรอกข้อมูลในส่วนที่ 1 ถึงส่วนที่ 6 และส่วนที่ 8' },
+      { kind: 'para', text: 'ข. ในกรณีที่ขอให้พิจารณาตอบโต้การอุดหนุน ให้กรอกข้อมูลในส่วนที่ 1 ถึงส่วนที่ 3 ส่วนที่ 7 และส่วนที่ 8' },
+      { kind: 'para', text: 'ค. ในส่วนที่ 4 ถึงส่วนที่ 6 ให้ระบุสกุลเงินเป็นหน่วยเดียวกันพร้อมแสดงอัตราแลกเปลี่ยนและที่มาของข้อมูล สำหรับข้อมูลในส่วนที่ 8 ให้ระบุสกุลเงินเป็นบาท' },
+      { kind: 'para', text: 'ง. ให้ผู้ยื่นคำขอแสดงข้อมูลของอุตสาหกรรมและให้แยกข้อมูลเป็นรายผู้ผลิตด้วย' },
+      { kind: 'para', text: 'จ. ให้แนบสำเนางบการเงินของผู้ยื่นคำขอในปีปัจจุบันและย้อนหลัง 3 ปี ที่ได้รับการตรวจสอบแล้ว พร้อมกับรับรองสำเนาถูกต้องจำนวน 1 ชุด' },
+      { kind: 'para', text: 'ฉ. ข้อมูลข่าวสารใดที่ระบุว่าเป็นข้อมูลข่าวสารที่ต้องปกปิด ต้องเป็นไปตามมาตรา 26 แห่งพระราชบัญญัติการตอบโต้การทุ่มตลาดและการอุดหนุนซึ่งสินค้าจากต่างประเทศ พ.ศ. 2542 ให้ผู้ยื่นคำขอยื่นแบบคำขอฉบับที่ปกปิด 1 ชุด และฉบับที่เปิดเผยได้ 1 ชุด' },
+      { kind: 'para', text: 'ช. หากมีการร้องขอให้ดำเนินการไต่สวนผู้ส่งออกมากกว่า 1 ประเทศ ให้ระบุรายละเอียดข้อมูลพร้อมหลักฐานเป็นรายประเทศด้วย' },
+      { kind: 'para', text: 'ซ. หากผู้ยื่นคำขอไม่สามารถให้ข้อมูลตามที่ระบุในแบบคำขอ ขอให้แสดงเหตุผลด้วย' },
+      { kind: 'para', text: 'ฌ. ในการกรอกข้อมูล ขอให้ดูคำอธิบายรายละเอียดในแต่ละส่วนประกอบด้วย' },
+      { kind: 'para', text: 'ญ. ให้ผู้ยื่นคำขอหรือผู้รับมอบอำนาจลงนามกำกับเอกสารหลักฐานทุกหน้า' },
+    ];
+  }
+
+  private porWordPart11(): PorWordBlock[] {
+    return [
+      { kind: 'section', text: 'ส่วนที่ 1  ข้อมูลทั่วไป' },
+      {
+        kind: 'prompt',
+        text: 'ผู้ยื่นคำขอจะต้องเป็นผู้ผลิตสินค้าชนิดเดียวกันกับสินค้านำเข้าที่ผู้ยื่นคำขอกล่าวหาว่ามีการทุ่มตลาดหรือได้รับการอุดหนุน (ซึ่งต่อไปนี้เรียกว่า สินค้าที่ถูกพิจารณา)',
+      },
+      { kind: 'item', text: '1.1 ผู้ยื่นคำขอ' },
+      { kind: 'fill', label: 'ชื่อ/บริษัท/สมาคม', value: this.company },
+      { kind: 'fill', label: 'สัญชาติ', value: this.nationality },
+      { kind: 'fill', label: 'ที่อยู่', value: this.address },
+      { kind: 'fill', label: 'โทรศัพท์', value: this.phone },
+      { kind: 'fill', label: 'โทรสาร', value: this.fax || '—' },
+      { kind: 'fill', label: 'ไปรษณีย์อิเล็กทรอนิกส์', value: this.email || '—' },
+      { kind: 'fill', label: 'โดย (ผู้มีอำนาจกระทำการแทน/ผู้รับมอบอำนาจ)', value: this.agent || this.signerPrint },
+      { kind: 'fill', label: 'โทรศัพท์ผู้รับมอบอำนาจ', value: this.agentPhone || '—' },
+      { kind: 'fill', label: 'โทรสารผู้รับมอบอำนาจ', value: this.agentFax || '—' },
+      { kind: 'fill', label: 'ไปรษณีย์อิเล็กทรอนิกส์ผู้รับมอบอำนาจ', value: this.agentEmail || '—' },
+      {
+        kind: 'check',
+        on: this.filing === 'self',
+        label: 'ยื่นคำขอในนามของตนเอง',
+        detail: 'ให้แสดง (1) หนังสือรับรองบริษัท (2) งบการเงินที่ผู้สอบบัญชีรับอนุญาตรับรอง (3) รายการสินค้าที่ผลิตและ/หรือจำหน่าย',
+      },
+      {
+        kind: 'check',
+        on: this.filing === 'all',
+        label: 'ยื่นคำขอ โดยกระทำการแทนผู้ผลิตทั้งหมด',
+        detail: 'ระบุรายชื่อในเอกสารผนวก ก. และแนบหนังสือรับรอง งบการเงิน หนังสือมอบอำนาจ และรายการปริมาณสินค้าของผู้ผลิตทุกราย',
+      },
+      {
+        kind: 'check',
+        on: this.filing === 'part',
+        label: 'ยื่นคำขอ โดยกระทำการแทนผู้ผลิตบางส่วน',
+        detail: 'ระบุรายชื่อในเอกสารผนวก ข. ส่วนที่ 1 และส่วนที่ 2 พร้อมเอกสารประกอบ',
+      },
+      {
+        kind: 'para',
+        text: this.makers.length
+          ? `ผู้ผลิตที่มอบอำนาจให้ยื่นแทน\n${this.makers.map((row, i) => `${i + 1}) ${row.name}\n   ${row.address}\n   โทร. ${row.phone} · โทรสาร ${row.fax || '—'}`).join('\n')}`
+          : '',
+      },
+      { kind: 'fill', label: 'ผู้ผลิตที่มิได้ขอให้กระทำการแทน', value: this.outsideProducer || '—' },
+    ];
+  }
+
+  private porWordParty(section: string, item: string, key: string, limit = 0): PorWordBlock[] {
+    return [
+      { kind: 'section', text: section },
+      { kind: 'item', text: item },
+      { kind: 'para', text: this.partyLines(key, limit) },
+    ];
+  }
+
+  protected downloadBundleFile(file: { group: string; name: string; saved: string }): void {
+    const body = [
+      `เอกสารผนวกในแบบคำขอ`,
+      `เลขที่อ้างอิง ${filingRefId}`,
+      `กลุ่ม ${file.group}`,
+      `ชื่อไฟล์ ${file.name}`,
+      `วันที่ ${file.saved}`,
+      '',
+      'ไฟล์นี้เป็นส่วนหนึ่งของแบบคำขอ',
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([body], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name.includes('.') ? file.name : `${file.name}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** ชื่อไฟล์ตามตัวอย่าง AD1046 เช่น แบบคำขอ ปร.1 AD เวียดนาม อียิปต์_Sub1_15.05.20 1.pdf */
+  protected por1ExportPdfName(): string {
+    const round = this.bundleRoundNo || 1;
+    const on = this.filingBundleRound?.submittedOn || this.filedOn;
+    const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(on.trim());
+    let stamp = '15.05.62';
+    if (match) {
+      const year = Number(match[3]);
+      const yy = String(year > 2400 ? year - 2500 : year % 100).padStart(2, '0');
+      stamp = `${String(Number(match[1])).padStart(2, '0')}.${String(Number(match[2])).padStart(2, '0')}.${yy}`;
+    }
+    return `แบบคำขอ ปร.1 AD เวียดนาม อียิปต์_Sub${round}_${stamp} 1.pdf`;
+  }
+
+  /** Export PDF จัดเรียงตามแบบคำขอ ปร.1 ตัวอย่าง AD1046 Sub1 */
+  protected downloadFilingBundle(edition: 'original' | 'review' | 'amend' = this.bundleEdition): void {
+    const fileName = this.por1ExportPdfName();
+    const pdfEdition: 'original' | 'review' = edition === 'review' ? 'review' : 'original';
+    if (pdfEdition === 'original' && this.bundleRoundNo <= 1) {
+      void this.downloadAssetFile('assets/samples/ad1046/por1-ad-vn-eg-sub1.pdf', fileName);
+      return;
+    }
+    this.printPor1FormPdf(pdfEdition, fileName);
+  }
+
+  /** Export All — แบบคำขอ + หนังสือนำส่ง + ไฟล์แนบทั้งหมดในรอบนี้ */
+  protected exportAllFilingBundle(): void {
+    const letterName = this.letterFileName || 'หนังสือนำส่ง.pdf';
+    const letter = {
+      group: 'หนังสือนำส่ง',
+      name: letterName,
+      saved: this.letterDate || this.filedOn,
+    };
+    const annex = this.filingBundleAnnex.map((file) => ({
+      group: file.group,
+      name: file.name,
+      saved: file.saved,
+    }));
+    const files = [letter, ...annex];
+    this.downloadFilingBundle();
+    files.forEach((file, index) => {
+      window.setTimeout(() => this.downloadBundleFile(file), 350 * (index + 1));
+    });
+  }
+
+  private async downloadAssetFile(href: string, fileName: string): Promise<void> {
+    try {
+      const res = await fetch(href);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      this.printPor1FormPdf(this.bundleEdition === 'review' ? 'review' : 'original', fileName);
+    }
+  }
+
+  /** พิมพ์/บันทึกเป็น PDF — รูปแบบ Word ปร.1 + ข้อมูลที่กรอก */
+  private printPor1FormPdf(edition: 'original' | 'review', fileName: string): void {
+    const comments = edition === 'review' ? this.bundleComments.filter((item) => !item.resolved) : [];
+    const formPages = this.filingBundlePages.filter((page) => page.kind !== 'file');
+    const pages = formPages
+      .map((page) => {
+        const note = edition === 'review' ? (this.bundleReviewNotes[page.id] || '').trim() : '';
+        const pageComments = comments.filter((item) => item.target === page.id);
+        const commentHtml = pageComments.length
+          ? `<aside class="note"><strong>Comments</strong>${pageComments.map((item) => `<p><em>${this.escapeHtml(item.author)} · ${this.escapeHtml(item.at)}</em><br>${this.escapeHtml(item.text)}</p>`).join('')}</aside>`
+          : '';
+        const noteHtml = note
+          ? `<p class="note"><strong>บันทึกแก้ไขในฉบับตรวจ</strong><br>${this.escapeHtml(note).replaceAll('\n', '<br>')}</p>`
+          : '';
+        const body = this.porWordBlocks(page)
+          .map((block) => this.porWordBlockHtml(block))
+          .join('');
+        return `<section class="block">${body}${noteHtml}${commentHtml}</section>`;
+      })
+      .join('');
+    const stamp = edition === 'review' ? 'ฉบับตรวจ' : 'เอกสารฉบับปกปิด';
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(fileName)}</title><style>
+@page{size:A4;margin:16mm 14mm}
+body{margin:0;color:#0E2346;font-family:Thonburi,"Sarabun",sans-serif;font-size:14px;line-height:22px}
+.mark{margin:0 0 8px;font-size:12px;font-weight:700}.meta{margin:0 0 18px;font-size:12px;color:#52637A}
+.block{break-inside:avoid;margin:0 0 22px;padding-top:10px}
+.cover{margin:0 0 12px}.cover .code{margin:0 0 10px;font-size:16px;font-weight:700;text-align:right}
+.title-box{margin:0;padding:14px 18px;border:1px solid #0E2346;text-align:center}.title-box p{margin:0 0 2px;font-size:15px;font-weight:700;line-height:24px}
+.hint{margin:4px 0 8px}.measure-box{margin:4px 0 12px;padding:12px 14px;border:1px solid #0E2346}.measure-label{margin:0 0 8px;font-weight:700}.measure-box p{margin:0 0 4px}
+.toc{margin:8px 0 12px;padding:0;list-style:none}.toc li{margin:0;line-height:24px}
+.section{margin:14px 0 6px;font-size:16px;font-weight:700}.item{margin:8px 0 4px;font-size:15px;font-weight:700}
+.prompt,.hint,.detail{margin:0 0 6px;font-size:14px}.fill{display:grid;grid-template-columns:max-content 1fr;gap:4px 8px;margin:0 0 6px}
+.fill .value{border-bottom:1px dotted #0E2346;white-space:pre-wrap}
+.check{margin:2px 0 6px}.para{margin:0 0 4px;white-space:pre-wrap;text-align:justify}
+table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #0E2346;padding:6px 8px;vertical-align:top;text-align:left;white-space:pre-wrap}th{text-align:center;font-weight:700}
+.sign{margin:24px 0;text-align:center}.note{margin:10px 0 0;padding:10px 12px;border-left:3px solid #C9A227;background:#FFF8E8}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<p class="mark">${stamp}</p>
+<p class="meta">${this.escapeHtml(this.bundleRoundFolder)} · ${this.escapeHtml(fileName)} · ${filingRefId}</p>
+${pages}
+<script>
+window.onload=function(){
+  document.title=${JSON.stringify(fileName.replace(/\.pdf$/i, ''))};
+  window.focus();
+  window.print();
+};
+<\/script>
+</body></html>`;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  }
+
+  private porWordBlockHtml(block: PorWordBlock): string {
+    switch (block.kind) {
+      case 'head':
+        return `<header class="cover"><p class="code">${this.escapeHtml(block.title)}</p><div class="title-box">${block.lines.map((line) => `<p>${this.escapeHtml(line)}</p>`).join('')}</div></header>`;
+      case 'measure':
+        return `<div class="measure-box"><p class="measure-label">ระบุมาตรการที่ขอให้ดำเนินการพิจารณา</p><p>${block.ad ? '☑' : '☐'} ตอบโต้การทุ่มตลาด</p><p>${block.cvd ? '☑' : '☐'} ตอบโต้การอุดหนุน</p></div>`;
+      case 'toc':
+        return `<ul class="toc">${block.items.map((item) => `<li>${this.escapeHtml(item)}</li>`).join('')}</ul>`;
+      case 'hint':
+        return `<p class="hint">${this.escapeHtml(block.text)}</p>`;
+      case 'section':
+        return `<h2 class="section">${this.escapeHtml(block.text)}</h2>`;
+      case 'item':
+        return `<h3 class="item">${this.escapeHtml(block.text)}</h3>`;
+      case 'prompt':
+        return `<p class="prompt">${this.escapeHtml(block.text)}</p>`;
+      case 'fill':
+        return `<p class="fill"><span class="label">${this.escapeHtml(block.label)}</span><span class="value">${this.escapeHtml(block.value || '—').replaceAll('\n', '<br>')}</span></p>`;
+      case 'check':
+        return `<div class="check"><p>${block.on ? '☑' : '☐'} ${this.escapeHtml(block.label)}</p>${block.detail ? `<p class="detail">${this.escapeHtml(block.detail)}</p>` : ''}</div>`;
+      case 'para':
+        return block.text ? `<p class="para">${this.escapeHtml(block.text).replaceAll('\n', '<br>')}</p>` : '';
+      case 'table':
+        return `<table><thead><tr>${block.headers.map((col) => `<th>${this.escapeHtml(col)}</th>`).join('')}</tr></thead><tbody>${block.rows.map((row) => `<tr>${row.map((cell) => `<td>${this.escapeHtml(cell).replaceAll('\n', '<br>')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      case 'sign':
+        return `<div class="sign"><p>.............................................................</p><p>(${this.escapeHtml(block.name)})</p><p>${this.escapeHtml(block.role)}</p><p>วันที่ ${this.escapeHtml(block.date)}</p></div>`;
+      default:
+        return '';
+    }
+  }
+
+  private readBundleComments(): BundleComment[] {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(this.bundleCommentKey) || '[]') as BundleComment[];
+      return Array.isArray(value) ? value : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeBundleComments(rows: BundleComment[]): void {
+    if (!rows.length) sessionStorage.removeItem(this.bundleCommentKey);
+    else sessionStorage.setItem(this.bundleCommentKey, JSON.stringify(rows));
+  }
+
+  private readBundleReviewNotes(): Record<string, string> {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(this.bundleReviewKey) || '{}') as Record<string, string>;
+      return value && typeof value === 'object' ? value : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private writeBundleReviewNotes(notes: Record<string, string>): void {
+    const entries = Object.entries(notes).filter(([, value]) => value.trim());
+    if (!entries.length) sessionStorage.removeItem(this.bundleReviewKey);
+    else sessionStorage.setItem(this.bundleReviewKey, JSON.stringify(Object.fromEntries(entries)));
   }
 
   protected readonly preSamples = [
@@ -4435,6 +6693,10 @@ export class Por1Page {
     if (saved.inquiry) this.applyInquiry(saved.inquiry);
     this.docSent = saved.sent;
     this.docSentBy = saved.sentBy;
+    this.noticePipe = saved.pipe || (saved.sent ? 'sent' : 'draft');
+    this.noticePipeAt = saved.pipeAt || '';
+    this.noticeHeadBy = saved.headBy || '';
+    this.noticeOfficeRef = saved.officeRef || '';
     this.noticePasses = saved.passes.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null }));
     if (saved.reply) this.applyReply(saved.reply);
     else if (saved.action === 'complete') {
@@ -4563,7 +6825,7 @@ export class Por1Page {
       if (kind.includes('อังกฤษ')) return `${item.ref} ${item.goods}. Filed on ${item.created}.`;
       return `${base}\nจึงจัดทำ${kind}`;
     }
-    const base = `ตามคำขอเลขที่อ้างอิง ${this.refId} ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ยื่นเมื่อ 15/05/2562 และครบถ้วนถูกต้องเมื่อ 28/05/2562 ซึ่งอยู่ภายในกำหนด 4 เดือนที่ครบวันที่ 15/09/2562 ขอให้ไต่สวนการทุ่มตลาดเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากเวียดนามและอียิปต์ ผู้ยื่นและผู้ผลิตที่สนับสนุนมีปริมาณการผลิตรวมมากกว่าร้อยละ 25 ของสินค้าชนิดเดียวกันในประเทศ และมีหลักฐานเบื้องต้นเรื่องส่วนเหลื่อมการทุ่มตลาดและความเสียหายเพียงพอให้พิจารณาเปิดไต่สวน`;
+    const base = `ตามคำขอเลขที่อ้างอิง ${this.refId} ของบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ยื่นเมื่อ 15/05/2563 และครบถ้วนถูกต้องเมื่อ 28/07/2563 ซึ่งอยู่ภายในกำหนด 4 เดือนที่ครบวันที่ 15/09/2563 ขอให้ไต่สวนการทุ่มตลาดเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากเวียดนามและอียิปต์ ผู้ยื่นและผู้ผลิตที่สนับสนุนมีปริมาณการผลิตรวมมากกว่าร้อยละ 25 ของสินค้าชนิดเดียวกันในประเทศ และมีหลักฐานเบื้องต้นเรื่องส่วนเหลื่อมการทุ่มตลาดและความเสียหายเพียงพอให้พิจารณาเปิดไต่สวน`;
     if (measurePack.some((item) => item.kind === kind)) {
       if (kind.includes('56')) return `${base}\nทบทวนความจำเป็นในการใช้บังคับอากรตามมาตรา 56 เคสนี้ไม่มีเหตุให้ปรับอัตราหรือยุติ จึงใช้มาตรการเดิมต่อไป`;
       if (kind.includes('57')) return `${base}\nทบทวนก่อนครบกำหนดตามมาตรา 57 ตรวจว่าการทุ่มตลาดและความเสียหายอาจเกิดซ้ำหรือไม่`;
@@ -4591,9 +6853,9 @@ export class Por1Page {
       if (kind.includes('แถลงการณ์')) return `${base}\nผู้มีส่วนได้เสียขอจัดแถลงการณ์ผลขั้นต้นได้ภายใน 30 วันนับจากวันประกาศ`;
       return `${base}\nจึงจัดทำ${kind} สำหรับผลการไต่สวนขั้นต้น`;
     }
-    if (kind.includes('เอกสารแนบ')) return `${base}\nเอกสารแนบวาระ\n1. คำขอฉบับสมบูรณ์ ฉบับเปิดเผยและฉบับปกปิด\n2. ผลการตรวจสอบความครบถ้วนวันที่ 28/05/2562\n3. ผลการตรวจสอบสถานะอุตสาหกรรมภายใน\n4. หลักฐานเบื้องต้นเรื่องการทุ่มตลาดและความเสียหาย`;
+    if (kind.includes('เอกสารแนบ')) return `${base}\nเอกสารแนบวาระ\n1. คำขอฉบับสมบูรณ์ ฉบับเปิดเผยและฉบับปกปิด\n2. ผลการตรวจสอบความครบถ้วนวันที่ 28/07/2563\n3. ผลการตรวจสอบสถานะอุตสาหกรรมภายใน\n4. หลักฐานเบื้องต้นเรื่องการทุ่มตลาดและความเสียหาย`;
     if (kind.includes('เรียกเก็บอากร')) return `${base}\nจึงจัดทำประกาศเรียกเก็บหลักประกันอากรต่อไปตามมติคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน อัตราเป็นไปตามมติที่ประชุม`;
-    if (kind.includes('อังกฤษ')) return 'The Department of Foreign Trade has opened an anti-dumping investigation on hot-rolled steel in coils and not in coils originating in Vietnam and Egypt. Application REF256205150001 was filed on 15 May 2019 and found complete on 28 May 2019.';
+    if (kind.includes('อังกฤษ')) return 'The Department of Foreign Trade has opened an anti-dumping investigation on hot-rolled steel in coils and not in coils originating in Vietnam and Egypt. Application R6201 was filed on 15 May 2019 and found complete on 28 May 2019.';
     if (kind.includes('ข่าว')) return `${base} กรมการค้าต่างประเทศจึงเปิดไต่สวน และแจ้งผู้มีส่วนได้เสียให้ทราบ`;
     if (kind.includes('แถลงการณ์') || kind.includes('ผู้เข้าร่วม')) return `${base}\nผู้มีส่วนได้เสียขอจัดแถลงการณ์ได้ภายใน 30 วันนับจากวันประกาศ`;
     if (kind.includes('ตรวจ') || kind.includes('สล.') || kind.includes('ยินยอม') || kind.includes('เดินทาง') || kind.includes('รัฐบาล')) return `${base}\nตรวจอุตสาหกรรมในประเทศก่อนเพื่อจัดทำ Normal Value, Export Price และ Dumping Margin การตรวจต่างประเทศทำเมื่อบริษัทและรัฐบาลประเทศผู้ส่งออกยินยอม`;
@@ -4605,7 +6867,7 @@ export class Por1Page {
       'ระเบียบวาระที่ 3.3 การพิจารณาเปิดไต่สวนตอบโต้การทุ่มตลาด',
       'สินค้า เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากเวียดนามและอียิปต์',
       'ผู้ยื่นคำขอ บริษัท สหวิริยาสตีลอินดัสตรี จำกัด',
-      'วันที่ยื่นคำขอ 15/05/2562 วันที่คำขอครบถ้วน 28/05/2562 วันครบกำหนด 4 เดือน 15/09/2562',
+      'วันที่ยื่นคำขอ 15/05/2563 วันที่คำขอครบถ้วน 28/07/2563 วันครบกำหนด 4 เดือน 15/09/2563',
       'ข้อเสนอฝ่ายเลขานุการ เห็นควรเปิดไต่สวน',
     ].join('\n');
   }
@@ -4802,8 +7064,8 @@ export class Por1Page {
     { label: 'ผู้ยื่นคำขอ', value: 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด' },
     { label: 'สินค้า', value: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน' },
     { label: 'แหล่งกำเนิด', value: 'เวียดนาม และอียิปต์' },
-    { label: 'วันที่ยื่นคำขอ', value: '15/05/2562' },
-    { label: 'วันที่ครบถ้วน', value: '28/05/2562' },
+    { label: 'วันที่ยื่นคำขอ', value: '15/05/2563' },
+    { label: 'วันที่ครบถ้วน', value: '28/07/2563' },
     { label: 'ครบกำหนด 4 เดือน', value: '15/09/2562' },
     { label: 'ข้อกฎหมาย', value: 'พระราชบัญญัติการตอบโต้การทุ่มตลาดและการอุดหนุนซึ่งสินค้าจากต่างประเทศ พ.ศ. 2542 มาตรา 39', wide: true },
   ];
@@ -6180,8 +8442,7 @@ export class Por1Page {
     this.committeeSentBy = this.signedPerson || this.directorName;
     writeDocNotice(this.docPayload(true));
     if (this.committeeResult === 'take') {
-      writeCaseStatus('official');
-      this.caseStatus = 'official';
+      this.becomeOfficial();
       this.pickReviewTab('inquiry');
     }
     this.notice = 'saved';
@@ -6234,15 +8495,24 @@ export class Por1Page {
       passes: this.noticePasses.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null })),
       sent,
       sentBy: sent ? (this.signedPerson || this.directorName) : this.docSentBy,
+      pipe: sent ? ('sent' as NoticePipe) : this.noticePipe,
+      pipeAt: this.noticePipeAt,
+      headBy: this.noticeHeadBy,
+      officeRef: this.noticeOfficeRef,
     };
   }
 
   protected saveDocs(send: boolean): void {
-    if (send ? !this.docCanSend : this.docSent || !this.canReviewDocs) return;
+    if (send) {
+      if (this.noticePipe !== 'signed' && this.noticePipe !== 'sent') return;
+    } else if (this.docSent || !this.canReviewDocs) {
+      return;
+    }
     if (!send && this.noticeLetter.every((item) => item.value.trim())) this.placeNoticeFile();
     if (send) {
       this.replySent = false;
       this.issueNotice();
+      this.noticePipe = 'sent';
     }
     const payload = this.docPayload(send);
     writeDocNotice(payload);
@@ -6251,6 +8521,11 @@ export class Por1Page {
     if (send && this.docAction === 'amend') {
       writeCaseStatus('revision');
       this.caseStatus = 'revision';
+    }
+    if (send && this.docAction === 'complete') this.becomeOfficial();
+    if (send && this.docAction === 'late') {
+      writeCaseStatus('official');
+      this.caseStatus = 'official';
     }
     this.notice = send ? 'docs' : 'saved';
     if (send) {
@@ -6326,6 +8601,11 @@ export class Por1Page {
     this.noticePasses = [...this.noticePasses, this.passNow()];
     this.replySent = false;
     this.docSent = false;
+    this.noticePipe = 'draft';
+    this.noticePipeAt = '';
+    this.noticeHeadBy = '';
+    this.noticeOfficeRef = '';
+    this.noticeSaraban = '';
     this.docAction = 'amend';
     this.docNoticedOn = this.thaiToday();
     this.docDueOn = this.thaiShift(14);
@@ -6350,8 +8630,7 @@ export class Por1Page {
     this.docSent = true;
     this.docSentBy = this.signedPerson || this.directorName;
     writeDocNotice(this.docPayload(true));
-    writeCaseStatus('official');
-    this.caseStatus = 'official';
+    this.becomeOfficial();
     this.reviewTab = 'docs';
     this.docPart = this.workDocs.length + 1;
     this.seedCommitteePack();
@@ -6779,11 +9058,11 @@ export class Por1Page {
   }
 
   private defaultConsultOrder(): string {
-    return 'ให้กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD) พิจารณาขอปรึกษาการแก้ไขคำขอ เลขที่อ้างอิง REF256205150001 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ แล้วแจ้งผลการปรึกษากลับภายในวันกำหนดส่ง';
+    return 'ให้กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD) พิจารณาขอปรึกษาการแก้ไขคำขอ เลขที่อ้างอิง R6201 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ แล้วแจ้งผลการปรึกษากลับภายในวันกำหนดส่ง';
   }
 
   private defaultResultDetail(): string {
-    return 'ตรวจสอบคำขอปรึกษาการแก้ไขคำขอเลขที่อ้างอิง REF256205150001 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์แล้ว เอกสารที่ผู้ยื่นปรึกษามาสามารถแก้ไขในแบบคำขอได้ เห็นควรแจ้งผู้ยื่นให้แก้ไขภายในกำหนด 4 เดือน';
+    return 'ตรวจสอบคำขอปรึกษาการแก้ไขคำขอเลขที่อ้างอิง R6201 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์แล้ว เอกสารที่ผู้ยื่นปรึกษามาสามารถแก้ไขในแบบคำขอได้ เห็นควรแจ้งผู้ยื่นให้แก้ไขภายในกำหนด 4 เดือน';
   }
 
   private thaiToday(): string {
@@ -6798,17 +9077,43 @@ export class Por1Page {
 
   private useClickDate(stamp = ''): void {
     if (this.returnCase) return;
+    // โหมดเจ้าหน้าที่คงวันที่ยื่นแบบตาม Prototype ไม่ดึงวันปัจจุบัน
+    if (this.reviewRole && !stamp) {
+      this.syncAmendClock(readOfficialOn() || firstFiledOn, false);
+      return;
+    }
     const saved = sessionStorage.getItem('dft-por1-action-on') || '';
-    const day = (stamp || saved || this.thaiToday()).split(' ')[0];
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(day)) return;
-    this.filedOn = day;
-    this.amendUntil = addThaiMonths(day, 4);
+    const day = (stamp || saved || '').split(' ')[0];
+    if (!day || !/^\d{2}\/\d{2}\/\d{4}$/.test(day)) return;
     if (stamp || !saved) sessionStorage.setItem('dft-por1-action-on', day);
-    if (this.consult?.at?.startsWith('15/05/2562')) {
+    if (this.caseStatus === 'official' || readOfficialOn()) this.syncAmendClock(readOfficialOn() || day, false);
+    else {
+      this.filedOn = day;
+      this.amendUntil = addThaiMonths(day, 4);
+    }
+    if (this.consult?.at?.startsWith('15/05/2563')) {
       const clock = stamp || this.replyStamp();
       this.consult = { ...this.consult, at: clock };
       writeConsult(this.consult);
     }
+  }
+
+  /** ตั้งวันที่ยื่นแบบทางการแล้วคำนวณครบ 4 เดือนจากวันนั้น */
+  private syncAmendClock(officialOn: string, persist = true): void {
+    const day = (officialOn || firstFiledOn).split(' ')[0];
+    if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day)) return;
+    this.officialOn = day;
+    if (!this.filedOn || this.filedOn === firstFiledOn) this.filedOn = day;
+    this.amendUntil = addThaiMonths(day, 4);
+    if (persist) writeOfficialOn(day);
+  }
+
+  /** เปลี่ยนเป็นสถานะยื่นแบบ และเริ่มนับกำหนด 4 เดือน */
+  private becomeOfficial(on = ''): void {
+    const day = (on || this.replyStamp() || this.thaiToday() || firstFiledOn).split(' ')[0];
+    writeCaseStatus('official');
+    this.caseStatus = 'official';
+    this.syncAmendClock(day);
   }
 
   protected get caseClock(): { tone: 'info' | 'warning' | 'danger'; label: string; text: string } | null {
@@ -6825,6 +9130,9 @@ export class Por1Page {
       const extra = this.dueClock(this.docDueOn, 'ส่งข้อมูลเพิ่ม', 'หากเกินกำหนดต้องทำเรื่องขอขยายเวลา');
       if (extra?.tone === 'danger') return extra;
     }
+    // นาฬิกา 4 เดือนเริ่มเมื่อมีสถานะยื่นแบบทางการ
+    if (this.caseStatus !== 'official' && !readOfficialOn() && !this.reviewRole) return null;
+    if (this.caseStatus !== 'official' && this.reviewRole && !readOfficialOn() && this.caseStatus !== 'approval') return null;
     const left = this.daysUntil(this.amendUntil);
     if (left < 0) return { tone: 'danger', label: 'ถึงกำหนดแล้ว', text: `อยู่ในกระบวนการขอพิจารณา ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil} ต้องทำเรื่องขอขยายเวลา` };
     return { tone: left <= 30 ? 'warning' : 'info', label: `เหลือ ${left} วัน`, text: `อยู่ในกระบวนการขอพิจารณา ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil} หากเกินต้องทำเรื่องขอขยายเวลา` };
@@ -6837,13 +9145,26 @@ export class Por1Page {
     return { tone: left <= 7 ? 'warning' : 'info', label: `เหลือ ${left} วัน`, text: `ครบกำหนด${work}เมื่อ ${due}` };
   }
 
-  private daysUntil(value: string): number {
+  /** วันอ้างอิงของนาฬิกาเคส — โหมด Prototype/เจ้าหน้าที่ใช้นับจากวันที่ยื่นแบบ */
+  private clockToday(): string {
+    const saved = (sessionStorage.getItem('dft-por1-action-on') || '').split(' ')[0];
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(saved)) return saved;
+    if (this.reviewRole) return this.officialOn || this.filedOn || firstFiledOn;
+    return this.thaiToday();
+  }
+
+  private parseThaiDay(value: string): Date | null {
     const [day, month, year] = value.split('/').map(Number);
-    if (!day || !month || !year) return 0;
-    const due = new Date(year - 543, month - 1, day);
-    const today = new Date();
-    due.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
+    if (!day || !month || !year) return null;
+    const date = new Date(year - 543, month - 1, day);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  private daysUntil(value: string): number {
+    const due = this.parseThaiDay(value);
+    const today = this.parseThaiDay(this.clockToday());
+    if (!due || !today) return 0;
     return Math.round((due.getTime() - today.getTime()) / 86400000);
   }
 
@@ -6862,8 +9183,10 @@ export class Por1Page {
     this.formRef = item.ref;
     if (item.filer) {
       this.refId = item.ref;
+      writeActiveFilingRef(this.refId);
       this.filedOn = item.created || this.filedOn;
-      this.amendUntil = addThaiMonths(this.filedOn, 4);
+      if (this.caseStatus === 'official') this.syncAmendClock(readOfficialOn() || this.filedOn);
+      else this.amendUntil = addThaiMonths(this.filedOn, 4);
       this.filing = 'self';
     }
     this.company = item.applicant || this.company;
@@ -6957,26 +9280,48 @@ export class Por1Page {
   }
 
   private formAnswers(): { group: string; label: string; value: string }[] {
+    const marginText = this.marginCountries
+      .map((row) => `${row.name}: มูลค่าปกติ ${row.normal} · ส่งออก ${row.exportPrice} · ส่วนเหลื่อม ${row.margin} (${row.rate}%)`)
+      .join('\n');
     const rows = [
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ชื่อ', value: this.company },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'สัญชาติ', value: this.nationality },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ที่อยู่', value: this.address },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'โทรศัพท์', value: this.phone },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'โทรสาร', value: this.fax },
+      { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ประเภทการยื่น', value: 'ยื่นแทนผู้ผลิตบางส่วนในอุตสาหกรรมภายใน' },
+      { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ความเกี่ยวข้องกับผู้นำเข้าหรือผู้ส่งออก', value: this.relatedImport || 'ไม่มี' },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ที่', value: this.letterNo },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'วันที่หนังสือ', value: this.letterDate },
       { group: 'ส่วนที่ 1 ผู้ยื่นคำขอ', label: 'ผู้ลงนาม', value: this.signer },
       { group: 'ส่วนที่ 2 สินค้า', label: 'รายละเอียดสินค้า', value: this.goodsDetail },
       { group: 'ส่วนที่ 2 สินค้า', label: 'ช่องทางการจำหน่าย', value: this.channelDetail },
+      ...this.goodsCompare.map((row) => ({
+        group: 'ส่วนที่ 2 สินค้า',
+        label: row.item,
+        value: `สินค้าที่ถูกพิจารณา: ${row.subject}\nสินค้าชนิดเดียวกัน: ${row.like}`,
+      })),
+      {
+        group: 'ส่วนที่ 2 สินค้า',
+        label: 'เอกสารแนบประกอบส่วนที่ 2',
+        value: this.docs.map((file) => file.name).join('\n'),
+      },
+      { group: 'ส่วนที่ 3 ผู้ผลิต ผู้ส่งออก ผู้นำเข้า', label: 'ผู้ผลิตต่างประเทศ', value: 'Formosa Ha Tinh Steel Corporation (เวียดนาม); Ezz El Dekheila Steel Company (อียิปต์)' },
+      { group: 'ส่วนที่ 3 ผู้ผลิต ผู้ส่งออก ผู้นำเข้า', label: 'ผู้ส่งออกแยกต่างหาก', value: 'ไม่มี' },
+      { group: 'ส่วนที่ 4 มูลค่าปกติ', label: 'วิธีคำนวณ', value: this.factoryNote },
+      { group: 'ส่วนที่ 5 ราคาส่งออก', label: 'ราคาส่งออก', value: this.exportDetail },
+      { group: 'ส่วนที่ 6 ส่วนเหลื่อมการทุ่มตลาด', label: 'ตารางส่วนเหลื่อม', value: marginText },
+      { group: 'ส่วนที่ 7 การอุดหนุน', label: 'ข้อมูลการอุดหนุน', value: this.explainDetail },
+      { group: 'ส่วนที่ 8 ความเสียหาย', label: 'ปริมาณนำเข้า', value: this.notes['importDetail'] },
+      { group: 'ส่วนที่ 8 ความเสียหาย', label: 'สรุปความเสียหาย', value: this.notes['summaryDetail'] },
       { group: 'มาตรการ', label: 'มาตรการ', value: this.measureName },
     ];
     return rows.filter((row) => row.value.trim());
   }
 
-  /** แบบที่ยื่นมาในคำขอเดียวกัน มีได้มากกว่าหนึ่งแบบ */
+  /** แบบในเล่มยื่นนี้ — เคสตัวอย่าง AD1046 ใช้แบบ ปร. 1 */
   protected readonly caseForms: { code: string; measure: string }[] = [
     { code: 'ปร. 1', measure: 'มาตรการ AD' },
-    { code: 'ปร. 2', measure: 'มาตรการ AD' },
   ];
 
   protected get caseMeasures(): string[] {
@@ -7002,6 +9347,12 @@ export class Por1Page {
     if (!this.reviewRole && this.docSent && this.docAction === 'late') return 'ไม่ครบภายใน 4 เดือน';
     if (!this.reviewRole && this.docSent && this.docAction === 'amend' && this.replySent) return 'ส่งข้อมูลเพิ่มแล้ว';
     if (!this.reviewRole && this.docSent && this.docAction === 'amend') return 'ขอข้อมูลเพิ่ม';
+    // ยื่นแบบ/รออนุมัติแล้ว ไม่ให้ผลตรวจเก่าทับเป็น "ให้แก้ไข"
+    if (this.caseStatus === 'official') {
+      if (this.awaitingOfficialFiling) return 'รอผู้ยื่นยื่นแบบทางการ';
+      return caseStatusLabel(this.caseStatus);
+    }
+    if (this.caseStatus === 'approval') return caseStatusLabel(this.caseStatus);
     if (this.checkReturned) return 'ให้แก้ไข';
     if (this.screenChecking || this.waitingReceipt) return 'ตรวจสอบคำขอ';
     return caseStatusLabel(this.caseStatus);
@@ -7017,33 +9368,23 @@ export class Por1Page {
     if (!this.reviewRole && this.docSent && this.docAction === 'late') return 'danger' as const;
     if (!this.reviewRole && this.docSent && this.docAction === 'amend' && !this.replySent) return 'warning' as const;
     if (!this.reviewRole && this.docSent && this.docAction === 'amend') return 'info' as const;
+    if (this.caseStatus === 'official') return this.awaitingOfficialFiling ? 'warning' as const : caseStatusTone(this.caseStatus);
+    if (this.caseStatus === 'approval') return caseStatusTone(this.caseStatus);
     if (this.checkReturned) return 'warning' as const;
     return caseStatusTone(this.caseStatus);
   }
 
   private captureRound(round: number): FilingRound {
-    const packs: [string, { name: string; saved: string }[]][] = [
-      ['เอกสารประกอบสินค้า', this.docs],
-      ['ราคาส่งออก', this.exportDocs],
-      ['ส่วนเหลื่อมการทุ่มตลาด', this.marginDocs],
-      ['การนำเข้า', this.sheets.import],
-      ['ปัจจัยอื่น', this.sheets.factor],
-      ['สรุปความเสียหาย', this.sheets.summary],
-      ['ปริมาณการนำเข้า', this.sheets.trend],
-      ['อุปสรรคอุตสาหกรรม', this.sheets.intent],
-      ['เอกสารอื่น', this.otherDocs],
-      ['ลายเซ็น', [{ name: this.signatureName, saved: this.signedOn }]],
-    ];
-    if (this.sealName) packs.push(['ตราประทับบริษัท', [{ name: this.sealName, saved: this.letterDate }]]);
-    if (this.letterFileName) packs.push(['หนังสือนำส่งฉบับจริง', [{ name: this.letterFileName, saved: this.letterDate }]]);
+    const submittedOn = round <= 1 ? (this.filedOn || this.thaiToday()) : (this.thaiToday() || this.filedOn);
     return {
       round,
-      submittedOn: this.filedOn,
+      submittedOn,
+      folder: this.roundFolderName(round, submittedOn),
       state: 'review',
       company: this.company,
       measure: this.measureName,
       signer: this.signer,
-      files: packs.flatMap(([group, files]) => files.map((file) => ({ group, name: file.name, saved: file.saved }))),
+      files: this.realFilingAnnex(),
       findings: [],
       answers: this.formAnswers(),
     };
@@ -7572,16 +9913,16 @@ export class Por1Page {
   private sampleTalk(): ConsultNote[] {
     const unit = filingUnit;
     return [
-      { from: 'applicant', text: 'ขอพบเพื่อชี้แจงหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น', at: '15/05/2562 10:05' },
-      { from: 'officer', text: `รับเรื่องแล้ว ${unit} จะนัดตามเวลาที่สะดวก`, at: '15/05/2562 10:18' },
-      { from: 'applicant', text: 'สะดวกวันที่ 16 พฤษภาคม 2562 เวลา 10:00 น.', at: '15/05/2562 10:22' },
-      { from: 'officer', text: 'รับทราบ จะนัดที่กรมการค้าต่างประเทศ ห้องประชุมของหน่วยงานผู้รับผิดชอบ', at: '15/05/2562 10:40' },
-      { from: 'applicant', text: 'ขอส่งตารางเปรียบเทียบราคาเพิ่มในวันนัดได้หรือไม่', at: '15/05/2562 11:05' },
-      { from: 'officer', text: 'ได้ นำมาในวันนัด หรือแนบในช่องนี้ก่อนเวลานัด', at: '15/05/2562 11:20' },
-      { from: 'applicant', text: 'แนบตารางเปรียบเทียบราคาช่วงที่ขอให้ไต่สวน', at: '15/05/2562 14:10', files: [{ name: 'ตารางเปรียบเทียบราคา.pdf' }] },
-      { from: 'officer', text: 'ได้รับไฟล์แล้ว จะตรวจความครบของช่วงเวลาก่อนวันนัด', at: '15/05/2562 14:32' },
-      { from: 'applicant', text: 'ช่วงที่ยังขาดคือปลายปี 2561 ถึงต้นปี 2562', at: '15/05/2562 16:00' },
-      { from: 'officer', text: 'ช่วยเพิ่มหลักฐานช่วงนั้น และตัวเลขปริมาณนำเข้าที่เชื่อมกับความเสียหาย', at: '15/05/2562 16:15' },
+      { from: 'applicant', text: 'ขอพบเพื่อชี้แจงหลักฐานราคา ตัวชี้วัดความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น', at: '15/05/2563 10:05' },
+      { from: 'officer', text: `รับเรื่องแล้ว ${unit} จะนัดตามเวลาที่สะดวก`, at: '15/05/2563 10:18' },
+      { from: 'applicant', text: 'สะดวกวันที่ 16 พฤษภาคม 2562 เวลา 10:00 น.', at: '15/05/2563 10:22' },
+      { from: 'officer', text: 'รับทราบ จะนัดที่กรมการค้าต่างประเทศ ห้องประชุมของหน่วยงานผู้รับผิดชอบ', at: '15/05/2563 10:40' },
+      { from: 'applicant', text: 'ขอส่งตารางเปรียบเทียบราคาเพิ่มในวันนัดได้หรือไม่', at: '15/05/2563 11:05' },
+      { from: 'officer', text: 'ได้ นำมาในวันนัด หรือแนบในช่องนี้ก่อนเวลานัด', at: '15/05/2563 11:20' },
+      { from: 'applicant', text: 'แนบตารางเปรียบเทียบราคาช่วงที่ขอให้ไต่สวน', at: '15/05/2563 14:10', files: [{ name: 'ตารางเปรียบเทียบราคา.pdf' }] },
+      { from: 'officer', text: 'ได้รับไฟล์แล้ว จะตรวจความครบของช่วงเวลาก่อนวันนัด', at: '15/05/2563 14:32' },
+      { from: 'applicant', text: 'ช่วงที่ยังขาดคือปลายปี 2561 ถึงต้นปี 2562', at: '15/05/2563 16:00' },
+      { from: 'officer', text: 'ช่วยเพิ่มหลักฐานช่วงนั้น และตัวเลขปริมาณนำเข้าที่เชื่อมกับความเสียหาย', at: '15/05/2563 16:15' },
       { from: 'officer', text: 'วันนี้พบกันเวลา 10:00 น. ตามที่นัดไว้', at: '16/05/2562 09:10' },
       { from: 'applicant', text: 'รับทราบ จะนำรายชื่อผู้ผลิตที่ร่วมยื่นไปด้วย', at: '16/05/2562 09:20' },
       { from: 'officer', text: 'เริ่มการปรึกษาแล้ว ขอให้ชี้แจงหลักฐานราคาที่ไม่ครอบคลุมช่วงเวลา', at: '16/05/2562 10:05' },
@@ -7679,8 +10020,8 @@ export class Por1Page {
     this.filingGate = null;
     writeApprovalUntil(0);
     window.clearInterval(this.approvalTimer);
-    writeCaseStatus('official');
-    this.caseStatus = 'official';
+    writeFlowFile(null);
+    this.becomeOfficial();
     sessionStorage.setItem('dft-por1-await-official', '0');
     sessionStorage.removeItem('dft-por1-consult-closed');
     sessionStorage.removeItem(this.consultJobKey);
@@ -7759,6 +10100,7 @@ export class Por1Page {
     this.revising = false;
     this.viewingForm = false;
     this.openedRound = null;
+    writeFlowFile(null);
     if (needsApproval) {
       const gate: FilingGate = { state: 'pending', at: this.replyStamp(), owners };
       writeFilingGate(gate);
@@ -7777,8 +10119,7 @@ export class Por1Page {
     } else {
       writeFilingGate(null);
       this.filingGate = null;
-      writeCaseStatus('official');
-      this.caseStatus = 'official';
+      this.becomeOfficial();
     }
     this.publishGuide();
   }
@@ -8337,6 +10678,11 @@ export class Por1Page {
   }
 
   private calmLiveFiling(): void {
+    this.refId = filingRefId;
+    writeActiveFilingRef(this.refId);
+    if (this.caseStatus === 'official' || !readOfficialOn()) {
+      this.syncAmendClock(readOfficialOn() || firstFiledOn);
+    }
     const early = this.caseStatus === 'draft' || this.caseStatus === 'review' || this.caseStatus === 'revision' || this.caseStatus === 'consult' || this.caseStatus === 'approval' || this.caseStatus === 'official';
     if (!early || this.consultJobs.length) return;
     this.docSent = false;
@@ -8456,7 +10802,8 @@ export class Por1Page {
 
   private presentStaffCase(item: ListedCase): void {
     this.sampleCase = item;
-    this.refId = item.ref;
+    this.refId = item.ref || filingRefId;
+    writeActiveFilingRef(this.refId);
     this.returnCase = caseKey(item);
     this.applyCaseForm();
     for (const form of this.caseForms) form.measure = this.staffMeasureLabel(item);
@@ -8568,6 +10915,10 @@ export class Por1Page {
       writeCaseStatus('revision');
       this.caseStatus = 'revision';
     }
+    // ยื่นแบบแล้วแต่ผลตรวจเก่ายังค้าง → ล้างให้แท็กตรงกับสถานะคำขอ
+    if ((this.caseStatus === 'official' || this.caseStatus === 'approval') && readFlowFile()?.state === 'fix') {
+      writeFlowFile(null);
+    }
     this.filingGate = readFilingGate();
     this.needConsultAfterReject = sessionStorage.getItem(this.needConsultKey) === '1';
     this.caseNotes = readCaseNotes();
@@ -8580,6 +10931,17 @@ export class Por1Page {
     this.loadMadeDocs();
     this.seedCommitteePack();
     this.rounds = readRounds();
+    if (this.reviewRole) {
+      this.ensureRoundFolders();
+    } else if (this.rounds.length) {
+      let folderFixed = false;
+      this.rounds = this.rounds.map((round) => {
+        if (round.folder) return round;
+        folderFixed = true;
+        return { ...round, folder: this.roundFolderName(round.round, round.submittedOn) };
+      });
+      if (folderFixed) writeRounds(this.rounds);
+    }
     this.consultRounds = readConsultRounds();
     this.consult = readConsult() || this.openConsultRound?.request || this.consultRounds.at(-1)?.request || null;
     this.consultRoundId = this.openConsultRound?.id || this.consultRounds.at(-1)?.id || '';
@@ -8615,13 +10977,11 @@ export class Por1Page {
       this.seedResultDraft();
     }
     if (this.caseStatus === 'approval' && !this.consult) {
-      writeCaseStatus('official');
-      this.caseStatus = 'official';
+      this.becomeOfficial(readOfficialOn() || firstFiledOn);
     }
     if (this.reviewRole) this.ensureLinks();
     if (this.caseStatus === 'review' && this.rounds.length === 0) {
-      this.rounds = [this.captureRound(1)];
-      writeRounds(this.rounds);
+      this.ensureRoundFolders();
     }
     if (this.caseStatus === 'review' && !readFlowFile()) this.armReview();
     this.keepOfficialWait();
@@ -8729,8 +11089,7 @@ export class Por1Page {
     this.approvalTimer = 0;
     writeApprovalUntil(0);
     if (this.caseStatus !== 'approval') return;
-    writeCaseStatus('official');
-    this.caseStatus = 'official';
+    this.becomeOfficial();
     this.publishGuide();
     this.view.markForCheck();
   }

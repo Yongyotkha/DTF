@@ -1,5 +1,6 @@
 import { secondApplicant } from '../../accounts';
 import { StatusTone } from '../../status-tag/status-tag';
+import { ensureFilingRefSeqAtLeast, parseFilingRefSeq } from './case-status';
 
 export type RequestStep = {
   name: string;
@@ -77,7 +78,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1039',
     code: 'AD1039',
-    ref: 'REF256902060001',
+    ref: 'R6202',
     goods: 'หลอดหรือท่อทำด้วยเหล็ก จากเวียดนาม',
     countries: ['เวียดนาม'],
     kind: 'แบบ ปร.1',
@@ -94,7 +95,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1024',
     code: 'AD1024',
-    ref: 'REF256708010001',
+    ref: 'R6203',
     goods: 'เหล็กกล้าไร้สนิมรีดเย็น',
     countries: ['จีน'],
     kind: 'คำขอหลบเลี่ยงมาตรการ',
@@ -111,7 +112,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1054',
     code: 'AD1054',
-    ref: 'REF256205150001',
+    ref: 'R6204',
     goods: 'พอลิเอทิลีนเทเรฟทาเลต (PET) จากจีน',
     countries: ['จีน'],
     kind: 'แบบ ปร.1',
@@ -128,7 +129,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1005',
     code: 'AD1005',
-    ref: 'REF256902060002',
+    ref: 'R6205',
     goods: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน',
     countries: ['ญี่ปุ่น', 'แอฟริกาใต้', 'รัสเซีย'],
     kind: 'ทบทวนมาตรการ ครั้งที่ 4',
@@ -147,7 +148,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1020',
     code: 'AD1020',
-    ref: 'REF256608100001',
+    ref: 'R6206',
     goods: 'เหล็กแผ่นรีดร้อนเจือโบรอน',
     countries: ['จีน'],
     kind: 'แบบ ปร.1',
@@ -164,7 +165,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1004',
     code: 'AD1004',
-    ref: 'REF256903090001',
+    ref: 'R6207',
     goods: 'เหล็กกล้าไร้สนิมรีดเย็น จากญี่ปุ่น เกาหลี และไต้หวัน',
     countries: ['ญี่ปุ่น', 'เกาหลี', 'ไต้หวัน'],
     kind: 'ทบทวนมาตรการ',
@@ -181,7 +182,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ac1001',
     code: 'AC1001',
-    ref: 'REF256605290001',
+    ref: 'R6208',
     goods: 'เหล็กแผ่นรีดร้อนเจือ การหลบเลี่ยงจากจีน',
     countries: ['จีน'],
     kind: 'คำขอหลบเลี่ยงมาตรการ',
@@ -244,7 +245,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ac1002',
     code: 'AC1002',
-    ref: 'REF256710210001',
+    ref: 'R6209',
     goods: 'หลอดหรือท่อทำด้วยเหล็ก การหลบเลี่ยงจากจีน',
     countries: ['จีน'],
     kind: 'คำขอหลบเลี่ยงมาตรการ',
@@ -273,7 +274,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'sg1006',
     code: 'SG1006',
-    ref: 'REF256306020001',
+    ref: 'R6210',
     goods: 'ฟอยล์อะลูมิเนียม',
     countries: ['ทุกแหล่งกำเนิด'],
     kind: 'มาตรการปกป้อง',
@@ -302,7 +303,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'sg1003',
     code: 'SG1003',
-    ref: 'REF256107030001',
+    ref: 'R6211',
     goods: 'เหล็กแผ่นรีดร้อนเจืออื่น ทบทวนครั้งที่ 2',
     countries: ['ทุกแหล่งกำเนิด'],
     kind: 'ทบทวนมาตรการปกป้อง',
@@ -332,7 +333,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'sg1008',
     code: 'SG1008',
-    ref: 'REF256803010001',
+    ref: 'R6212',
     goods: 'สินค้าพอลิโพรพิลีน (PP)',
     countries: [],
     kind: 'มาตรการปกป้อง',
@@ -349,7 +350,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1022-56',
     code: 'AD1022',
-    ref: 'REF256803240001',
+    ref: 'R6213',
     goods: 'เหล็กเคลือบสังกะสีผสมอะลูมิเนียม (GL) จากจีนและเกาหลี',
     countries: ['จีน', 'เกาหลี'],
     kind: 'ทบทวนมาตรา 56',
@@ -381,7 +382,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1019-57',
     code: 'AD1019',
-    ref: 'REF256607240001',
+    ref: 'R6214',
     goods: 'ยางในชนิดที่ใช้กับรถจักรยานยนต์ จากจีน',
     countries: ['จีน'],
     kind: 'ทบทวนมาตรา 57',
@@ -430,7 +431,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad102257',
     code: 'AD1022',
-    ref: 'REF256609110001',
+    ref: 'R6215',
     goods: 'เหล็กแผ่นรีดเย็นชุบหรือเคลือบด้วยโลหะเจือของอะลูมิเนียมและสังกะสีแบบจุ่มร้อน จากจีน เกาหลี และไต้หวัน',
     countries: ['จีน', 'เกาหลี', 'ไต้หวัน'],
     kind: 'ทบทวนมาตรา 57',
@@ -483,7 +484,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'ad1042',
     code: 'AD1042',
-    ref: 'REF256207100001',
+    ref: 'R6216',
     goods: 'เหล็กแผ่นรีดเย็นชุบหรือเคลือบด้วยโลหะเจือของอะลูมิเนียมและสังกะสีแบบจุ่มร้อนแล้วทาสี (PPGL) จากจีนและเกาหลี',
     countries: ['จีน', 'เกาหลี'],
     kind: 'แบบ ปร.1',
@@ -519,7 +520,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'sg1004',
     code: 'SG1004',
-    ref: 'REF256206270001',
+    ref: 'R6217',
     goods: 'เหล็กแผ่นรีดร้อนไม่เจือ ทบทวนมาตรการปกป้องครั้งที่ 2',
     countries: ['ทุกแหล่งกำเนิด'],
     kind: 'ทบทวนมาตรการปกป้อง',
@@ -551,7 +552,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'sspi2565',
     code: '—',
-    ref: 'REF256503310001',
+    ref: 'R6218',
     goods: 'หลอดและท่อทำด้วยเหล็กกล้าไม่เป็นสนิม จากมาเลเซีย',
     countries: ['มาเลเซีย'],
     kind: 'แบบ ปร.1',
@@ -584,7 +585,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'hrae',
     code: '—',
-    ref: 'REF256005020001',
+    ref: 'R6219',
     goods: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากออสเตรเลีย อียิปต์ และซาอุดีอาระเบีย',
     countries: ['ออสเตรเลีย', 'อียิปต์', 'ซาอุดีอาระเบีย'],
     kind: 'แบบ ปร.1',
@@ -624,7 +625,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'hr3c',
     code: '—',
-    ref: 'REF255805220001',
+    ref: 'R6220',
     goods: 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน จากบราซิล อิหร่าน และตุรกี',
     countries: ['บราซิล', 'อิหร่าน', 'ตุรกี'],
     kind: 'แบบ ปร.1',
@@ -657,7 +658,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'lcwr',
     code: '—',
-    ref: 'REF255707250001',
+    ref: 'R6221',
     goods: 'เหล็กลวดคาร์บอนต่ำ เหล็กลวดสำหรับงานย้ำหัวและงานทุบขึ้นรูปเย็น จากจีน',
     countries: ['จีน'],
     kind: 'แบบ ปร.1',
@@ -692,7 +693,7 @@ export const archiveCases: ListedCase[] = [
   {
     id: 'lcwr0',
     code: '—',
-    ref: 'REF255909060001',
+    ref: 'R6222',
     goods: 'เหล็กลวดคาร์บอนต่ำจากจีน ทบทวนการเรียกเก็บอากรร้อยละ 0 พิกัด 7227.9000.090',
     countries: ['จีน'],
     kind: 'ทบทวนมาตรา 56',
@@ -725,12 +726,12 @@ export const archiveCases: ListedCase[] = [
       'เอกสารศาลอุทธรณ์',
     ],
   },
-  formSample('POR2A', 'REF256910240001', 'แบบ ปร.2ก', 'ความตกลงระงับการทุ่มตลาดหรือการอุดหนุน', 'AD (ตอบโต้การทุ่มตลาด)', 'ขอทบทวนความจำเป็นของความตกลงระงับการทุ่มตลาดหรือการอุดหนุนตามมาตรา 48 และมาตรา 56'),
-  formSample('POR3A', 'REF256910240002', 'แบบ ปร.3ก', 'ความตกลงระงับการทุ่มตลาดหรือการอุดหนุน', 'AD (ตอบโต้การทุ่มตลาด)', 'ขอให้ใช้ความตกลงระงับการทุ่มตลาดหรือการอุดหนุนต่อไปตามมาตรา 48 และมาตรา 57'),
-  formSample('POR4', 'REF256910240003', 'แบบ ปร.4', 'อากรสำหรับผู้ส่งออกหรือผู้ผลิตรายใหม่', 'AD (ตอบโต้การทุ่มตลาด)', 'ผู้ส่งออกหรือผู้ผลิตรายใหม่ขอทบทวนการเรียกเก็บอากรตามมาตรา 58'),
-  formSample('POR5', 'REF256910240004', 'แบบ ปร.5', 'อากรตอบโต้ที่ชำระไว้', 'AD (ตอบโต้การทุ่มตลาด)', 'ขอคืนอากรตอบโต้การทุ่มตลาดหรือการอุดหนุนที่ชำระไว้ตามมาตรา 59'),
-  formSample('POR7', 'REF256910240005', 'แบบ ปร.7', 'การขยายการเรียกเก็บอากร', 'AC (การหลบเลี่ยงมาตรการ)', 'ขอให้ทบทวนเพื่อยุติการขยายการเรียกเก็บอากรตามมาตรา 71/17'),
-  formSample('POR8', 'REF256910240006', 'แบบ ปร.8', 'อากรที่ถูกเรียกเก็บจากการขยายการเรียกเก็บอากร', 'AC (การหลบเลี่ยงมาตรการ)', 'ขอคืนอากรที่ถูกเรียกเก็บจากการขยายการเรียกเก็บอากรตามมาตรา 71/18'),
+  formSample('POR2A', 'R6224', 'แบบ ปร.2ก', 'ความตกลงระงับการทุ่มตลาดหรือการอุดหนุน', 'AD (ตอบโต้การทุ่มตลาด)', 'ขอทบทวนความจำเป็นของความตกลงระงับการทุ่มตลาดหรือการอุดหนุนตามมาตรา 48 และมาตรา 56'),
+  formSample('POR3A', 'R6225', 'แบบ ปร.3ก', 'ความตกลงระงับการทุ่มตลาดหรือการอุดหนุน', 'AD (ตอบโต้การทุ่มตลาด)', 'ขอให้ใช้ความตกลงระงับการทุ่มตลาดหรือการอุดหนุนต่อไปตามมาตรา 48 และมาตรา 57'),
+  formSample('POR4', 'R6226', 'แบบ ปร.4', 'อากรสำหรับผู้ส่งออกหรือผู้ผลิตรายใหม่', 'AD (ตอบโต้การทุ่มตลาด)', 'ผู้ส่งออกหรือผู้ผลิตรายใหม่ขอทบทวนการเรียกเก็บอากรตามมาตรา 58'),
+  formSample('POR5', 'R6227', 'แบบ ปร.5', 'อากรตอบโต้ที่ชำระไว้', 'AD (ตอบโต้การทุ่มตลาด)', 'ขอคืนอากรตอบโต้การทุ่มตลาดหรือการอุดหนุนที่ชำระไว้ตามมาตรา 59'),
+  formSample('POR7', 'R6228', 'แบบ ปร.7', 'การขยายการเรียกเก็บอากร', 'AC (การหลบเลี่ยงมาตรการ)', 'ขอให้ทบทวนเพื่อยุติการขยายการเรียกเก็บอากรตามมาตรา 71/17'),
+  formSample('POR8', 'R6229', 'แบบ ปร.8', 'อากรที่ถูกเรียกเก็บจากการขยายการเรียกเก็บอากร', 'AC (การหลบเลี่ยงมาตรการ)', 'ขอคืนอากรที่ถูกเรียกเก็บจากการขยายการเรียกเก็บอากรตามมาตรา 71/18'),
 ];
 
 export function caseNumberLabel(item: Pick<ListedCase, 'code'>): string {
@@ -773,7 +774,7 @@ export const draftCases: ListedCase[] = [
   {
     id: 'por3-2569',
     code: 'ปร.3',
-    ref: 'REF256900000001',
+    ref: 'R6223',
     goods: 'ต่ออายุมาตรการตอบโต้การทุ่มตลาด 14 ประเทศ',
     countries: ['14 ประเทศ'],
     kind: 'แบบ ปร.3',
@@ -792,6 +793,13 @@ export const draftCases: ListedCase[] = [
 export function findListedCase(code: string): ListedCase | undefined {
   return [...archiveCases, ...draftCases].find((item) => item.code === code || item.id === code);
 }
+
+/** ดันตัวนับเลขอ้างอิงให้สูงกว่าเคสตัวอย่างทั้งหมด เพื่อให้เคสใหม่รันต่อจาก R62xx */
+const seededRefSeq = Math.max(
+  0,
+  ...[...archiveCases, ...draftCases].map((item) => parseFilingRefSeq(item.ref) || 0),
+);
+ensureFilingRefSeqAtLeast(seededRefSeq);
 
 export function stepLabel(name: string): string {
   if (name === 'ผลการไต่สวนชั้นต้น') return 'ผลการไต่สวนขั้นต้น';

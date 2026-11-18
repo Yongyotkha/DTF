@@ -1,5 +1,5 @@
 <div class="por1" [class.por1--desk]="!!reviewRole && reviewTab !== 'form'">
-  <app-top-header class="fluid" />
+  <app-top-header class="fluid" [hideOnScroll]="true" />
   <div class="por1__body">
     @if (reviewRole) {
       <app-side-nav kind="staff" open="คำขอ" active="หน้าหลัก" />
@@ -11,9 +11,14 @@
       <header class="head" [class.head--review]="!!reviewRole" [class.head--status]="!reviewRole && tracking">
         <div>
           @if (reviewRole) {
-            <p class="crumb">คำขอ <span aria-hidden="true">›</span> รายละเอียดคำขอ</p>
             <div class="case-title">
               <h1>ยื่นคำขอ</h1>
+              @if (caseClock; as clock) {
+                <div class="case-clock case-clock--inline" [attr.data-tone]="clock.tone" role="status">
+                  <app-status-tag variant="soft" [tone]="clock.tone" [label]="clock.label" />
+                  <p>{{ clock.text }}</p>
+                </div>
+              }
             </div>
           } @else {
             @if (showStatus) {
@@ -109,7 +114,7 @@
             <span class="case-line__who">ผู้ยื่นคำขอ: <strong>{{ company }}</strong></span>
           </div>
         }
-        @if (caseClock; as clock) {
+        @if (!reviewRole && caseClock; as clock) {
           <div class="case-clock" [attr.data-tone]="clock.tone" role="status">
             <app-status-tag variant="soft" [tone]="clock.tone" [label]="clock.label" />
             <p>{{ clock.text }}</p>
@@ -1960,15 +1965,33 @@
             <div class="assign-card assign-card--workspace">
               <div class="desk-shelf" role="tablist" aria-label="กลุ่มเอกสาร">
                 <button type="button" [class.on]="docShelf === 'files'" (click)="openDocShelf('files')">รายการเอกสาร</button>
-                <button type="button" [class.on]="docShelf === 'committee'" (click)="openDocShelf('committee')">คณะกรรมการ</button>
               </div>
-              <div class="sheet__split">
+              <div class="sheet__split" [class.sheet__split--docs-collapsed]="docListCollapsed">
+                @if (docListCollapsed) {
+                  <button type="button" class="desk-docs__rail" aria-label="ขยายรายการเอกสาร" title="ขยายรายการเอกสาร" (click)="toggleDocList()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                      <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                      <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                      <path d="M13 9.5 16 12l-3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>รายการเอกสาร</span>
+                  </button>
+                } @else {
                 <nav class="toc desk-docs" aria-label="ส่วนตรวจสอบเอกสาร">
                   <div class="desk-docs__bar">
                     <h2>รายการเอกสาร</h2>
-                    <button type="button" class="desk-docs__find" [class.on]="docSearchOpen" aria-label="ค้นหาเอกสาร" [attr.aria-expanded]="docSearchOpen" (click)="toggleDocSearch()">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
-                    </button>
+                    <div class="desk-docs__tools">
+                      <button type="button" class="desk-docs__find" [class.on]="docSearchOpen" aria-label="ค้นหาเอกสาร" [attr.aria-expanded]="docSearchOpen" (click)="toggleDocSearch()">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                      </button>
+                      <button type="button" class="desk-docs__find" aria-label="หดรายการเอกสาร" title="หดรายการเอกสาร" (click)="toggleDocList()">
+                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                          <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                          <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                          <path d="M16 9.5 13 12l3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   @if (docSearchOpen) {
                     <label class="assign-search">
@@ -1977,30 +2000,493 @@
                     </label>
                   }
                   <div class="desk-docs__list">
-                  @for (doc of workDocs; track doc.title; let i = $index) {
-                    @if (docMatches(doc.title)) {
-                    <button type="button" class="toc__child" [class.toc__on]="docPart === i" [attr.aria-current]="docPart === i ? 'true' : null" (click)="pickDoc(i)">
-                      <img [src]="madeOf(doc.title).length ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                        <span><strong>{{ doc.title }}</strong></span>
-                    </button>
-                  }
+                  @if (docMatches(bundleDocTitle) || docMatches('แบบคำขอ') || docMatches('แบบคำขอรวมเล่ม') || docMatches('แบบยื่นคำขอรวมเล่ม')) {
+                    <button type="button" class="toc__child" [class.toc__on]="showFilingBundle" [attr.aria-current]="showFilingBundle ? 'true' : null" (click)="pickFilingBundle()"><span><strong>{{ bundleDocTitle }}</strong></span></button>
                   }
                   @if (docMatches('แจ้งผลการตรวจ')) {
-                    <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length" [attr.aria-current]="docPart === workDocs.length ? 'true' : null" (click)="pickDoc(workDocs.length)">
-                      <img [src]="noticeDot()" width="11" height="11" alt="" />
-                      <span><strong>แจ้งผลการตรวจ</strong></span>
-                  </button>
+                    <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length" [attr.aria-current]="docPart === workDocs.length ? 'true' : null" (click)="pickDoc(workDocs.length)"><span><strong>แจ้งผลการตรวจ ({{ noticeTimes }})</strong></span></button>
                   }
-                  @if (docMatches('พิจารณาของคณะกรรมการ')) {
-                    <button type="button" class="toc__child" [class.toc__on]="docPart === workDocs.length + 1" [attr.aria-current]="docPart === workDocs.length + 1 ? 'true' : null" (click)="pickDoc(workDocs.length + 1)">
-                    <img [src]="committeeSent ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                      <span><strong>พิจารณาของคณะกรรมการฯ</strong></span>
-                  </button>
+                  @for (doc of workDocs; track doc.title; let i = $index) {
+                    @if (docMatches(doc.title)) {
+                    <button type="button" class="toc__child" [class.toc__on]="docPart === i" [attr.aria-current]="docPart === i ? 'true' : null" (click)="pickDoc(i)"><span><strong>{{ doc.title }}</strong></span></button>
+                  }
                   }
                   </div>
                 </nav>
+                }
                 <div class="receipt__view">
-                  @if (docPart < workDocs.length && agencyDoc(workDocs[docPart].title)) {
+                  @if (showFilingBundle) {
+                    <div class="bundle-viewer" [class.bundle-viewer--full]="bundleViewerFull">
+                    <header class="assign-head">
+                      <div>
+                        <div class="doc-title">
+                          <h2>{{ bundleDocTitle }}</h2>
+                        </div>
+                      </div>
+                      <div class="doc-tools">
+                        <div class="bundle-zoom" role="group" aria-label="ซูมเอกสาร">
+                          <button type="button" class="desk-docs__find" aria-label="ซูมออก" title="ซูมออก" [disabled]="!canZoomBundleOut" (click)="zoomBundle(-1)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-3.5-3.5M8 11h6" /></svg>
+                          </button>
+                          <span class="bundle-zoom__value">{{ bundleZoom }}%</span>
+                          <button type="button" class="desk-docs__find" aria-label="ซูมเข้า" title="ซูมเข้า" [disabled]="!canZoomBundleIn" (click)="zoomBundle(1)">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-3.5-3.5M8 11h6M11 8v6" /></svg>
+                          </button>
+                        </div>
+                        <button type="button" class="desk-docs__find" [attr.aria-pressed]="bundleViewerFull" [attr.aria-label]="bundleViewerFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" [attr.title]="bundleViewerFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" (click)="toggleBundleViewerFull()">
+                          @if (bundleViewerFull) {
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M20 15h-5v5M4 15h5v5" /></svg>
+                          } @else {
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /></svg>
+                          }
+                        </button>
+                        @if (!bundleIsAmend) {
+                          <app-button class="icon-before" type="outline" label="ทั้งหมด" (click)="exportAllFilingBundle()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                          </app-button>
+                        }
+                      </div>
+                    </header>
+                    <div class="desk-shelf filing-bundle__rounds" role="tablist" aria-label="รอบยื่นคำขอ">
+                      @for (row of bundleRoundOptions; track row.round) {
+                        <button type="button" role="tab" [class.on]="bundleRoundNo === row.round" [attr.aria-selected]="bundleRoundNo === row.round" (click)="pickBundleRound(row.round)">{{ row.folder }}</button>
+                      }
+                    </div>
+                    <div class="desk-shelf filing-bundle__tabs" role="tablist" aria-label="ฉบับเล่ม">
+                      <button type="button" role="tab" [class.on]="bundleEdition === 'original'" [attr.aria-selected]="bundleEdition === 'original'" (click)="setBundleEdition('original')">ต้นฉบับ</button>
+                      <button type="button" role="tab" [class.on]="bundleIsAmend" [attr.aria-selected]="bundleIsAmend" (click)="setBundleEdition('amend')">แก้ไขคำขอ</button>
+                    </div>
+                    @if (bundleIsAmend) {
+                      <div class="receipt__view bundle-form-pane bundle-amend-pane">
+                        <div class="bundle-amend-tools" role="toolbar" aria-label="เครื่องมือแก้ไขข้อความ">
+                          <button type="button" class="bundle-amend-tool" title="ตัวหนา" aria-label="ตัวหนา" [class.on]="amendCmdOn('bold')" (mousedown)="$event.preventDefault()" (click)="amendFormat('bold')"><strong>B</strong></button>
+                          <button type="button" class="bundle-amend-tool" title="ตัวเอียง" aria-label="ตัวเอียง" [class.on]="amendCmdOn('italic')" (mousedown)="$event.preventDefault()" (click)="amendFormat('italic')"><em>I</em></button>
+                          <button type="button" class="bundle-amend-tool" title="ขีดเส้นใต้" aria-label="ขีดเส้นใต้" [class.on]="amendCmdOn('underline')" (mousedown)="$event.preventDefault()" (click)="amendFormat('underline')"><span class="bundle-amend-tool__u">U</span></button>
+                          <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+                          <label class="bundle-amend-size">
+                            <span class="bundle-amend-size__label">ขนาด</span>
+                            <select [value]="amendFontSize" aria-label="ขนาดตัวอักษร" (mousedown)="$event.stopPropagation()" (change)="applyAmendFontSize($any($event.target).value)">
+                              @for (size of amendFontSizes; track size.value) {
+                                <option [value]="size.value" [selected]="amendFontSize === size.value">{{ size.label }}</option>
+                              }
+                            </select>
+                          </label>
+                          <span class="bundle-amend-colors" role="group" aria-label="สีตัวอักษร">
+                            @for (tone of amendColors; track tone.value) {
+                              <button
+                                type="button"
+                                class="bundle-amend-swatch"
+                                [class.on]="amendColor.toLowerCase() === tone.value.toLowerCase()"
+                                [style.--swatch]="tone.value"
+                                [title]="tone.label"
+                                [attr.aria-label]="'สี' + tone.label"
+                                (mousedown)="$event.preventDefault()"
+                                (click)="applyAmendColor(tone.value)"
+                              ></button>
+                            }
+                          </span>
+                          <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+                          <button type="button" class="bundle-amend-tool" title="รายการจุด" aria-label="รายการจุด" [class.on]="amendCmdOn('insertUnorderedList')" (mousedown)="$event.preventDefault()" (click)="amendFormat('insertUnorderedList')">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="5" cy="7" r="1.5" fill="currentColor" /><circle cx="5" cy="12" r="1.5" fill="currentColor" /><circle cx="5" cy="17" r="1.5" fill="currentColor" /><path d="M9 7h10M9 12h10M9 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+                          </button>
+                          <button type="button" class="bundle-amend-tool" title="รายการเลข" aria-label="รายการเลข" [class.on]="amendCmdOn('insertOrderedList')" (mousedown)="$event.preventDefault()" (click)="amendFormat('insertOrderedList')">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 7h1M5 12h2M5 17h2M9 7h10M9 12h10M9 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+                          </button>
+                          <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+                          <button type="button" class="bundle-amend-tool" title="ชิดซ้าย" aria-label="ชิดซ้าย" [class.on]="amendCmdOn('justifyLeft')" (mousedown)="$event.preventDefault()" (click)="amendFormat('justifyLeft')">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+                          </button>
+                          <button type="button" class="bundle-amend-tool" title="กึ่งกลาง" aria-label="กึ่งกลาง" [class.on]="amendCmdOn('justifyCenter')" (mousedown)="$event.preventDefault()" (click)="amendFormat('justifyCenter')">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M7 12h10M5 17h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+                          </button>
+                          <button type="button" class="bundle-amend-tool" title="ชิดขวา" aria-label="ชิดขวา" [class.on]="amendCmdOn('justifyRight')" (mousedown)="$event.preventDefault()" (click)="amendFormat('justifyRight')">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M10 12h10M6 17h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+                          </button>
+                          <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+                          <button type="button" class="bundle-amend-tool" title="หัวข้อ" aria-label="หัวข้อ" (mousedown)="$event.preventDefault()" (click)="amendFormat('formatBlock', 'h3')">H</button>
+                          <button type="button" class="bundle-amend-tool" title="ย่อหน้า" aria-label="ย่อหน้า" (mousedown)="$event.preventDefault()" (click)="amendFormat('formatBlock', 'p')">¶</button>
+                          <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+                          <button type="button" class="bundle-amend-tool" title="ยกเลิก" aria-label="ยกเลิก" (mousedown)="$event.preventDefault()" (click)="amendFormat('undo')">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 7 5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                          </button>
+                          <button type="button" class="bundle-amend-tool" title="ทำซ้ำ" aria-label="ทำซ้ำ" (mousedown)="$event.preventDefault()" (click)="amendFormat('redo')">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m15 7 4 4-4 4M19 11H10a5 5 0 0 0 0 10h2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                          </button>
+                        </div>
+                        <div class="bundle-amend-workspace" [class.bundle-amend-workspace--tree-collapsed]="amendTreeCollapsed">
+                          @if (amendTreeCollapsed) {
+                            <button type="button" class="desk-docs__rail bundle-amend-tree__rail" aria-label="ขยายไฟล์แนบ" title="ขยายไฟล์แนบ" (click)="toggleAmendTree()">
+                              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                                <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                                <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                                <path d="M13 9.5 16 12l-3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                              </svg>
+                              <span>ไฟล์แนบ</span>
+                            </button>
+                          } @else {
+                          <aside class="bundle-amend-tree" aria-label="โฟลเดอร์ไฟล์แนบ">
+                            <div class="bundle-amend-tree__bar">
+                              <h3>ไฟล์แนบ</h3>
+                              <div class="bundle-amend-tree__tools">
+                                <button type="button" class="bundle-amend-folder__icon bundle-amend-tree__add" aria-label="สร้างโฟลเดอร์" title="สร้างโฟลเดอร์" (click)="addAmendFolder()">
+                                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3zM12 12v6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                </button>
+                                <button type="button" class="bundle-amend-folder__icon" aria-label="หดไฟล์แนบ" title="หดไฟล์แนบ" (click)="toggleAmendTree()">
+                                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                    <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                                    <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                                    <path d="M16 9.5 13 12l3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                            @if (!amendFolders.length) {
+                              <p class="bundle-amend-tree__empty">ยังไม่มีโฟลเดอร์ — กดสร้างโฟลเดอร์แล้วตั้งชื่อ จากนั้นอัปโหลดไฟล์เข้าโฟลเดอร์</p>
+                            }
+                            <ul class="bundle-amend-tree__list">
+                              @for (folder of amendFolders; track folder.id) {
+                                <li class="bundle-amend-folder" [class.on]="amendFolderId === folder.id">
+                                  <div class="bundle-amend-folder__row">
+                                    <button type="button" class="bundle-amend-folder__toggle" [attr.aria-expanded]="folder.open" [attr.aria-label]="folder.open ? 'หุบโฟลเดอร์' : 'ขยายโฟลเดอร์'" (click)="toggleAmendFolder(folder.id)">
+                                      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path [attr.d]="folder.open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                    </button>
+                                    @if (amendFolderEditId === folder.id) {
+                                      <input
+                                        class="bundle-amend-folder__name"
+                                        type="text"
+                                        [value]="amendFolderDraft"
+                                        aria-label="ชื่อโฟลเดอร์"
+                                        (input)="setAmendFolderDraft($any($event.target).value)"
+                                        (keydown.enter)="commitAmendFolderName(folder.id)"
+                                        (keydown.escape)="cancelAmendFolderRename()"
+                                        (blur)="commitAmendFolderName(folder.id)"
+                                      />
+                                    } @else {
+                                      <button type="button" class="bundle-amend-folder__label" (click)="selectAmendFolder(folder.id)" (dblclick)="startRenameAmendFolder(folder.id)">
+                                        <strong>{{ folder.name }}</strong>
+                                        <small>({{ amendFileCount(folder.id) }})</small>
+                                      </button>
+                                    }
+                                    <div class="bundle-amend-folder__acts">
+                                      <label class="bundle-amend-upload" [attr.aria-label]="'อัปโหลดไฟล์เข้า ' + folder.name" title="อัปโหลดไฟล์">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 16V5M8 9l4-4 4 4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                        <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addAmendFolderFiles(folder.id, $event)" />
+                                      </label>
+                                      <button type="button" class="bundle-amend-folder__icon" aria-label="เปลี่ยนชื่อโฟลเดอร์" title="เปลี่ยนชื่อ" (click)="startRenameAmendFolder(folder.id)">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zm11-13 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                      </button>
+                                      <button type="button" class="bundle-amend-folder__icon" aria-label="ลบโฟลเดอร์" title="ลบโฟลเดอร์" (click)="removeAmendFolder(folder.id)">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                  @if (folder.open) {
+                                    <ul class="bundle-amend-files">
+                                      @for (file of amendFilesOf(folder.id); track file.id) {
+                                        <li>
+                                          <button type="button" class="bundle-amend-file__name" [attr.aria-label]="'โหลด ' + file.name" title="โหลดไฟล์" (click)="downloadAmendFile(file)">{{ file.name }}</button>
+                                          <small>{{ file.saved }}</small>
+                                          <button type="button" class="bundle-amend-folder__icon" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadAmendFile(file)">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                          </button>
+                                          <button type="button" class="bundle-amend-folder__icon" aria-label="ลบไฟล์" title="ลบไฟล์" (click)="removeAmendFile(file.id)">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                          </button>
+                                        </li>
+                                      } @empty {
+                                        <li class="bundle-amend-files__empty">ยังไม่มีไฟล์ในโฟลเดอร์นี้</li>
+                                      }
+                                    </ul>
+                                  }
+                                </li>
+                              }
+                            </ul>
+                          </aside>
+                          }
+                          <div class="bundle-reader" [style.zoom]="bundleZoom / 100">
+                            <article class="official-sheet bundle-doc por-word-sheet bundle-amend-sheet" aria-label="แก้ไขคำขอ">
+                              <div
+                                #amendEditor
+                                class="bundle-amend-editor"
+                                [class.bundle-amend-editor--empty]="amendEditorEmpty"
+                                contenteditable="true"
+                                role="textbox"
+                                aria-multiline="true"
+                                aria-label="ข้อความแก้ไขคำขอ"
+                                data-placeholder="พิมพ์ข้อความแก้ไขคำขอ..."
+                                (input)="onAmendEditorInput()"
+                                (keyup)="refreshAmendToolbar()"
+                                (mouseup)="refreshAmendToolbar()"
+                              ></div>
+                            </article>
+                          </div>
+                        </div>
+                      </div>
+                    } @else {
+                    @if (caseForms.length > 1) {
+                      <div class="desk-shelf filing-bundle__forms" role="tablist" aria-label="เลือกแบบ ปร. ในเล่ม">
+                        @for (form of caseForms; track form.code) {
+                          <button type="button" role="tab" [class.on]="bundleFormCode === form.code" [attr.aria-selected]="bundleFormCode === form.code" (click)="pickBundleForm(form.code)">{{ form.code }}</button>
+                        }
+                      </div>
+                    }
+                    <div class="sheet__split filing-bundle__split" [class.filing-bundle--review]="bundleIsReview" [class.sheet__split--docs-collapsed]="bundleTocCollapsed">
+                      @if (bundleTocCollapsed) {
+                        <button type="button" class="desk-docs__rail" aria-label="ขยายสารบัญเล่ม" title="ขยายสารบัญเล่ม" (click)="toggleBundleToc()">
+                          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                            <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                            <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                            <path d="M13 9.5 16 12l-3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                          <span>สารบัญเล่ม</span>
+                        </button>
+                      } @else {
+                      <nav class="toc desk-docs" aria-label="สารบัญเล่มยื่น">
+                        <div class="desk-docs__bar">
+                          <h2>สารบัญเล่ม</h2>
+                          <button type="button" class="desk-docs__find" aria-label="หดสารบัญเล่ม" title="หดสารบัญเล่ม" (click)="toggleBundleToc()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                              <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                              <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                              <path d="M16 9.5 13 12l3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                          </button>
+                        </div>
+                        @for (group of bundleToc; track group.label) {
+                          @if (isBundleFileTocGroup(group)) {
+                            <button type="button" class="toc__file-group" [class.toc__on]="bundleItemCurrent(group.items[0])" [attr.aria-current]="bundleItemCurrent(group.items[0]) ? 'true' : null" (click)="openBundleItem(group.items[0])"><span><strong>{{ group.label }} ({{ bundleFileGroupCount(group) }})</strong></span></button>
+                          } @else {
+                            <p class="toc__group">{{ group.label }}</p>
+                            @for (item of group.items; track item.label) {
+                              <button type="button" class="toc__child" [class.toc__on]="bundleItemCurrent(item)" [attr.aria-current]="bundleItemCurrent(item) ? 'true' : null" (click)="openBundleItem(item)"><span><strong>{{ item.label }}</strong></span></button>
+                            }
+                          }
+                        }
+                      </nav>
+                      }
+                      <div class="receipt__view bundle-form-pane">
+                        <div class="bundle-reader" [style.zoom]="bundleZoom / 100">
+                        <article class="official-sheet bundle-doc por-word-sheet" [class.bundle-doc--file]="activeBundlePage?.kind === 'file'" [attr.aria-label]="activeBundlePage?.heading || bundleFormCode">
+                          @for (page of activeBundlePages; track page.id; let i = $index) {
+                            <section class="bundle-section" [class.bundle-section--file]="page.kind === 'file'" [class.bundle-section--cover]="page.kind === 'cover'" [class.bundle-section--on]="bundlePageIdMatch(page.id)" [attr.id]="'bundle-' + page.id">
+                              <div class="bundle-page__layout">
+                                <div class="bundle-page__body">
+                                  @if (page.kind === 'file') {
+                                    <header class="bundle-page__bar">
+                                      <div>
+                                        <h3>{{ page.group || page.heading || page.title }}</h3>
+                                        <p class="link-detail">{{ activeBundleFileRows.length }} ไฟล์</p>
+                                      </div>
+                                      <div class="bundle-page__acts">
+                                        <app-button class="icon-before" type="outline" label="โหลดไฟล์" [state]="bundleFilePickCount ? 'default' : 'disabled'" (click)="downloadPickedBundleFiles()">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                        </app-button>
+                                      </div>
+                                    </header>
+                                    <div class="table-wrap doc-detail__table bundle-file-table">
+                                      <table>
+                                        <thead>
+                                          <tr>
+                                            <th class="col-no">
+                                              <input type="checkbox" [checked]="allBundleFilesPicked" [attr.aria-label]="'เลือกทั้งหมด ' + (page.group || '')" (change)="toggleAllBundleFilePick()" />
+                                            </th>
+                                            <th>เอกสาร</th>
+                                            <th>วันที่</th>
+                                            <th class="col-manage">จัดการ</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          @for (file of activeBundleFileRows; track file.id) {
+                                            <tr>
+                                              <td class="col-no">
+                                                <input type="checkbox" [checked]="!!bundleFilePick[file.id]" [attr.aria-label]="'เลือก ' + file.name" (change)="toggleBundleFilePick(file.id)" />
+                                              </td>
+                                              <td>{{ file.name }}</td>
+                                              <td>{{ file.saved }}</td>
+                                              <td class="col-manage">
+                                                <div class="manage">
+                                                  <button type="button" class="icon-btn" aria-label="ดู" title="ดู" (click)="viewingMade = { id: file.id, kind: file.name, at: file.saved, fields: [{ label: 'กลุ่มเอกสาร', value: file.group }, { label: 'ชื่อไฟล์', value: file.name }, { label: 'วันที่บันทึก', value: file.saved }] }">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                                  </button>
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          }
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  } @else {
+                                    @if (bundleIsReview && reviewRole) {
+                                      <div class="bundle-page__acts por-word__acts">
+                                        <app-button class="icon-before" type="outline" label="เพิ่ม comment" (click)="startBundleComment(page.id)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>
+                                        </app-button>
+                                      </div>
+                                    }
+                                    <div class="por-word" aria-label="แบบ ปร. 1">
+                                      @for (block of porWordBlocks(page); track $index) {
+                                        @switch (block.kind) {
+                                          @case ('head') {
+                                            <header class="por-word__cover">
+                                              <p class="por-word__code">{{ block.title }}</p>
+                                              <div class="por-word__title-box">
+                                                @for (line of block.lines; track line) {
+                                                  <p>{{ line }}</p>
+                                                }
+                                              </div>
+                                            </header>
+                                          }
+                                          @case ('measure') {
+                                            <div class="por-word__measure-box">
+                                              <p class="por-word__measure-label">ระบุมาตรการที่ขอให้ดำเนินการพิจารณา</p>
+                                              <p [class.on]="block.ad">{{ block.ad ? '☑' : '☐' }} ตอบโต้การทุ่มตลาด</p>
+                                              <p [class.on]="block.cvd">{{ block.cvd ? '☑' : '☐' }} ตอบโต้การอุดหนุน</p>
+                                            </div>
+                                          }
+                                          @case ('toc') {
+                                            <ol class="por-word__toc">
+                                              @for (item of block.items; track item) {
+                                                <li>{{ item }}</li>
+                                              }
+                                            </ol>
+                                          }
+                                          @case ('hint') {
+                                            <p class="por-word__hint">{{ block.text }}</p>
+                                          }
+                                          @case ('section') {
+                                            <h3 class="por-word__section">{{ block.text }}</h3>
+                                          }
+                                          @case ('item') {
+                                            <h4 class="por-word__item">{{ block.text }}</h4>
+                                          }
+                                          @case ('prompt') {
+                                            <p class="por-word__prompt">{{ block.text }}</p>
+                                          }
+                                          @case ('fill') {
+                                            <p class="por-word__fill">
+                                              <span class="por-word__label">{{ block.label }}</span>
+                                              <span class="por-word__value">
+                                                @for (part of fillValueParts(block.value); track $index) {
+                                                  @if (part.fileName) {
+                                                    <button type="button" class="por-word__file-link" (click)="openAnnexFile(part.fileName, $event)">{{ part.text }}</button>
+                                                  } @else {
+                                                    <span>{{ part.text }}</span>
+                                                  }
+                                                }
+                                              </span>
+                                            </p>
+                                          }
+                                          @case ('check') {
+                                            <div class="por-word__check" [class.on]="block.on">
+                                              <p><span class="por-word__box">{{ block.on ? '☑' : '☐' }}</span> {{ block.label }}</p>
+                                              @if (block.detail) {
+                                                <p class="por-word__detail">{{ block.detail }}</p>
+                                              }
+                                            </div>
+                                          }
+                                          @case ('para') {
+                                            @if (block.text) {
+                                              <p class="por-word__para">{{ block.text }}</p>
+                                            }
+                                          }
+                                          @case ('table') {
+                                            <div class="table-wrap por-word__table">
+                                              <table>
+                                                <thead>
+                                                  <tr>
+                                                    @for (col of block.headers; track col) {
+                                                      <th>{{ col }}</th>
+                                                    }
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  @for (row of block.rows; track $index) {
+                                                    <tr>
+                                                      @for (cell of row; track $index) {
+                                                        <td>
+                                                          @for (part of fillValueParts(cell); track $index) {
+                                                            @if (part.fileName) {
+                                                              <button type="button" class="por-word__file-link" (click)="openAnnexFile(part.fileName, $event)">{{ part.text }}</button>
+                                                            } @else {
+                                                              <span>{{ part.text }}</span>
+                                                            }
+                                                          }
+                                                        </td>
+                                                      }
+                                                    </tr>
+                                                  }
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          }
+                                          @case ('sign') {
+                                            <div class="por-word__sign">
+                                              @if (signatureUrl) {
+                                                <img class="por-word__mark" [src]="signatureUrl" alt="ลายเซ็น {{ block.name }}" />
+                                              }
+                                              <p class="por-word__sign-line">.............................................................</p>
+                                              <p>({{ block.name }})</p>
+                                              <p>{{ block.role }}</p>
+                                              <p>วันที่ {{ block.date }}</p>
+                                            </div>
+                                          }
+                                        }
+                                      }
+                                    </div>
+                                  }
+                                  @if (bundleIsReview && reviewRole) {
+                                    <label class="assign-remark bundle-page__note">
+                                      <span>บันทึกแก้ไขในฉบับตรวจ</span>
+                                      <textarea rows="3" [value]="reviewNoteOf(page.id)" (input)="setReviewNote(page.id, $any($event.target).value)" placeholder="พิมพ์ข้อความแก้ไขหรือข้อสังเกตบนหัวข้อนี้..."></textarea>
+                                    </label>
+                                  } @else if (bundleIsReview && reviewNoteOf(page.id)) {
+                                    <p class="bundle-page__saved"><strong>บันทึกในฉบับตรวจ</strong><br>{{ reviewNoteOf(page.id) }}</p>
+                                  }
+                                </div>
+                                @if (bundleIsReview) {
+                                  <aside class="bundle-comments" aria-label="Comments">
+                                    <strong>Comments</strong>
+                                    @if (bundleCommentTarget === page.id) {
+                                      <label class="assign-remark">
+                                        <span>ข้อความ comment</span>
+                                        <textarea rows="3" [value]="bundleCommentDraft" (input)="bundleCommentDraft = $any($event.target).value" placeholder="พิมพ์ comment..."></textarea>
+                                      </label>
+                                      <div class="bundle-comments__acts">
+                                        <app-button type="outline" label="ยกเลิก" (click)="cancelBundleComment()" />
+                                        <app-button type="primary" label="บันทึก comment" [state]="bundleCommentDraft.trim() ? 'default' : 'disabled'" (click)="saveBundleComment()" />
+                                      </div>
+                                    }
+                                    @for (note of commentsFor(page.id); track note.id) {
+                                      <article class="bundle-comment">
+                                        <header>
+                                          <strong>{{ note.author }}</strong>
+                                          <small>{{ note.at }}</small>
+                                        </header>
+                                        <p>{{ note.text }}</p>
+                                        @if (reviewRole) {
+                                          <div class="bundle-comments__acts">
+                                            <button type="button" class="office-view" (click)="resolveBundleComment(note.id)">ปิด comment</button>
+                                            <button type="button" class="office-view" (click)="removeBundleComment(note.id)">ลบ</button>
+                                          </div>
+                                        }
+                                      </article>
+                                    } @empty {
+                                      @if (bundleCommentTarget !== page.id) {
+                                        <p class="consult-blank">ยังไม่มี comment ในหัวข้อนี้</p>
+                                      }
+                                    }
+                                  </aside>
+                                }
+                              </div>
+                            </section>
+                          }
+                        </article>
+                        </div>
+                      </div>
+                    </div>
+                    }
+                    </div>
+                  } @else if (docPart < workDocs.length && agencyDoc(workDocs[docPart].title)) {
                     <header class="assign-head">
                       <div>
                         <div class="doc-title">
@@ -2263,7 +2749,7 @@
                                 <td class="col-fit">{{ docActionLabel(docAction) }}</td>
                                 <td class="col-fit">{{ noticeDue(item) }}</td>
                                 <td class="col-fit">{{ item.at }}</td>
-                                <td class="col-fit"><app-status-tag variant="soft" [tone]="docSent ? 'success' : 'info'" [label]="docSent ? 'ส่งถึงผู้ยื่น' : 'บันทึก'" /></td>
+                                                                <td class="col-fit"><app-status-tag variant="soft" [tone]="noticePipe === 'sent' ? 'success' : noticePipe === 'draft' ? 'info' : 'warning'" [label]="noticePipeLabel()" /></td>
                                 <td class="col-act">
                                   <div class="made-actions">
                                     <button type="button" class="office-view" aria-label="ดู" (click)="viewingMade = item">
@@ -2288,7 +2774,7 @@
                                 <td class="col-fit">{{ docActionLabel(docAction) }}</td>
                                 <td class="col-fit">{{ noticeDue() }}</td>
                                 <td class="col-fit">{{ file.sentOn }}</td>
-                                <td class="col-fit"><app-status-tag variant="soft" [tone]="docSent ? 'success' : 'info'" [label]="docSent ? 'ส่งถึงผู้ยื่น' : 'บันทึก'" /></td>
+                                                                <td class="col-fit"><app-status-tag variant="soft" [tone]="noticePipe === 'sent' ? 'success' : noticePipe === 'draft' ? 'info' : 'warning'" [label]="noticePipeLabel()" /></td>
                                 <td class="col-act">
                                   <div class="made-actions">
                                     <button type="button" class="office-view" aria-label="ดู" (click)="openNoticeFile(file.name)">
@@ -2322,7 +2808,7 @@
                               <p>{{ editingId ? 'แก้ไขแบบฟอร์มที่บันทึกไว้' : 'กรอกแบบฟอร์มแล้วบันทึก' }}</p>
                             </div>
                             <div class="doc-tools">
-                              <app-button class="ask-ai icon-before" type="primary" label="ช่วยสร้าง" [state]="docSent ? 'disabled' : 'default'" (click)="assistNotice()">
+                              <app-button class="ask-ai icon-before" type="primary" label="ช่วยสร้าง" [state]="noticePipeLocked ? 'disabled' : 'default'" (click)="assistNotice()">
                                 <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
                               </app-button>
                               <button type="button" aria-label="ปิด" (click)="closeNoticeForm()">✕</button>
@@ -2330,119 +2816,141 @@
                           </header>
                           <div class="agency-dialog__body">
                     <section class="notice-form" aria-label="แบบแจ้งผลการตรวจ">
-                      <div class="notice-date">
-                        <app-thai-date-field label="วันที่แจ้ง" [required]="true" [value]="docNoticedOn" [state]="docSent ? 'readonly' : 'default'" (valueChange)="docNoticedOn = $event" />
-                      </div>
-                      <div class="slip-line">
-                        <span>การดำเนินการ<span class="req">*</span></span>
-                        <div class="slip-choices">
-                          <button type="button" [disabled]="docSent" (click)="docAction = 'amend'"><img [src]="docAction === 'amend' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งแก้ไขเพิ่มเติม</button>
-                          <button type="button" [disabled]="docSent" (click)="docAction = 'complete'"><img [src]="docAction === 'complete' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอครบถ้วนถูกต้อง</button>
-                          <button type="button" [disabled]="docSent" (click)="docAction = 'late'"><img [src]="docAction === 'late' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน</button>
-                        </div>
-                      </div>
-                      @if (docAction !== 'complete') {
-                        <div class="notice-date">
-                          <app-thai-date-field label="วันที่ครบกำหนด" [required]="true" [value]="docDueOn" [state]="docSent ? 'readonly' : 'default'" (valueChange)="docDueOn = $event" />
-                        </div>
-                      }
-                      <label class="assign-remark">
-                        <span>หมายเหตุ<span class="req">*</span></span>
-                        <textarea rows="3" maxlength="500" [disabled]="docSent" [value]="docNote" (input)="docNote = $any($event.target).value"></textarea>
-                        <small>{{ docNote.length }}/500</small>
-                      </label>
-                      <h3>หนังสือแจ้งแก้ไข</h3>
-                      <div class="draft-form">
-                        @for (item of noticeLetter; track item.label; let i = $index) {
-                          @if (item.label === 'เนื้อความ') {
-                            <div class="notice-body">
-                              <div class="reply-bar">
-                                <span>เนื้อความ<span class="req">*</span></span>
-                                @if (docAction === 'amend' && !docSent) {
-                                  <app-button class="ask-ai icon-before" type="primary" label="ช่วยแนะนำ" (click)="suggestGaps()">
-                                    <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
-                                  </app-button>
-                                }
-                              </div>
-                              <app-input-field class="block wide" kind="textarea" [labelled]="false" label="เนื้อความ" [grow]="true" [rows]="fieldRows(item)" [required]="true" [editable]="!docSent" [state]="docSent ? 'readonly' : 'default'" [value]="item.value" (valueChange)="setNoticeField(i, $event)" />
-                            </div>
-                          } @else {
-                          <app-input-field class="block" [class.wide]="item.long" [kind]="item.long ? 'textarea' : 'text'" [label]="item.label" [required]="true" [editable]="!docSent" [state]="docSent ? 'readonly' : 'default'" [value]="item.value" (valueChange)="setNoticeField(i, $event)" />
+                      <section class="notice-block" aria-label="ผลการตรวจ">
+                        <h3>ผลการตรวจ</h3>
+                        <div class="notice-meta">
+                          <app-thai-date-field label="วันที่แจ้ง" [required]="true" [value]="docNoticedOn" [state]="noticePipeLocked ? 'readonly' : 'default'" (valueChange)="docNoticedOn = $event" />
+                          @if (docAction !== 'complete') {
+                            <app-thai-date-field label="วันที่ครบกำหนด" [required]="true" [value]="docDueOn" [state]="noticePipeLocked ? 'readonly' : 'default'" (valueChange)="docDueOn = $event" />
                           }
-                        }
-                      </div>
-                      <div class="reply-bar">
-                        <div>
-                          <p class="slip-file-label">ไฟล์หนังสือแจ้ง</p>
-                          <p class="link-detail">กดบันทึกร่างเพื่อสร้างหนังสือจากแบบด้านบน หรือแนบไฟล์ doc, docx, xls, xlsx, ppt, pptx, pdf, jpg, jpeg, png, tiff</p>
                         </div>
-                        @if (!docSent) {
-                          <label class="pick">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
-                            เพิ่ม
-                            <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addDocFiles($event)" />
-                          </label>
-                        }
-                      </div>
-                      <div class="notice-files">
-                        <div class="table-wrap slip-files">
-                          <table>
-                            <thead>
-                              <tr>
-                                <th class="col-no">ลำดับ</th>
-                                <th class="col-date">วันที่ส่ง</th>
-                                <th class="col-file">ไฟล์แนบ</th>
-                                <th>ชื่อเอกสาร</th>
-                                <th class="col-act">การจัดการ</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              @for (file of docFiles; track file.name) {
+                        <div class="slip-line notice-actions">
+                          <span>การดำเนินการ<span class="req">*</span></span>
+                          <div class="slip-choices">
+                            <button type="button" [disabled]="noticePipeLocked" (click)="docAction = 'amend'"><img [src]="docAction === 'amend' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งแก้ไขเพิ่มเติม</button>
+                            <button type="button" [disabled]="noticePipeLocked" (click)="docAction = 'complete'"><img [src]="docAction === 'complete' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอครบถ้วนถูกต้อง</button>
+                            <button type="button" [disabled]="noticePipeLocked" (click)="docAction = 'late'"><img [src]="docAction === 'late' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน</button>
+                          </div>
+                        </div>
+                        <label class="assign-remark">
+                          <span>หมายเหตุ <small>(ไม่บังคับ)</small></span>
+                          <textarea rows="2" maxlength="500" [disabled]="noticePipeLocked" [value]="docNote" (input)="docNote = $any($event.target).value"></textarea>
+                          <small>{{ docNote.length }}/500</small>
+                        </label>
+                      </section>
+
+                      <section class="notice-block" aria-label="หนังสือแจ้ง">
+                        <h3>หนังสือแจ้ง</h3>
+                        <div class="draft-form notice-letter">
+                          @for (item of noticeLetter; track item.label; let i = $index) {
+                            @if (item.label === 'เนื้อความ') {
+                              <div class="notice-body">
+                                <app-input-field class="block wide" kind="textarea" label="เนื้อความ" [grow]="true" [rows]="fieldRows(item)" [required]="true" [editable]="!noticePipeLocked" [state]="noticePipeLocked ? 'readonly' : 'default'" [value]="item.value" (valueChange)="setNoticeField(i, $event)" />
+                              </div>
+                            } @else {
+                              <app-input-field
+                                class="block"
+                                [class.wide]="item.long || item.label === 'เรื่อง' || item.label === 'เรียน' || item.label === 'อ้างถึง' || item.label === 'สิ่งที่ส่งมาด้วย'"
+                                [kind]="item.long ? 'textarea' : 'text'"
+                                [label]="item.label"
+                                [required]="true"
+                                [editable]="!noticePipeLocked"
+                                [state]="noticePipeLocked ? 'readonly' : 'default'"
+                                [value]="item.value"
+                                (valueChange)="setNoticeField(i, $event)"
+                              />
+                            }
+                          }
+                        </div>
+                      </section>
+
+                      <section class="notice-block" aria-label="ไฟล์หนังสือแจ้ง">
+                        <div class="notice-files-head">
+                          <div>
+                            <h3>ไฟล์หนังสือแจ้ง</h3>
+                            <p class="link-detail">สร้างจากแบบด้านบน หรือแนบไฟล์ที่ทำนอกระบบ</p>
+                          </div>
+                          @if (!noticePipeLocked) {
+                            <label class="pick">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+                              เพิ่มไฟล์
+                              <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff" multiple (change)="addDocFiles($event)" />
+                            </label>
+                          }
+                        </div>
+                        <div class="notice-files">
+                          <div class="table-wrap slip-files">
+                            <table>
+                              <thead>
                                 <tr>
-                                  <td class="col-no">{{ $index + 1 }}</td>
-                                  <td class="col-date">{{ file.sentOn }}</td>
-                                  <td class="col-file">{{ file.name }}</td>
-                                  <td>
-                                    @if (docSent) {
-                                      {{ file.title }}
-                                    } @else {
-                                      <input type="text" aria-label="ชื่อเอกสาร" [value]="file.title" (input)="renameDocFile($index, $any($event.target).value)" />
-                                    }
-                                  </td>
-                                  <td class="col-act">
-                                    <div class="made-actions">
-                                      <button type="button" class="office-view" aria-label="ดู" (click)="openNoticeFile(file.name)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-                                      </button>
-                                      <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadNoticeFile(file.name)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
-                                      </button>
-                                      @if (!docSent) {
-                                        <button type="button" class="office-view" aria-label="ลบ" (click)="removeDocFile($index)">
-                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
-                                        </button>
-                                      }
-                                    </div>
-                                  </td>
+                                  <th class="col-no">ลำดับ</th>
+                                  <th class="col-date">วันที่</th>
+                                  <th class="col-file">ไฟล์แนบ</th>
+                                  <th>ชื่อเอกสาร</th>
+                                  <th class="col-act">การจัดการ</th>
                                 </tr>
-                              }
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                @for (file of docFiles; track file.name) {
+                                  <tr>
+                                    <td class="col-no">{{ $index + 1 }}</td>
+                                    <td class="col-date">{{ file.sentOn }}</td>
+                                    <td class="col-file">{{ file.name }}</td>
+                                    <td>
+                                      @if (noticePipeLocked) {
+                                        {{ file.title }}
+                                      } @else {
+                                        <input type="text" aria-label="ชื่อเอกสาร" [value]="file.title" (input)="renameDocFile($index, $any($event.target).value)" />
+                                      }
+                                    </td>
+                                    <td class="col-act">
+                                      <div class="made-actions">
+                                        <button type="button" class="office-view" aria-label="ดู" (click)="openNoticeFile(file.name)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        </button>
+                                        <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadNoticeFile(file.name)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                        </button>
+                                        @if (!noticePipeLocked) {
+                                          <button type="button" class="office-view" aria-label="ลบ" (click)="removeDocFile($index)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+                                          </button>
+                                        }
+                                      </div>
+                                    </td>
+                                  </tr>
+                                } @empty {
+                                  <tr>
+                                    <td colspan="5" class="notice-files__empty">ยังไม่มีไฟล์แนบ</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
+                      </section>
                     </section>
                           </div>
                       <footer>
                         <app-button class="icon-before" type="outline" label="ดูตัวอย่าง" (click)="previewNotice()">
                           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
                         </app-button>
-                        @if (!docSent) {
+                        @if (noticePipe === 'draft') {
                           <app-button class="icon-before" type="primary" label="บันทึก" [state]="canReviewDocs ? 'default' : 'disabled'" (click)="saveNoticeForm()">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
                           </app-button>
-                          <app-button class="icon-before" type="primary" label="ส่ง" [state]="docCanSend ? 'default' : 'disabled'" (click)="saveDocs(true)">
+                          <app-button class="icon-before" type="primary" label="รายงานผลหัวหน้ากอง" [state]="canReportNoticeToHead ? 'default' : 'disabled'" (click)="reportNoticeToHead()">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                           </app-button>
+                        } @else if (noticePipe === 'to-head') {
+                          <app-button type="outline" label="ส่งกลับเจ้าหน้าที่" [state]="canHeadApproveNotice ? 'default' : 'disabled'" (click)="returnNoticeToOfficer()" />
+                          <app-button type="primary" label="หัวหน้ากองเห็นชอบ" [state]="canHeadApproveNotice ? 'default' : 'disabled'" (click)="approveNoticeByHead()" />
+                        } @else if (noticePipe === 'head-ok') {
+                          <app-button type="primary" label="ส่งเข้า e-Office" [state]="canSendNoticeToEoffice ? 'default' : 'disabled'" (click)="sendNoticeToEoffice()" />
+                        } @else if (noticePipe === 'eoffice') {
+                          <app-button type="primary" label="ดึงผลลงนามผอ." [state]="canPullNoticeSign ? 'default' : 'disabled'" (click)="pullNoticeDirectorSign()" />
+                        } @else if (noticePipe === 'signed') {
+                          <app-button type="primary" label="ออกเลขและส่งผู้ยื่น" [state]="canIssueNoticeNumber ? 'default' : 'disabled'" (click)="issueNoticeAndSend()" />
                         }
                       </footer>
                         </section>
@@ -4244,22 +4752,36 @@
         } @else if (formLocked) {
           <p class="sheet__view">ข้อมูลที่ยื่นแล้ว เปิดดูได้อย่างเดียว</p>
         }
-        <div class="sheet__split">
+        <div class="sheet__split" [class.sheet__split--docs-collapsed]="formTocCollapsed">
+          @if (formTocCollapsed) {
+            <button type="button" class="desk-docs__rail" aria-label="ขยายส่วนของแบบ ปร. 1" title="ขยายส่วนของแบบ ปร. 1" (click)="toggleFormToc()">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                <path d="M13 9.5 16 12l-3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>ส่วนของแบบ</span>
+            </button>
+          } @else {
           <nav class="toc" aria-label="ส่วนของแบบ ปร. 1">
+            <div class="desk-docs__bar">
+              <h2>ส่วนของแบบ</h2>
+              <button type="button" class="desk-docs__find" aria-label="หดส่วนของแบบ" title="หดส่วนของแบบ" (click)="toggleFormToc()">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                  <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+                  <path d="M9 3.5v17" fill="none" stroke="currentColor" stroke-width="1.5" />
+                  <path d="M16 9.5 13 12l3 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+            </div>
             @for (group of formToc; track group.label) {
               <p class="toc__group" [class.toc__group--fail]="groupFailed(group)">{{ group.label }}</p>
               @for (item of group.items; track item.label) {
-                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="failed(item)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">
-                  @if (failed(item)) {
-                    <span class="toc__dot toc__dot--fail" aria-hidden="true"></span>
-                  } @else {
-                    <img [src]="(formView ? itemComplete(item) : filled(item)) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />
-                  }
-                  {{ item.label }}
-                </button>
+                <button type="button" class="toc__child" [class.toc__on]="current(item)" [class.toc__fail]="failed(item)" [attr.aria-current]="current(item) ? 'true' : null" (mousedown)="$event.preventDefault()" (click)="open(item, $event)">@if (failed(item)) {<span class="toc__dot toc__dot--fail" aria-hidden="true"></span>} @else {<img [src]="(formView ? itemComplete(item) : filled(item)) ? 'assets/icons/por1-dot-done.svg' : 'assets/icons/por1-dot.svg'" width="11" height="11" alt="" />}<span>{{ item.label }}</span></button>
               }
             }
           </nav>
+          }
           <div class="form-pane">
             <div class="help-wrap" (click)="$event.stopPropagation()">
               <button
@@ -4593,7 +5115,7 @@
               <div class="part-head">
                 <div class="part-head__copy">
                   <h3 id="part-2">ส่วนที่ 2 รายละเอียดของสินค้า</h3>
-                  <p>เปรียบเทียบสินค้าที่ถูกพิจารณากับสินค้าชนิดเดียวกันที่ผู้ยื่นคำขอผลิตได้ในประเทศ</p>
+                  <p>กรอกตารางเปรียบเทียบ 2.1.1–2.1.10 และแนบสิ่งที่ส่งมาด้วยที่อ้างอิงในแต่ละช่อง (พิกัด มาตรฐาน กระบวนการผลิต ฯลฯ)</p>
                 </div>
                 <ng-container *ngTemplateOutlet="fileTools" />
               </div>
@@ -4610,8 +5132,8 @@
                     @for (row of goodsCompare; track row.item) {
                       <tr>
                         <td>{{ row.item }}</td>
-                        <td><textarea rows="2" [value]="row.subject" (input)="row.subject = $any($event.target).value" [attr.aria-label]="row.item + ' สินค้าที่ถูกพิจารณา'"></textarea></td>
-                        <td><textarea rows="2" [value]="row.like" (input)="row.like = $any($event.target).value" [attr.aria-label]="row.item + ' สินค้าชนิดเดียวกัน'"></textarea></td>
+                        <td><textarea [rows]="goodsCompareRows(row.subject)" [value]="row.subject" (input)="row.subject = $any($event.target).value" [attr.aria-label]="row.item + ' สินค้าที่ถูกพิจารณา'"></textarea></td>
+                        <td><textarea [rows]="goodsCompareRows(row.like)" [value]="row.like" (input)="row.like = $any($event.target).value" [attr.aria-label]="row.item + ' สินค้าชนิดเดียวกัน'"></textarea></td>
                       </tr>
                     }
                   </tbody>
