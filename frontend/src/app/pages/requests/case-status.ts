@@ -1082,12 +1082,21 @@ export function writeSystemLinks(rows: SystemLink[]): void {
   else sessionStorage.setItem(linksKey, JSON.stringify(rows));
 }
 
-export type DocFile = { name: string; title: string; sentOn: string };
+export type DocFile = {
+  name: string;
+  title: string;
+  sentOn: string;
+  href?: string;
+  /** ฉบับร่าง หรือ ฉบับสมบูรณ์ */
+  edition?: 'draft' | 'final';
+  /** สถานะการส่งให้ผู้ยื่น (ระดับไฟล์ — แถวจะทับด้วยท่อถ้ามี) */
+  delivery?: 'pending' | 'sent';
+};
 export type DocAction = 'amend' | 'complete' | 'late';
 
 /**
  * ท่ออนุมัติมาตรฐาน (Approval Lane)
- * เจ้าหน้าที่ → หัวหน้ากลุ่ม → ผู้อำนวยการ → e-Office → ประทับตรา → ออกเลข → แนบไฟล์กลับ → จัดเก็บ/ส่งต่อ
+ * เจ้าหน้าที่ → หัวหน้ากลุ่ม → ผู้อำนวยการ → e-Office → ประทับตรา → ออกเลข → แนบไฟล์กลับ → อนุมัติ → ส่งให้ผู้ยื่น
  */
 export type ApprovalLaneStage =
   | 'draft'
@@ -1098,6 +1107,7 @@ export type ApprovalLaneStage =
   | 'numbered'
   | 'attach'
   | 'done'
+  | 'delivered'
   | 'returned'
   | 'cancelled';
 
@@ -1139,6 +1149,7 @@ export const APPROVAL_LANE_FULL: ApprovalLaneStage[] = [
   'numbered',
   'attach',
   'done',
+  'delivered',
 ];
 
 /** แจ้งผลการตรวจ — เต็มท่อ */
@@ -1155,7 +1166,8 @@ export function approvalLaneStageLabel(stage: ApprovalLaneStage): string {
   if (stage === 'stamped') return 'ประทับตรา / ลงนาม';
   if (stage === 'numbered') return 'ออกเลขสารบรรณ';
   if (stage === 'attach') return 'แนบไฟล์ที่ออกเลขแล้ว';
-  if (stage === 'done') return 'จัดเก็บ / ส่งต่อแล้ว';
+  if (stage === 'done') return 'อนุมัติแล้ว';
+  if (stage === 'delivered') return 'ส่งแล้ว';
   if (stage === 'returned') return 'ส่งกลับแก้ไข';
   if (stage === 'cancelled') return 'ยกเลิกแล้ว';
   return stage;
@@ -1166,9 +1178,111 @@ export function approvalLaneStageTone(
 ): 'info' | 'warning' | 'success' | 'danger' | 'neutral' {
   if (stage === 'cancelled') return 'danger';
   if (stage === 'returned') return 'warning';
+  if (stage === 'delivered') return 'success';
   if (stage === 'done' || stage === 'attach' || stage === 'numbered' || stage === 'stamped') return 'success';
   if (stage === 'draft') return 'info';
   return 'warning';
+}
+
+/** รายการยังเปิดค้าง — ยังไม่อนุมัติ/ส่ง หรือปฏิเสธ */
+export function isApprovalItemOpen(stage: ApprovalLaneStage | string | undefined | null): boolean {
+  return stage !== 'done' && stage !== 'delivered' && stage !== 'cancelled' && stage !== 'returned';
+}
+
+/** สร้างรายการใหม่ได้เมื่อไม่มีรายการเปิดค้าง */
+export function canCreateApprovalItem(
+  stages: Array<ApprovalLaneStage | string | undefined | null>,
+): boolean {
+  return !stages.some((stage) => isApprovalItemOpen(stage));
+}
+
+/** ไฟล์เก็บเพิ่มหลังอนุมัติแล้ว (อัปโหลดได้หลายไฟล์) */
+export type ApprovalKeptFile = {
+  id: string;
+  name: string;
+  title: string;
+  at?: string;
+  /** ไฟล์ตัวอย่างจริงใต้ assets — เปิดดู/โหลดได้ */
+  href?: string;
+  /** ฉบับร่าง / ฉบับสมบูรณ์ */
+  edition?: 'draft' | 'final';
+  editionLabel?: string;
+  editionTone?: 'info' | 'warning' | 'success' | 'danger' | 'neutral';
+  /** รอส่ง / ส่งแล้ว */
+  delivery?: 'pending' | 'sent';
+  deliveryLabel?: string;
+  deliveryTone?: 'info' | 'warning' | 'success' | 'danger' | 'neutral';
+};
+
+/** แถวกลางสำหรับตารางรายการอนุมัติ (ใช้ร่วมหลายหน้า) */
+export type ApprovalListRow = {
+  id: string;
+  title: string;
+  date: string;
+  statusLabel: string;
+  statusTone: 'info' | 'warning' | 'success' | 'danger' | 'neutral';
+  stage: ApprovalLaneStage;
+  meta?: string;
+  canEdit?: boolean;
+  canReview?: boolean;
+  canCancel?: boolean;
+  /** อนุมัติแล้ว — เปิดให้อัปโหลดไฟล์สมบูรณ์ได้หลายไฟล์ */
+  canUpload?: boolean;
+  /** อนุมัติแล้ว + มีไฟล์สมบูรณ์ — ยืนยันส่งให้ผู้ยื่นได้ */
+  canDeliver?: boolean;
+  keptFiles?: ApprovalKeptFile[];
+};
+
+export function toApprovalListRow(input: {
+  id: string;
+  title: string;
+  date: string;
+  stage: ApprovalLaneStage;
+  meta?: string;
+  canEdit?: boolean;
+  canReview?: boolean;
+  canCancel?: boolean;
+  canUpload?: boolean;
+  canDeliver?: boolean;
+  keptFiles?: ApprovalKeptFile[];
+  statusLabel?: string;
+  statusTone?: ApprovalListRow['statusTone'];
+}): ApprovalListRow {
+  return {
+    id: input.id,
+    title: input.title,
+    date: input.date,
+    stage: input.stage,
+    meta: input.meta,
+    canEdit: input.canEdit === true,
+    canReview: input.canReview === true,
+    canCancel: input.canCancel === true,
+    canUpload: input.canUpload === true,
+    canDeliver: input.canDeliver === true,
+    keptFiles: input.keptFiles?.length
+      ? input.keptFiles.map((file) => ({
+          ...file,
+          editionLabel: file.editionLabel || (file.edition === 'final' ? 'ฉบับสมบูรณ์' : file.edition === 'draft' ? 'ฉบับร่าง' : undefined),
+          editionTone: file.editionTone || (file.edition === 'final' ? 'success' : file.edition === 'draft' ? 'neutral' : undefined),
+          deliveryLabel: file.deliveryLabel || (file.delivery === 'sent' ? 'ส่งแล้ว' : file.delivery === 'pending' ? 'รอส่ง' : undefined),
+          deliveryTone: file.deliveryTone || (file.delivery === 'sent' ? 'success' : file.delivery === 'pending' ? 'warning' : undefined),
+        }))
+      : undefined,
+    statusLabel: input.statusLabel || approvalLaneStageLabel(input.stage),
+    statusTone: input.statusTone || approvalLaneStageTone(input.stage),
+  };
+}
+
+/** ป้ายสถานะสั้นสำหรับหน้าจอรายการอนุมัติ */
+export function approvalListStatusLabel(stage: ApprovalLaneStage): string {
+  if (stage === 'delivered') return 'ส่งแล้ว';
+  if (stage === 'done') return 'อนุมัติแล้ว';
+  if (stage === 'cancelled') return 'ปฏิเสธแล้ว';
+  if (stage === 'returned') return 'ส่งกลับแก้ไข';
+  if (stage === 'draft') return 'ร่างเอกสาร';
+  if (stage === 'to-head') return 'รอหัวหน้ากลุ่ม';
+  if (stage === 'to-director') return 'รอผู้อำนวยการ';
+  return approvalLaneStageLabel(stage);
 }
 
 /** ขั้นถัดไปในท่อ (ข้าม returned/cancelled) */
@@ -1222,6 +1336,8 @@ export type NoticeLetterVersion = {
   html: string;
   source: 'upload' | 'created' | 'ai';
   fileName?: string;
+  /** ฉบับร่าง หรือ ฉบับสมบูรณ์ */
+  edition?: 'draft' | 'final';
 };
 
 /** หนึ่งรายการแจ้งผลการตรวจ (สร้างได้หลายรายการ ไม่ต้องรอรายการก่อนหน้า) */
@@ -1248,6 +1364,8 @@ export type NoticeItem = {
   history: NoticeHistoryEntry[];
   sent: boolean;
   sentBy: string;
+  /** ไฟล์เก็บเพิ่มหลังอนุมัติแล้ว (หลายไฟล์ได้) */
+  keptFiles?: DocFile[];
 };
 
 export type ReplyFile = { name: string; title: string; group: 'closed' | 'open' | 'extra' | 'extend' };
@@ -1415,6 +1533,10 @@ export type ApprovalSubmitAttachment = {
   name: string;
   title: string;
   at: string;
+  /** ไฟล์ตัวอย่างจริงใต้ assets */
+  href?: string;
+  /** ฉบับร่าง / ฉบับสมบูรณ์ — เสนออนุมัติใช้ฉบับร่างที่ส่งขออนุมัติ */
+  edition?: 'draft' | 'final';
 };
 
 /** รอบเสนออนุมัติ — เอกสารขออนุมัติ บันทึกเสนอ ผูกวาระอย่างน้อย 1 ไฟล์ */
@@ -1589,6 +1711,7 @@ function noticeItemFromLegacy(value: DocNotice): NoticeItem {
     history: value.history.map((item) => ({ ...item })),
     sent: value.sent,
     sentBy: value.sentBy,
+    keptFiles: [],
   };
 }
 
@@ -1597,15 +1720,17 @@ function readNoticeLetterVersions(value: unknown): NoticeLetterVersion[] {
   return value.flatMap((row) => {
     if (!row || typeof row !== 'object') return [];
     const item = row as Partial<NoticeLetterVersion>;
-    if (typeof item.version !== 'number' || typeof item.html !== 'string') return [];
+    if (typeof item.version !== 'number') return [];
     const source = item.source === 'ai' || item.source === 'upload' || item.source === 'created' ? item.source : 'created';
+    const edition = item.edition === 'final' ? 'final' : 'draft';
     return [{
       version: item.version,
       title: typeof item.title === 'string' && item.title ? item.title : `หนังสือแจ้งผล · เวอร์ชัน ${item.version}`,
       at: typeof item.at === 'string' ? item.at : '',
-      html: item.html,
+      html: typeof item.html === 'string' ? item.html : '',
       source,
       fileName: typeof item.fileName === 'string' ? item.fileName : undefined,
+      edition,
     }];
   });
 }
@@ -1620,7 +1745,18 @@ function readNoticeItems(value: unknown): NoticeItem[] {
     const files = Array.isArray(item.files)
       ? item.files.flatMap((file) => {
           if (!file || typeof file.name !== 'string' || !file.name) return [];
-          return [{ name: file.name, title: typeof file.title === 'string' && file.title ? file.title : file.name, sentOn: typeof file.sentOn === 'string' ? file.sentOn : '' }];
+          return [{
+            name: file.name,
+            title: typeof file.title === 'string' && file.title ? file.title : file.name,
+            sentOn: typeof file.sentOn === 'string' ? file.sentOn : '',
+            href: typeof (file as { href?: unknown }).href === 'string' ? (file as { href: string }).href : undefined,
+            edition: (file as { edition?: unknown }).edition === 'final' || (file as { edition?: unknown }).edition === 'draft'
+              ? (file as { edition: 'draft' | 'final' }).edition
+              : undefined,
+            delivery: (file as { delivery?: unknown }).delivery === 'sent' || (file as { delivery?: unknown }).delivery === 'pending'
+              ? (file as { delivery: 'pending' | 'sent' }).delivery
+              : undefined,
+          }];
         })
       : [];
     return [{
@@ -1652,8 +1788,25 @@ function readNoticeItems(value: unknown): NoticeItem[] {
       officeRef: typeof item.officeRef === 'string' ? item.officeRef : '',
       eofficeLink: readEofficeLink(item.eofficeLink),
       history: readNoticeHistory(item.history),
-      sent: item.sent === true || item.pipe === 'done',
+      sent: item.sent === true || item.pipe === 'done' || item.pipe === 'delivered',
       sentBy: typeof item.sentBy === 'string' ? item.sentBy : '',
+      keptFiles: Array.isArray(item.keptFiles)
+        ? item.keptFiles.flatMap((file) => {
+            if (!file || typeof file.name !== 'string' || !file.name) return [];
+            return [{
+              name: file.name,
+              title: typeof file.title === 'string' && file.title ? file.title : file.name,
+              sentOn: typeof file.sentOn === 'string' ? file.sentOn : '',
+              href: typeof (file as { href?: unknown }).href === 'string' ? (file as { href: string }).href : undefined,
+              edition: (file as { edition?: unknown }).edition === 'final' || (file as { edition?: unknown }).edition === 'draft'
+                ? (file as { edition: 'draft' | 'final' }).edition
+                : undefined,
+              delivery: (file as { delivery?: unknown }).delivery === 'sent' || (file as { delivery?: unknown }).delivery === 'pending'
+                ? (file as { delivery: 'pending' | 'sent' }).delivery
+                : undefined,
+            }];
+          })
+        : [],
     }];
   });
 }
@@ -1674,6 +1827,7 @@ const APPROVAL_LANE_STAGE_SET = new Set<string>([
   'numbered',
   'attach',
   'done',
+  'delivered',
   'returned',
   'cancelled',
 ]);

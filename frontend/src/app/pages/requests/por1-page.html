@@ -2171,6 +2171,20 @@
                       <img [src]="approvalDot()" width="11" height="11" alt="" aria-hidden="true" />
                       <span><strong>เสนออนุมัติ</strong></span>
                     </button>
+                    <button type="button" class="toc__child" [class.toc__on]="subAgendaNavOn" [attr.aria-current]="subAgendaNavOn ? 'true' : null" (click)="pickSubAgenda()">
+                      <img [src]="subAgendaDot()" width="11" height="11" alt="" aria-hidden="true" />
+                      <span><strong>วาระพิจารณาคำขอเปิดไต่สวน (อนุ)</strong></span>
+                    </button>
+                    @if (meetingBureauFlowEnabled) {
+                      <button type="button" class="toc__child" [class.toc__on]="meetingPackNavOn" [attr.aria-current]="meetingPackNavOn ? 'true' : null" (click)="pickMeetingPack()">
+                        <img [src]="meetingPackDot()" width="11" height="11" alt="" aria-hidden="true" />
+                        <span><strong>ส่งวาระ/PPT ให้ บท.</strong></span>
+                      </button>
+                      <button type="button" class="toc__child" [class.toc__on]="meetingResolutionNavOn" [attr.aria-current]="meetingResolutionNavOn ? 'true' : null" (click)="pickMeetingResolution()">
+                        <img [src]="meetingResolutionDot()" width="11" height="11" alt="" aria-hidden="true" />
+                        <span><strong>มติที่ประชุม</strong></span>
+                      </button>
+                    }
                   }
                   </div>
                 </nav>
@@ -3160,97 +3174,27 @@
                       </table>
                     </div>
                   } @else if (docPart === workDocs.length) {
-                    <header class="assign-head">
-                      <div>
-                        <h2>แจ้งผลการตรวจ</h2>
-                        <p class="link-detail">
-                          สร้างรายการใหม่ได้เรื่อยๆ โดยไม่ต้องรอรายการก่อนหน้า — รายการที่กระทำแล้วยกเลิกสถานะได้
-                        </p>
-                      </div>
-                      <div class="doc-tools">
-                        @if (canCreateNotice) {
-                          <app-button class="icon-before" type="primary" label="สร้างหนังสือแจ้งผล" (click)="openNoticeForm()">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                          </app-button>
-                        }
-                      </div>
-                    </header>
-                    @if (!noticeItems.length) {
-                      <p class="consult-blank">ยังไม่มีแบบฟอร์มหรือไฟล์แนบ</p>
-                    } @else {
-                      <div class="table-wrap consult-table">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th class="col-no">ลำดับ</th>
-                              <th>เรื่อง</th>
-                              <th class="col-fit">การดำเนินการ</th>
-                              <th class="col-fit">ครบกำหนด</th>
-                              <th class="col-fit">วันที่บันทึก</th>
-                              <th class="col-fit">สถานะการส่ง</th>
-                              <th class="col-act">การจัดการ</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @for (item of noticeItems; track item.id; let n = $index) {
-                              <tr>
-                                <td class="col-no">{{ n + 1 }}</td>
-                                <td>{{ item.title || noticeDisplayName(item.files[0]?.name || '') }}</td>
-                                <td class="col-fit">{{ docActionLabel(item.action) }}</td>
-                                <td class="col-fit">{{ item.action === 'complete' ? '—' : (item.dueOn || '—') }}</td>
-                                <td class="col-fit">{{ item.noticedOn || item.pipeAt || '—' }}</td>
-                                <td class="col-fit"><app-status-tag variant="soft" [tone]="noticePipeTone(item.pipe)" [label]="noticePipeLabel(item.pipe)" /></td>
-                                <td class="col-act">
-                                  <div class="made-actions">
-                                    <button type="button" class="office-view" aria-label="ดู" (click)="openNoticeForm(item.id)">
-                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-                                    </button>
-                                    @if (item.files[0]; as file) {
-                                      <button type="button" class="office-view" aria-label="ดาวน์โหลด" (click)="downloadNoticeFile(file.name)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
-                                      </button>
-                                    }
-                                    <button type="button" class="office-view" aria-label="ประวัติการกระทำ" title="ประวัติการกระทำ" (click)="openNoticeHistory(item.id)">
-                                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-                                    </button>
-                                    @if (canHeadApproveRow(item) || canDirectorApproveRow(item)) {
-                                      <button type="button" class="office-view" aria-label="พิจารณา" title="พิจารณาเห็นชอบ" (click)="openNoticeForm(item.id)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-                                      </button>
-                                    } @else if (canConfirmNoticeRow(item)) {
-                                      <button type="button" class="office-view" aria-label="ส่ง e-Office" title="เปิดส่ง e-Office / กรอกเลขเอง" (click)="continueNoticeRow(item)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                                      </button>
-                                    } @else if (canMarkNoticeStampedRow(item)) {
-                                      <button type="button" class="office-view" aria-label="บันทึกประทับตรา" title="ประทับตรา / ลงนามแล้ว" (click)="markNoticeStampedRow(item)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
-                                      </button>
-                                    } @else if (canPullNoticeSarabanRow(item)) {
-                                      <button type="button" class="office-view" aria-label="ดึงเลข e-Office" title="ดึงเลขสารบรรณจาก e-Office (สบ.1605/2562)" (click)="pullNoticeSarabanRow(item)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 13h6M9 17h4" /></svg>
-                                      </button>
-                                    } @else if (canIssueNoticeRow(item)) {
-                                      <button type="button" class="office-view" aria-label="จัดเก็บ / ส่งต่อ" title="แนบไฟล์ออกเลขแล้วแล้วจัดเก็บ/ส่งผู้ยื่น" (click)="issueNoticeRow(item)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                                      </button>
-                                    } @else if (canEditNoticeRow(item)) {
-                                      <button type="button" class="office-view" aria-label="แก้ไข" (click)="openNoticeForm(item.id)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                                      </button>
-                                    }
-                                    @if (canCancelNoticeRow(item)) {
-                                      <button type="button" class="office-view" aria-label="ยกเลิกสถานะ" title="ยกเลิกสถานะ" (click)="cancelNoticeStatus(item)">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-                                      </button>
-                                    }
-                                  </div>
-                                </td>
-                              </tr>
-                            }
-                          </tbody>
-                        </table>
-                        </div>
-                      }
+                    <app-approval-list-panel
+                      title="แจ้งผลการตรวจ"
+                      subtitle="ทำทีละรายการ — ต้องอนุมัติหรือปฏิเสธก่อนสร้างใหม่"
+                      createLabel="สร้างรายการอนุมัติ"
+                      [showCreate]="reviewRole === 'officer' && canHandleCase"
+                      [canCreate]="canCreateNotice"
+                      [createBlockedReason]="noticeCreateBlockedReason"
+                      emptyText="ยังไม่มีรายการแจ้งผลการตรวจ"
+                      [rows]="noticeApprovalListRows"
+                      (create)="onNoticeApprovalCreate()"
+                      (open)="onNoticeApprovalOpen($event)"
+                      (history)="onNoticeApprovalHistory($event)"
+                      (edit)="onNoticeApprovalEdit($event)"
+                      (review)="onNoticeApprovalReview($event)"
+                      (cancel)="onNoticeApprovalCancel($event)"
+                      (uploadFiles)="onNoticeApprovalUpload($event)"
+                      (removeKeptFile)="onNoticeApprovalRemoveKept($event)"
+                      (openKeptFile)="onNoticeApprovalOpenKept($event)"
+                      (downloadKeptFile)="onNoticeApprovalDownloadKept($event)"
+                      (deliver)="onNoticeApprovalDeliver($event)"
+                    />
                     @if (noticeFormOpen) {
                       <div class="assign-pop" [class.assign-pop--full]="noticeFormFull" (click)="closeNoticeForm()">
                         <section
@@ -3295,22 +3239,6 @@
                             </div>
                           </header>
                           <div class="agency-dialog__body">
-                    <section class="notice-block notice-lane-block" aria-label="ท่ออนุมัติ">
-                      <div class="notice-lane-block__head">
-                        <div>
-                          <h3>ท่ออนุมัติ</h3>
-                          <p class="link-detail">สถานะปัจจุบัน: {{ noticePipeLabel() }}@if (noticeSaraban) { · {{ noticeSaraban }} }</p>
-                        </div>
-                        <app-button
-                          type="outline"
-                          [label]="noticeLaneStepsOpen ? 'ซ่อนขั้นตอน' : 'แสดงขั้นตอน'"
-                          (click)="noticeLaneStepsOpen = !noticeLaneStepsOpen"
-                        />
-                      </div>
-                      @if (noticeLaneStepsOpen) {
-                        <app-approval-lane-stepper [stages]="noticeLaneStages" [current]="noticePipe" ariaLabel="ท่ออนุมัติแจ้งผลการตรวจ" />
-                      }
-                    </section>
                     @if ((canHeadApproveNotice || canDirectorApproveNotice) && !noticeLetterWordOpen) {
                       <section class="notice-form notice-preview" aria-label="แสดงผลแจ้งผลการตรวจ">
                         <section class="notice-block" aria-label="รายงานผลถึงหัวหน้ากลุ่ม">
@@ -3327,7 +3255,27 @@
                           <p class="draft-line"><strong>ข้อความ</strong><br>{{ docNote.trim() || '—' }}</p>
                         </section>
                         <section class="notice-block" aria-label="ไฟล์หนังสือแจ้งผล">
-                          <h3>2. ไฟล์หนังสือแจ้งผล</h3>
+                          <div class="notice-files-head">
+                            <div>
+                              <h3>2. ไฟล์หนังสือแจ้งผล</h3>
+                            </div>
+                            @if (canUploadNoticeLetter) {
+                              <div class="doc-tools notice-letter-actions">
+                                <app-button class="icon-before" type="outline" label="อัปโหลด" (click)="noticeLetterUploadPreview.click()">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 20h14" /></svg>
+                                </app-button>
+                                <input
+                                  #noticeLetterUploadPreview
+                                  class="draft-agenda-actions__file"
+                                  type="file"
+                                  accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
+                                  multiple
+                                  hidden
+                                  (change)="addDocFiles($event)"
+                                />
+                              </div>
+                            }
+                          </div>
                           @if (noticeLetterVersions.length || docFiles.length) {
                             <div class="table-wrap slip-files draft-agenda-table">
                               <table>
@@ -3337,6 +3285,7 @@
                                     <th>ชื่อเอกสาร</th>
                                     <th class="col-fit">วันที่</th>
                                     <th class="col-fit">ที่มา</th>
+                                    <th class="col-fit">สถานะ</th>
                                     <th class="col-act">การจัดการ</th>
                                   </tr>
                                 </thead>
@@ -3347,13 +3296,20 @@
                                       <td>{{ row.title }}</td>
                                       <td class="col-fit">{{ noticeLetterAtLabel(row.at) }}</td>
                                       <td class="col-fit"><app-status-tag variant="soft" [tone]="row.source === 'upload' ? 'warning' : row.source === 'ai' ? 'info' : 'neutral'" [label]="noticeLetterSourceLabel(row.source)" /></td>
+                                      <td class="col-fit">
+                                        @if (canEditNoticeLetterEdition) {
+                                          <button type="button" class="notice-edition-toggle" [attr.title]="'สลับเป็นฉบับ' + (row.edition === 'final' ? 'ร่าง' : 'สมบูรณ์')" (click)="toggleNoticeLetterEdition(row.version)">
+                                            <app-status-tag variant="soft" [tone]="noticeLetterEditionTone(row.edition)" [label]="noticeLetterEditionLabel(row.edition)" />
+                                          </button>
+                                        } @else {
+                                          <app-status-tag variant="soft" [tone]="noticeLetterEditionTone(row.edition)" [label]="noticeLetterEditionLabel(row.edition)" />
+                                        }
+                                      </td>
                                       <td class="col-act">
                                         <div class="made-actions">
-                                          @if (row.source === 'created' || row.source === 'ai') {
-                                            <button type="button" class="office-view" aria-label="เปิดร่าง" title="เปิดร่าง" (click)="openNoticeLetterVersion(row.version)">
-                                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                                            </button>
-                                          }
+                                          <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="openNoticeLetterVersion(row.version)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
                                           <button type="button" class="office-view" aria-label="ดาวน์โหลด" title="ดาวน์โหลด" (click)="downloadNoticeLetterVersion(row)">
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
                                           </button>
@@ -3367,8 +3323,12 @@
                                       <td>{{ row.file.title }}</td>
                                       <td class="col-fit">{{ noticeLetterAtLabel(row.file.sentOn) }}</td>
                                       <td class="col-fit"><app-status-tag variant="soft" tone="warning" label="อัปเดตไฟล์" /></td>
+                                      <td class="col-fit"><app-status-tag variant="soft" tone="neutral" label="ร่าง" /></td>
                                       <td class="col-act">
                                         <div class="made-actions">
+                                          <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="openNoticeFile(row.file.name)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
                                           <button type="button" class="office-view" aria-label="ดาวน์โหลด" title="ดาวน์โหลด" (click)="downloadNoticeFile(row.file.name)">
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
                                           </button>
@@ -3413,27 +3373,31 @@
                         <div class="notice-files-head">
                           <div>
                             <h3>2. หนังสือแจ้งผล<span class="req">*</span></h3>
-                            <p class="link-detail">สร้างในระบบ / AI ช่วยร่าง (ยึดแก้ไขครั้งที่ {{ latestAmendPassNo() }}) / อัปโหลด</p>
+                            <p class="link-detail">สร้างในระบบ / AI ช่วยร่าง (ยึดแก้ไขครั้งที่ {{ latestAmendPassNo() }}) / อัปโหลด — ตั้งสถานะฉบับร่างหรือสมบูรณ์ได้</p>
                           </div>
-                          @if (!noticePipeLocked && !noticeLetterWordOpen) {
+                          @if (!noticeLetterWordOpen && (canUploadNoticeLetter || !noticePipeLocked)) {
                             <div class="doc-tools draft-agenda-actions notice-letter-actions">
-                              <app-button class="icon-before" type="outline" label="สร้างหนังสือ" (click)="requestCreateNoticeLetter()">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                              </app-button>
-                              <app-button class="icon-before ask-ai" type="outline" label="AI ช่วยร่าง" [state]="noticeLetterAiBusy ? 'disabled' : 'default'" (click)="requestAiNoticeLetter()">
-                                <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
-                              </app-button>
-                              <app-button class="icon-before" type="outline" label="อัปเดตไฟล์" (click)="noticeLetterUpload.click()">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 20h14" /></svg>
-                              </app-button>
-                              <input
-                                #noticeLetterUpload
-                                class="draft-agenda-actions__file"
-                                type="file"
-                                accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
-                                multiple
-                                (change)="addDocFiles($event)"
-                              />
+                              @if (!noticePipeLocked) {
+                                <app-button class="icon-before" type="outline" label="สร้างหนังสือ" (click)="requestCreateNoticeLetter()">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                </app-button>
+                                <app-button class="icon-before ask-ai" type="outline" label="AI ช่วยร่าง" [state]="noticeLetterAiBusy ? 'disabled' : 'default'" (click)="requestAiNoticeLetter()">
+                                  <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                                </app-button>
+                              }
+                              @if (canUploadNoticeLetter) {
+                                <app-button class="icon-before" type="outline" label="อัปโหลด" (click)="noticeLetterUpload.click()">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 20h14" /></svg>
+                                </app-button>
+                                <input
+                                  #noticeLetterUpload
+                                  class="draft-agenda-actions__file"
+                                  type="file"
+                                  accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
+                                  multiple
+                                  (change)="addDocFiles($event)"
+                                />
+                              }
                             </div>
                           }
                         </div>
@@ -3533,6 +3497,7 @@
                                     <th>ชื่อเอกสาร</th>
                                     <th class="col-fit">วันที่</th>
                                     <th class="col-fit">ที่มา</th>
+                                    <th class="col-fit">สถานะ</th>
                                     <th class="col-act">การจัดการ</th>
                                   </tr>
                                 </thead>
@@ -3549,17 +3514,24 @@
                                       </td>
                                       <td class="col-fit">{{ noticeLetterAtLabel(row.at) }}</td>
                                       <td class="col-fit"><app-status-tag variant="soft" [tone]="row.source === 'upload' ? 'warning' : row.source === 'ai' ? 'info' : 'neutral'" [label]="noticeLetterSourceLabel(row.source)" /></td>
+                                      <td class="col-fit">
+                                        @if (canEditNoticeLetterEdition) {
+                                          <button type="button" class="notice-edition-toggle" [attr.title]="'สลับเป็นฉบับ' + (row.edition === 'final' ? 'ร่าง' : 'สมบูรณ์')" (click)="toggleNoticeLetterEdition(row.version)">
+                                            <app-status-tag variant="soft" [tone]="noticeLetterEditionTone(row.edition)" [label]="noticeLetterEditionLabel(row.edition)" />
+                                          </button>
+                                        } @else {
+                                          <app-status-tag variant="soft" [tone]="noticeLetterEditionTone(row.edition)" [label]="noticeLetterEditionLabel(row.edition)" />
+                                        }
+                                      </td>
                                       <td class="col-act">
                                         <div class="made-actions">
-                                          @if (row.source === 'created' || row.source === 'ai') {
-                                            <button type="button" class="office-view" aria-label="เปิดร่าง" title="เปิดร่าง" (click)="openNoticeLetterVersion(row.version)">
-                                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                                            </button>
-                                          }
+                                          <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="openNoticeLetterVersion(row.version)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
                                           <button type="button" class="office-view" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadNoticeLetterVersion(row)">
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
                                           </button>
-                                          @if (!noticePipeLocked) {
+                                          @if (!noticePipeLocked || (canUploadNoticeLetter && row.source === 'upload')) {
                                             <button type="button" class="office-view" aria-label="ลบ" title="ลบ" (click)="removeNoticeLetterVersion(row.version)">
                                               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
                                             </button>
@@ -3580,6 +3552,7 @@
                                       </td>
                                       <td class="col-fit">{{ noticeLetterAtLabel(row.file.sentOn) }}</td>
                                       <td class="col-fit"><app-status-tag variant="soft" tone="warning" label="อัปเดตไฟล์" /></td>
+                                      <td class="col-fit"><app-status-tag variant="soft" tone="neutral" label="ร่าง" /></td>
                                       <td class="col-act">
                                         <div class="made-actions">
                                           <button type="button" class="office-view" aria-label="ดู" (click)="openNoticeFile(row.file.name)">
@@ -3599,7 +3572,7 @@
                                   }
                                   @if (!noticeLetterVersions.length && !noticeLetterOrphanFiles.length) {
                                     <tr>
-                                      <td colspan="5" class="notice-files__empty">ยังไม่มีไฟล์ — กดสร้างหนังสือ AI ช่วยร่าง หรืออัปเดตไฟล์</td>
+                                      <td colspan="6" class="notice-files__empty">ยังไม่มีไฟล์ — กดสร้างหนังสือ AI ช่วยร่าง หรืออัปโหลด</td>
                                     </tr>
                                   }
                                 </tbody>
@@ -3680,22 +3653,6 @@
                               <app-button type="primary" label="แจ้งได้รับเอกสารครบถ้วนแล้ว" (click)="markComplete()" />
                             </footer>
                           }
-                        </section>
-                      }
-                      @if (noticePasses.length) {
-                        <section class="slip" aria-label="รอบที่แจ้งไปแล้ว">
-                          <h3>รอบที่แจ้งไปแล้ว</h3>
-                          <ol class="findings">
-                            @for (pass of noticePasses; track pass.noticedOn + pass.note) {
-                              <li>
-                                <div>
-                                  <strong>ครั้งที่ {{ $index + 1 }} · {{ docActionLabel(pass.action) }}</strong>
-                                  <small>แจ้งเมื่อ {{ pass.noticedOn }}@if (pass.sarabanNo) { · เลขรับ {{ pass.sarabanNo }} }@if (pass.reply) { · ผู้ยื่นส่งกลับ {{ pass.reply.at }} }</small>
-                                  <p>{{ pass.note }}</p>
-                                </div>
-                              </li>
-                            }
-                          </ol>
                         </section>
                       }
                   } @else if (docPart === draftAgendaPart) {
@@ -4014,38 +3971,42 @@
                     </section>
                   } @else if (docPart === approvalSubmitPart) {
                     @if (!(approvalTab === 'editor' && approvalWordOpen)) {
-                      <header class="assign-head">
-                        <div>
-                          <h2>เสนออนุมัติ</h2>
-                          <p class="link-detail">{{ refId }}@if (approvalLatestRound) { · รอบล่าสุด {{ approvalLatestRound }} } · เอกสารขออนุมัติ บันทึกเสนอ</p>
-                        </div>
-                        <div class="doc-tools draft-agenda-actions">
-                          @if (approvalTab === 'files') {
-                            <app-button class="icon-before wide draft-agenda-actions__btn" type="outline" label="สร้างรายการเสนอ" (click)="requestCreateApprovalRound()">
-                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                            </app-button>
-                            <app-button class="icon-before wide draft-agenda-actions__btn" type="outline" label="อัปเดตไฟล์" (click)="requestUploadApproval()">
-                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 20h14" /></svg>
-                            </app-button>
-                            <input
-                              #approvalUpload
-                              class="draft-agenda-actions__file"
-                              type="file"
-                              accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
-                              multiple
-                              (change)="onApprovalUploadPicked($event)"
-                            />
-                          }
-                        </div>
-                      </header>
-                    }
-                    <div class="desk-shelf draft-agenda-shelf" [class.draft-agenda-shelf--editor]="approvalTab === 'editor' && approvalWordOpen" role="tablist" aria-label="เสนออนุมัติ">
+                      <app-approval-list-panel
+                        title="เสนออนุมัติ"
+                        [subtitle]="(refId || '') + (approvalLatestRound ? ' · รอบล่าสุด ' + approvalLatestRound : '') + ' · ทำทีละรายการ — ต้องอนุมัติหรือปฏิเสธก่อนสร้างใหม่'"
+                        createLabel="สร้างรายการอนุมัติ"
+                        [showCreate]="!reviewRole || reviewRole === 'officer'"
+                        [canCreate]="canCreateApprovalRound"
+                        [createBlockedReason]="approvalCreateBlockedReason"
+                        emptyText="ยังไม่มีรายการเสนออนุมัติ"
+                        [rows]="approvalListRows"
+                        (create)="onApprovalListCreate()"
+                        (open)="onApprovalListOpen($event)"
+                        (history)="onApprovalListHistory($event)"
+                        (edit)="onApprovalListEdit($event)"
+                        (review)="onApprovalListReview($event)"
+                        (cancel)="onApprovalListCancel($event)"
+                        (uploadFiles)="onApprovalListUpload($event)"
+                        (removeKeptFile)="onApprovalListRemoveKept($event)"
+                        (openKeptFile)="onApprovalListOpenKept($event)"
+                        (downloadKeptFile)="onApprovalListDownloadKept($event)"
+                      />
+                      <input
+                        #approvalUpload
+                        class="draft-agenda-actions__file"
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
+                        multiple
+                        (change)="onApprovalUploadPicked($event)"
+                        hidden
+                      />
+                    } @else {
+                    <div class="desk-shelf draft-agenda-shelf draft-agenda-shelf--editor" role="tablist" aria-label="เสนออนุมัติ">
                       <div class="draft-agenda-shelf__tabs">
-                        <button type="button" role="tab" [class.on]="approvalTab === 'files'" [attr.aria-selected]="approvalTab === 'files'" (click)="pickApprovalTab('files')">ไฟล์</button>
-                        <button type="button" role="tab" [class.on]="approvalTab === 'editor'" [attr.aria-selected]="approvalTab === 'editor'" [disabled]="!canOpenApprovalEditor" (click)="pickApprovalTab('editor')">เอกสารขออนุมัติ บันทึกเสนอ</button>
+                        <button type="button" role="tab" (click)="closeApprovalWord()">รายการ</button>
+                        <button type="button" role="tab" class="on" [attr.aria-selected]="true">เอกสารขออนุมัติ บันทึกเสนอ</button>
                       </div>
-                      @if (approvalTab === 'editor' && approvalWordOpen) {
-                        <div class="draft-agenda-shelf__acts doc-tools">
+                      <div class="draft-agenda-shelf__acts doc-tools">
                           <div class="bundle-zoom" role="group" aria-label="ซูมเอกสาร">
                             <button type="button" class="desk-docs__find" aria-label="ซูมออก" title="ซูมออก" [disabled]="!canZoomApprovalOut" (click)="zoomApproval(-1)">
                               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-3.5-3.5M8 11h6" /></svg>
@@ -4078,119 +4039,8 @@
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
                           </app-button>
                         </div>
-                      }
                     </div>
-                    <section class="notice-form" [class.draft-agenda-form--editor]="approvalTab === 'editor' && approvalWordOpen" [class.draft-agenda-form--full]="approvalViewerFull" aria-label="เสนออนุมัติ">
-                      @if (approvalRounds.length) {
-                        <section class="notice-block notice-lane-block" aria-label="ท่ออนุมัติเสนอ">
-                          <div class="notice-lane-block__head">
-                            <div>
-                              <h3>ท่ออนุมัติ</h3>
-                              <p class="link-detail">
-                                สถานะปัจจุบัน: {{ approvalLaneLabel() }}
-                                @if (approvalActiveRound) { · รอบ {{ approvalActiveRound }} }
-                              </p>
-                            </div>
-                            <app-button
-                              type="outline"
-                              [label]="approvalLaneStepsOpen ? 'ซ่อนขั้นตอน' : 'แสดงขั้นตอน'"
-                              (click)="approvalLaneStepsOpen = !approvalLaneStepsOpen"
-                            />
-                          </div>
-                          @if (approvalLaneStepsOpen) {
-                            <app-approval-lane-stepper [stages]="approvalLaneStages" [current]="approvalLaneStage" ariaLabel="ท่ออนุมัติเสนออนุมัติ" />
-                          }
-                        </section>
-                      }
-                      @if (approvalTab === 'files') {
-                        @if (!approvalRounds.length) {
-                          <p class="consult-blank">ยังไม่มีรายการเสนอ — เลือกวาระอย่างน้อย 1 ไฟล์ แล้วสร้างรายการเสนอ / AI ช่วยร่าง หรืออัปเดตไฟล์</p>
-                        } @else {
-                          <div class="table-wrap consult-table pack-table draft-agenda-table approval-submit-table">
-                            <table>
-                              <thead>
-                                <tr>
-                                  <th class="col-no">ลำดับ</th>
-                                  <th>ชื่อเอกสาร</th>
-                                  <th class="col-fit">วันที่</th>
-                                  <th class="col-fit">ที่มา</th>
-                                  <th class="col-fit">จำนวนไฟล์แนบ</th>
-                                  <th class="col-fit">ท่ออนุมัติ</th>
-                                  <th class="col-act">การจัดการ</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                @for (row of approvalRounds; track row.round; let i = $index) {
-                                  <tr>
-                                    <td class="col-no">{{ i + 1 }}</td>
-                                    <td>
-                                      @if (row.source === 'upload') {
-                                        <input
-                                          type="text"
-                                          aria-label="ชื่อเอกสาร"
-                                          [value]="row.title"
-                                          (input)="renameApprovalRound(row.round, $any($event.target).value)"
-                                        />
-                                      } @else {
-                                        {{ row.title }}
-                                      }
-                                    </td>
-                                    <td class="col-fit">{{ approvalAtLabel(row.at) }}</td>
-                                    <td class="col-fit"><app-status-tag variant="soft" [tone]="row.source === 'upload' ? 'warning' : row.source === 'ai' ? 'info' : 'neutral'" [label]="draftAgendaSourceLabel(row.source)" /></td>
-                                    <td class="col-fit">{{ approvalFileCountLabel(row) }}</td>
-                                    <td class="col-fit">
-                                      <button type="button" class="office-view" (click)="approvalActiveRound = row.round">
-                                        <app-status-tag variant="soft" [tone]="approvalLaneStageTone(row.laneStage || 'draft')" [label]="approvalLaneStageLabel(row.laneStage || 'draft')" />
-                                      </button>
-                                    </td>
-                                    <td class="col-act">
-                                      <div class="made-actions">
-                                        @if (row.source === 'created' || row.source === 'ai') {
-                                          <button type="button" class="office-view" aria-label="เปิดร่าง" title="เปิดร่าง" (click)="openApprovalRound(row.round)">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
-                                          </button>
-                                        }
-                                        @if (row.fileName) {
-                                          <button type="button" class="office-view" aria-label="เปิดไฟล์" title="เปิดไฟล์" (click)="openApprovalUpload(row)">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-                                          </button>
-                                        }
-                                        <button type="button" class="office-view" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadApprovalRound(row)">
-                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                }
-                              </tbody>
-                            </table>
-                          </div>
-                          @if (approvalActiveRound && showApprovalEofficePanel) {
-                            <app-approval-eoffice-panel
-                              [payload]="approvalEofficePayload"
-                              [linkState]="approvalEofficeLink"
-                              [linkDetail]="approvalEofficeLinkDetail"
-                              [letterNo]="approvalEofficeLetterNo"
-                              [canAct]="showApprovalEofficePanel"
-                              (sendAuto)="onApprovalLaneAction('send-eoffice')"
-                              (sendFail)="failApprovalEofficeLink()"
-                              (syncPull)="syncApprovalFromEoffice()"
-                              (applyManual)="applyManualApprovalEoffice($event)"
-                            />
-                          }
-                          @if (approvalActiveRound) {
-                            <app-approval-lane-actions
-                              [stage]="approvalLaneStage"
-                              [actor]="approvalLaneActor"
-                              [canPrimary]="true"
-                              [canFinish]="canFinishApprovalLane"
-                              [hideEofficeSend]="showApprovalEofficePanel"
-                              finishLabel="จัดเก็บ / ส่งต่อ"
-                              (action)="onApprovalLaneAction($event)"
-                            />
-                          }
-                        }
-                      } @else if (approvalTab === 'editor' && approvalWordOpen) {
+                    <section class="notice-form draft-agenda-form--editor" [class.draft-agenda-form--full]="approvalViewerFull" aria-label="เสนออนุมัติ">
                         <section class="agency-word bundle-amend-pane draft-agenda-editor" aria-label="เอกสารขออนุมัติ บันทึกเสนอแบบ Word">
                           <p class="draft-agenda-editor__title slip-file-label">เอกสารขออนุมัติ บันทึกเสนอ@if (approvalActiveRound) { · รอบ {{ approvalActiveRound }} }</p>
                           <div class="approval-attach" aria-label="ไฟล์วาระและไฟล์แนบที่ส่งเสนอ">
@@ -4446,11 +4296,470 @@
                             [canPrimary]="true"
                             [canFinish]="canFinishApprovalLane"
                             [hideEofficeSend]="showApprovalEofficePanel"
+                            [waitingText]="approvalLaneWaitingText"
                             finishLabel="จัดเก็บ / ส่งต่อ"
                             (action)="onApprovalLaneAction($event)"
                           />
                         }
+                    </section>
+                    }
+                  } @else if (docPart === subAgendaPart) {
+                    @if (!(subAgendaTab === 'editor' && subAgendaWordOpen)) {
+                      <header class="assign-head">
+                        <div>
+                          <h2>วาระพิจารณาคำขอเปิดไต่สวน (อนุ)</h2>
+                          <p class="link-detail">
+                            {{ refId || '' }}@if (subAgendaLatestVersion) { · เวอร์ชันล่าสุด {{ subAgendaLatestVersion }} }
+                            · เนื้อหาแบบวาระหลัก ใช้วันประชุมอนุ — ไม่ใช่ท่อเสนออนุมัติ
+                          </p>
+                        </div>
+                        <div class="doc-tools draft-agenda-actions">
+                          @if (subAgendaTab === 'files') {
+                            <app-button class="icon-before wide draft-agenda-actions__btn" type="outline" label="เพิ่มวาระอนุ" (click)="requestAddSubAgendaFromDraft()">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                            </app-button>
+                            <app-button class="icon-before wide draft-agenda-actions__btn" type="outline" label="อัปเดตไฟล์" (click)="subAgendaUpload.click()">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 20h14" /></svg>
+                            </app-button>
+                            <input
+                              #subAgendaUpload
+                              class="draft-agenda-actions__file"
+                              type="file"
+                              accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
+                              multiple
+                              (change)="uploadSubAgendaFiles($event)"
+                            />
+                          }
+                        </div>
+                      </header>
+                    }
+                    <div class="desk-shelf draft-agenda-shelf" [class.draft-agenda-shelf--editor]="subAgendaTab === 'editor' && subAgendaWordOpen" role="tablist" aria-label="วาระอนุ">
+                      <div class="draft-agenda-shelf__tabs">
+                        <button type="button" role="tab" [class.on]="subAgendaTab === 'files'" [attr.aria-selected]="subAgendaTab === 'files'" (click)="pickSubAgendaTab('files')">ไฟล์</button>
+                        <button type="button" role="tab" [class.on]="subAgendaTab === 'editor'" [attr.aria-selected]="subAgendaTab === 'editor'" [disabled]="!subAgendaVersions.length" (click)="pickSubAgendaTab('editor')">วาระพิจารณาคำขอเปิดไต่สวน (อนุ)</button>
+                      </div>
+                      @if (subAgendaTab === 'editor' && subAgendaWordOpen) {
+                        <div class="draft-agenda-shelf__acts doc-tools">
+                          <div class="bundle-zoom" role="group" aria-label="ซูมเอกสาร">
+                            <button type="button" class="desk-docs__find" aria-label="ซูมออก" title="ซูมออก" [disabled]="!canZoomSubAgendaOut" (click)="zoomSubAgenda(-1)">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-3.5-3.5M8 11h6" /></svg>
+                            </button>
+                            <span class="bundle-zoom__value">{{ subAgendaZoom }}%</span>
+                            <button type="button" class="desk-docs__find" aria-label="ซูมเข้า" title="ซูมเข้า" [disabled]="!canZoomSubAgendaIn" (click)="zoomSubAgenda(1)">
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-3.5-3.5M8 11h6M11 8v6" /></svg>
+                            </button>
+                          </div>
+                          <button type="button" class="desk-docs__find" [attr.aria-pressed]="subAgendaViewerFull" [attr.aria-label]="subAgendaViewerFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" [attr.title]="subAgendaViewerFull ? 'ย่อหน้าจอ' : 'เต็มหน้าจอ'" (click)="toggleSubAgendaViewerFull()">
+                            @if (subAgendaViewerFull) {
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M20 15h-5v5M4 15h5v5" /></svg>
+                            } @else {
+                              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5" /></svg>
+                            }
+                          </button>
+                          <app-button class="icon-before" type="outline" label="ดาวน์โหลด" (click)="downloadSubAgendaWord()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                          </app-button>
+                          <app-button class="icon-before" type="outline" label="ปิด" (click)="closeSubAgendaWord()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                          </app-button>
+                          <app-button class="icon-before" type="outline" label="บันทึกร่าง" (click)="saveSubAgendaDraft()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+                          </app-button>
+                          <app-button class="icon-before" type="primary" label="บันทึกเอกสาร" (click)="saveSubAgendaWord()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+                          </app-button>
+                        </div>
                       }
+                    </div>
+                    <section class="notice-form" [class.draft-agenda-form--editor]="subAgendaTab === 'editor' && subAgendaWordOpen" [class.draft-agenda-form--full]="subAgendaViewerFull" aria-label="วาระอนุ">
+                      @if (subAgendaTab === 'files') {
+                        @if (!subAgendaVersions.length) {
+                          <p class="consult-blank">ยังไม่มีวาระอนุ — กดเพิ่มวาระอนุจากวาระหลัก หรืออัปเดตไฟล์</p>
+                        } @else {
+                          <div class="table-wrap consult-table pack-table draft-agenda-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="col-no">ลำดับ</th>
+                                  <th>ชื่อเอกสาร</th>
+                                  <th class="col-fit">วันที่</th>
+                                  <th class="col-fit">ที่มา</th>
+                                  <th class="col-act">การจัดการ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (row of subAgendaVersions; track row.version; let i = $index) {
+                                  <tr>
+                                    <td class="col-no">{{ i + 1 }}</td>
+                                    <td>
+                                      @if (row.source === 'upload') {
+                                        <input
+                                          type="text"
+                                          aria-label="ชื่อเอกสาร"
+                                          [value]="row.title"
+                                          (input)="renameSubAgendaVersion(row.version, $any($event.target).value)"
+                                        />
+                                      } @else {
+                                        {{ row.title }}
+                                      }
+                                    </td>
+                                    <td class="col-fit">{{ draftAgendaAtLabel(row.at) }}</td>
+                                    <td class="col-fit"><app-status-tag variant="soft" [tone]="row.source === 'upload' ? 'warning' : row.source === 'ai' ? 'info' : 'neutral'" [label]="draftAgendaSourceLabel(row.source)" /></td>
+                                    <td class="col-act">
+                                      <div class="made-actions">
+                                        @if (row.source === 'created' || row.source === 'ai') {
+                                          <button type="button" class="office-view" aria-label="เปิดร่าง" title="เปิดร่าง" (click)="openSubAgendaVersion(row.version)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                                          </button>
+                                        }
+                                        @if (row.fileName) {
+                                          <button type="button" class="office-view" aria-label="เปิดไฟล์" title="เปิดไฟล์" (click)="openSubAgendaVersion(row.version)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
+                                        }
+                                        <button type="button" class="office-view" aria-label="โหลด" title="โหลด" (click)="downloadSubAgendaVersion(row)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                        </button>
+                                        <button type="button" class="office-view" aria-label="ลบ" title="ลบ" (click)="removeSubAgendaVersion(row.version)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        }
+                      } @else if (subAgendaTab === 'editor' && subAgendaWordOpen) {
+                        <section class="agency-word bundle-amend-pane draft-agenda-editor" aria-label="เอกสารวาระพิจารณาคำขอเปิดไต่สวน (อนุ)แบบ Word">
+                          <p class="draft-agenda-editor__title slip-file-label">วาระพิจารณาคำขอเปิดไต่สวน (อนุ)@if (subAgendaActiveVersion) { · เวอร์ชัน {{ subAgendaActiveVersion }} }</p>
+                          <app-text-editor-toolbar
+                            ariaLabel="เครื่องมือแก้ไขวาระพิจารณาคำขอเปิดไต่สวน (อนุ)"
+                            [fontName]="officialFontName"
+                            [fontSize]="amendFontSize"
+                            [fontSizes]="amendFontSizes"
+                            [lineHeight]="amendLineHeight"
+                            [lineHeights]="amendLineHeights"
+                            [color]="amendColor"
+                            [colors]="amendColors"
+                            [highlight]="amendHighlight"
+                            [highlights]="amendHighlights"
+                            [marks]="amendMarks"
+                            [showComment]="canAddSubAgendaComment"
+                            [commentOn]="commentPinMode"
+                            (format)="textEditorFormat($event.command, $event.value)"
+                            (fontSizeChange)="textEditorFontSize($event)"
+                            (colorChange)="textEditorColor($event)"
+                            (highlightChange)="textEditorHighlight($event)"
+                            (lineHeightChange)="applyAmendLineHeight($event)"
+                            (insertTable)="insertAmendTable()"
+                            (insertHr)="insertAmendHr()"
+                            (insertPageBreak)="insertSubAgendaPageBreak()"
+                            (comment)="beginAmendWordComment()"
+                            (commentDragStart)="onNewPinDragStart($event)"
+                          />
+                          <div
+                            #subAgendaStage
+                            class="bundle-reader agency-word__reader draft-agenda-editor__canvas word-print-canvas bundle-reader--comments bundle-reader--comments-float"
+                            [class.bundle-reader--pin-mode]="commentPinMode"
+                            [style.zoom]="subAgendaZoomCss"
+                            [attr.data-zoom]="subAgendaZoom"
+                            (scroll)="scheduleSubAgendaPageFrames(); scheduleAmendWordLayout()"
+                          >
+                            <div class="word-print-stack">
+                              <div class="word-print-frames" aria-hidden="true">
+                                @for (page of subAgendaPageFrames; track page.n) {
+                                  <div class="word-print-frame" [style.top.px]="page.top" [style.height.px]="page.height">
+                                    <span class="word-print-num">{{ page.n }}</span>
+                                    @if (page.n < subAgendaPageFrames.length) {
+                                      <span class="word-print-gap"></span>
+                                    }
+                                  </div>
+                                }
+                              </div>
+                              <article class="official-sheet bundle-doc por-word-sheet bundle-amend-sheet word-print-sheet" aria-label="วาระพิจารณาคำขอเปิดไต่สวน (อนุ)">
+                                <div
+                                  #subAgendaEditor
+                                  class="bundle-amend-editor"
+                                  [class.bundle-amend-editor--empty]="subAgendaEmpty"
+                                  [class.bundle-amend-editor--pin-target]="commentPinMode"
+                                  contenteditable="true"
+                                  role="textbox"
+                                  aria-multiline="true"
+                                  aria-label="ข้อความวาระพิจารณาคำขอเปิดไต่สวน (อนุ)"
+                                  data-placeholder="พิมพ์วาระพิจารณาคำขอเปิดไต่สวน (อนุ)..."
+                                  (input)="onSubAgendaEditorInput(); scheduleAmendWordLayout()"
+                                  (paste)="onOfficialEditorPaste($event)"
+                                  (keyup)="refreshAmendToolbar()"
+                                  (mouseup)="onAmendEditorMouseUp($event)"
+                                  (dblclick)="beginAmendWordComment()"
+                                  (click)="onAmendEditorClick($event)"
+                                  (dragover)="onAmendEditorDragOver($event)"
+                                  (drop)="onAmendEditorDrop($event)"
+                                ></div>
+                              </article>
+                            </div>
+                            @if (amendSelBubble.show) {
+                              <div class="word-cmt-bubble" [style.left.px]="amendSelBubble.x" [style.top.px]="amendSelBubble.y" role="toolbar" aria-label="เครื่องมือ selection">
+                                <button type="button" class="word-cmt-bubble__btn" aria-label="Comment" title="Comment" (mousedown)="$event.preventDefault()" (click)="beginAmendWordComment()">
+                                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+                                </button>
+                              </div>
+                            }
+                            <div class="word-cmt-layer" aria-label="จุด comment">
+                              @for (pin of amendWordPinLayout; track pin.id) {
+                                <button
+                                  type="button"
+                                  class="word-cmt-pin"
+                                  [class.is-active]="pin.active"
+                                  [class.word-cmt-pin--point]="pin.anchor === 'point'"
+                                  [attr.data-hue]="pin.hue"
+                                  [style.top.px]="pin.top"
+                                  [style.left.px]="pin.left"
+                                  [attr.aria-label]="'Comment ' + pin.index"
+                                  [attr.title]="'Comment ' + pin.index + ' — ลากย้ายหรือคลิกเปิด'"
+                                  (pointerdown)="onCommentPinPointerDown($event, pin.id)"
+                                >
+                                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
+                                </button>
+                              }
+                              @if (amendWordDraftId) {
+                                <article
+                                  class="word-cmt-card word-cmt-card--draft word-cmt-card--float"
+                                  [style.top.px]="cardTopFor(amendWordDraftId)"
+                                  [style.left.px]="cardLeftFor(amendWordDraftId)"
+                                  [attr.data-hue]="0"
+                                  (click)="$event.stopPropagation()"
+                                >
+                                  <header>
+                                    <strong>{{ amendWordReplyTo ? 'Reply' : 'New Comment' }}</strong>
+                                    <small>{{ commentInitials() }}</small>
+                                  </header>
+                                  @if (amendWordDraftQuote) {
+                                    <blockquote>{{ amendWordDraftQuote }}</blockquote>
+                                  }
+                                  <label class="assign-remark">
+                                    <span class="sr-only">ข้อความ comment</span>
+                                    <textarea
+                                      rows="3"
+                                      [value]="amendWordDraftText"
+                                      (input)="amendWordDraftText = $any($event.target).value"
+                                      (keydown)="onAmendCommentDraftKeydown($event)"
+                                      placeholder="พิมพ์ comment... (Ctrl/⌘+Enter บันทึก)"
+                                    ></textarea>
+                                  </label>
+                                  <div class="word-cmt-card__acts">
+                                    <app-button type="outline" label="ยกเลิก" (click)="cancelAmendWordDraft()" />
+                                    <app-button type="primary" label="บันทึก" [state]="amendWordDraftText.trim() ? 'default' : 'disabled'" (click)="saveAmendWordComment()" />
+                                  </div>
+                                </article>
+                              } @else if (activeAmendWordRoot; as note) {
+                                <article
+                                  class="word-cmt-card word-cmt-card--float is-active"
+                                  [attr.data-hue]="note.hue"
+                                  [style.top.px]="cardTopFor(note.id)"
+                                  [style.left.px]="cardLeftFor(note.id)"
+                                  (click)="$event.stopPropagation()"
+                                >
+                                  <header>
+                                    <strong>{{ amendWordLabel(note) }}</strong>
+                                    <button type="button" class="word-cmt-card__close" aria-label="ปิดกล่อง comment" (click)="clearAmendWordFocus()">×</button>
+                                  </header>
+                                  <p class="word-cmt-card__author">{{ note.author }} · {{ note.at }}</p>
+                                  @if (note.quote) {
+                                    <blockquote>{{ note.quote }}</blockquote>
+                                  }
+                                  <p>{{ note.text }}</p>
+                                  @if (reviewRole) {
+                                    <div class="word-cmt-card__acts">
+                                      <button type="button" class="office-view" (click)="startAmendWordReply(note.id)">ตอบกลับ</button>
+                                      <button type="button" class="office-view" (click)="resolveAmendWordComment(note.id)">ปิด</button>
+                                      <button type="button" class="office-view" (click)="removeAmendWordComment(note.id)">ลบ</button>
+                                    </div>
+                                  }
+                                  @for (reply of amendWordReplies(note.id); track reply.id) {
+                                    <article class="word-cmt-card word-cmt-card--reply" [attr.data-hue]="reply.hue">
+                                      <header>
+                                        <strong>{{ amendWordLabel(reply) }}</strong>
+                                        <small>{{ reply.at }}</small>
+                                      </header>
+                                      <p class="word-cmt-card__author">{{ reply.author }}</p>
+                                      <p>{{ reply.text }}</p>
+                                    </article>
+                                  }
+                                </article>
+                              }
+                            </div>
+                          </div>
+                        </section>
+                      }
+                    </section>
+                  } @else if (docPart === meetingPackPart) {
+                    <header class="assign-head">
+                      <div>
+                        <h2>ส่งวาระ/PPT ให้กลุ่ม บท.</h2>
+                        <p class="link-detail">
+                          {{ refId || '' }} · ฝั่งเจ้าหน้าที่ — เลือกวาระอนุและอัปโหลดไฟล์ส่งให้กลุ่ม บท. (หน้าแสดงผลฝั่ง บท. ทำทีหลัง)
+                        </p>
+                      </div>
+                      <div class="doc-tools draft-agenda-actions">
+                        <app-button class="icon-before wide draft-agenda-actions__btn" type="outline" label="เลือกวาระอนุ" (click)="requestAddMeetingPackAgenda()">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                        </app-button>
+                        <app-button class="icon-before wide draft-agenda-actions__btn" type="outline" label="อัปเดตไฟล์" (click)="meetingPackUpload.click()">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 20h14" /></svg>
+                        </app-button>
+                        <input
+                          #meetingPackUpload
+                          class="draft-agenda-actions__file"
+                          type="file"
+                          accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
+                          multiple
+                          (change)="uploadMeetingPackFiles($event)"
+                        />
+                        @if (meetingPackSent) {
+                          <app-status-tag variant="soft" tone="success" label="ส่งให้ บท. แล้ว" />
+                        } @else {
+                          <app-status-tag variant="soft" tone="warning" label="รอส่งให้ บท." />
+                        }
+                      </div>
+                    </header>
+                    @if (!meetingPackFiles.length) {
+                      <p class="consult-blank">ยังไม่มีไฟล์ในแพ็ก — กดเลือกวาระอนุ หรืออัปเดตไฟล์ (วาระ + PPT)</p>
+                    } @else {
+                      <div class="table-wrap consult-table pack-table draft-agenda-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th class="col-no">ลำดับ</th>
+                              <th>ชื่อเอกสาร</th>
+                              <th class="col-fit">ประเภท</th>
+                              <th class="col-fit">วันที่</th>
+                              <th class="col-act">การจัดการ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (file of meetingPackFiles; track file.id; let n = $index) {
+                              <tr>
+                                <td class="col-no">{{ n + 1 }}</td>
+                                <td>
+                                  @if (file.source === 'upload') {
+                                    <input
+                                      type="text"
+                                      aria-label="ชื่อเอกสาร"
+                                      [value]="file.title"
+                                      (input)="renameMeetingPackFile(file.id, $any($event.target).value)"
+                                    />
+                                  } @else {
+                                    {{ file.title }}
+                                  }
+                                </td>
+                                <td class="col-fit">
+                                  <app-status-tag variant="soft" [tone]="file.role === 'ppt' ? 'info' : file.role === 'agenda' ? 'neutral' : 'warning'" [label]="meetingPackRoleLabel(file.role)" />
+                                </td>
+                                <td class="col-fit">{{ file.at || '—' }}</td>
+                                <td class="col-act">
+                                  <div class="made-actions">
+                                    <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="openMeetingPackFile(file)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                    </button>
+                                    <button type="button" class="office-view" aria-label="โหลด" title="โหลด" (click)="downloadMeetingPackFile(file)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                    </button>
+                                    <button type="button" class="office-view" aria-label="ลบ" title="ลบ" (click)="removeMeetingPackFile(file.id)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                    <section class="notice-block" aria-label="ส่งแพ็กประชุมให้กลุ่ม บท.">
+                      <h3>ส่งให้กลุ่ม บท.</h3>
+                      <p class="link-detail">
+                        @if (meetingPackSent) {
+                          ส่งแล้วเมื่อ {{ meetingPackSentAt }} โดย {{ meetingPackSentBy || '—' }} — กลุ่ม บท. ใช้เตรียมวันประชุมอนุ
+                        } @else {
+                          ต้องมีวาระอนุอย่างน้อย 1 ไฟล์ และ PowerPoint อย่างน้อย 1 ไฟล์ แล้วกดส่ง
+                        }
+                      </p>
+                      <div class="doc-tools">
+                        <app-button
+                          class="icon-before"
+                          type="primary"
+                          label="ส่งวาระและ PPT ให้ บท."
+                          [state]="canSendMeetingPack ? 'default' : 'disabled'"
+                          (click)="sendMeetingPackToBureau()"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                        </app-button>
+                      </div>
+                    </section>
+                  } @else if (docPart === meetingResolutionPart) {
+                    <header class="assign-head">
+                      <div>
+                        <h2>มติที่ประชุม</h2>
+                        <p class="link-detail">
+                          {{ refId || '' }} · หลังส่งวาระ/PPT ให้ บท. — มติและรายงานการประชุมอนุไต่สวนตามเคส AD1046 (ยังไม่ไป ทตอ. / pre-notify / ค่าธรรมเนียม)
+                        </p>
+                      </div>
+                      @if (meetingAccept === 'accept') {
+                        <app-status-tag variant="soft" tone="success" label="รับคำขอตามมติ" />
+                      } @else if (meetingAccept === 'return') {
+                        <app-status-tag variant="soft" tone="danger" label="คืนคำขอตามมติ" />
+                      }
+                    </header>
+                    <div class="table-wrap consult-table pack-table draft-agenda-table">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th class="col-no">ลำดับ</th>
+                            <th>ชื่อเอกสาร</th>
+                            <th class="col-fit">ประเภท</th>
+                            <th class="col-fit">วันที่</th>
+                            <th class="col-act">การจัดการ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (file of meetingResolutionFiles; track file.id; let n = $index) {
+                            <tr>
+                              <td class="col-no">{{ n + 1 }}</td>
+                              <td>
+                                <div class="approval-list__doc">
+                                  <strong>{{ file.title }}</strong>
+                                  <small>{{ file.name }}</small>
+                                </div>
+                              </td>
+                              <td class="col-fit">
+                                <app-status-tag variant="soft" [tone]="file.role === 'resolution' ? 'success' : file.role === 'minutes' ? 'info' : 'neutral'" [label]="meetingRoleLabel(file.role)" />
+                              </td>
+                              <td class="col-fit">{{ file.at || '—' }}</td>
+                              <td class="col-act">
+                                <div class="made-actions">
+                                  <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="openMeetingResolutionFile(file)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                  </button>
+                                  <button type="button" class="office-view" aria-label="โหลด" title="โหลด" (click)="downloadMeetingResolutionFile(file)">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                    <section class="notice-block" aria-label="ผลการมติรับคำขอ">
+                      <h3>รับคำขอตามมติ?</h3>
+                      <p class="link-detail">บันทึกผลมติอนุไว้ที่ขั้นนี้ — ยังไม่เดินไปแจ้ง pre-notify หรือค่าธรรมเนียม</p>
+                      <div class="doc-tools">
+                        <app-button type="primary" label="รับคำขอ" [state]="meetingAccept === 'accept' ? 'disabled' : 'default'" (click)="setMeetingAccept('accept')" />
+                        <app-button type="outline" label="คืนคำขอ" [state]="meetingAccept === 'return' ? 'disabled' : 'default'" (click)="setMeetingAccept('return')" />
+                      </div>
                     </section>
                   } @else if (docPart === extendPart) {
                     <header class="assign-head">
@@ -8589,6 +8898,132 @@
     </section>
   </div>
 }
+@if (subAgendaNeedDraftOpen) {
+  <div class="notice" (click)="dismissSubAgendaNeedDraft()">
+    <app-modal
+      kind="warning"
+      heading="ต้องมีไฟล์วาระหลักก่อน"
+      detail="ก่อนเพิ่มวาระอนุ ต้องมีไฟล์วาระพิจารณาคำขอเปิดไต่สวนอย่างน้อย 1 ไฟล์ — กดยืนยันเพื่อไปสร้างหรืออัปเดตไฟล์วาระ"
+      (click)="$event.stopPropagation()"
+      (choose)="onSubAgendaNeedDraft($event)"
+    />
+  </div>
+}
+@if (subAgendaPickerOpen) {
+  <div class="assign-pop" (click)="cancelSubAgendaPicker()">
+    <section class="assign-dialog agency-dialog approval-agenda-dialog" role="dialog" aria-modal="true" aria-labelledby="sub-agenda-pick-title" (click)="$event.stopPropagation()">
+      <header>
+        <div>
+          <h2 id="sub-agenda-pick-title">เลือกวาระพิจารณาคำขอเปิดไต่สวน</h2>
+          <p>เลือกอย่างน้อย 1 ไฟล์ เพื่อสร้างวาระพิจารณาคำขอเปิดไต่สวน (อนุ)</p>
+        </div>
+        <div class="doc-tools">
+          <button type="button" aria-label="ปิด" (click)="cancelSubAgendaPicker()">✕</button>
+        </div>
+      </header>
+      <div class="agency-dialog__body">
+        <div class="table-wrap consult-table pack-table draft-agenda-table">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-no">เลือก</th>
+                <th class="col-no">เวอร์ชัน</th>
+                <th>ชื่อเอกสาร</th>
+                <th class="col-fit">วันที่</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of draftAgendaVersions; track row.version) {
+                <tr>
+                  <td class="col-no">
+                    <label class="approval-agenda-check">
+                      <input
+                        type="checkbox"
+                        [checked]="!!subAgendaPick[row.version]"
+                        (change)="toggleSubAgendaPick(row.version, $any($event.target).checked)"
+                      />
+                      <span class="sr-only">เลือกเวอร์ชัน {{ row.version }}</span>
+                    </label>
+                  </td>
+                  <td class="col-no">{{ row.version }}</td>
+                  <td>{{ row.title }}</td>
+                  <td class="col-fit">{{ draftAgendaAtLabel(row.at) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <footer>
+        <app-button type="outline" label="ยกเลิก" (click)="cancelSubAgendaPicker()" />
+        <app-button type="primary" label="ยืนยัน" [state]="canConfirmSubAgendaPick ? 'default' : 'disabled'" (click)="confirmSubAgendaPicker()" />
+      </footer>
+    </section>
+  </div>
+}
+@if (meetingPackNeedAgendaOpen) {
+  <div class="notice" (click)="dismissMeetingPackNeedAgenda()">
+    <app-modal
+      kind="warning"
+      heading="ต้องมีวาระอนุก่อน"
+      detail="ก่อนเลือกวาระส่งให้ บท. ต้องมีไฟล์วาระพิจารณาคำขอเปิดไต่สวน (อนุ) อย่างน้อย 1 ไฟล์ — กดยืนยันเพื่อไปเพิ่มวาระอนุ"
+      (click)="$event.stopPropagation()"
+      (choose)="onMeetingPackNeedAgenda($event)"
+    />
+  </div>
+}
+@if (meetingPackPickerOpen) {
+  <div class="assign-pop" (click)="cancelMeetingPackPicker()">
+    <section class="assign-dialog agency-dialog approval-agenda-dialog" role="dialog" aria-modal="true" aria-labelledby="meeting-pack-pick-title" (click)="$event.stopPropagation()">
+      <header>
+        <div>
+          <h2 id="meeting-pack-pick-title">เลือกวาระอนุที่ส่งให้ บท.</h2>
+          <p>เลือกอย่างน้อย 1 ไฟล์จากวาระพิจารณาคำขอเปิดไต่สวน (อนุ)</p>
+        </div>
+        <div class="doc-tools">
+          <button type="button" aria-label="ปิด" (click)="cancelMeetingPackPicker()">✕</button>
+        </div>
+      </header>
+      <div class="agency-dialog__body">
+        <div class="table-wrap consult-table pack-table draft-agenda-table">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-no">เลือก</th>
+                <th class="col-no">เวอร์ชัน</th>
+                <th>ชื่อเอกสาร</th>
+                <th class="col-fit">วันที่</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of subAgendaVersions; track row.version) {
+                <tr>
+                  <td class="col-no">
+                    <label class="approval-agenda-check">
+                      <input
+                        type="checkbox"
+                        [checked]="!!meetingPackPick[row.version]"
+                        (change)="toggleMeetingPackPick(row.version, $any($event.target).checked)"
+                      />
+                      <span class="sr-only">เลือกเวอร์ชัน {{ row.version }}</span>
+                    </label>
+                  </td>
+                  <td class="col-no">{{ row.version }}</td>
+                  <td>{{ row.title }}</td>
+                  <td class="col-fit">{{ draftAgendaAtLabel(row.at) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <footer>
+        <app-button type="outline" label="ยกเลิก" (click)="cancelMeetingPackPicker()" />
+        <app-button type="primary" label="ยืนยัน" [state]="canConfirmMeetingPackPick ? 'default' : 'disabled'" (click)="confirmMeetingPackPicker()" />
+      </footer>
+    </section>
+  </div>
+}
 @if (consultLimitOpen) {
   <div class="notice" (click)="dismissConsultLimit()">
     <app-modal
@@ -9546,38 +9981,20 @@
     </section>
   </div>
 }
-@if (noticeHistoryOpen) {
-  <div class="assign-pop" (click)="closeNoticeHistory()">
-    <section class="assign-dialog office-dialog notice-history-dialog" role="dialog" aria-modal="true" aria-labelledby="notice-history-title" (click)="$event.stopPropagation()">
-      <header>
-        <div>
-          <h2 id="notice-history-title">ประวัติการกระทำ</h2>
-          <p>แจ้งผลการตรวจ · {{ noticeHistoryItems.length }} รายการ</p>
-        </div>
-        <button type="button" aria-label="ปิด" (click)="closeNoticeHistory()">✕</button>
-      </header>
-      @if (noticeHistoryItems.length) {
-        <ol class="notice-timeline" aria-label="timeline ประวัติการกระทำ">
-          @for (item of noticeHistoryItems; track $index) {
-            <li>
-              <span class="notice-timeline__dot" aria-hidden="true"></span>
-              <div>
-                <strong>{{ item.action }}</strong>
-                <small>{{ item.at }}</small>
-                <p>ผู้กระทำ {{ item.by }}</p>
-              </div>
-            </li>
-          }
-        </ol>
-      } @else {
-        <p class="history__note">ยังไม่มีประวัติการกระทำ</p>
-      }
-      <footer>
-        <app-button type="outline" label="ปิด" (click)="closeNoticeHistory()" />
-      </footer>
-    </section>
-  </div>
-}
+<app-approval-history-panel
+  [open]="noticeHistoryOpen"
+  title="ประวัติละเอียด"
+  [detail]="noticeHistoryDetail"
+  [entries]="noticeHistoryItems"
+  (closed)="closeNoticeHistory()"
+/>
+<app-approval-history-panel
+  [open]="approvalHistoryOpen"
+  title="ประวัติละเอียด"
+  [detail]="approvalHistoryDetail"
+  [entries]="approvalHistoryEntries"
+  (closed)="closeApprovalHistory()"
+/>
 @if (officeLink) {
   <div class="assign-pop" (click)="officeLink = null">
     <section class="assign-dialog office-dialog" role="dialog" aria-modal="true" aria-labelledby="office-title" (click)="$event.stopPropagation()">

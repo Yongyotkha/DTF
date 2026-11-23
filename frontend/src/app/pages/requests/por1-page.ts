@@ -3,12 +3,13 @@ import { ChangeDetectorRef, Component, ElementRef, HostListener, ViewChild, inje
 import { ActivatedRoute, Router } from '@angular/router';
 import { Accounts, roleLabel } from '../../accounts';
 import { ApprovalLaneActions, type ApprovalLaneActionId, type ApprovalLaneActor } from '../../approval-lane/approval-lane-actions';
+import { ApprovalHistoryPanel } from '../../approval-lane/approval-history-panel';
+import { ApprovalListPanel } from '../../approval-lane/approval-list-panel';
 import {
   ApprovalEofficePanel,
   type ApprovalEofficeLinkState,
   type ApprovalEofficePayload,
 } from '../../approval-lane/approval-eoffice-panel';
-import { ApprovalLaneStepper } from '../../approval-lane/approval-lane-stepper';
 import { DftButton } from '../../button/button';
 import { ThaiDateField } from '../../fields/thai-date-field';
 import { InputField } from '../../input-field/input-field';
@@ -20,7 +21,7 @@ import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, ensureFilingRefSeqAtLeast, parseFilingRefSeq, readActiveFilingRef, writeActiveFilingRef, readOfficialOn, writeOfficialOn, readApprovalUntil, readApprovedBy, readApplicantNotices, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot, readFilingFiler, readFilingGate, releaseFilingToDirector, readEofficeDirectorHandoff, sendDirectorWorkToEoffice, pullDirectorAssignFromEoffice, directorWorkNeedsEoffice, writeEofficeDirectorHandoff, type EofficeDirectorHandoff, writeFilingFiler, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readFlowFile, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeApplicantNotices, writeCaseStatus, writeFlowFile, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, upsertConsultRound, patchConsultRound, closeActiveConsultRound, readConsultRounds, openConsultRound as findOpenConsultRound, AGENDA_APPROVAL_LANE_STAGES, NOTICE_LANE_STAGES, approvalLaneStageLabel, approvalLaneStageTone, type ApplicantNotice, type AssignFile, type AssignReply, type AssignSlip, type ApprovalLaneDoc, type ApprovalLaneStage, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultPrivateNote, type ConsultRequest, type ConsultRound, type FilingGate, type DocAction, type DocNotice, type NoticeHistoryEntry, type NoticeItem, type NoticePipe, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryAgendaFile, type DraftAgendaVersion, type ApprovalSubmitRound, type ApprovalSubmitAttachment, type NoticeLetterVersion, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type RoundAnswer, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, ensureFilingRefSeqAtLeast, parseFilingRefSeq, readActiveFilingRef, writeActiveFilingRef, readOfficialOn, writeOfficialOn, readApprovalUntil, readApprovedBy, readApplicantNotices, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot, readFilingFiler, readFilingGate, releaseFilingToDirector, readEofficeDirectorHandoff, sendDirectorWorkToEoffice, pullDirectorAssignFromEoffice, directorWorkNeedsEoffice, writeEofficeDirectorHandoff, type EofficeDirectorHandoff, writeFilingFiler, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readFlowFile, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeApplicantNotices, writeCaseStatus, writeFlowFile, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, upsertConsultRound, patchConsultRound, closeActiveConsultRound, readConsultRounds, openConsultRound as findOpenConsultRound, approvalLaneStageLabel, approvalLaneStageTone, approvalListStatusLabel, canCreateApprovalItem, toApprovalListRow, type ApprovalListRow, type ApprovalLaneHistoryEntry, type ApplicantNotice, type AssignFile, type AssignReply, type AssignSlip, type ApprovalLaneDoc, type ApprovalLaneStage, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultPrivateNote, type ConsultRequest, type ConsultRound, type FilingGate, type DocAction, type DocNotice, type NoticeHistoryEntry, type NoticeItem, type NoticePipe, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryAgendaFile, type DraftAgendaVersion, type ApprovalSubmitRound, type ApprovalSubmitAttachment, type NoticeLetterVersion, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type RoundAnswer, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 import { FilingTabs } from './filing-tabs';
 import { readHearing, writeHearing } from './hearing-lane';
 import { FilledUpload } from './filled-upload';
@@ -861,7 +862,7 @@ const defaultApplicantNoticeText =
 
 @Component({
   selector: 'app-por1-page',
-  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FileField, FilledUpload, FilingTabs, TextEditorToolbar, ApprovalLaneStepper, ApprovalLaneActions, ApprovalEofficePanel],
+  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FileField, FilledUpload, FilingTabs, TextEditorToolbar, ApprovalLaneActions, ApprovalEofficePanel, ApprovalListPanel, ApprovalHistoryPanel],
   templateUrl: './por1-page.html',
   styleUrl: './por1-page.css',
 })
@@ -1667,9 +1668,6 @@ export class Por1Page {
   protected noticeOfficeRef = '';
   /** สถานะเชื่อม e-Office ของรายการแจ้งผลที่เปิดอยู่ */
   protected noticeEofficeLink: ApprovalEofficeLinkState = 'idle';
-  /** ซ่อนขั้นตอนท่ออนุมัติเป็นค่าเริ่มต้น — กดแสดงเมื่อต้องการ */
-  protected noticeLaneStepsOpen = false;
-  protected approvalLaneStepsOpen = false;
   /** timeline การกระทำของรายการแจ้งผลการตรวจ */
   protected noticeHistory: NoticeHistoryEntry[] = [];
   protected noticeHistoryOpen = false;
@@ -3727,6 +3725,9 @@ export class Por1Page {
     if (this.completeBundle === 'closed') return 'edition-closed';
     if (this.docPart === this.draftAgendaPart) return 'draft-agenda';
     if (this.docPart === this.approvalSubmitPart) return 'approval-submit';
+    if (this.docPart === this.subAgendaPart) return 'sub-agenda';
+    if (this.docPart === this.meetingPackPart) return 'meeting-pack';
+    if (this.docPart === this.meetingResolutionPart) return 'meeting-resolution';
     if (this.docPart === this.extendPart) return 'extend';
     if (this.docPart === this.committeePart) return 'committee';
     if (this.docPart < 0) return 'bundle';
@@ -3750,6 +3751,19 @@ export class Por1Page {
     }
     if (key === 'approval-submit') {
       this.pickApprovalSubmit();
+      return;
+    }
+    if (key === 'sub-agenda') {
+      this.pickSubAgenda();
+      return;
+    }
+    if (key === 'meeting-pack' || key === 'meeting-resolution') {
+      if (!this.meetingBureauFlowEnabled) {
+        this.pickSubAgenda();
+        return;
+      }
+      if (key === 'meeting-pack') this.pickMeetingPack();
+      else this.pickMeetingResolution();
       return;
     }
     if (key === 'extend') {
@@ -4611,12 +4625,26 @@ export class Por1Page {
   }
 
   protected openNoticeFile(name: string): void {
+    const href = this.docFiles.find((item) => item.name === name)?.href
+      || this.noticeItems.find((item) => item.id === this.activeNoticeId)?.files.find((file) => file.name === name)?.href
+      || '';
+    if (href) {
+      window.open(href, '_blank', 'noopener');
+      return;
+    }
     this.noticeViewRows = this.buildNoticeViewRows(name);
     this.viewingNotice = name;
   }
 
   protected downloadNoticeFile(name: string): void {
     const file = this.docFiles.find((item) => item.name === name);
+    const href = file?.href
+      || this.noticeItems.find((item) => item.id === this.activeNoticeId)?.files.find((row) => row.name === name)?.href
+      || '';
+    if (href) {
+      void this.downloadAssetFile(href, name);
+      return;
+    }
     const title = this.noticeDisplayName(name);
     const rows = this.viewingNotice === name && this.noticeViewRows.length
       ? this.noticeViewRows
@@ -4659,14 +4687,15 @@ export class Por1Page {
     return this.canReviewDocs && this.noticeEvidenceReady && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
   }
 
-  protected readonly noticeLaneStages = NOTICE_LANE_STAGES;
-
   protected get noticePipeLocked(): boolean {
     return this.noticePipe !== 'draft' || this.docSent;
   }
 
   protected noticePipeLabel(pipe = this.noticePipe): string {
-    if (pipe === 'done' && this.noticeSaraban) return `ส่งถึงผู้ยื่นแล้ว · ${this.noticeSaraban}`;
+    if (pipe === 'delivered') {
+      return this.noticeSaraban ? `ส่งให้ผู้ยื่นแล้ว · ${this.noticeSaraban}` : 'ส่งให้ผู้ยื่นแล้ว';
+    }
+    if (pipe === 'done') return 'อนุมัติแล้ว — รอแนบไฟล์สมบูรณ์และยืนยันส่ง';
     if (pipe === 'numbered' && this.noticeSaraban) return `ได้เลข ${this.noticeSaraban} — รอแนบไฟล์`;
     return approvalLaneStageLabel(pipe);
   }
@@ -4730,7 +4759,210 @@ export class Por1Page {
   }
 
   protected get canCreateNotice(): boolean {
-    return this.reviewRole === 'officer' && this.canHandleCase;
+    if (!(this.reviewRole === 'officer' && this.canHandleCase)) return false;
+    return canCreateApprovalItem(this.noticeItems.map((item) => item.pipe));
+  }
+
+  protected get noticeCreateBlockedReason(): string {
+    if (!(this.reviewRole === 'officer' && this.canHandleCase)) return '';
+    if (this.canCreateNotice) return '';
+    return 'รออนุมัติหรือปฏิเสธรายการปัจจุบันก่อนสร้างใหม่';
+  }
+
+  protected get noticeApprovalListRows(): ApprovalListRow[] {
+    const canStore = this.reviewRole === 'officer' && this.canHandleCase;
+    return this.noticeItems.map((item) =>
+      toApprovalListRow({
+        id: item.id,
+        title: item.title || this.noticeDisplayName(item.files[0]?.name || '') || 'หนังสือแจ้งผลการตรวจ',
+        date: item.noticedOn || item.pipeAt || '',
+        stage: item.pipe,
+        meta: this.docActionLabel(item.action),
+        statusLabel: approvalListStatusLabel(item.pipe),
+        statusTone: this.noticePipeTone(item.pipe),
+        canEdit: this.canEditNoticeRow(item),
+        canReview: this.canHeadApproveRow(item) || this.canDirectorApproveRow(item),
+        canCancel: this.canCancelNoticeRow(item),
+        canUpload: canStore && item.pipe === 'done',
+        canDeliver: canStore && item.pipe === 'done' && (item.keptFiles || []).length > 0,
+        keptFiles: (item.keptFiles || []).map((file, index) => {
+          const edition = file.edition || 'final';
+          const delivery = item.pipe === 'delivered' ? 'sent' : file.delivery || 'pending';
+          return {
+            id: `${item.id}-kept-${index}-${file.name}`,
+            name: file.name,
+            title: file.title || file.name,
+            at: file.sentOn,
+            href: file.href,
+            edition,
+            delivery,
+          };
+        }),
+      }),
+    );
+  }
+
+  protected onNoticeApprovalCreate(): void {
+    if (!this.canCreateNotice) return;
+    this.openNoticeForm();
+  }
+
+  protected onNoticeApprovalOpen(row: ApprovalListRow): void {
+    this.openNoticeForm(row.id);
+  }
+
+  protected onNoticeApprovalHistory(row: ApprovalListRow): void {
+    this.openNoticeHistory(row.id);
+  }
+
+  protected onNoticeApprovalEdit(row: ApprovalListRow): void {
+    this.openNoticeForm(row.id);
+  }
+
+  protected onNoticeApprovalReview(row: ApprovalListRow): void {
+    this.openNoticeForm(row.id);
+  }
+
+  protected onNoticeApprovalCancel(row: ApprovalListRow): void {
+    const item = this.noticeItems.find((entry) => entry.id === row.id);
+    if (item) this.cancelNoticeStatus(item);
+  }
+
+  protected onNoticeApprovalUpload(event: { row: ApprovalListRow; files: FileList }): void {
+    if (!(this.reviewRole === 'officer' && this.canHandleCase)) return;
+    const item = this.noticeItems.find((entry) => entry.id === event.row.id);
+    if (!item || item.pipe !== 'done' || !event.files.length) return;
+    const at = this.thaiToday();
+    const added = [...event.files].map((file) => ({
+      name: file.name,
+      title: file.name.replace(/\.[^.]+$/, ''),
+      sentOn: at,
+      edition: 'final' as const,
+      delivery: 'pending' as const,
+    }));
+    const historyAction = added.length === 1
+      ? `แนบไฟล์สมบูรณ์ ${added[0].title || added[0].name}`
+      : `แนบไฟล์สมบูรณ์ ${added.length} ฉบับ`;
+    const historyEntry = {
+      at: this.noticeStampNow(),
+      by: this.noticeActorLabel(),
+      action: historyAction,
+    };
+    this.noticeItems = this.noticeItems.map((entry) =>
+      entry.id === item.id
+        ? {
+            ...entry,
+            keptFiles: [...(entry.keptFiles || []), ...added],
+            history: [...entry.history, historyEntry],
+          }
+        : entry,
+    );
+    if (this.activeNoticeId === item.id) {
+      this.noticeHistory = [...this.noticeHistory, historyEntry];
+    }
+    writeDocNotice(this.docPayload(this.docSent));
+    this.notice = 'saved';
+    this.view.markForCheck();
+  }
+
+  protected onNoticeApprovalRemoveKept(event: { row: ApprovalListRow; file: { id: string; name: string } }): void {
+    if (!(this.reviewRole === 'officer' && this.canHandleCase)) return;
+    const item = this.noticeItems.find((entry) => entry.id === event.row.id);
+    if (!item || item.pipe !== 'done') return;
+    let next = (item.keptFiles || []).filter((file, index) => `${item.id}-kept-${index}-${file.name}` !== event.file.id);
+    if (next.length === (item.keptFiles || []).length) {
+      next = (item.keptFiles || []).filter((file) => file.name !== event.file.name);
+    }
+    const historyEntry = {
+      at: this.noticeStampNow(),
+      by: this.noticeActorLabel(),
+      action: `ลบไฟล์สมบูรณ์ ${event.file.name}`,
+    };
+    this.noticeItems = this.noticeItems.map((entry) =>
+      entry.id === item.id
+        ? { ...entry, keptFiles: next, history: [...entry.history, historyEntry] }
+        : entry,
+    );
+    if (this.activeNoticeId === item.id) {
+      this.noticeHistory = [...this.noticeHistory, historyEntry];
+    }
+    writeDocNotice(this.docPayload(this.docSent));
+    this.notice = 'saved';
+    this.view.markForCheck();
+  }
+
+  protected onNoticeApprovalOpenKept(event: {
+    row: ApprovalListRow;
+    file: { name: string; title: string; at?: string; href?: string };
+  }): void {
+    const href = event.file.href || this.noticeKeptHref(event.row.id, event.file.name);
+    if (href) {
+      window.open(href, '_blank', 'noopener');
+      return;
+    }
+    this.viewingMade = {
+      id: `notice-kept-${event.row.id}-${event.file.name}`,
+      kind: event.file.title || event.file.name,
+      at: event.file.at || this.thaiToday(),
+      fields: [
+        { label: 'ไฟล์แนบ', value: event.file.name },
+        { label: 'ชื่อเอกสาร', value: event.file.title || event.file.name },
+        { label: 'รายการ', value: event.row.title },
+      ],
+    };
+  }
+
+  protected onNoticeApprovalDownloadKept(event: {
+    row: ApprovalListRow;
+    file: { name: string; title: string; at?: string; href?: string };
+  }): void {
+    const href = event.file.href || this.noticeKeptHref(event.row.id, event.file.name);
+    if (href) {
+      void this.downloadAssetFile(href, event.file.name);
+      return;
+    }
+    this.onNoticeApprovalOpenKept(event);
+  }
+
+  /** เจ้าหน้าที่ยืนยันส่งฉบับสมบูรณ์ให้ผู้ยื่นแล้ว */
+  protected onNoticeApprovalDeliver(row: ApprovalListRow): void {
+    if (!(this.reviewRole === 'officer' && this.canHandleCase)) return;
+    const item = this.noticeItems.find((entry) => entry.id === row.id);
+    if (!item || item.pipe !== 'done' || !(item.keptFiles || []).length) return;
+    const at = this.thaiToday();
+    const by = this.signedPerson || this.officerName || 'เจ้าหน้าที่';
+    const historyEntry = { at: `${at} · —`, by, action: 'ส่งฉบับสมบูรณ์ให้ผู้ยื่นแล้ว' };
+    this.noticeItems = this.noticeItems.map((entry) =>
+      entry.id === item.id
+        ? {
+            ...entry,
+            pipe: 'delivered',
+            pipeAt: at,
+            sent: true,
+            sentBy: by,
+            history: [...entry.history, historyEntry],
+            keptFiles: (entry.keptFiles || []).map((file) => ({ ...file, delivery: 'sent' as const })),
+          }
+        : entry,
+    );
+    if (this.activeNoticeId === item.id) {
+      this.noticePipe = 'delivered';
+      this.noticePipeAt = at;
+      this.docSent = true;
+      this.docSentBy = by;
+      this.noticeHistory = [...this.noticeHistory, historyEntry];
+    }
+    writeDocNotice(this.docPayload(true));
+    this.notice = 'saved';
+    this.view.markForCheck();
+  }
+
+  private noticeKeptHref(itemId: string, fileName: string): string {
+    const item = this.noticeItems.find((row) => row.id === itemId);
+    const kept = (item?.keptFiles || []).find((file) => file.name === fileName);
+    if (kept?.href) return kept.href;
+    const file = (item?.files || []).find((row) => row.name === fileName);
+    return file?.href || '';
   }
 
   protected get canReportNoticeToHead(): boolean {
@@ -4855,7 +5087,9 @@ export class Por1Page {
   }
 
   protected canCancelNoticeRow(item: NoticeItem): boolean {
-    if (item.pipe === 'cancelled' || item.pipe === 'draft' || item.pipe === 'done') return false;
+    if (item.pipe === 'cancelled' || item.pipe === 'done' || item.pipe === 'delivered') return false;
+    // ร่างค้างก็ยกเลิกได้ เพื่อปลดล็อกสร้างรายการใหม่
+    if (item.pipe === 'draft') return this.isNoticeOfficerActor;
     return this.isNoticeOfficerActor || this.isNoticeHeadActor || this.isNoticeDirectorActor;
   }
 
@@ -5144,9 +5378,16 @@ export class Por1Page {
     this.noticeHistoryOpen = false;
   }
 
-  /** รายการ timeline จากใหม่ → เก่า สำหรับแสดง */
+  /** รายการ timeline สำหรับแสดงประวัติละเอียด */
   protected get noticeHistoryItems(): NoticeHistoryEntry[] {
-    return [...this.noticeHistory].reverse();
+    return this.noticeHistory.map((item) => ({ ...item }));
+  }
+
+  protected get noticeHistoryDetail(): string {
+    const title = this.noticeItems.find((item) => item.id === this.activeNoticeId)?.title
+      || this.noticeItemTitle()
+      || 'แจ้งผลการตรวจ';
+    return `${title} · ${this.noticeHistoryItems.length} รายการ`;
   }
 
   protected continueNoticeRow(item: NoticeItem): void {
@@ -5238,6 +5479,7 @@ export class Por1Page {
       history: this.noticeHistory.map((item) => ({ ...item })),
       sent: this.docSent || this.noticePipe === 'done',
       sentBy: this.docSentBy,
+      keptFiles: (this.noticeItems.find((item) => item.id === id)?.keptFiles || []).map((file) => ({ ...file })),
     };
   }
 
@@ -5282,7 +5524,7 @@ export class Por1Page {
     this.noticeOfficeRef = item.officeRef;
     this.noticeEofficeLink = item.eofficeLink || this.deriveNoticeEofficeLink(item);
     this.noticeHistory = item.history.map((row) => ({ ...row }));
-    this.docSent = item.sent || item.pipe === 'done';
+    this.docSent = item.sent || item.pipe === 'done' || item.pipe === 'delivered';
     this.docSentBy = item.sentBy;
   }
 
@@ -5379,6 +5621,180 @@ export class Por1Page {
       });
     }
     return seeded;
+  }
+
+  /**
+   * ตัวอย่างแจ้งแก้ไขเพิ่มเติมครบตามรอบ AD1046 (ครั้งที่ 1–3)
+   * ลบรายการที่ไม่เกี่ยว (ครบถ้วน / ร่างทดสอบ) แล้วแนบเอกสารทางการจริงให้ดู/โหลดได้
+   */
+  private ensureAmendNoticeSamples(force = false): void {
+    const samples = this.buildAmendNoticeSamples();
+    const ids = new Set(samples.map((item) => item.id));
+    const hasAll = samples.every((sample) => this.noticeItems.some((item) => item.id === sample.id));
+    const hasHref = this.noticeItems
+      .filter((item) => ids.has(item.id))
+      .every((item) => (item.keptFiles || []).some((file) => !!file.href));
+    const pipesMatch = samples.every((sample) =>
+      this.noticeItems.some((item) => item.id === sample.id && item.pipe === sample.pipe),
+    );
+    const hasFileStatus = this.noticeItems
+      .filter((item) => ids.has(item.id))
+      .every((item) => {
+        const kept = item.keptFiles || [];
+        const versions = item.letterVersions || [];
+        const hasDraft = versions.some((row) => row.edition === 'draft');
+        const hasFinal = versions.some((row) => row.edition === 'final');
+        return (
+          kept.length === 1 &&
+          !!kept[0]?.edition &&
+          !!kept[0]?.delivery &&
+          !!kept[0]?.href &&
+          versions.length >= 2 &&
+          hasDraft &&
+          hasFinal
+        );
+      });
+    const hasUnrelated = this.noticeItems.some((item) => !ids.has(item.id));
+    if (!force && hasAll && hasHref && pipesMatch && hasFileStatus && !hasUnrelated && this.noticeItems.length === samples.length) {
+      // แต่ละครั้งเป็นรายการในตารางแล้ว — ไม่โชว์ซ้ำใน noticePasses
+      if (this.noticePasses.length) {
+        this.noticePasses = [];
+        writeDocNotice(this.docPayload(true));
+      }
+      return;
+    }
+
+    const keepId = this.activeNoticeId && ids.has(this.activeNoticeId) ? this.activeNoticeId : samples[samples.length - 1]?.id;
+    this.noticeItems = samples;
+    const active = samples.find((item) => item.id === keepId) || samples[samples.length - 1];
+    this.activeNoticeId = active.id;
+    this.applyNoticeItem(active);
+    // แต่ละครั้งเป็นรายการในตารางแล้ว — ไม่เก็บซ้ำใน noticePasses
+    this.noticePasses = [];
+    writeDocNotice(this.docPayload(true));
+  }
+
+  /** รอบแจ้งแก้ไข AD1046 — วันที่และไฟล์จากโฟลเดอร์เคสจริง */
+  private buildAmendNoticeSamples(): NoticeItem[] {
+    const officer = this.signedPerson || this.officerName || 'นางสาวจรีณา กิจส่งเสริมกุล';
+    const rounds: Array<{
+      pass: number;
+      noticedOn: string;
+      dueOn: string;
+      letterName: string;
+      letterHref: string;
+      note: string;
+    }> = [
+      {
+        pass: 1,
+        noticedOn: '09/06/2563',
+        dueOn: '09/07/2563',
+        letterName: 'หนังสือแก้ไขคำขอ-ครั้งที่-1.pdf',
+        letterHref: 'assets/samples/ad1046/notice/หนังสือแก้ไขคำขอ-ครั้งที่-1.pdf',
+        note: 'ตรวจคำขอแล้วยังไม่ครบ — แจ้งแก้ไขเพิ่มเติมครั้งที่ 1 ตามหนังสือกรม 9 มิ.ย. 2563',
+      },
+      {
+        pass: 2,
+        noticedOn: '11/08/2563',
+        dueOn: '11/09/2563',
+        letterName: 'หนังสือแก้ไขคำขอ-ครั้งที่-2.pdf',
+        letterHref: 'assets/samples/ad1046/notice/หนังสือแก้ไขคำขอ-ครั้งที่-2.pdf',
+        note: 'ตรวจคำขอที่แก้ไขครั้งที่ 1 แล้วยังไม่ครบ — แจ้งแก้ไขเพิ่มเติมครั้งที่ 2 ตามหนังสือกรม 11 ส.ค. 2563',
+      },
+      {
+        pass: 3,
+        noticedOn: '29/09/2563',
+        dueOn: '29/10/2563',
+        letterName: 'แก้ไขข้อมูลคำขอ-ครั้งที่-3.pdf',
+        letterHref: 'assets/samples/ad1046/notice/แก้ไขข้อมูลคำขอ-ครั้งที่-3.pdf',
+        note: 'ตรวจคำขอที่แก้ไขครั้งที่ 2 แล้วยังไม่ครบ — แจ้งแก้ไขเพิ่มเติมครั้งที่ 3 ตามหนังสือกรม 29 ก.ย. 2563',
+      },
+    ];
+
+    return rounds.map((round) => {
+      const id = `sample-amend-${round.pass}`;
+      const title = `หนังสือแจ้งแก้ไขปรับปรุงข้อมูลคำขอ ครั้งที่ ${round.pass}`;
+      const letter = noticeLetterFields('amend', round.noticedOn, round.dueOn, officer).map((field) =>
+        field.label === 'เรื่อง'
+          ? { ...field, value: `แจ้งให้แก้ไขปรับปรุงข้อมูลคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาด ครั้งที่ ${round.pass}` }
+          : field.label === 'สิ่งที่ส่งมาด้วย'
+            ? { ...field, value: `รายการแก้ไขปรับปรุงข้อมูลคำขอ (แบบปร. 1) ครั้งที่ ${round.pass}` }
+            : field,
+      );
+      // ครั้งที่ 1–2 ส่งให้ผู้ยื่นแล้ว · ครั้งที่ 3 อนุมัติแล้วรอเจ้าหน้าที่ยืนยันส่ง
+      const delivered = round.pass < 3;
+      const delivery = delivered ? ('sent' as const) : ('pending' as const);
+      // ฉบับร่าง = ไฟล์ที่ส่งขออนุมัติ · ฉบับสมบูรณ์ = ไฟล์เก็บหลังอนุมัติ (ครั้งละ 1)
+      const draftName = `หนังสือแจ้งแก้ไขปรับปรุงข้อมูลคำขอ-ครั้งที่-${round.pass}-ร่าง.pdf`;
+      const draftFile = {
+        name: draftName,
+        title: `${title} · ฉบับร่าง`,
+        sentOn: round.noticedOn,
+        href: round.letterHref,
+        edition: 'draft' as const,
+        delivery: 'pending' as const,
+      };
+      const letterFile = {
+        name: round.letterName,
+        title,
+        sentOn: round.noticedOn,
+        href: round.letterHref,
+        edition: 'final' as const,
+        delivery,
+      };
+      const history: NoticeHistoryEntry[] = [
+        { at: `${round.noticedOn} · —`, by: officer, action: 'สร้าง/แนบฉบับร่างหนังสือแจ้งผล' },
+        { at: `${round.noticedOn} · —`, by: officer, action: 'ส่งหัวหน้ากลุ่ม — ขออนุมัติฉบับร่าง' },
+        { at: `${round.noticedOn} · —`, by: 'หัวหน้ากลุ่ม', action: 'หัวหน้ากลุ่มเห็นชอบ' },
+        { at: `${round.noticedOn} · —`, by: officer, action: 'ผู้อำนวยการเห็นชอบ / ส่ง e-Office' },
+        { at: `${round.noticedOn} · —`, by: officer, action: 'อนุมัติแล้ว — แนบไฟล์ฉบับสมบูรณ์' },
+        ...(delivered
+          ? [{ at: `${round.noticedOn} · —`, by: officer, action: 'ส่งฉบับสมบูรณ์ให้ผู้ยื่นแล้ว' }]
+          : []),
+      ];
+      return {
+        id,
+        title,
+        action: 'amend' as const,
+        noticedOn: round.noticedOn,
+        dueOn: round.dueOn,
+        note: round.note,
+        files: [draftFile, letterFile],
+        letter,
+        letterVersions: [
+          {
+            version: 1,
+            title: `${title} · ฉบับร่าง`,
+            at: `${round.noticedOn} · 08:30 น.`,
+            html: '',
+            source: 'upload' as const,
+            fileName: draftName,
+            edition: 'draft' as const,
+          },
+          {
+            version: 2,
+            title: `${title} · ฉบับสมบูรณ์`,
+            at: `${round.noticedOn} · 09:00 น.`,
+            html: '',
+            source: 'upload' as const,
+            fileName: round.letterName,
+            edition: 'final' as const,
+          },
+        ],
+        gaps: defaultNoticeGaps.map((gap) => ({ ...gap })),
+        sarabanNo: `สบ.16${round.pass}0/2563`,
+        pipe: (delivered ? 'delivered' : 'done') as NoticeItem['pipe'],
+        pipeAt: round.noticedOn,
+        reportBy: officer,
+        headBy: 'หัวหน้ากลุ่ม',
+        officeRef: `sync e-Office · สบ.16${round.pass}0/2563`,
+        eofficeLink: 'synced' as const,
+        history,
+        sent: true,
+        sentBy: officer,
+        keptFiles: [letterFile],
+      };
+    });
   }
 
   protected suggestGaps(): void {
@@ -5664,6 +6080,11 @@ export class Por1Page {
 
   protected openNoticeForm(id = ''): void {
     if (id) {
+      // เปิดรายการตัวอย่าง — ให้มีฉบับร่าง + ฉบับสมบูรณ์ครบก่อนแสดง
+      if (id.startsWith('sample-amend-')) {
+        this.activeNoticeId = id;
+        this.ensureAmendNoticeSamples(true);
+      }
       const row = this.noticeItems.find((item) => item.id === id);
       if (row) {
         this.activateNoticeItem(id);
@@ -5676,6 +6097,7 @@ export class Por1Page {
         this.noticeLetter = fresh.map((field) => ({ ...field, value: found.fields.find((item) => item.label === field.label)?.value ?? '' }));
       }
     } else {
+      if (!this.canCreateNotice) return;
       this.startNewNoticeDraft();
       this.editingId = this.activeNoticeId;
     }
@@ -5683,6 +6105,7 @@ export class Por1Page {
     this.noticeLetterTab = 'files';
     this.noticeFormFull = false;
     this.noticeFormOpen = true;
+    this.view.markForCheck();
   }
 
   protected toggleNoticeFormFull(): void {
@@ -5972,6 +6395,27 @@ export class Por1Page {
     return this.workDocs.length + 6;
   }
 
+  /** ดัชนีวาระพิจารณาคำขอเปิดไต่สวน (อนุ) — content แบบวาระหลัก หลังเสนออนุมัติ */
+  protected get subAgendaPart(): number {
+    return this.workDocs.length + 7;
+  }
+
+  /**
+   * ฝั่งเจ้าหน้าที่: ส่งวาระ/PPT ให้ บท. + มติที่ประชุม — เปิดใช้
+   * หน้าแสดงผลฝั่งกลุ่ม บท. (inbox/รับไฟล์) ยังไม่ทำ — ค่อยทำทีหลัง
+   */
+  protected readonly meetingBureauFlowEnabled = true;
+
+  /** ดัชนีส่งวาระอนุ + PPT ให้กลุ่ม บท. — หลังมีวาระอนุ ก่อนวันประชุม */
+  protected get meetingPackPart(): number {
+    return this.workDocs.length + 8;
+  }
+
+  /** ดัชนีมติที่ประชุมอนุ — หลังส่งแพ็กให้ บท. (ยังไม่ไป ทตอ. / pre-notify / ค่าธรรมเนียม) */
+  protected get meetingResolutionPart(): number {
+    return this.workDocs.length + 9;
+  }
+
   protected isAgencyWorkDoc(title: string): boolean {
     return (
       title === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง' ||
@@ -6013,7 +6457,15 @@ export class Por1Page {
         this.docMatches('วาระ') ||
         this.docMatches('เสนออนุมัติ') ||
         this.docMatches('บันทึกเสนอ') ||
-        this.docMatches('เอกสารขออนุมัติ')
+        this.docMatches('เอกสารขออนุมัติ') ||
+        this.docMatches('วาระอนุ') ||
+        this.docMatches('(อนุ)') ||
+        this.docMatches('ส่งวาระ') ||
+        this.docMatches('ส่ง PPT') ||
+        this.docMatches('กลุ่ม บท') ||
+        this.docMatches('มติที่ประชุม') ||
+        this.docMatches('มติคณะอนุ') ||
+        this.docMatches('รายงานการประชุม')
       );
     }
     return this.workDocs.some((doc) => this.isPreQnWorkDoc(doc.title) && this.docMatches(doc.title));
@@ -6758,6 +7210,1028 @@ export class Por1Page {
     return 'assets/icons/por1-dot.svg';
   }
 
+  /** วาระพิจารณาคำขอเปิดไต่สวน (อนุ) — content แบบวาระหลัก (ไม่ใช่ท่ออนุมัติ) */
+  protected subAgendaVersions: DraftAgendaVersion[] = [];
+  protected subAgendaActiveVersion = 0;
+  protected subAgendaTab: 'files' | 'editor' = 'files';
+  protected subAgendaWordOpen = false;
+  protected subAgendaHtml = '';
+  protected subAgendaEmpty = true;
+  protected subAgendaZoom = 100;
+  protected subAgendaViewerFull = false;
+  protected subAgendaFitScale = 1.5;
+  protected subAgendaPageFrames: { n: number; top: number; height: number }[] = [{ n: 1, top: 0, height: 1123 }];
+  private subAgendaLayoutRaf = 0;
+  private readonly subAgendaZoomBase = 1.5;
+  private readonly subAgendaZoomSteps = [50, 75, 100, 125, 150, 200];
+  private readonly subAgendaVersionsKey = 'dft-por1-sub-agenda-versions';
+  private readonly subAgendaCommentsKey = 'dft-por1-sub-agenda-comments';
+  private readonly subAgendaSampleUrl = 'assets/samples/ad1046/agenda/sub/2-วาระพิจารณาคำขอเปิดไต่สวน.html';
+  private readonly subAgendaSampleHref = 'assets/samples/ad1046/agenda/sub/2. วาระพิจารณาคำขอเปิดไต่สวน.docx';
+  @ViewChild('subAgendaEditor') private subAgendaEditorRef?: ElementRef<HTMLElement>;
+  @ViewChild('subAgendaStage') private subAgendaStageRef?: ElementRef<HTMLElement>;
+  @ViewChild('subAgendaUpload') private subAgendaUploadInput?: ElementRef<HTMLInputElement>;
+  protected subAgendaPickerOpen = false;
+  protected subAgendaNeedDraftOpen = false;
+  protected subAgendaPick: Record<number, boolean> = {};
+
+  /** แพ็กวาระอนุ + PPT ส่งให้กลุ่ม บท. ก่อนวันประชุม */
+  protected meetingPackFiles: Array<{
+    id: string;
+    name: string;
+    title: string;
+    at: string;
+    href: string;
+    role: 'agenda' | 'ppt' | 'other';
+    source?: 'sample' | 'pick' | 'upload';
+    subVersion?: number;
+  }> = [];
+  protected meetingPackSent = false;
+  protected meetingPackSentAt = '';
+  protected meetingPackSentBy = '';
+  protected meetingPackPickerOpen = false;
+  protected meetingPackNeedAgendaOpen = false;
+  protected meetingPackPick: Record<number, boolean> = {};
+  private readonly meetingPackKey = 'dft-por1-meeting-pack';
+  private readonly meetingPackSentKey = 'dft-por1-meeting-pack-sent';
+
+  /** ไฟล์มติ / รายงานการประชุมอนุหลังส่งแพ็กให้ บท. */
+  protected meetingResolutionFiles: Array<{
+    id: string;
+    name: string;
+    title: string;
+    at: string;
+    href: string;
+    role: 'resolution' | 'minutes' | 'agenda' | 'ppt' | 'other';
+  }> = [];
+  /** รับคำขอตามมติอนุ — ยังไม่เดินไป pre-notify / ค่าธรรมเนียม */
+  protected meetingAccept: '' | 'accept' | 'return' = '';
+  private readonly meetingResolutionKey = 'dft-por1-meeting-resolution';
+  private readonly meetingAcceptKey = 'dft-por1-meeting-accept';
+
+  private closeMeetingEditors(): void {
+    if (this.agencyWordOpen) {
+      this.captureAgencySummaryEditor();
+      this.agencyWordOpen = false;
+    }
+    if (this.draftAgendaWordOpen) {
+      this.captureDraftAgendaEditor();
+      this.writeDraftAgendaComments();
+      this.draftAgendaWordOpen = false;
+      this.draftAgendaTab = 'files';
+      this.restoreParkedAmendComments();
+    }
+    if (this.approvalWordOpen) {
+      this.captureApprovalEditor();
+      this.writeApprovalComments();
+      this.approvalWordOpen = false;
+      this.approvalTab = 'files';
+      this.restoreParkedAmendComments();
+    }
+    if (this.subAgendaWordOpen) {
+      this.captureSubAgendaEditor();
+      this.writeSubAgendaComments();
+      this.subAgendaWordOpen = false;
+      this.subAgendaTab = 'files';
+      this.subAgendaViewerFull = false;
+      this.restoreParkedAmendComments();
+    }
+  }
+
+  protected pickSubAgenda(): void {
+    this.closeMeetingEditors();
+    this.completeBundle = '';
+    this.editingId = '';
+    this.docShelf = 'files';
+    this.docPart = this.subAgendaPart;
+    this.notice = null;
+    this.loadSubAgendaVersions();
+    this.subAgendaTab = 'files';
+    this.subAgendaWordOpen = false;
+    this.subAgendaViewerFull = false;
+    this.syncFilingUrl();
+  }
+
+  protected get subAgendaNavOn(): boolean {
+    return this.reviewTab === 'docs' && this.docPart === this.subAgendaPart;
+  }
+
+  protected subAgendaDot(): string {
+    if (this.subAgendaVersions.some((row) => !!row.html || row.source === 'upload' || row.source === 'created' || row.source === 'ai')) {
+      return 'assets/icons/por1-dot-done.svg';
+    }
+    if (this.subAgendaNavOn) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
+  protected get subAgendaLatestVersion(): number {
+    return this.subAgendaVersions.reduce((max, row) => Math.max(max, row.version), 0);
+  }
+
+  protected draftAgendaSourceLabelForSub(source: DraftAgendaVersion['source']): string {
+    return this.draftAgendaSourceLabel(source);
+  }
+
+  protected openSubAgendaVersion(version: number): void {
+    const row = this.subAgendaVersions.find((item) => item.version === version);
+    if (!row) return;
+    this.parkAmendCommentsForDraft();
+    this.subAgendaActiveVersion = version;
+    this.subAgendaHtml = row.html || '';
+    this.subAgendaEmpty = this.amendHtmlIsEmpty(this.subAgendaHtml);
+    this.subAgendaWordOpen = true;
+    this.subAgendaTab = 'editor';
+    this.subAgendaZoom = 100;
+    this.loadSubAgendaComments();
+    this.syncFilingUrl();
+    if (!this.subAgendaHtml) {
+      void this.seedSubAgendaHtml(version);
+    } else {
+      window.setTimeout(() => this.fillSubAgendaEditor(), 0);
+    }
+  }
+
+  protected closeSubAgendaWord(): void {
+    this.captureSubAgendaEditor();
+    this.writeSubAgendaComments();
+    this.subAgendaWordOpen = false;
+    this.subAgendaTab = 'files';
+    this.subAgendaViewerFull = false;
+    this.restoreParkedAmendComments();
+    this.syncFilingUrl();
+  }
+
+  protected pickSubAgendaTab(tab: 'files' | 'editor'): void {
+    if (tab === 'editor') {
+      const editable = [...this.subAgendaVersions].reverse().find((row) => !!row.html || row.source === 'created' || row.source === 'ai' || row.source === 'upload');
+      if (editable) {
+        this.openSubAgendaVersion(editable.version);
+        return;
+      }
+      return;
+    }
+    this.closeSubAgendaWord();
+  }
+
+  /** เพิ่มวาระอนุจากวาระหลัก — เลือกไฟล์เหมือนหน้าเสนออนุมัติ */
+  protected requestAddSubAgendaFromDraft(): void {
+    this.loadDraftAgendaVersions();
+    if (!this.draftAgendaVersions.length) {
+      this.subAgendaNeedDraftOpen = true;
+      return;
+    }
+    this.subAgendaPick = {};
+    const latest = this.draftAgendaLatestVersion;
+    if (latest) this.subAgendaPick = { [latest]: true };
+    this.subAgendaPickerOpen = true;
+  }
+
+  protected dismissSubAgendaNeedDraft(): void {
+    this.subAgendaNeedDraftOpen = false;
+  }
+
+  protected onSubAgendaNeedDraft(action: string): void {
+    this.subAgendaNeedDraftOpen = false;
+    if (action === 'ยืนยัน') this.pickDraftAgenda();
+  }
+
+  protected cancelSubAgendaPicker(): void {
+    this.subAgendaPickerOpen = false;
+    this.subAgendaPick = {};
+  }
+
+  protected toggleSubAgendaPick(version: number, checked: boolean): void {
+    this.subAgendaPick = { ...this.subAgendaPick, [version]: checked };
+  }
+
+  protected get subAgendaPickCount(): number {
+    return this.draftAgendaVersions.filter((row) => this.subAgendaPick[row.version]).length;
+  }
+
+  protected get canConfirmSubAgendaPick(): boolean {
+    return this.subAgendaPickCount >= 1;
+  }
+
+  protected confirmSubAgendaPicker(): void {
+    if (!this.canConfirmSubAgendaPick) return;
+    const picked = this.draftAgendaVersions.filter((row) => this.subAgendaPick[row.version]);
+    this.subAgendaPickerOpen = false;
+    this.subAgendaPick = {};
+    if (!picked.length) return;
+    const at = this.replyStamp();
+    const added: DraftAgendaVersion[] = picked.map((row, index) => {
+      const version = this.subAgendaLatestVersion + index + 1;
+      const baseTitle = (row.title || 'วาระพิจารณาคำขอเปิดไต่สวน').replace(/\s*·\s*เวอร์ชัน\s*\d+\s*$/, '').trim();
+      const title = / \(อนุ\)\s*$/.test(baseTitle) ? baseTitle : `${baseTitle} (อนุ)`;
+      return {
+        version,
+        title,
+        at,
+        html: row.html || '',
+        source: 'created' as const,
+        fileName: row.fileName || `วาระพิจารณาคำขอเปิดไต่สวน-อนุ-v${version}.docx`,
+      };
+    });
+    this.subAgendaVersions = [...this.subAgendaVersions, ...added];
+    this.writeSubAgendaVersions();
+    this.subAgendaActiveVersion = added[added.length - 1]?.version || this.subAgendaLatestVersion;
+    this.subAgendaTab = 'files';
+    this.notice = 'saved';
+    this.view.markForCheck();
+  }
+
+  protected uploadSubAgendaFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const list = input.files;
+    if (!list?.length) return;
+    const at = this.replyStamp();
+    const versions: DraftAgendaVersion[] = [];
+    [...list].forEach((file) => {
+      const version = this.subAgendaLatestVersion + versions.length + 1;
+      const title = file.name.replace(/\.[^.]+$/, '') || `วาระพิจารณาคำขอเปิดไต่สวน (อนุ) · เวอร์ชัน ${version}`;
+      versions.push({
+        version,
+        title,
+        at,
+        html: `<p><strong>ไฟล์อัปโหลด</strong> ${file.name}</p><p>อัปโหลดเมื่อ ${at} — เปิดหรือดาวน์โหลดจากรายการเอกสาร</p>`,
+        source: 'upload',
+        fileName: file.name,
+      });
+    });
+    this.subAgendaVersions = [...this.subAgendaVersions, ...versions];
+    this.writeSubAgendaVersions();
+    this.subAgendaActiveVersion = this.subAgendaLatestVersion;
+    input.value = '';
+    this.subAgendaTab = 'files';
+    this.notice = null;
+    this.view.markForCheck();
+  }
+
+  protected renameSubAgendaVersion(version: number, title: string): void {
+    const next = title.trim() || `วาระพิจารณาคำขอเปิดไต่สวน (อนุ) · เวอร์ชัน ${version}`;
+    this.subAgendaVersions = this.subAgendaVersions.map((row) =>
+      row.version === version ? { ...row, title: next } : row,
+    );
+    this.writeSubAgendaVersions();
+  }
+
+  /** ลบวาระอนุออกจากรายการ — ยังไม่เดินไปขั้น บท. */
+  protected removeSubAgendaVersion(version: number): void {
+    if (!version) return;
+    const wasOpen = this.subAgendaWordOpen && this.subAgendaActiveVersion === version;
+    this.subAgendaVersions = this.subAgendaVersions.filter((row) => row.version !== version);
+    this.writeSubAgendaVersions();
+    try {
+      sessionStorage.removeItem(this.subAgendaCommentsStorageKey(version));
+    } catch {
+      /* ignore */
+    }
+    if (wasOpen) {
+      this.subAgendaWordOpen = false;
+      this.subAgendaTab = 'files';
+      this.subAgendaViewerFull = false;
+      this.subAgendaActiveVersion = 0;
+      this.subAgendaHtml = '';
+      this.restoreParkedAmendComments();
+      this.syncFilingUrl();
+    } else if (this.subAgendaActiveVersion === version) {
+      this.subAgendaActiveVersion = this.subAgendaLatestVersion;
+    }
+    this.view.markForCheck();
+  }
+
+  protected zoomSubAgenda(dir: 1 | -1): void {
+    const at = this.subAgendaZoomSteps.indexOf(this.subAgendaZoom);
+    const index = at < 0 ? this.subAgendaZoomSteps.indexOf(100) : at;
+    const next = this.subAgendaZoomSteps[Math.min(this.subAgendaZoomSteps.length - 1, Math.max(0, index + dir))];
+    this.subAgendaZoom = next ?? 100;
+    this.scheduleAmendWordLayout();
+  }
+
+  protected get subAgendaZoomCss(): number {
+    return (this.subAgendaZoom / 100) * Math.max(this.subAgendaFitScale, this.subAgendaZoomBase);
+  }
+
+  protected get canZoomSubAgendaIn(): boolean {
+    return this.subAgendaZoom < this.subAgendaZoomSteps[this.subAgendaZoomSteps.length - 1];
+  }
+
+  protected get canZoomSubAgendaOut(): boolean {
+    return this.subAgendaZoom > this.subAgendaZoomSteps[0];
+  }
+
+  protected toggleSubAgendaViewerFull(): void {
+    this.subAgendaViewerFull = !this.subAgendaViewerFull;
+    if (this.subAgendaViewerFull) this.docListCollapsed = true;
+    this.scheduleSubAgendaPageFrames();
+  }
+
+  protected saveSubAgendaDraft(): void {
+    this.persistSubAgendaWord(false);
+  }
+
+  protected saveSubAgendaWord(): void {
+    this.persistSubAgendaWord(true);
+  }
+
+  protected downloadSubAgendaWord(): void {
+    this.captureSubAgendaEditor();
+    const version = this.subAgendaActiveVersion || this.subAgendaLatestVersion || 1;
+    const title = `วาระพิจารณาคำขอเปิดไต่สวน (อนุ) · เวอร์ชัน ${version}`;
+    const fileName = `วาระพิจารณาคำขอเปิดไต่สวน-อนุ-v${version}-${this.refId || filingRefId}.doc`;
+    this.downloadEditorHtmlAsWord(fileName, title, this.subAgendaHtml || '<p><br></p>');
+  }
+
+  protected downloadSubAgendaVersion(row: DraftAgendaVersion): void {
+    if (this.subAgendaWordOpen && this.subAgendaActiveVersion === row.version) {
+      this.downloadSubAgendaWord();
+      return;
+    }
+    if (row.html) {
+      const title = row.title || `วาระพิจารณาคำขอเปิดไต่สวน (อนุ) · เวอร์ชัน ${row.version}`;
+      const base = (row.fileName || `วาระพิจารณาคำขอเปิดไต่สวน-อนุ-v${row.version}`).replace(/\.[^.]+$/, '');
+      this.downloadEditorHtmlAsWord(`${base}-${this.refId || filingRefId}.doc`, title, row.html);
+      return;
+    }
+    void this.downloadAssetFile(this.subAgendaSampleHref, row.fileName || row.title || 'วาระอนุ.docx');
+  }
+
+  protected onSubAgendaEditorInput(): void {
+    this.captureSubAgendaEditor();
+    this.refreshAmendToolbar();
+    this.scheduleSubAgendaPageFrames();
+  }
+
+  protected subAgendaFormat(command: string, value?: string): void {
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand(command, false, value);
+    this.lockOfficialFontOnSelection();
+    this.captureSubAgendaEditor();
+    this.refreshAmendToolbar();
+    this.subAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected applySubAgendaFontSize(size: string): void {
+    this.amendFontSize = size;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('fontSize', false, '3');
+    const root = this.subAgendaEditorRef?.nativeElement;
+    root?.querySelectorAll('font[size="3"]').forEach((node) => {
+      const span = document.createElement('span');
+      span.style.fontSize = size;
+      span.style.fontFamily = this.officialFontName;
+      span.innerHTML = node.innerHTML;
+      node.replaceWith(span);
+    });
+    this.lockOfficialFontOnSelection();
+    this.captureSubAgendaEditor();
+    this.subAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected applySubAgendaColor(color: string): void {
+    this.amendColor = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, color);
+    this.lockOfficialFontOnSelection();
+    this.captureSubAgendaEditor();
+    this.refreshAmendToolbar();
+    this.subAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected applySubAgendaHighlight(color: string): void {
+    this.amendHighlight = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('hiliteColor', false, color === 'transparent' ? 'transparent' : color);
+    this.lockOfficialFontOnSelection();
+    this.captureSubAgendaEditor();
+    this.refreshAmendToolbar();
+    this.subAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected insertSubAgendaPageBreak(): void {
+    const pageH = this.measureMmAsPx(297);
+    const editor = this.subAgendaEditorRef?.nativeElement;
+    const sheet = editor?.closest('.word-print-sheet') as HTMLElement | null;
+    const stage = this.subAgendaStageRef?.nativeElement;
+    let remain = Math.round(pageH * 0.35);
+    const sel = window.getSelection();
+    const node = sel?.anchorNode;
+    const el = node instanceof Element ? node : node?.parentElement;
+    if (el && sheet && stage && sheet.contains(el)) {
+      const rect = (el as HTMLElement).getBoundingClientRect();
+      const sheetTop = sheet.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop;
+      const y = rect.bottom - sheet.getBoundingClientRect().top + stage.scrollTop - sheetTop;
+      const offsetInPage = ((y % pageH) + pageH) % pageH;
+      remain = Math.max(28, Math.ceil(pageH - offsetInPage));
+    }
+    const breakHtml =
+      `<div class="word-page-break" data-page-break="1" contenteditable="false" style="height:${remain}px" aria-hidden="true"></div>` +
+      `<p style="font-family:${this.officialFontName};font-size:16pt;line-height:1.15;margin:0"><br></p>`;
+    this.textEditorFormat('insertHTML', breakHtml);
+    this.scheduleSubAgendaPageFrames();
+  }
+
+  protected scheduleSubAgendaPageFrames(): void {
+    if (this.subAgendaLayoutRaf) cancelAnimationFrame(this.subAgendaLayoutRaf);
+    this.subAgendaLayoutRaf = requestAnimationFrame(() => {
+      this.subAgendaLayoutRaf = 0;
+      this.syncSubAgendaPageFrames();
+    });
+  }
+
+  private syncSubAgendaFitScale(): void {
+    const stage = this.subAgendaStageRef?.nativeElement;
+    if (!stage) return;
+    const paperW = this.measureMmAsPx(210);
+    const layoutW = stage.offsetWidth || stage.clientWidth;
+    const avail = Math.max(320, layoutW - 56);
+    this.subAgendaFitScale = Math.max(1.25, avail / paperW);
+  }
+
+  private syncSubAgendaPageFrames(): void {
+    const sheet = this.subAgendaEditorRef?.nativeElement?.closest('.word-print-sheet') as HTMLElement | null;
+    const stage = this.subAgendaStageRef?.nativeElement;
+    if (!stage) return;
+    this.syncSubAgendaFitScale();
+    const pageH = this.measureMmAsPx(297);
+    const sheetTop = sheet
+      ? sheet.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop
+      : 0;
+    const contentH = Math.max(pageH, sheet?.offsetHeight || pageH);
+    const count = Math.max(1, Math.ceil(contentH / pageH));
+    this.subAgendaPageFrames = Array.from({ length: count }, (_, i) => ({
+      n: i + 1,
+      top: sheetTop + i * pageH,
+      height: pageH,
+    }));
+    this.view.markForCheck();
+  }
+
+  private persistSubAgendaWord(closeToFiles: boolean): void {
+    this.captureSubAgendaEditor();
+    this.writeSubAgendaComments();
+    const version = this.subAgendaActiveVersion || this.subAgendaLatestVersion;
+    if (!version) return;
+    const at = this.replyStamp();
+    this.subAgendaVersions = this.subAgendaVersions.map((row) =>
+      row.version === version ? { ...row, html: this.subAgendaHtml, at } : row,
+    );
+    this.writeSubAgendaVersions();
+    this.notice = 'saved';
+    if (closeToFiles) {
+      this.subAgendaTab = 'files';
+      this.subAgendaWordOpen = false;
+      this.subAgendaViewerFull = false;
+      this.restoreParkedAmendComments();
+      this.syncFilingUrl();
+    }
+  }
+
+  private captureSubAgendaEditor(): void {
+    const el = this.subAgendaEditorRef?.nativeElement;
+    if (!el) return;
+    const empty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+    this.subAgendaEmpty = empty;
+    this.subAgendaHtml = empty ? '' : el.innerHTML;
+    const version = this.subAgendaActiveVersion;
+    if (!version) return;
+    this.subAgendaVersions = this.subAgendaVersions.map((row) =>
+      row.version === version ? { ...row, html: this.subAgendaHtml } : row,
+    );
+    this.writeSubAgendaVersions();
+  }
+
+  private fillSubAgendaEditor(tries = 0): void {
+    const run = () => {
+      const el = this.subAgendaEditorRef?.nativeElement;
+      if (!el) {
+        if (tries < 8) window.setTimeout(() => this.fillSubAgendaEditor(tries + 1), 50);
+        return;
+      }
+      el.innerHTML = this.subAgendaHtml || '';
+      this.subAgendaEmpty = this.amendHtmlIsEmpty(this.subAgendaHtml);
+      this.refreshAmendToolbar();
+      this.scheduleAmendWordLayout();
+      this.scheduleSubAgendaPageFrames();
+      window.setTimeout(() => this.scheduleAmendWordLayout(), 120);
+      this.view.markForCheck();
+    };
+    window.setTimeout(run, tries === 0 ? 0 : 50);
+  }
+
+  private async seedSubAgendaHtml(version: number): Promise<void> {
+    try {
+      const res = await fetch(this.subAgendaSampleUrl);
+      if (!res.ok) throw new Error(`sample ${res.status}`);
+      const html = await res.text();
+      if (this.subAgendaActiveVersion !== version) return;
+      this.subAgendaHtml = html;
+      this.subAgendaEmpty = false;
+      this.subAgendaVersions = this.subAgendaVersions.map((row) =>
+        row.version === version ? { ...row, html, source: row.source === 'upload' ? 'upload' : 'created' } : row,
+      );
+      this.writeSubAgendaVersions();
+      window.setTimeout(() => this.fillSubAgendaEditor(), 0);
+      this.view.markForCheck();
+    } catch {
+      /* keep blank */
+    }
+  }
+
+  private subAgendaCommentsStorageKey(version = this.subAgendaActiveVersion): string {
+    return `${this.subAgendaCommentsKey}-v${version || 0}`;
+  }
+
+  private loadSubAgendaComments(): void {
+    try {
+      const raw = sessionStorage.getItem(this.subAgendaCommentsStorageKey());
+      const parsed = raw ? (JSON.parse(raw) as AmendWordComment[]) : [];
+      this.amendWordComments = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      this.amendWordComments = [];
+    }
+    this.amendWordActiveId = '';
+    this.amendWordDraftId = '';
+    this.commentPinMode = false;
+  }
+
+  private writeSubAgendaComments(): void {
+    try {
+      const key = this.subAgendaCommentsStorageKey();
+      if (!this.amendWordComments.length) sessionStorage.removeItem(key);
+      else sessionStorage.setItem(key, JSON.stringify(this.amendWordComments));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private loadSubAgendaVersions(): void {
+    try {
+      const raw = sessionStorage.getItem(this.subAgendaVersionsKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as DraftAgendaVersion[];
+        if (Array.isArray(parsed) && parsed.length) {
+          this.subAgendaVersions = parsed.map((row) => ({ ...row }));
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    this.ensureSubAgendaSamples();
+  }
+
+  private writeSubAgendaVersions(): void {
+    try {
+      sessionStorage.setItem(this.subAgendaVersionsKey, JSON.stringify(this.subAgendaVersions));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private ensureSubAgendaSamples(): void {
+    if (this.subAgendaVersions.length) {
+      const needHtml = this.subAgendaVersions.find((row) => !row.html);
+      if (needHtml) void this.seedSubAgendaHtml(needHtml.version);
+      return;
+    }
+    const at = '02/11/2563 · 10:00 น.';
+    this.subAgendaVersions = [
+      {
+        version: 1,
+        title: 'วาระพิจารณาคำขอเปิดไต่สวน (อนุ)',
+        at,
+        html: '',
+        source: 'created',
+        fileName: '2. วาระพิจารณาคำขอเปิดไต่สวน.docx',
+      },
+    ];
+    this.subAgendaActiveVersion = 1;
+    this.writeSubAgendaVersions();
+    void this.seedSubAgendaHtml(1);
+  }
+
+  protected pickMeetingPack(): void {
+    if (!this.meetingBureauFlowEnabled) {
+      this.pickSubAgenda();
+      return;
+    }
+    this.closeMeetingEditors();
+    this.completeBundle = '';
+    this.editingId = '';
+    this.docShelf = 'files';
+    this.docPart = this.meetingPackPart;
+    this.notice = null;
+    this.loadSubAgendaVersions();
+    this.loadMeetingPack();
+    this.syncFilingUrl();
+  }
+
+  protected get meetingPackNavOn(): boolean {
+    return this.reviewTab === 'docs' && this.docPart === this.meetingPackPart;
+  }
+
+  protected meetingPackDot(): string {
+    if (this.meetingPackSent) return 'assets/icons/por1-dot-done.svg';
+    if (this.meetingPackNavOn) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
+  protected meetingPackRoleLabel(role: string): string {
+    if (role === 'agenda') return 'วาระอนุ';
+    if (role === 'ppt') return 'PowerPoint · ส่ง บท.';
+    return 'เอกสารประกอบ';
+  }
+
+  protected get canSendMeetingPack(): boolean {
+    if (this.meetingPackSent) return false;
+    if (this.reviewRole && this.reviewRole !== 'officer') return false;
+    return this.meetingPackFiles.some((file) => file.role === 'ppt')
+      && this.meetingPackFiles.some((file) => file.role === 'agenda');
+  }
+
+  protected sendMeetingPackToBureau(): void {
+    if (!this.canSendMeetingPack) return;
+    const officer = this.signedPerson || this.officerName || 'เจ้าหน้าที่กลุ่ม';
+    this.meetingPackSent = true;
+    this.meetingPackSentAt = `${this.thaiToday()} · ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`;
+    this.meetingPackSentBy = officer;
+    this.writeMeetingPackSent();
+    this.notice = 'saved';
+  }
+
+  /** เลือกวาระอนุจากรายการวาระอนุ — เหมือนเพิ่มวาระในเสนออนุมัติ */
+  protected requestAddMeetingPackAgenda(): void {
+    this.loadSubAgendaVersions();
+    if (!this.subAgendaVersions.length) {
+      this.meetingPackNeedAgendaOpen = true;
+      return;
+    }
+    this.meetingPackPick = {};
+    this.meetingPackFiles
+      .filter((file) => file.role === 'agenda' && file.subVersion)
+      .forEach((file) => {
+        if (file.subVersion) this.meetingPackPick[file.subVersion] = true;
+      });
+    if (!Object.keys(this.meetingPackPick).length) {
+      const latest = this.subAgendaLatestVersion;
+      if (latest) this.meetingPackPick = { [latest]: true };
+    }
+    this.meetingPackPickerOpen = true;
+  }
+
+  protected dismissMeetingPackNeedAgenda(): void {
+    this.meetingPackNeedAgendaOpen = false;
+  }
+
+  protected onMeetingPackNeedAgenda(action: string): void {
+    this.meetingPackNeedAgendaOpen = false;
+    if (action === 'ยืนยัน') this.pickSubAgenda();
+  }
+
+  protected cancelMeetingPackPicker(): void {
+    this.meetingPackPickerOpen = false;
+    this.meetingPackPick = {};
+  }
+
+  protected toggleMeetingPackPick(version: number, checked: boolean): void {
+    this.meetingPackPick = { ...this.meetingPackPick, [version]: checked };
+  }
+
+  protected get canConfirmMeetingPackPick(): boolean {
+    return this.subAgendaVersions.some((row) => this.meetingPackPick[row.version]);
+  }
+
+  protected confirmMeetingPackPicker(): void {
+    if (!this.canConfirmMeetingPackPick) return;
+    const picked = this.subAgendaVersions.filter((row) => this.meetingPackPick[row.version]);
+    this.meetingPackPickerOpen = false;
+    this.meetingPackPick = {};
+    if (!picked.length) return;
+    const at = this.thaiToday();
+    const keep = this.meetingPackFiles.filter(
+      (file) => !(file.role === 'agenda' && file.source === 'pick') && !(file.role === 'agenda' && file.source === 'sample'),
+    );
+    const added = picked.map((row) => ({
+      id: `pack-agenda-v${row.version}`,
+      name: row.fileName || `วาระอนุ-v${row.version}.docx`,
+      title: row.title || 'วาระพิจารณาคำขอเปิดไต่สวน (อนุ)',
+      at: (row.at || at).split('·')[0]?.trim() || at,
+      href: this.subAgendaSampleHref,
+      role: 'agenda' as const,
+      source: 'pick' as const,
+      subVersion: row.version,
+    }));
+    this.meetingPackFiles = [...keep, ...added];
+    this.markMeetingPackDirty();
+    this.writeMeetingPack();
+    this.view.markForCheck();
+  }
+
+  protected uploadMeetingPackFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const list = input.files;
+    if (!list?.length) return;
+    const at = this.thaiToday();
+    const added = [...list].map((file, index) => {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const isPpt = ext === 'ppt' || ext === 'pptx';
+      const title = file.name.replace(/\.[^.]+$/, '') || file.name;
+      return {
+        id: `pack-upload-${Date.now()}-${index}`,
+        name: file.name,
+        title,
+        at,
+        href: '',
+        role: (isPpt ? 'ppt' : 'agenda') as 'agenda' | 'ppt',
+        source: 'upload' as const,
+      };
+    });
+    this.meetingPackFiles = [...this.meetingPackFiles, ...added];
+    this.markMeetingPackDirty();
+    this.writeMeetingPack();
+    input.value = '';
+    this.view.markForCheck();
+  }
+
+  protected renameMeetingPackFile(id: string, title: string): void {
+    const next = title.trim() || 'เอกสารประกอบ';
+    this.meetingPackFiles = this.meetingPackFiles.map((file) =>
+      file.id === id ? { ...file, title: next } : file,
+    );
+    this.writeMeetingPack();
+  }
+
+  protected removeMeetingPackFile(id: string): void {
+    this.meetingPackFiles = this.meetingPackFiles.filter((file) => file.id !== id);
+    this.markMeetingPackDirty();
+    this.writeMeetingPack();
+    this.view.markForCheck();
+  }
+
+  protected openMeetingPackFile(file: {
+    id?: string;
+    name: string;
+    title?: string;
+    at?: string;
+    href?: string;
+    subVersion?: number;
+  }): void {
+    if (file.subVersion) {
+      this.pickSubAgenda();
+      this.openSubAgendaVersion(file.subVersion);
+      return;
+    }
+    this.openMeetingResolutionFile(file);
+  }
+
+  protected downloadMeetingPackFile(file: {
+    id?: string;
+    name: string;
+    title?: string;
+    at?: string;
+    href?: string;
+  }): void {
+    this.downloadMeetingResolutionFile(file);
+  }
+
+  private markMeetingPackDirty(): void {
+    if (!this.meetingPackSent) return;
+    this.meetingPackSent = false;
+    this.meetingPackSentAt = '';
+    this.meetingPackSentBy = '';
+    try {
+      sessionStorage.removeItem(this.meetingPackSentKey);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private writeMeetingPack(): void {
+    try {
+      sessionStorage.setItem(this.meetingPackKey, JSON.stringify(this.meetingPackFiles));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private writeMeetingPackSent(): void {
+    try {
+      sessionStorage.setItem(
+        this.meetingPackSentKey,
+        JSON.stringify({
+          sent: this.meetingPackSent,
+          at: this.meetingPackSentAt,
+          by: this.meetingPackSentBy,
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private loadMeetingPack(): void {
+    try {
+      const raw = sessionStorage.getItem(this.meetingPackKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as typeof this.meetingPackFiles;
+        if (Array.isArray(parsed) && parsed.length) {
+          this.meetingPackFiles = parsed.map((file) => ({ ...file }));
+        }
+      }
+      const sentRaw = sessionStorage.getItem(this.meetingPackSentKey);
+      if (sentRaw) {
+        const sent = JSON.parse(sentRaw) as { sent?: boolean; at?: string; by?: string };
+        this.meetingPackSent = sent.sent === true;
+        this.meetingPackSentAt = sent.at || '';
+        this.meetingPackSentBy = sent.by || '';
+      }
+    } catch {
+      /* ignore */
+    }
+    this.ensureMeetingPackSamples();
+  }
+
+  private ensureMeetingPackSamples(): void {
+    if (this.meetingPackFiles.length) return;
+    this.meetingPackFiles = this.buildMeetingPackSamples();
+    this.writeMeetingPack();
+    this.ensureMeetingPackSentSample();
+  }
+
+  /** ตัวอย่าง: แนบวาระ+PPT และส่งให้ บท. ไว้แล้วตามเคส — เฉพาะตอนยังไม่มีสถานะส่ง */
+  private ensureMeetingPackSentSample(): void {
+    if (this.meetingPackSent) return;
+    const officer = this.signedPerson || this.officerName || 'นางสาวจรีณา กิจส่งเสริมกุล';
+    this.meetingPackSent = true;
+    this.meetingPackSentAt = '02/11/2563 · 16:00 น.';
+    this.meetingPackSentBy = officer;
+    this.writeMeetingPackSent();
+  }
+
+  private buildMeetingPackSamples(): typeof this.meetingPackFiles {
+    const at = '02/11/2563';
+    const agenda = this.subAgendaVersions[this.subAgendaVersions.length - 1];
+    return [
+      {
+        id: agenda?.version ? `pack-agenda-v${agenda.version}` : 'pack-agenda',
+        name: agenda?.fileName || '2. วาระพิจารณาคำขอเปิดไต่สวน.docx',
+        title: agenda?.title || 'วาระพิจารณาคำขอเปิดไต่สวน (อนุ)',
+        at: (agenda?.at || at).split('·')[0]?.trim() || at,
+        href: this.subAgendaSampleHref,
+        role: 'agenda',
+        source: 'sample',
+        subVersion: agenda?.version,
+      },
+      {
+        id: 'pack-ppt',
+        name: '3. PowerPoint อนุ ทตอ 3 พย 63 ส่ง บท.pptx',
+        title: 'PowerPoint อนุไต่สวน · ส่งกลุ่ม บท.',
+        at,
+        href: 'assets/samples/ad1046/agenda/sub/3. PowerPoint อนุ ทตอ 3 พย 63.pptx',
+        role: 'ppt',
+        source: 'sample',
+      },
+    ];
+  }
+
+  protected pickMeetingResolution(): void {
+    if (!this.meetingBureauFlowEnabled) {
+      this.pickSubAgenda();
+      return;
+    }
+    this.closeMeetingEditors();
+    this.completeBundle = '';
+    this.editingId = '';
+    this.docShelf = 'files';
+    this.docPart = this.meetingResolutionPart;
+    this.notice = null;
+    this.loadMeetingResolution();
+    this.syncFilingUrl();
+  }
+
+  protected get meetingResolutionNavOn(): boolean {
+    return this.reviewTab === 'docs' && this.docPart === this.meetingResolutionPart;
+  }
+
+  protected meetingResolutionDot(): string {
+    if (this.meetingResolutionFiles.some((file) => file.role === 'resolution' && !!file.href)) {
+      return 'assets/icons/por1-dot-done.svg';
+    }
+    if (this.meetingResolutionNavOn) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
+  protected meetingRoleLabel(role: string): string {
+    if (role === 'resolution') return 'มติที่ประชุม';
+    if (role === 'minutes') return 'รายงานการประชุม';
+    if (role === 'agenda') return 'วาระอนุ';
+    if (role === 'ppt') return 'PowerPoint';
+    return 'เอกสารประกอบ';
+  }
+
+  protected openMeetingResolutionFile(file: {
+    id?: string;
+    name: string;
+    title?: string;
+    at?: string;
+    href?: string;
+    role?: string;
+  }): void {
+    if (file.href) {
+      window.open(file.href, '_blank', 'noopener');
+      return;
+    }
+    this.viewingMade = {
+      id: `meeting-${file.id || file.name}`,
+      kind: file.title || file.name,
+      at: file.at || this.thaiToday(),
+      fields: [
+        { label: 'ไฟล์', value: file.name },
+        { label: 'ชื่อเอกสาร', value: file.title || file.name },
+      ],
+    };
+  }
+
+  protected downloadMeetingResolutionFile(file: {
+    id?: string;
+    name: string;
+    title?: string;
+    at?: string;
+    href?: string;
+    role?: string;
+  }): void {
+    if (file.href) {
+      void this.downloadAssetFile(file.href, file.name);
+      return;
+    }
+    this.openMeetingResolutionFile(file);
+  }
+
+  protected setMeetingAccept(value: 'accept' | 'return'): void {
+    this.meetingAccept = value;
+    try {
+      sessionStorage.setItem(this.meetingAcceptKey, value);
+    } catch {
+      /* ignore */
+    }
+    this.notice = 'saved';
+  }
+
+  private loadMeetingResolution(): void {
+    try {
+      const raw = sessionStorage.getItem(this.meetingResolutionKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as typeof this.meetingResolutionFiles;
+        if (Array.isArray(parsed) && parsed.length) {
+          this.meetingResolutionFiles = parsed.map((file) => ({ ...file }));
+        }
+      }
+      const accept = sessionStorage.getItem(this.meetingAcceptKey);
+      if (accept === 'accept' || accept === 'return') this.meetingAccept = accept;
+    } catch {
+      /* ignore */
+    }
+    this.ensureMeetingResolutionSamples(true);
+  }
+
+  private ensureMeetingResolutionSamples(force = false): void {
+    const samples = this.buildMeetingResolutionSamples();
+    const hasAll =
+      samples.length === this.meetingResolutionFiles.length &&
+      samples.every((sample) =>
+        this.meetingResolutionFiles.some((file) => file.id === sample.id && !!file.href && file.role === sample.role),
+      );
+    if (!force && hasAll) return;
+    this.meetingResolutionFiles = samples;
+    try {
+      sessionStorage.setItem(this.meetingResolutionKey, JSON.stringify(this.meetingResolutionFiles));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private buildMeetingResolutionSamples(): typeof this.meetingResolutionFiles {
+    const at = '03/11/2563';
+    return [
+      {
+        id: 'meeting-resolution',
+        name: '4. มติคณะอนุฯ ไต่สวน HR 3 พย 63.docx',
+        title: 'มติคณะอนุฯ ไต่สวน',
+        at,
+        href: 'assets/samples/ad1046/agenda/sub/4. มติคณะอนุฯ ไต่สวน HR 3 พย 63.docx',
+        role: 'resolution',
+      },
+      {
+        id: 'meeting-minutes',
+        name: '5. รายงานการประชุม HR 3 พย 63.docx',
+        title: 'รายงานการประชุมอนุไต่สวน',
+        at,
+        href: 'assets/samples/ad1046/agenda/sub/5. รายงานการประชุม HR 3 พย 63.docx',
+        role: 'minutes',
+      },
+    ];
+  }
+
   protected get approvalLatestRound(): number {
     return this.approvalRounds.reduce((max, row) => Math.max(max, row.round), 0);
   }
@@ -6787,8 +8261,164 @@ export class Por1Page {
     this.approvalAgendaPick = { ...this.approvalAgendaPick, [version]: checked };
   }
 
+  protected get canCreateApprovalRound(): boolean {
+    if (this.reviewRole && this.reviewRole !== 'officer') return false;
+    return canCreateApprovalItem(this.approvalRounds.map((row) => row.laneStage || 'draft'));
+  }
+
+  protected get approvalCreateBlockedReason(): string {
+    if (this.canCreateApprovalRound) return '';
+    return 'รออนุมัติหรือปฏิเสธรายการปัจจุบันก่อนสร้างใหม่';
+  }
+
+  protected get approvalListRows(): ApprovalListRow[] {
+    return this.approvalRounds.map((row) => {
+      const stage = row.laneStage || 'draft';
+      const officer = !this.reviewRole || this.reviewRole === 'officer';
+      return toApprovalListRow({
+        id: String(row.round),
+        title: row.title || `เอกสารขออนุมัติ บันทึกเสนอ · รอบ ${row.round}`,
+        date: (row.at || '').split('·')[0]?.trim() || row.at || '',
+        stage,
+        meta: this.draftAgendaSourceLabel(row.source),
+        statusLabel: approvalListStatusLabel(stage),
+        canEdit: stage === 'draft' && officer,
+        canReview:
+          (stage === 'to-head' && (this.reviewRole === 'head' || this.isMyGroupHead())) ||
+          (stage === 'to-director' && (this.reviewRole === 'director' || this.reviewRole === 'staff')),
+        canCancel: officer && stage !== 'done' && stage !== 'cancelled' && stage !== 'delivered',
+        // เสนออนุมัติไม่มีการส่งฉบับสมบูรณ์ให้ผู้ยื่น — ไม่เปิดอัปโหลด/ส่งแล้วหลังอนุมัติ
+        canUpload: false,
+        canDeliver: false,
+        keptFiles: (row.attachments || []).map((file) => ({
+          id: file.id,
+          name: file.name,
+          title: file.title || file.name,
+          at: file.at,
+          href: file.href,
+          edition: file.edition || 'draft',
+        })),
+      });
+    });
+  }
+
+  protected approvalHistoryOpen = false;
+  protected approvalHistoryRound = 0;
+
+  protected get approvalHistoryEntries(): ApprovalLaneHistoryEntry[] {
+    const row = this.approvalRounds.find((item) => item.round === this.approvalHistoryRound);
+    return row?.laneHistory || [];
+  }
+
+  protected get approvalHistoryDetail(): string {
+    const row = this.approvalRounds.find((item) => item.round === this.approvalHistoryRound);
+    if (!row) return '';
+    return `${row.title} · ${this.approvalHistoryEntries.length} รายการ`;
+  }
+
   protected requestCreateApprovalRound(): void {
+    if (!this.canCreateApprovalRound) return;
     this.beginApprovalAgendaPicker('create');
+  }
+
+  protected onApprovalListCreate(): void {
+    this.requestCreateApprovalRound();
+  }
+
+  protected onApprovalListOpen(row: ApprovalListRow): void {
+    const round = Number(row.id);
+    this.approvalActiveRound = round;
+    const found = this.approvalRounds.find((item) => item.round === round);
+    if (found && (found.source === 'created' || found.source === 'ai')) {
+      this.openApprovalRound(round);
+      return;
+    }
+    this.approvalTab = 'files';
+  }
+
+  protected onApprovalListHistory(row: ApprovalListRow): void {
+    this.approvalHistoryRound = Number(row.id);
+    this.approvalHistoryOpen = true;
+  }
+
+  protected closeApprovalHistory(): void {
+    this.approvalHistoryOpen = false;
+  }
+
+  protected onApprovalListEdit(row: ApprovalListRow): void {
+    this.onApprovalListOpen(row);
+  }
+
+  protected onApprovalListReview(row: ApprovalListRow): void {
+    this.approvalActiveRound = Number(row.id);
+    this.approvalTab = 'files';
+    this.approvalWordOpen = false;
+  }
+
+  protected onApprovalListCancel(row: ApprovalListRow): void {
+    const round = Number(row.id);
+    const found = this.approvalRounds.find((item) => item.round === round);
+    if (!found) return;
+    const stage = found.laneStage || 'draft';
+    if (stage === 'done' || stage === 'cancelled') return;
+    this.approvalActiveRound = round;
+    this.patchActiveApprovalLane('cancelled', 'ยกเลิก / ปฏิเสธรายการเสนอ');
+    this.patchActiveApprovalEofficeLink('idle');
+    this.approvalWordOpen = false;
+    this.approvalTab = 'files';
+    this.notice = 'saved';
+  }
+
+  protected onApprovalListUpload(_event: { row: ApprovalListRow; files: FileList }): void {
+    // เสนออนุมัติไม่แนบฉบับสมบูรณ์หลังอนุมัติ — ไม่ใช้
+  }
+
+  protected onApprovalListRemoveKept(event: { row: ApprovalListRow; file: { id: string; name: string } }): void {
+    const officer = !this.reviewRole || this.reviewRole === 'officer';
+    if (!officer) return;
+    const round = Number(event.row.id);
+    const found = this.approvalRounds.find((item) => item.round === round);
+    if (!found || (found.laneStage || 'draft') === 'done' || (found.laneStage || 'draft') === 'cancelled') return;
+    this.approvalActiveRound = round;
+    this.removeApprovalAttachment(event.file.id);
+  }
+
+  protected onApprovalListOpenKept(event: {
+    row: ApprovalListRow;
+    file: { name: string; title: string; at?: string; href?: string };
+  }): void {
+    const href = event.file.href || this.approvalKeptHref(Number(event.row.id), event.file.name);
+    if (href) {
+      window.open(href, '_blank', 'noopener');
+      return;
+    }
+    this.viewingMade = {
+      id: `approval-kept-${event.row.id}-${event.file.name}`,
+      kind: event.file.title || event.file.name,
+      at: event.file.at || this.thaiToday(),
+      fields: [
+        { label: 'ไฟล์แนบ', value: event.file.name },
+        { label: 'ชื่อเอกสาร', value: event.file.title || event.file.name },
+        { label: 'รายการ', value: event.row.title },
+      ],
+    };
+  }
+
+  protected onApprovalListDownloadKept(event: {
+    row: ApprovalListRow;
+    file: { name: string; title: string; at?: string; href?: string };
+  }): void {
+    const href = event.file.href || this.approvalKeptHref(Number(event.row.id), event.file.name);
+    if (href) {
+      void this.downloadAssetFile(href, event.file.name);
+      return;
+    }
+    this.onApprovalListOpenKept(event);
+  }
+
+  private approvalKeptHref(round: number, fileName: string): string {
+    const row = this.approvalRounds.find((item) => item.round === round);
+    return (row?.attachments || []).find((file) => file.name === fileName)?.href || '';
   }
 
   protected requestAiApproval(): void {
@@ -6797,14 +8427,17 @@ export class Por1Page {
       this.startAiApprovalFill();
       return;
     }
+    if (!this.canCreateApprovalRound) return;
     this.beginApprovalAgendaPicker('ai');
   }
 
   protected requestUploadApproval(): void {
+    if (!this.canCreateApprovalRound) return;
     this.beginApprovalAgendaPicker('upload');
   }
 
   private beginApprovalAgendaPicker(mode: 'create' | 'ai' | 'upload' | 'add'): void {
+    if ((mode === 'create' || mode === 'ai' || mode === 'upload') && !this.canCreateApprovalRound) return;
     this.loadDraftAgendaVersions();
     if (!this.draftAgendaVersions.length) {
       this.approvalNeedAgendaOpen = true;
@@ -7191,11 +8824,17 @@ export class Por1Page {
     return this.draftAgendaAtLabel(at);
   }
 
-  protected readonly approvalLaneStages = AGENDA_APPROVAL_LANE_STAGES;
-
   protected get approvalLaneStage(): ApprovalLaneStage {
     const row = this.approvalRounds.find((item) => item.round === this.approvalActiveRound);
     return row?.laneStage || 'draft';
+  }
+
+  /** เสนออนุมัติไม่มีขั้นส่งให้ผู้ยื่น — ข้อความรอหลังอนุมัติต่างจากแจ้งผลการตรวจ */
+  protected get approvalLaneWaitingText(): string {
+    const stage = this.approvalLaneStage;
+    if (stage === 'done') return 'อนุมัติแล้ว — มีฉบับสมบูรณ์ในรายการ (ไม่ส่งให้ผู้ยื่น)';
+    if (stage === 'cancelled') return 'รายการนี้ถูกยกเลิกแล้ว';
+    return '';
   }
 
   protected get approvalLaneActor(): ApprovalLaneActor {
@@ -7649,32 +9288,157 @@ export class Por1Page {
   private loadApprovalRounds(): void {
     try {
       const raw = sessionStorage.getItem(this.approvalRoundsKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as ApprovalSubmitRound[];
-      if (!Array.isArray(parsed)) return;
-      this.approvalRounds = parsed
-        .filter(
-          (row) => row && typeof row.round === 'number' && typeof row.html === 'string' && Array.isArray(row.agendaVersions),
-        )
-        .map((row) => ({
-          ...row,
-          title: (row.title || '').replaceAll('เอกสารขออนุมัติ_บันทึกเสนอ', 'เอกสารขออนุมัติ บันทึกเสนอ'),
-          fileName: row.fileName
-            ? row.fileName.replaceAll('เอกสารขออนุมัติ_บันทึกเสนอ', 'เอกสารขออนุมัติ บันทึกเสนอ')
-            : row.fileName,
-          attachments: Array.isArray(row.attachments) ? row.attachments : [],
-          laneStage: row.laneStage || 'draft',
-          sarabanNo: row.sarabanNo || '',
-          laneHistory: Array.isArray(row.laneHistory) ? row.laneHistory : [],
-          html: this.approvalHtmlNeedsTemplate(row.html) ? this.buildApprovalFormHtml() : row.html,
-        }));
-      this.approvalActiveRound = this.approvalLatestRound;
-      const current = this.approvalRounds.find((row) => row.round === this.approvalActiveRound);
-      if (current) this.approvalHtml = current.html;
-      this.writeApprovalRounds();
+      if (raw) {
+        const parsed = JSON.parse(raw) as ApprovalSubmitRound[];
+        if (Array.isArray(parsed)) {
+          this.approvalRounds = parsed
+            .filter(
+              (row) => row && typeof row.round === 'number' && typeof row.html === 'string' && Array.isArray(row.agendaVersions),
+            )
+            .map((row) => ({
+              ...row,
+              title: (row.title || '').replaceAll('เอกสารขออนุมัติ_บันทึกเสนอ', 'เอกสารขออนุมัติ บันทึกเสนอ'),
+              fileName: row.fileName
+                ? row.fileName.replaceAll('เอกสารขออนุมัติ_บันทึกเสนอ', 'เอกสารขออนุมัติ บันทึกเสนอ')
+                : row.fileName,
+              attachments: Array.isArray(row.attachments)
+                ? row.attachments.map((file) => ({ ...file }))
+                : [],
+              laneStage: row.laneStage || 'draft',
+              sarabanNo: row.sarabanNo || '',
+              laneHistory: Array.isArray(row.laneHistory) ? row.laneHistory : [],
+              html: this.approvalHtmlNeedsTemplate(row.html) ? this.buildApprovalFormHtml() : row.html,
+            }));
+        }
+      }
     } catch {
       /* ignore */
     }
+    if (this.reviewRole) this.ensureApprovalSubmitSamples(true);
+    this.approvalActiveRound = this.approvalLatestRound;
+    const current = this.approvalRounds.find((row) => row.round === this.approvalActiveRound);
+    if (current) this.approvalHtml = current.html;
+    this.writeApprovalRounds();
+  }
+
+  /**
+   * ตัวอย่างเสนออนุมัติตามเคส AD1046 (บันทึกเสนอ อธ.)
+   * แนบไฟล์เก็บในรายการ — ฉบับร่างทุกครั้ง · รอบอนุมัติแล้วมีฉบับสมบูรณ์ด้วย (ไม่ส่งให้ผู้ยื่น)
+   */
+  private ensureApprovalSubmitSamples(force = false): void {
+    const samples = this.buildApprovalSubmitSamples();
+    const ids = new Set(samples.map((row) => `sample-approval-${row.round}`));
+    const tagged = this.approvalRounds.filter((row) => (row.fileName || '').startsWith('sample-approval-') || ids.has(`sample-approval-${row.round}`));
+    const hasEditionFiles = samples.every((sample) => {
+      const current = this.approvalRounds.find((row) => row.round === sample.round);
+      if (!current || current.laneStage !== sample.laneStage) return false;
+      const files = current.attachments || [];
+      const hasDraft = files.some((file) => file.edition === 'draft' && !!file.href);
+      if (sample.laneStage === 'done') {
+        return hasDraft && files.some((file) => file.edition === 'final' && !!file.href);
+      }
+      return hasDraft;
+    });
+    const onlySamples =
+      this.approvalRounds.length === samples.length &&
+      this.approvalRounds.every((row) => samples.some((sample) => sample.round === row.round));
+    if (!force && onlySamples && hasEditionFiles && tagged.length === samples.length) return;
+
+    this.approvalRounds = samples;
+    this.approvalActiveRound = samples[samples.length - 1]?.round || 0;
+    const current = this.approvalRounds.find((row) => row.round === this.approvalActiveRound);
+    if (current) this.approvalHtml = current.html;
+    this.writeApprovalRounds();
+  }
+
+  private buildApprovalSubmitSamples(): ApprovalSubmitRound[] {
+    const officer = this.signedPerson || this.officerName || 'นางสาวจรีณา กิจส่งเสริมกุล';
+    const draftHref = 'assets/samples/ad1046/agenda/approval/1-บันทึกเสนอ-อธ-เข้าอนุฯ-พิจารณาคำขอ.html';
+    const finalHref = 'assets/samples/ad1046/agenda/approval/1-บันทึกเสนอ-อธ-เข้าอนุฯ-พิจารณาคำขอ-ฉบับสมบูรณ์.html';
+    const rounds: Array<{
+      round: number;
+      at: string;
+      source: ApprovalSubmitRound['source'];
+      stage: ApprovalLaneStage;
+      detail: string;
+    }> = [
+      {
+        round: 1,
+        at: '02/10/2563 · 09:20 น.',
+        source: 'ai',
+        stage: 'cancelled',
+        detail: 'ร่างบันทึกเสนอรอบแรก — ส่งกลับแก้ไขประเด็น Causal Link',
+      },
+      {
+        round: 2,
+        at: '15/10/2563 · 11:05 น.',
+        source: 'ai',
+        stage: 'cancelled',
+        detail: 'ร่างรอบสองหลังแก้ตามความเห็น — ยังไม่ครบตามข้อพิจารณาอนุฯ',
+      },
+      {
+        round: 3,
+        at: '28/10/2563 · 14:30 น.',
+        source: 'created',
+        stage: 'done',
+        detail: 'บันทึกเสนอฉบับสมบูรณ์ตามเคส AD1046 — เก็บในท่อ ไม่ส่งให้ผู้ยื่น',
+      },
+    ];
+
+    const formHtml = this.buildApprovalFormHtml();
+    return rounds.map((row) => {
+      const title = `เอกสารขออนุมัติ บันทึกเสนอ · รอบ ${row.round}`;
+      const date = row.at.split('·')[0]?.trim() || row.at;
+      const draftName = `บันทึกเสนอ-อธ-เข้าอนุฯ-รอบ-${row.round}-ร่าง.html`;
+      const finalName = `บันทึกเสนอ-อธ-เข้าอนุฯ-รอบ-${row.round}-ฉบับสมบูรณ์.html`;
+      const history: ApprovalLaneHistoryEntry[] = [
+        { at: row.at, by: officer, action: 'สร้าง/แนบฉบับร่างบันทึกเสนอ' },
+        { at: row.at, by: officer, action: 'ส่งหัวหน้ากลุ่ม — ขออนุมัติฉบับร่าง' },
+        { at: row.at, by: 'หัวหน้ากลุ่ม', action: row.stage === 'cancelled' ? 'หัวหน้ากลุ่มส่งกลับแก้ไข' : 'หัวหน้ากลุ่มเห็นชอบ' },
+      ];
+      if (row.stage === 'cancelled') {
+        history.push({ at: row.at, by: officer, action: `ปฏิเสธ / ยกเลิกรอบ ${row.round} — ${row.detail}` });
+      } else {
+        history.push(
+          { at: row.at, by: officer, action: 'ผู้อำนวยการเห็นชอบ' },
+          { at: row.at, by: officer, action: 'อนุมัติแล้ว — แนบไฟล์ฉบับสมบูรณ์เก็บในรายการ' },
+        );
+      }
+      const attachments: NonNullable<ApprovalSubmitRound['attachments']> = [
+        {
+          id: `sample-approval-draft-${row.round}`,
+          name: draftName,
+          title: `บันทึกเสนอ อธ. เข้าอนุฯ พิจารณาคำขอ · ฉบับร่าง (รอบ ${row.round})`,
+          at: date,
+          href: draftHref,
+          edition: 'draft',
+        },
+      ];
+      if (row.stage === 'done') {
+        attachments.push({
+          id: `sample-approval-final-${row.round}`,
+          name: finalName,
+          title: `บันทึกเสนอ อธ. เข้าอนุฯ พิจารณาคำขอ · ฉบับสมบูรณ์ (รอบ ${row.round})`,
+          at: date,
+          href: finalHref,
+          edition: 'final',
+        });
+      }
+      return {
+        round: row.round,
+        title,
+        at: row.at,
+        html: formHtml,
+        source: row.source,
+        fileName: `sample-approval-${row.round}`,
+        agendaVersions: [1],
+        attachments,
+        laneStage: row.stage,
+        sarabanNo: row.stage === 'done' ? 'สบ.1840/2563' : '',
+        laneHistory: history,
+        eofficeLink: row.stage === 'done' ? 'synced' : 'idle',
+      };
+    });
   }
 
   private writeApprovalRounds(): void {
@@ -7824,6 +9588,19 @@ export class Por1Page {
     }
     if (index === this.approvalSubmitPart) {
       this.pickApprovalSubmit();
+      return;
+    }
+    if (index === this.subAgendaPart) {
+      this.pickSubAgenda();
+      return;
+    }
+    if (index === this.meetingPackPart || index === this.meetingResolutionPart) {
+      if (!this.meetingBureauFlowEnabled) {
+        this.pickSubAgenda();
+        return;
+      }
+      if (index === this.meetingPackPart) this.pickMeetingPack();
+      else this.pickMeetingResolution();
       return;
     }
     this.completeBundle = '';
@@ -8326,18 +10103,24 @@ export class Por1Page {
     return !!this.reviewRole && this.approvalWordOpen;
   }
 
+  protected get canAddSubAgendaComment(): boolean {
+    return !!this.reviewRole && this.subAgendaWordOpen;
+  }
+
   protected get canAddWordComment(): boolean {
-    return this.canAddDraftAgendaComment || this.canAddApprovalComment || this.canAddAmendWordComment;
+    return this.canAddDraftAgendaComment || this.canAddApprovalComment || this.canAddSubAgendaComment || this.canAddAmendWordComment;
   }
 
   private activeWordCommentEditor(): HTMLElement | undefined {
     if (this.approvalWordOpen) return this.approvalEditorRef?.nativeElement;
+    if (this.subAgendaWordOpen) return this.subAgendaEditorRef?.nativeElement;
     if (this.draftAgendaWordOpen) return this.draftAgendaEditorRef?.nativeElement;
     return this.amendEditorRef?.nativeElement;
   }
 
   private activeWordCommentStage(): HTMLElement | undefined {
     if (this.approvalWordOpen) return this.approvalStageRef?.nativeElement;
+    if (this.subAgendaWordOpen) return this.subAgendaStageRef?.nativeElement;
     if (this.draftAgendaWordOpen) return this.draftAgendaStageRef?.nativeElement;
     return this.amendCommentStageRef?.nativeElement;
   }
@@ -8346,6 +10129,11 @@ export class Por1Page {
     if (this.approvalWordOpen) {
       this.captureApprovalEditor();
       this.writeApprovalComments();
+      return;
+    }
+    if (this.subAgendaWordOpen) {
+      this.captureSubAgendaEditor();
+      this.writeSubAgendaComments();
       return;
     }
     if (this.draftAgendaWordOpen) {
@@ -8442,7 +10230,8 @@ export class Por1Page {
     };
     this.amendWordComments = [...this.amendWordComments, next];
     if (this.approvalWordOpen) this.writeApprovalComments();
-    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else if (this.subAgendaWordOpen) this.writeSubAgendaComments();
+    else if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
     else this.writeAmendWordComments();
     this.amendWordActiveId = next.id;
     this.amendWordDraftId = '';
@@ -8611,7 +10400,8 @@ export class Por1Page {
     const ids = new Set([id, ...this.amendWordComments.filter((item) => item.parentId === id).map((item) => item.id)]);
     this.amendWordComments = this.amendWordComments.map((item) => (ids.has(item.id) ? { ...item, resolved: true } : item));
     if (this.approvalWordOpen) this.writeApprovalComments();
-    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else if (this.subAgendaWordOpen) this.writeSubAgendaComments();
+    else if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
     else this.writeAmendWordComments();
     ids.forEach((markId) => this.unwrapAmendWordMark(markId));
     this.captureActiveWordEditor();
@@ -8623,7 +10413,8 @@ export class Por1Page {
     const ids = new Set([id, ...this.amendWordComments.filter((item) => item.parentId === id).map((item) => item.id)]);
     this.amendWordComments = this.amendWordComments.filter((item) => !ids.has(item.id));
     if (this.approvalWordOpen) this.writeApprovalComments();
-    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else if (this.subAgendaWordOpen) this.writeSubAgendaComments();
+    else if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
     else this.writeAmendWordComments();
     ids.forEach((markId) => this.unwrapAmendWordMark(markId));
     this.captureActiveWordEditor();
@@ -8641,9 +10432,10 @@ export class Por1Page {
   }
 
   /** editor ที่เปิดอยู่ — ให้ toolbar ชุดเดียวกันยิงไปที่เป้าหมายถูก */
-  private activeTextEditor(): 'notice' | 'approval' | 'draft' | 'agency' | 'amend' {
+  private activeTextEditor(): 'notice' | 'approval' | 'sub' | 'draft' | 'agency' | 'amend' {
     if (this.noticeLetterWordOpen) return 'notice';
     if (this.approvalWordOpen) return 'approval';
+    if (this.subAgendaWordOpen) return 'sub';
     if (this.draftAgendaWordOpen) return 'draft';
     if (this.agencyWordOpen) return 'agency';
     return 'amend';
@@ -8653,6 +10445,7 @@ export class Por1Page {
     const target = this.activeTextEditor();
     if (target === 'notice') this.noticeLetterFormat(command, value);
     else if (target === 'approval') this.approvalFormat(command, value);
+    else if (target === 'sub') this.subAgendaFormat(command, value);
     else if (target === 'draft') this.draftAgendaFormat(command, value);
     else if (target === 'agency') this.agencySummaryFormat(command, value);
     else this.amendFormat(command, value);
@@ -8662,6 +10455,7 @@ export class Por1Page {
     const target = this.activeTextEditor();
     if (target === 'notice') this.applyNoticeLetterFontSize(size);
     else if (target === 'approval') this.applyApprovalFontSize(size);
+    else if (target === 'sub') this.applySubAgendaFontSize(size);
     else if (target === 'draft') this.applyDraftAgendaFontSize(size);
     else if (target === 'agency') this.applyAgencySummaryFontSize(size);
     else this.applyAmendFontSize(size);
@@ -8671,6 +10465,7 @@ export class Por1Page {
     const target = this.activeTextEditor();
     if (target === 'notice') this.applyNoticeLetterColor(color);
     else if (target === 'approval') this.applyApprovalColor(color);
+    else if (target === 'sub') this.applySubAgendaColor(color);
     else if (target === 'draft') this.applyDraftAgendaColor(color);
     else if (target === 'agency') this.applyAgencySummaryColor(color);
     else this.applyAmendColor(color);
@@ -8680,6 +10475,7 @@ export class Por1Page {
     const target = this.activeTextEditor();
     if (target === 'notice') this.applyNoticeLetterHighlight(color);
     else if (target === 'approval') this.applyApprovalHighlight(color);
+    else if (target === 'sub') this.applySubAgendaHighlight(color);
     else if (target === 'draft') this.applyDraftAgendaHighlight(color);
     else if (target === 'agency') this.applyAgencySummaryHighlight(color);
     else this.applyAmendHighlight(color);
@@ -8703,6 +10499,10 @@ export class Por1Page {
       this.insertApprovalPageBreak();
       return;
     }
+    if (this.subAgendaWordOpen) {
+      this.insertSubAgendaPageBreak();
+      return;
+    }
     if (this.draftAgendaWordOpen) {
       this.insertDraftAgendaPageBreak();
       return;
@@ -8717,7 +10517,7 @@ export class Por1Page {
   protected applyAmendLineHeight(value: string): void {
     this.amendLineHeight = value;
     const target = this.activeTextEditor();
-    if (target === 'notice' || target === 'approval' || target === 'draft' || target === 'agency') {
+    if (target === 'notice' || target === 'approval' || target === 'sub' || target === 'draft' || target === 'agency') {
       document.execCommand('styleWithCSS', false, 'true');
       this.textEditorFormat('formatBlock', 'p');
       const root =
@@ -8725,9 +10525,11 @@ export class Por1Page {
           ? this.noticeLetterEditorRef?.nativeElement
           : target === 'approval'
             ? this.approvalEditorRef?.nativeElement
-            : target === 'draft'
-              ? this.draftAgendaEditorRef?.nativeElement
-              : this.agencySummaryEditorRef?.nativeElement;
+            : target === 'sub'
+              ? this.subAgendaEditorRef?.nativeElement
+              : target === 'draft'
+                ? this.draftAgendaEditorRef?.nativeElement
+                : this.agencySummaryEditorRef?.nativeElement;
       const sel = window.getSelection();
       const node = sel?.anchorNode;
       const el = node instanceof Element ? node : node?.parentElement;
@@ -8735,6 +10537,7 @@ export class Por1Page {
       if (block && root?.contains(block)) block.style.lineHeight = value;
       if (target === 'notice') this.captureNoticeLetterEditor();
       else if (target === 'approval') this.captureApprovalEditor();
+      else if (target === 'sub') this.captureSubAgendaEditor();
       else if (target === 'draft') this.captureDraftAgendaEditor();
       else this.captureAgencySummaryEditor();
       return;
@@ -8837,7 +10640,8 @@ export class Por1Page {
     );
     if (this.amendWordDraftId === id) this.amendWordDraftQuote = quote || this.amendWordDraftQuote;
     if (this.approvalWordOpen) this.writeApprovalComments();
-    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else if (this.subAgendaWordOpen) this.writeSubAgendaComments();
+    else if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
     else this.writeAmendWordComments();
     this.captureActiveWordEditor();
     this.focusAmendWordComment(id);
@@ -9026,6 +10830,7 @@ export class Por1Page {
     this.syncBundleFitScale();
     this.scheduleAmendWordLayout();
     if (this.approvalWordOpen) this.scheduleApprovalPageFrames();
+    if (this.subAgendaWordOpen) this.scheduleSubAgendaPageFrames();
     if (this.draftAgendaWordOpen) this.scheduleDraftAgendaPageFrames();
   }
 
@@ -9148,11 +10953,13 @@ export class Por1Page {
     const node = window.getSelection()?.anchorNode;
     const el = node instanceof Element ? node : node?.parentElement;
     const root =
-      this.draftAgendaWordOpen
-        ? this.draftAgendaEditorRef?.nativeElement
-        : this.agencyWordOpen
-          ? this.agencySummaryEditorRef?.nativeElement
-          : this.amendEditorRef?.nativeElement;
+      this.subAgendaWordOpen
+        ? this.subAgendaEditorRef?.nativeElement
+        : this.draftAgendaWordOpen
+          ? this.draftAgendaEditorRef?.nativeElement
+          : this.agencyWordOpen
+            ? this.agencySummaryEditorRef?.nativeElement
+            : this.amendEditorRef?.nativeElement;
     if (el && root?.contains(el)) {
       const style = getComputedStyle(el);
       const hex = this.cssColorToHex(style.color);
@@ -9203,11 +11010,11 @@ export class Por1Page {
       document.execCommand('insertHTML', false, text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
     }
     this.lockOfficialFontOnSelection();
-    if (this.agencyWordOpen) {
-      this.captureAgencySummaryEditor();
-    } else {
-      this.captureAmendEditor();
-    }
+    if (this.agencyWordOpen) this.captureAgencySummaryEditor();
+    else if (this.subAgendaWordOpen) this.captureSubAgendaEditor();
+    else if (this.draftAgendaWordOpen) this.captureDraftAgendaEditor();
+    else if (this.approvalWordOpen) this.captureApprovalEditor();
+    else this.captureAmendEditor();
     this.refreshAmendToolbar();
   }
 
@@ -11894,13 +13701,18 @@ window.onload=function(){
 
   private loadDocNotice(): void {
     const saved = readDocNotice();
-    if (!saved) return;
+    if (!saved) {
+      if (this.reviewRole) this.ensureAmendNoticeSamples(true);
+      return;
+    }
     this.noticeItems = saved.items.map((item) => ({
       ...item,
       files: item.files.map((file) => ({ ...file })),
       letter: item.letter.map((field) => ({ ...field })),
+      letterVersions: (item.letterVersions || []).map((row) => ({ ...row })),
       gaps: item.gaps.map((gap) => ({ ...gap })),
       history: item.history.length ? item.history.map((row) => ({ ...row })) : this.seedNoticeHistory({ ...saved, ...item, history: [] }),
+      keptFiles: (item.keptFiles || []).map((file) => ({ ...file })),
     }));
     this.activeNoticeId = saved.activeId || this.noticeItems.at(-1)?.id || '';
     const active = this.noticeItems.find((item) => item.id === this.activeNoticeId) || this.noticeItems.at(-1);
@@ -11934,6 +13746,8 @@ window.onload=function(){
       const kept = [...saved.passes].reverse().find((pass) => pass.reply);
       if (kept?.reply) this.applyReply(kept.reply);
     }
+    // บังคับ seed ใหม่เมื่อยังไม่มีฉบับร่างในรายละเอียด
+    if (this.reviewRole) this.ensureAmendNoticeSamples(true);
   }
 
   private applyCommittee(record: CommitteeRecord): void {
@@ -13883,8 +15697,10 @@ window.onload=function(){
       committee: this.committeeSent ? this.committeePayload() : null,
       inquiry: this.inquiryPayload(),
       passes: this.noticePasses.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null })),
-      sent: pipe === 'done',
-      sentBy: pipe === 'done' ? (this.signedPerson || this.directorName || this.docSentBy) : this.docSentBy,
+      sent: pipe === 'done' || pipe === 'delivered',
+      sentBy: pipe === 'done' || pipe === 'delivered'
+        ? (this.signedPerson || this.directorName || this.docSentBy)
+        : this.docSentBy,
       pipe,
       pipeAt: this.noticePipeAt,
       reportBy: this.noticeReportBy || '',
@@ -13897,6 +15713,7 @@ window.onload=function(){
         letter: item.letter.map((field) => ({ ...field })),
         gaps: item.gaps.map((gap) => ({ ...gap })),
         history: item.history.map((row) => ({ ...row })),
+        keptFiles: (item.keptFiles || []).map((file) => ({ ...file })),
       })),
       activeId: this.activeNoticeId,
     };
@@ -14034,29 +15851,15 @@ window.onload=function(){
     this.notice = 'docs';
   }
 
-  /** ข้าม flow มาที่แจ้งคำขอครบถ้วนถูกต้อง + เปิดฉบับปกปิดสมบูรณ์ (สร้างฉบับเปิดเผยทีหลัง) */
+  /** ข้าม flow มาที่ตรวจเอกสาร — seed แจ้งแก้ไขเพิ่มเติมครบรอบ + ฉบับปกปิดพร้อมใช้ */
   protected jumpToCompleteOpenEdition(): void {
-    this.applyDocActionSample('complete');
-    this.docAction = 'complete';
-    this.docNoticedOn = this.docNoticedOn || this.clockToday() || this.thaiToday();
-    this.docNote = this.docNote || 'ตรวจคำขอและเอกสารประกอบครบถ้วนถูกต้องแล้ว — จัดทำฉบับปกปิดสมบูรณ์ แล้วให้ระบบสร้างฉบับเปิดเผย';
-    this.noticeLetter = noticeLetterFields('complete', this.docNoticedOn, '-', this.signedPerson);
-    this.noticePipe = 'done';
-    this.noticePipeAt = this.docNoticedOn;
-    this.noticeReportBy = this.noticeReportBy || this.signedPerson || this.officerName || '';
-    this.docSent = true;
-    this.docSentBy = this.docSentBy || this.signedPerson || this.officerName || 'เจ้าหน้าที่';
-    if (!this.noticeHistory.some((item) => item.action.includes('ครบถ้วนถูกต้อง'))) {
-      this.pushNoticeHistory('แจ้งคำขอครบถ้วนถูกต้อง');
-    }
     this.ensureClosedEditionFiles();
     this.openEditionBuilt = false;
     this.seedAllAgencySamples();
-    this.flushActiveIntoItems();
-    writeDocNotice(this.docPayload(true));
+    this.ensureAmendNoticeSamples(true);
     if (this.caseStatus !== 'official' && this.caseStatus !== 'approval') this.becomeOfficial();
     this.reviewTab = 'docs';
-    this.pickCompleteBundle('closed');
+    this.pickDoc(this.workDocs.length);
     this.notice = 'docs';
   }
 
@@ -14196,6 +15999,45 @@ window.onload=function(){
     return this.draftAgendaAtLabel(at);
   }
 
+  protected noticeLetterEditionLabel(edition: NoticeLetterVersion['edition'] | undefined): string {
+    return edition === 'final' ? 'สมบูรณ์' : 'ร่าง';
+  }
+
+  protected noticeLetterEditionTone(edition: NoticeLetterVersion['edition'] | undefined): 'success' | 'neutral' {
+    return edition === 'final' ? 'success' : 'neutral';
+  }
+
+  /** อัปโหลด/ปรับฉบับได้ตอนร่าง หรือหลังอนุมัติแล้ว (แนบไฟล์สมบูรณ์) */
+  protected get canUploadNoticeLetter(): boolean {
+    if (this.reviewRole && this.reviewRole !== 'officer') return false;
+    if (!this.canHandleCase) return false;
+    return !this.noticePipeLocked || this.noticePipe === 'done';
+  }
+
+  protected get canEditNoticeLetterEdition(): boolean {
+    return this.canUploadNoticeLetter;
+  }
+
+  protected setNoticeLetterEdition(version: number, edition: 'draft' | 'final'): void {
+    if (!this.canEditNoticeLetterEdition) return;
+    const row = this.noticeLetterVersions.find((item) => item.version === version);
+    if (!row || (row.edition || 'draft') === edition) return;
+    this.noticeLetterVersions = this.noticeLetterVersions.map((item) =>
+      item.version === version ? { ...item, edition } : item,
+    );
+    this.pushNoticeHistory(
+      `ตั้ง${row.title} เป็นฉบับ${edition === 'final' ? 'สมบูรณ์' : 'ร่าง'}`,
+    );
+    this.persistActiveNotice(this.docSent || this.noticePipe === 'done');
+    this.view.markForCheck();
+  }
+
+  protected toggleNoticeLetterEdition(version: number): void {
+    const row = this.noticeLetterVersions.find((item) => item.version === version);
+    if (!row) return;
+    this.setNoticeLetterEdition(version, (row.edition || 'draft') === 'final' ? 'draft' : 'final');
+  }
+
   protected requestCreateNoticeLetter(): void {
     if (this.noticePipeLocked) return;
     this.commitNoticeLetterVersion('created');
@@ -14210,11 +16052,12 @@ window.onload=function(){
   }
 
   protected uploadNoticeLetterFiles(list: FileList | File[] | null | undefined): void {
-    if (!list?.length || this.noticePipeLocked) return;
+    if (!list?.length || !this.canUploadNoticeLetter) return;
     const at = this.replyStamp();
     const files = [...list];
     const addedFiles: NoticeFile[] = [];
     const versions: NoticeLetterVersion[] = [];
+    const asFinal = this.noticePipe === 'done';
     files.forEach((file, index) => {
       const version = this.noticeLetterLatestVersion + index + 1;
       const title = file.name.replace(/\.[^.]+$/, '');
@@ -14226,6 +16069,7 @@ window.onload=function(){
         html: `<p><strong>ไฟล์อัปโหลด</strong> ${file.name}</p><p>อัปโหลดเมื่อ ${at}</p>`,
         source: 'upload',
         fileName: file.name,
+        edition: asFinal ? 'final' : 'draft',
       });
     });
     this.docFiles = [...this.docFiles, ...addedFiles];
@@ -14233,8 +16077,13 @@ window.onload=function(){
     this.noticeLetterActiveVersion = this.noticeLetterLatestVersion;
     this.noticeLetterTab = 'files';
     this.noticeLetterWordOpen = false;
-    this.pushNoticeHistory(files.length === 1 ? `แนบไฟล์ ${addedFiles[0].title}` : `แนบไฟล์ ${files.length} ฉบับ`);
-    this.persistActiveNotice(false);
+    this.pushNoticeHistory(
+      asFinal
+        ? (files.length === 1 ? `แนบไฟล์สมบูรณ์ ${addedFiles[0].title}` : `แนบไฟล์สมบูรณ์ ${files.length} ฉบับ`)
+        : (files.length === 1 ? `แนบไฟล์ ${addedFiles[0].title}` : `แนบไฟล์ ${files.length} ฉบับ`),
+    );
+    this.persistActiveNotice(this.docSent || this.noticePipe === 'done');
+    this.view.markForCheck();
   }
 
   private commitNoticeLetterVersion(source: 'created' | 'ai'): void {
@@ -14243,7 +16092,7 @@ window.onload=function(){
     const html = this.buildNoticeLetterBlankHtml();
     const title = `หนังสือแจ้งผล · เวอร์ชัน ${version}`;
     const fileName = `หนังสือแจ้งผล-v${version}.docx`;
-    const entry: NoticeLetterVersion = { version, title, at, html, source, fileName };
+    const entry: NoticeLetterVersion = { version, title, at, html, source, fileName, edition: 'draft' };
     this.noticeLetterVersions = [...this.noticeLetterVersions, entry];
     this.noticeLetterActiveVersion = version;
     this.noticeLetterHtml = html;
@@ -14333,8 +16182,8 @@ window.onload=function(){
   protected openNoticeLetterVersion(version: number): void {
     const row = this.noticeLetterVersions.find((item) => item.version === version);
     if (!row) return;
-    if (row.source === 'upload') {
-      this.downloadNoticeLetterVersion(row);
+    if (row.source === 'upload' && row.fileName) {
+      this.openNoticeFile(row.fileName);
       return;
     }
     this.noticeLetterActiveVersion = version;
@@ -14404,10 +16253,11 @@ window.onload=function(){
   }
 
   protected removeNoticeLetterVersion(version: number): void {
-    if (this.noticePipeLocked) return;
     const row = this.noticeLetterVersions.find((item) => item.version === version);
+    if (!row) return;
+    if (this.noticePipeLocked && !(this.canUploadNoticeLetter && row.source === 'upload')) return;
     this.noticeLetterVersions = this.noticeLetterVersions.filter((item) => item.version !== version);
-    if (row?.fileName) {
+    if (row.fileName) {
       this.docFiles = this.docFiles.filter((file) => file.name !== row.fileName);
     }
     if (this.noticeLetterActiveVersion === version) {
@@ -14415,7 +16265,7 @@ window.onload=function(){
       this.noticeLetterWordOpen = false;
       this.noticeLetterTab = 'files';
     }
-    this.persistActiveNotice(false);
+    this.persistActiveNotice(this.docSent || this.noticePipe === 'done');
   }
 
   protected zoomNoticeLetter(dir: 1 | -1): void {
@@ -14516,12 +16366,10 @@ window.onload=function(){
     window.setTimeout(run, tries === 0 ? 0 : 50);
   }
 
-  /** ต้นฉบับรายการแก้ไข — ยึดครั้งล่าสุด (AD1046 มีครั้งที่ 3) */
+  /** ต้นฉบับรายการแก้ไข — ตามครั้งที่ (AD1046 มีครั้งที่ 1–3) */
   private noticeLetterSampleUrl(amendPass = this.latestAmendPassNo()): string {
-    if (amendPass >= 3) {
-      return 'assets/samples/ad1046/notice/รายการแก้ไขปรับปรุงข้อมูลคำขอ-ครั้งที่-3.html';
-    }
-    return 'assets/samples/ad1046/notice/รายการแก้ไขปรับปรุงข้อมูลคำขอ-ครั้งที่-3.html';
+    const pass = Math.min(3, Math.max(1, amendPass));
+    return `assets/samples/ad1046/notice/รายการแก้ไขปรับปรุงข้อมูลคำขอ-ครั้งที่-${pass}.html`;
   }
 
   private buildNoticeLetterBlankHtml(): string {

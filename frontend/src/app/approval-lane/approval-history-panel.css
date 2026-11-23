@@ -1,0 +1,121 @@
+.approval-history-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-overlay);
+}
+
+.approval-history-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(560px, 100%);
+  max-height: min(80vh, 720px);
+  padding: 20px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+  overflow: auto;
+}
+
+.approval-history-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.approval-history-dialog > header h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.approval-history-dialog > header p {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.approval-history-dialog > header > button {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.approval-history-dialog > header > button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.approval-history-timeline {
+  margin: 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+}
+
+.approval-history-timeline > li {
+  position: relative;
+  padding: 0 0 16px 20px;
+  border-left: 2px solid var(--color-border);
+}
+
+.approval-history-timeline > li:last-child {
+  padding-bottom: 0;
+  border-left-color: transparent;
+}
+
+.approval-history-timeline__dot {
+  position: absolute;
+  top: 4px;
+  left: -7px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  border: 2px solid var(--color-white);
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+
+.approval-history-timeline strong {
+  display: block;
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.approval-history-timeline small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.approval-history-timeline p {
+  margin: 4px 0 0;
+  color: var(--color-primary);
+  font-size: 13px;
+}
+
+.approval-history-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.approval-history-dialog > footer {
+  display: flex;
+  justify-content: flex-end;
+}

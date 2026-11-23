@@ -53,7 +53,8 @@ export class ApprovalLaneActions {
     if (this.stage === 'attach' && !this.canRunEofficeSteps) {
       return 'รอแนบไฟล์ที่ออกเลขแล้ว (เจ้าหน้าที่หรือผู้อำนวยการ)';
     }
-    if (this.stage === 'done') return 'เสร็จสิ้นท่ออนุมัติแล้ว';
+    if (this.stage === 'done') return 'อนุมัติแล้ว — แนบไฟล์สมบูรณ์แล้วกดส่งให้ผู้ยื่น';
+    if (this.stage === 'delivered') return 'ส่งฉบับสมบูรณ์ให้ผู้ยื่นแล้ว';
     if (this.stage === 'cancelled') return 'รายการนี้ถูกยกเลิกแล้ว';
     return '';
   }

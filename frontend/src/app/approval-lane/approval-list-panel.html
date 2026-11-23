@@ -1,0 +1,179 @@
+<section class="approval-list" aria-label="รายการอนุมัติ">
+  <header class="approval-list__head">
+    <div class="approval-list__titles">
+      <h2>{{ title }}</h2>
+      <p class="link-detail">{{ subtitle }}</p>
+    </div>
+    @if (showCreate) {
+      <div class="approval-list__tools doc-tools">
+        <app-button
+          class="icon-before"
+          type="primary"
+          [label]="createLabel"
+          [state]="allowCreate ? 'default' : 'disabled'"
+          [attr.title]="allowCreate ? createLabel : blockedReason"
+          (click)="onCreate()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        </app-button>
+      </div>
+    }
+  </header>
+
+  <input
+    #keptFileInput
+    class="approval-list__file-input"
+    type="file"
+    accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.tiff"
+    multiple
+    tabindex="-1"
+    aria-hidden="true"
+    (change)="onKeptFilesPicked($event)"
+  />
+
+  @if (!rows.length) {
+    <p class="consult-blank">{{ emptyText }}</p>
+  } @else {
+    <div class="approval-list__table table-wrap consult-table">
+      <table class="dft-table">
+        <thead>
+          <tr>
+            <th class="col-no">ลำดับ</th>
+            <th>เรื่อง / ชื่อเอกสาร</th>
+            <th class="col-fit">วันที่</th>
+            <th class="col-fit">สถานะ</th>
+            <th class="col-act">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows; track row.id; let n = $index) {
+            <tr [class.approval-list__row--open]="isOpen(row)">
+              <td class="col-no">{{ n + 1 }}</td>
+              <td>
+                <div class="approval-list__doc">
+                  <strong>{{ row.title }}</strong>
+                  @if (row.meta) {
+                    <small>{{ row.meta }}</small>
+                  }
+                  @if (keptFiles(row).length) {
+                    <div class="approval-list__kept" aria-label="ไฟล์ที่แนบ">
+                      <ul class="approval-list__kept-list">
+                        @for (file of keptFiles(row); track file.id) {
+                          <li class="approval-list__kept-item">
+                            <div class="approval-list__kept-meta">
+                              <button
+                                type="button"
+                                class="approval-list__kept-name"
+                                [attr.title]="'เปิดดู · ' + file.name"
+                                (click)="openKeptFile.emit({ row, file })"
+                              >
+                                {{ file.title || file.name }}
+                              </button>
+                              <span class="approval-list__kept-date">{{ file.at || '—' }}</span>
+                              @if (file.editionLabel || file.deliveryLabel) {
+                                <div class="approval-list__kept-tags" aria-label="สถานะไฟล์">
+                                  @if (file.editionLabel) {
+                                    <app-status-tag variant="soft" [tone]="file.editionTone || 'neutral'" [label]="file.editionLabel" />
+                                  }
+                                  @if (file.deliveryLabel) {
+                                    <app-status-tag variant="soft" [tone]="file.deliveryTone || 'neutral'" [label]="file.deliveryLabel" />
+                                  }
+                                </div>
+                              }
+                            </div>
+                            <div class="approval-list__kept-actions">
+                              <button
+                                type="button"
+                                class="approval-list__kept-action"
+                                aria-label="ดูไฟล์"
+                                title="ดู"
+                                (click)="openKeptFile.emit({ row, file })"
+                              >
+                                ดู
+                              </button>
+                              <button
+                                type="button"
+                                class="approval-list__kept-action"
+                                aria-label="โหลดไฟล์"
+                                title="โหลด"
+                                (click)="downloadKeptFile.emit({ row, file })"
+                              >
+                                โหลด
+                              </button>
+                              @if (canUpload(row)) {
+                                <button
+                                  type="button"
+                                  class="approval-list__kept-action approval-list__kept-action--danger"
+                                  aria-label="ลบไฟล์"
+                                  title="ลบ"
+                                  (click)="removeKeptFile.emit({ row, file })"
+                                >
+                                  ลบ
+                                </button>
+                              }
+                            </div>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </div>
+              </td>
+              <td class="col-fit">{{ row.date || '—' }}</td>
+              <td class="col-fit">
+                <app-status-tag variant="soft" [tone]="row.statusTone" [label]="row.statusLabel" />
+              </td>
+              <td class="col-act">
+                <div class="made-actions">
+                  <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="open.emit(row)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  </button>
+                  <button type="button" class="office-view" aria-label="ประวัติละเอียด" title="ประวัติละเอียด" (click)="history.emit(row)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
+                  </button>
+                  @if (canUpload(row)) {
+                    <button
+                      type="button"
+                      class="office-view approval-list__upload"
+                      [attr.aria-label]="'แนบไฟล์สมบูรณ์ · มีแล้ว ' + keptFiles(row).length + ' ไฟล์'"
+                      [attr.title]="'มีไฟล์แนบแล้ว ' + keptFiles(row).length + ' ไฟล์ · คลิกเพื่อแนบเพิ่ม'"
+                      (click)="pickKeptFiles(row)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V7M8 10l4-4 4 4M5 19h14" /></svg>
+                      <span class="approval-list__upload-count" aria-hidden="true">{{ keptFiles(row).length }}</span>
+                    </button>
+                  }
+                  @if (canDeliver(row)) {
+                    <button
+                      type="button"
+                      class="office-view approval-list__deliver"
+                      aria-label="ยืนยันส่งให้ผู้ยื่นแล้ว"
+                      title="ส่งแล้ว — ยืนยันส่งฉบับสมบูรณ์ให้ผู้ยื่น"
+                      (click)="deliver.emit(row)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
+                    </button>
+                  }
+                  @if (row.canReview) {
+                    <button type="button" class="office-view" aria-label="พิจารณา" title="พิจารณา" (click)="review.emit(row)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                    </button>
+                  } @else if (row.canEdit) {
+                    <button type="button" class="office-view" aria-label="แก้ไข" title="แก้ไข" (click)="edit.emit(row)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                    </button>
+                  }
+                  @if (row.canCancel) {
+                    <button type="button" class="office-view" aria-label="ยกเลิก / ปฏิเสธ" title="ยกเลิก / ปฏิเสธ" (click)="cancel.emit(row)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

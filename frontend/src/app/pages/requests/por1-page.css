@@ -10630,23 +10630,12 @@ article.official-sheet.bundle-doc.por-word-sheet.bundle-amend-sheet {
   max-width: 720px;
 }
 
-.notice-lane-block__head,
 .notice-files-head {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-}
-
-.notice-lane-block__head h3 {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.notice-lane-block__head .link-detail {
-  margin: 4px 0 0;
 }
 
 .notice-files-head h3 {
@@ -10657,6 +10646,21 @@ article.official-sheet.bundle-doc.por-word-sheet.bundle-amend-sheet {
 
 .notice-files-head .link-detail {
   margin: 4px 0 0;
+}
+
+.notice-edition-toggle {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.notice-edition-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--state-focus-ring);
+  border-radius: 8px;
 }
 
 .notice-files__empty {

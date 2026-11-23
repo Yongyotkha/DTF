@@ -1,0 +1,40 @@
+@if (open) {
+  <div class="approval-history-pop" (click)="close()">
+    <section
+      class="approval-history-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="approval-history-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <div>
+          <h2 id="approval-history-title">{{ title }}</h2>
+          <p>{{ detail || (items.length + ' รายการ') }}</p>
+        </div>
+        <button type="button" aria-label="ปิด" (click)="close()">✕</button>
+      </header>
+
+      @if (items.length) {
+        <ol class="approval-history-timeline" aria-label="timeline ประวัติละเอียด">
+          @for (item of items; track $index) {
+            <li>
+              <span class="approval-history-timeline__dot" aria-hidden="true"></span>
+              <div>
+                <strong>{{ item.action }}</strong>
+                <small>{{ item.at }}</small>
+                <p>ผู้กระทำ {{ item.by || '—' }}</p>
+              </div>
+            </li>
+          }
+        </ol>
+      } @else {
+        <p class="approval-history-empty">{{ emptyText }}</p>
+      }
+
+      <footer>
+        <app-button type="outline" label="ปิด" (click)="close()" />
+      </footer>
+    </section>
+  </div>
+}
