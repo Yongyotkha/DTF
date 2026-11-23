@@ -1,0 +1,89 @@
+<section class="eo-panel" aria-label="ส่งข้อมูลเข้า e-Office">
+  <div class="eo-panel__head">
+    <div>
+      <h3>ส่งเข้า e-Office</h3>
+      <p class="link-detail">ข้อมูลด้านล่างจะถูกส่งไปสร้างหนังสือใน e-Office — ถ้าเชื่อมไม่ได้ให้กรอกเลขและแนบไฟล์เองเพื่อเดินต่อในระบบนี้</p>
+    </div>
+    <app-status-tag variant="soft" [tone]="stateTone" [label]="stateLabel" />
+  </div>
+
+  <div class="eo-panel__meta" aria-label="สรุปเลขและสถานะ">
+    <div><span>เลขที่หนังสือ</span><strong>{{ letterNo.trim() || '— (รอออกเลข)' }}</strong></div>
+    <div><span>ลงวันที่</span><strong>{{ payload.letterDate || '—' }}</strong></div>
+    <div><span>อ้างอิงคำขอ</span><strong>{{ payload.caseRef || '—' }}</strong></div>
+    <div><span>สถานะลิงก์</span><strong>{{ linkDetail || stateLabel }}</strong></div>
+  </div>
+
+  <div class="eo-panel__fields" aria-label="รายละเอียดเอกสารที่จะส่ง">
+    <p class="draft-line"><strong>ชั้นความเร็ว</strong><br>{{ payload.speed }}</p>
+    <p class="draft-line"><strong>ชั้นความลับ</strong><br>{{ payload.secrecy }}</p>
+    <p class="draft-line"><strong>เรื่อง</strong><br>{{ payload.subject || '—' }}</p>
+    <p class="draft-line"><strong>จาก</strong><br>{{ payload.from || '—' }}</p>
+    <p class="draft-line"><strong>เรียนถึง</strong><br>{{ payload.to || '—' }}</p>
+    <p class="draft-line"><strong>อ้างถึง</strong><br>{{ payload.ref || '—' }}</p>
+    <p class="draft-line"><strong>แฟ้มไฟล์ ({{ payload.fileCount }})</strong><br>
+      @if (payload.fileNames.length) {
+        @for (name of payload.fileNames; track name) {
+          <span class="eo-panel__file">{{ name }}</span>
+        }
+      } @else {
+        —
+      }
+    </p>
+  </div>
+
+  @if (showSend || showSync) {
+    <div class="eo-panel__acts doc-tools">
+      @if (showSend) {
+        <app-button class="icon-before" type="primary" label="ส่ง Auto เข้า e-Office" (click)="sendAuto.emit()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </app-button>
+        <app-button class="icon-before" type="outline" label="จำลองเชื่อมไม่ได้" (click)="sendFail.emit()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 16h.01M10.3 4.3 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z" /></svg>
+        </app-button>
+      }
+      @if (showSync) {
+        <app-button class="icon-before" type="outline" label="ดึงเลข / sync จาก e-Office" (click)="syncPull.emit()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5M20 12a8 8 0 0 1-14 5M16 3v4h4M8 21v-4H4" /></svg>
+        </app-button>
+      }
+    </div>
+  }
+
+  @if (showManual) {
+    <div class="eo-panel__manual" aria-label="กรอกเลขและแนบไฟล์เองเมื่อเชื่อมไม่ได้">
+      <h4>ทำเองในระบบนี้ (เมื่อเชื่อม e-Office ไม่ได้ หรือทำแทน sync)</h4>
+      <p class="link-detail">กรอกเลขสารบรรณ / เลขที่หนังสือ แล้วแนบไฟล์ที่ออกเลขแล้ว เพื่อเดินต่อได้ทันที</p>
+      <div class="eo-panel__manual-row">
+        <app-input-field
+          label="เลขสารบรรณ / เลขที่หนังสือ"
+          [required]="true"
+          [editable]="true"
+          [value]="draftNo || letterNo"
+          placeholder="เช่น สบ.1605/2562 หรือ ทบ./14"
+          (valueChange)="onNoInput($event)"
+        />
+        <label class="eo-panel__upload">
+          <span>แนบไฟล์ที่ออกเลขแล้ว</span>
+          <input type="file" [accept]="accept" multiple (change)="onFile($event)" />
+          @if (pickedNames.length) {
+            <small>{{ pickedNames.join(' · ') }}</small>
+          } @else {
+            <small>ยังไม่ได้เลือกไฟล์</small>
+          }
+        </label>
+      </div>
+      <div class="eo-panel__acts doc-tools">
+        <app-button
+          class="icon-before"
+          type="primary"
+          label="บันทึกเลขและแนบไฟล์ แล้วเดินต่อ"
+          [state]="(draftNo || letterNo).trim() ? 'default' : 'disabled'"
+          (click)="submitManual()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+        </app-button>
+      </div>
+    </div>
+  }
+</section>

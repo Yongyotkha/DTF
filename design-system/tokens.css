@@ -66,6 +66,8 @@
   --font-serif: "Noto Serif", serif;
   --font-serif-thai: "Noto Serif Thai", "Noto Serif", serif;
   --font-sans-thai: "Noto Sans Thai", sans-serif;
+  /* เอกสารราชการใน text editor — ใช้เฉพาะ TH SarabunPSK */
+  --font-official: "TH SarabunPSK", sans-serif;
   --font-family: var(--font-serif-thai);
 
   --type-heading-size: 32px;

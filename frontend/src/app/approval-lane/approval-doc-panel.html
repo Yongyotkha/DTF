@@ -1,0 +1,73 @@
+<section class="lane-docs" [attr.aria-label]="title">
+  <div class="lane-docs__head">
+    <div>
+      <h3>{{ title }}@if (required) {<span class="req">*</span>}</h3>
+      <p class="link-detail">{{ detail }}</p>
+    </div>
+    @if (!locked) {
+      <div class="doc-tools lane-docs__acts">
+        <app-button class="icon-before" type="outline" [label]="createLabel" (click)="create.emit()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+        </app-button>
+        <app-button class="icon-before ask-ai" type="outline" [label]="aiLabel" [state]="aiBusy ? 'disabled' : 'default'" (click)="askAi.emit()">
+          <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+        </app-button>
+        <app-button class="icon-before" type="outline" [label]="uploadLabel" (click)="fileInput.click()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4M5 20h14" /></svg>
+        </app-button>
+        <input #fileInput class="lane-docs__file" type="file" [accept]="accept" multiple (change)="onFileChange($event)" />
+      </div>
+    }
+  </div>
+  <div class="table-wrap consult-table pack-table lane-docs__table">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-no">ลำดับ</th>
+          <th>ชื่อเอกสาร</th>
+          <th class="col-fit">วันที่</th>
+          <th class="col-fit">ที่มา</th>
+          <th class="col-act">การจัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (doc of docs; track doc.version; let i = $index) {
+          <tr>
+            <td class="col-no">{{ i + 1 }}</td>
+            <td>
+              @if (!locked && doc.source === 'upload') {
+                <input type="text" aria-label="ชื่อเอกสาร" [value]="doc.title" (input)="renameDoc.emit({ doc, title: $any($event.target).value })" />
+              } @else {
+                {{ doc.title }}
+              }
+            </td>
+            <td class="col-fit">{{ doc.at || '—' }}</td>
+            <td class="col-fit"><app-status-tag variant="soft" [tone]="sourceTone(doc.source)" [label]="sourceLabel(doc.source)" /></td>
+            <td class="col-act">
+              <div class="made-actions">
+                @if (doc.source === 'created' || doc.source === 'ai') {
+                  <button type="button" class="office-view" aria-label="เปิดร่าง" title="เปิดร่าง" (click)="openDoc.emit(doc)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM13 7l4 4" /></svg>
+                  </button>
+                }
+                <button type="button" class="office-view" aria-label="ดาวน์โหลด" title="ดาวน์โหลด" (click)="downloadDoc.emit(doc)">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                </button>
+                @if (!locked) {
+                  <button type="button" class="office-view" aria-label="ลบ" title="ลบ" (click)="removeDoc.emit(doc)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+        @if (!docs.length) {
+          <tr>
+            <td colspan="5" class="lane-docs__empty">{{ emptyText }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

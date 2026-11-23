@@ -912,3 +912,12 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+.verify-later {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-info-bg);
+  color: var(--color-primary);
+}

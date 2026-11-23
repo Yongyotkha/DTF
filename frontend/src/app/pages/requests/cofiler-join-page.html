@@ -1,0 +1,14 @@
+<app-auth-shell look="showcase">
+  <h1>เข้าร่วมยื่นส่วนของตน</h1>
+  <p class="lead">{{ lead }}</p>
+  @if (blocked) {
+    <p class="lead">{{ blocked }}</p>
+  } @else if (invite) {
+    <p class="lead">คุณจะเห็นและแก้ไขได้เฉพาะข้อมูลส่วนตัวของ {{ invite.makerName }} — ส่วนร่วมดูอย่างเดียว คนอื่นรวมถึงคนหลักจะไม่เห็นข้อมูลส่วนตัวของคุณ</p>
+    <app-input-field class="block" label="ชื่อผู้ถูกเชิญ" [required]="true" [editable]="true" [value]="name" (valueChange)="name = $event" />
+    <app-input-field class="block" label="เลขประจำตัวผู้เสียภาษีอากร 13 หลัก / เลขประจำตัวประชาชน" mark="card" [required]="true" [editable]="true" [state]="error ? 'error' : 'default'" [helper]="error" [value]="taxId" (valueChange)="taxId = $event" />
+    <app-input-field class="block" label="รหัสผ่าน" inputType="password" mark="lock" [reveal]="true" [required]="true" [editable]="true" [value]="password" (valueChange)="password = $event" />
+    <app-button class="wide login-submit" size="lg" label="สมัครและเข้าสู่ระบบ" (click)="submit()" />
+    <a class="forgot" [routerLink]="['/login']">มีบัญชีแล้ว เข้าสู่ระบบ</a>
+  }
+</app-auth-shell>

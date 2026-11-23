@@ -2,17 +2,25 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, HostListener, ViewChild, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Accounts, roleLabel } from '../../accounts';
+import { ApprovalLaneActions, type ApprovalLaneActionId, type ApprovalLaneActor } from '../../approval-lane/approval-lane-actions';
+import {
+  ApprovalEofficePanel,
+  type ApprovalEofficeLinkState,
+  type ApprovalEofficePayload,
+} from '../../approval-lane/approval-eoffice-panel';
+import { ApprovalLaneStepper } from '../../approval-lane/approval-lane-stepper';
 import { DftButton } from '../../button/button';
 import { ThaiDateField } from '../../fields/thai-date-field';
 import { InputField } from '../../input-field/input-field';
 import { phoneOk, thaiDateOk } from '../../fields/field-rules';
 import { SideNav } from '../../menu-bar/side-nav';
 import { DftModal } from '../../modal/modal';
+import { FileField } from '../../fields/file-field';
 import { StatusTag } from '../../status-tag/status-tag';
 import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
-import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, ensureFilingRefSeqAtLeast, parseFilingRefSeq, readActiveFilingRef, writeActiveFilingRef, readOfficialOn, writeOfficialOn, readApprovalUntil, readApprovedBy, readApplicantNotices, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot, readFilingFiler, readFilingGate, releaseFilingToDirector, readEofficeDirectorHandoff, sendDirectorWorkToEoffice, pullDirectorAssignFromEoffice, directorWorkNeedsEoffice, writeEofficeDirectorHandoff, type EofficeDirectorHandoff, writeFilingFiler, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readFlowFile, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeApplicantNotices, writeCaseStatus, writeFlowFile, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, upsertConsultRound, patchConsultRound, closeActiveConsultRound, readConsultRounds, openConsultRound as findOpenConsultRound, type ApplicantNotice, type AssignFile, type AssignReply, type AssignSlip, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultPrivateNote, type ConsultRequest, type ConsultRound, type FilingGate, type DocAction, type NoticePipe, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type RoundAnswer, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
+import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, ensureFilingRefSeqAtLeast, parseFilingRefSeq, readActiveFilingRef, writeActiveFilingRef, readOfficialOn, writeOfficialOn, readApprovalUntil, readApprovedBy, readApplicantNotices, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot, readFilingFiler, readFilingGate, releaseFilingToDirector, readEofficeDirectorHandoff, sendDirectorWorkToEoffice, pullDirectorAssignFromEoffice, directorWorkNeedsEoffice, writeEofficeDirectorHandoff, type EofficeDirectorHandoff, writeFilingFiler, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readFlowFile, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeApplicantNotices, writeCaseStatus, writeFlowFile, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, upsertConsultRound, patchConsultRound, closeActiveConsultRound, readConsultRounds, openConsultRound as findOpenConsultRound, AGENDA_APPROVAL_LANE_STAGES, NOTICE_LANE_STAGES, approvalLaneStageLabel, approvalLaneStageTone, type ApplicantNotice, type AssignFile, type AssignReply, type AssignSlip, type ApprovalLaneDoc, type ApprovalLaneStage, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultPrivateNote, type ConsultRequest, type ConsultRound, type FilingGate, type DocAction, type DocNotice, type NoticeHistoryEntry, type NoticeItem, type NoticePipe, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryAgendaFile, type DraftAgendaVersion, type ApprovalSubmitRound, type ApprovalSubmitAttachment, type NoticeLetterVersion, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type RoundAnswer, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 import { FilingTabs } from './filing-tabs';
 import { readHearing, writeHearing } from './hearing-lane';
 import { FilledUpload } from './filled-upload';
@@ -22,10 +30,31 @@ import { downloadFormTemplate } from './form-template';
 import { requestForms } from './form-catalog';
 import { caseKey, findListedCase, type ListedCase } from './request-cases';
 import { invitePath, joinedFor } from './interest-invite';
+import { TextEditorToolbar } from '../../text-editor-toolbar/text-editor-toolbar';
+import {
+  addCofilerInvite,
+  acceptCofilerInvite,
+  cofilerById,
+  cofilerInvitePath,
+  cofilerPrivateStatus,
+  cofilerStatusLabel,
+  cofilerStatusTone,
+  listCofilerInvites,
+  markCofilerSubmitted,
+  readCofilerPrivate,
+  readCofilerView,
+  resendCofilerInvite,
+  revokeCofilerInvite,
+  saveCofilerPrivate,
+  writeCofilerView,
+  type CofilerInvite,
+  type CofilerPrivate,
+} from './cofiler-invite';
 import { readParty, readText, valueIsWrong, wrongHint } from './form-extract';
 import { scrollFormToTop } from './form-scroll';
 
-type InquiryStep = 'prepare' | 'agenda' | 'decide' | 'letter' | 'prenotify' | 'fee' | 'proof' | 'vote' | 'notice' | 'sign' | 'letters' | 'news' | 'hearing' | 'questions' | 'visit';
+type InquiryStep = 'prepare' | 'draftAgenda' | 'subAgenda' | 'agenda' | 'decide' | 'letter' | 'prenotify' | 'fee' | 'proof' | 'vote' | 'notice' | 'sign' | 'letters' | 'news' | 'hearing' | 'questions' | 'visit';
+type AgendaLane = 'draft' | 'sub' | 'tdc';
 type OpenPrep = { ask: boolean; analyze: boolean; summary: boolean; report: boolean; pulled: boolean; revised: boolean; aiSummary: string; aiDraft: string; aiReview: string; sent: boolean; approved: boolean; prenotify: boolean; office: string[] };
 type ReviewTab = 'form' | 'assign' | 'docs' | 'inquiry' | 'prelim' | 'draftFinal' | 'finalResult' | 'measures' | 'link';
 type FlowStep = { id: string; label: string; detail: string; yes?: string; no?: string };
@@ -216,6 +245,31 @@ type GoodsCompareRow = { item: string; subject: string; like: string };
 type MarginCountry = { name: string; normal: string; exportPrice: string; margin: string; cif: string; rate: string };
 type FormGuide = { title: string; lead: string; tips: string[] };
 type BundleComment = { id: string; target: string; text: string; at: string; author: string; resolved?: boolean };
+
+/** Comment แบบ Word บนข้อความแก้ไขคำขอ — ไฮไลต์ + กล้องปักจุด + กล่องข้างเอกสาร */
+type AmendWordComment = {
+  id: string;
+  quote: string;
+  text: string;
+  author: string;
+  initials: string;
+  at: string;
+  hue: number;
+  parentId?: string;
+  resolved?: boolean;
+  /** text = ไฮไลต์ช่วงข้อความ, point = ปักกล้องชี้จุด/แถว */
+  anchor?: 'text' | 'point';
+};
+
+type AmendWordPinLayout = {
+  id: string;
+  index: number;
+  top: number;
+  left: number;
+  hue: number;
+  active: boolean;
+  anchor: 'text' | 'point';
+};
 type BundlePage = {
   id: string;
   kind: 'cover' | 'text' | 'file';
@@ -252,54 +306,128 @@ function defaultWorkDrafts(): WorkDraft[] {
   return [
     {
       title: 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง',
-      file: 'นส ถึง 4 หน่วยงาน (print).docx',
+      file: 'หนังสือขอข้อมูล-4-หน่วยงาน.pdf',
       fields: [
-        field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+        field('ที่', 'พณ 0308/ว 128'),
         field('วันที่', '20/05/2562'),
-        field('เรื่อง', 'ขอความอนุเคราะห์ข้อมูลผู้ผลิตสินค้าเหล็กแผ่นรีดร้อน'),
-        field('เรียน', 'ผู้อำนวยการศูนย์สารสนเทศโรงงานอุตสาหกรรม กรมโรงงานอุตสาหกรรม\nผู้อำนวยการสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nประธานกลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย\nผู้อำนวยการศูนย์สารสนเทศเศรษฐกิจอุตสาหกรรม สำนักงานเศรษฐกิจอุตสาหกรรม', true),
-        field('อ้างถึง', 'คำขอเลขที่อ้างอิง R6201 ลงวันที่ 15/05/2563'),
-        field('สิ่งที่ส่งมาด้วย', '1. แบบแสดงรายชื่อผู้ผลิต พร้อมสถานที่ตั้ง\n2. แบบแสดงกำลังการผลิตและปริมาณการผลิต\n3. แบบแสดงปริมาณความต้องการใช้ภายในประเทศ', true),
-        field('เนื้อความ', 'ด้วยกรมการค้าต่างประเทศได้รับคำขอเลขที่อ้างอิง R6201 จากบริษัท สหวิริยาสตีลอินดัสตรี จำกัด ให้พิจารณาตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ จึงขอข้อมูลผู้ผลิตในประเทศ ได้แก่ รายชื่อและสถานที่ตั้ง กำลังการผลิตและปริมาณการผลิตช่วงปี 2561 ถึงต้นปี 2562 และปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน', true),
+        field('เรื่อง', 'ขอความอนุเคราะห์ข้อมูลรายชื่อและปริมาณการผลิตของผู้ผลิตสินค้าเหล็กแผ่นรีดร้อนในประเทศ'),
+        field(
+          'เรียน',
+          '1. อธิบดีกรมโรงงานอุตสาหกรรม\n2. ผู้อำนวยการสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\n3. ประธานกลุ่มอุตสาหกรรมเหล็ก สภาอุตสาหกรรมแห่งประเทศไทย\n4. ผู้อำนวยการสำนักงานเศรษฐกิจอุตสาหกรรม',
+          true,
+        ),
+        field('อ้างถึง', 'คำขอเลขที่อ้างอิง R6201 บริษัท สหวิริยาสตีลอินดัสตรี จำกัด ลงวันที่ 15/05/2562'),
+        field(
+          'สิ่งที่ส่งมาด้วย',
+          '1. แบบแสดงรายชื่อผู้ผลิต พร้อมสถานที่ตั้งโรงงาน\n2. แบบแสดงกำลังการผลิตและปริมาณการผลิต ปี 2560–2561 และไตรมาส 1 ปี 2562\n3. แบบแสดงปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน',
+          true,
+        ),
+        field(
+          'เนื้อความ',
+          'ด้วยกรมการค้าต่างประเทศได้รับคำขอให้พิจารณาตอบโต้การทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนที่มีแหล่งกำเนิดจากประเทศเวียดนามและสาธารณรัฐอาหรับอียิปต์ ตามคำขอเลขที่อ้างอิง R6201 จากบริษัท สหวิริยาสตีลอินดัสตรี จำกัด\n\nเพื่อประกอบการตรวจสอบสถานะอุตสาหกรรมภายในและความครบถ้วนของคำขอ จึงขอความอนุเคราะห์ข้อมูลผู้ผลิตสินค้าดังกล่าวในประเทศ ได้แก่ รายชื่อและที่ตั้งโรงงาน กำลังการผลิต ปริมาณการผลิต และปริมาณความต้องการใช้ภายในประเทศ ตามแบบที่แนบมาด้วยนี้\n\nทั้งนี้ ขอความกรุณาส่งข้อมูลกลับภายใน 20/06/2562 หากมีข้อสงสัยประการใด กรุณาติดต่อกลุ่มงานมาตรการตอบโต้การทุ่มตลาด กองปกป้องและตอบโต้ทางการค้า',
+          true,
+        ),
         field('กำหนดส่งข้อมูล', '20/06/2562'),
-        field('โทรศัพท์', ''),
-        field('โทรสาร', ''),
-        field('ลงชื่อ', 'กองปกป้องและตอบโต้ทางการค้า'),
-        field('ตำแหน่ง', 'กองปกป้องและตอบโต้ทางการค้า กรมการค้าต่างประเทศ'),
+        field('โทรศัพท์', '0 2547 4739'),
+        field('โทรสาร', '0 2547 4740'),
+        field('ลงชื่อ', '(นายประกิจ พรหมมา)'),
+        field('ตำแหน่ง', 'ผู้อำนวยการกองปกป้องและตอบโต้ทางการค้า\nปฏิบัติราชการแทนอธิบดีกรมการค้าต่างประเทศ'),
       ],
     },
     {
       title: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง',
-      file: 'Sum ข้อมูลจาก 4 หน่วยงาน_V2.xlsx',
+      file: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง-R6201.xlsx',
       fields: [
-        field('วัตถุประสงค์', 'รวมอุปสงค์และอุปทานให้สอดคล้องกับฐานะผู้ยื่นในคำขอ R6201 และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
-        field('วิธีจัดทำ', '1. รวมรายชื่อผู้ผลิตจาก 4 หน่วยงาน\n2. ดูยอดรวมของแต่ละรายการ\n3. ใช้รายการที่ใหญ่ที่สุดเป็นรายชื่อหลัก\n4. ตรวจชื่อซ้ำจากการพิมพ์หรือบริษัทเดียวกันแต่คนละที่อยู่', true),
-        field('หน่วยงาน', 'กรมโรงงานอุตสาหกรรม\nสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\nสภาอุตสาหกรรมแห่งประเทศไทย\nสำนักงานเศรษฐกิจอุตสาหกรรม', true),
-        field('วันที่ได้รับข้อมูล', '28/05/2562'),
-        field('เลขที่หนังสือตอบกลับ', 'กรมโรงงานอุตสาหกรรม อก 1234/2562\nสถาบันเหล็กและเหล็กกล้า เหล็ก 88/2562\nสภาอุตสาหกรรมแห่งประเทศไทย อก. 56/2562\nสำนักงานเศรษฐกิจอุตสาหกรรม ศก. 210/2562', true),
-        field('รายชื่อผู้ผลิต', 'ใช้รายชื่อที่มียอดใหญ่ที่สุดจาก 4 หน่วยงานเป็นรายชื่อหลัก แล้วตัดชื่อซ้ำจากการพิมพ์คนละแบบหรือบริษัทเดียวกันแต่คนละที่อยู่', true),
-        field('กำลังการผลิตและปริมาณการผลิต', 'รวมกำลังการผลิตและปริมาณการผลิตปี 2561 ถึงต้นปี 2562 จากแบบที่หน่วยงานส่งกลับ', true),
-        field('ปริมาณความต้องการใช้ภายในประเทศ', 'รวมปริมาณความต้องการใช้ภายในประเทศช่วงเดียวกับคำขอ เพื่อเทียบกับฐานะผู้ยื่น', true),
-        field('จุดที่ข้อมูลยังไม่ครบ', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562\nปริมาณนำเข้าที่เชื่อมกับความเสียหาย\nรายชื่อผู้ผลิตที่ร่วมยื่นตามหนังสือมอบอำนาจ', true),
-        field('สรุปที่นำไปใช้', 'ใช้รายชื่อหลักและยอดรวมนี้จัดทำแบบสอบถามเบื้องต้น และส่งหนังสือยืนยันไปยังผู้ผลิตเหล็กแผ่นรีดร้อน', true),
+        field('ชื่อรายงาน', 'สรุปข้อมูลผู้ผลิตจากหน่วยงานที่เกี่ยวข้อง — คำขอ R6201'),
+        field('วันที่จัดทำ', '28/05/2562'),
+        field('ผู้จัดทำ', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
+        field(
+          'วัตถุประสงค์',
+          'รวบรวมรายชื่อผู้ผลิต กำลังการผลิต และปริมาณการผลิตจากหน่วยงานที่เกี่ยวข้อง เพื่อใช้เป็นรายชื่อหลักสำหรับส่งแบบสอบถามเบื้องต้น และตรวจสอบฐานะอุตสาหกรรมภายในตามคำขอ R6201',
+          true,
+        ),
+        field(
+          'หน่วยงานที่ขอข้อมูล',
+          '1. กรมโรงงานอุตสาหกรรม\n2. สถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย\n3. สภาอุตสาหกรรมแห่งประเทศไทย (กลุ่มอุตสาหกรรมเหล็ก)\n4. สำนักงานเศรษฐกิจอุตสาหกรรม',
+          true,
+        ),
+        field(
+          'เลขที่หนังสือตอบกลับ',
+          'กรมโรงงานอุตสาหกรรม อก 0307/1234 ลงวันที่ 24/05/2562\nสถาบันเหล็กและเหล็กกล้า เหล็ก 88/2562 ลงวันที่ 25/05/2562\nสภาอุตสาหกรรมแห่งประเทศไทย ส.อ.ท. 56/2562 ลงวันที่ 27/05/2562\nสำนักงานเศรษฐกิจอุตสาหกรรม ศก 0704/210 ลงวันที่ 28/05/2562',
+          true,
+        ),
+        field(
+          'วิธีจัดทำ',
+          '1. รวมรายชื่อผู้ผลิตจากทั้ง 4 หน่วยงาน\n2. เทียบยอดกำลังการผลิตและปริมาณการผลิตของแต่ละราย\n3. ใช้ชุดข้อมูลที่ครบถ้วนและมียอดสูงสุดเป็นรายชื่อหลัก\n4. ตัดชื่อซ้ำจากการสะกดต่างกัน หรือบริษัทเดียวกันแต่คนละที่อยู่',
+          true,
+        ),
+        field(
+          'รายชื่อผู้ผลิตหลัก',
+          '1. บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน) — ประจวบคีรีขันธ์ · กำลังการผลิต 1,800,000 ตัน/ปี\n2. บริษัท จี สตีล จำกัด (มหาชน) — ระยอง · กำลังการผลิต 1,800,000 ตัน/ปี\n3. บริษัท จี เจ สตีล จำกัด (มหาชน) — ระยอง · กำลังการผลิต 1,500,000 ตัน/ปี\n4. บริษัท สหมิตรเหล็กและเหล็กกล้า จำกัด — สมุทรปราการ · กำลังการผลิต 120,000 ตัน/ปี\n\nยืนยันจากกรมโรงงาน / สถาบันเหล็กฯ / ส.อ.ท. / ศก. (ตัดชื่อซ้ำและโรงงานแปรรูปที่ไม่ใช่ผู้ผลิต HRC หลัก)',
+          true,
+        ),
+        field(
+          'กำลังการผลิตและปริมาณการผลิต',
+          'กำลังการผลิตรวมรายชื่อหลัก 4 ราย = 5,220,000 ตัน/ปี\nปริมาณการผลิต (ฐานกรมโรงงานอุตสาหกรรม)\n- ปี 2560: 3,235,000 ตัน\n- ปี 2561: 3,058,000 ตัน\n- ไตรมาส 1 ปี 2562: 728,000 ตัน\nอัตราใช้กำลังการผลิตโดยประมาณ 45–76% ตามราย เทียบกับสถาบันเหล็กฯ แล้วส่วนต่างไม่เกิน 3%',
+          true,
+        ),
+        field(
+          'ปริมาณความต้องการใช้ภายในประเทศ',
+          'ค่ากลางจากสถาบันเหล็กฯ / ส.อ.ท. / ศก.\n- ปี 2560: 5,276,667 ตัน\n- ปี 2561: 5,085,000 ตัน\n- ไตรมาส 1 ปี 2562: 1,195,000 ตัน\nส่วนต่างอุปสงค์–การผลิตในประเทศประมาณ 2.0–2.1 ล้านตัน/ปี ซึ่งสอดคล้องกับการพึ่งพาการนำเข้าในช่วงคำขอ',
+          true,
+        ),
+        field(
+          'จุดที่ข้อมูลยังไม่ครบ',
+          '1. หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 จากผู้ผลิตบางราย (โดยเฉพาะผู้ผลิตรอง)\n2. ปริมาณนำเข้าที่เชื่อมกับความเสียหายโดยตรง แยกตามแหล่งเวียดนามและอียิปต์\n3. รายชื่อผู้ผลิตที่ร่วมยื่นตามหนังสือมอบอำนาจให้ครบทุกฉบับ\n4. ยอดกำลังการผลิตของบางรายในทะเบียนโรงงานเป็นยอดรวมหลายผลิตภัณฑ์ ต้องยืนยันสัดส่วน HRC ตอนส่ง Pre-questionnaire',
+          true,
+        ),
+        field(
+          'สรุปที่นำไปใช้',
+          '1. ใช้รายชื่อหลัก 4 รายเป็นฐานอุตสาหกรรมภายในสำหรับคำขอ R6201\n2. จัดทำและส่ง Pre-questionnaire ไปยังผู้ผลิตในรายชื่อหลัก\n3. ใช้ยอดกำลังการผลิต/ปริมาณการผลิต/อุปสงค์ประกอบการตรวจสถานะอุตสาหกรรมและความเสียหาย\n4. เก็บไฟล์ตอบกลับจาก 4 หน่วยงานไว้เป็นหลักฐานประกอบสรุป',
+          true,
+        ),
       ],
     },
     {
       title: 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง',
-      file: 'แบบสอบถามเบื้องต้น จาก Sum ข้อมูลจาก 4 หน่วยงาน',
+      file: 'แบบสอบถามเบื้องต้น.docx',
       fields: [
         field('ชื่อแบบ', 'แบบสอบถามเบื้องต้น กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
-        field('กลุ่มผู้รับแบบ', 'ผู้ผลิตเหล็กแผ่นรีดร้อนในประเทศที่อยู่ในรายชื่อหลักจาก 4 หน่วยงาน'),
         field('คำขอ', 'R6201 สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
         field('วันที่จัดทำ', '28/05/2562'),
-        field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'เป็นผู้ผลิตในประเทศ ผู้ยื่นคำขอ หรือผู้ที่เกี่ยวข้องอย่างอื่น', true),
-        field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'กำลังการผลิตและปริมาณการผลิต ปี 2561 ถึงต้นปี 2562', true),
-        field('ส่วนที่ 3 ราคา', 'หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 และช่วงเวลาที่ครอบคลุม', true),
-        field('ส่วนที่ 4 ความเสียหาย', 'ปริมาณนำเข้าเชื่อมกับตัวชี้วัดความเสียหายอย่างไร', true),
-        field('ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น', 'รายชื่อผู้ผลิตที่ร่วมยื่นครบตามหนังสือมอบอำนาจหรือไม่', true),
-        field('ช่องทางส่งคำตอบ', 'ส่งกลับกองปกป้องและตอบโต้ทางการค้า พร้อมไฟล์แบบที่กรอกแล้ว'),
-        field('ผู้จัดทำ', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
         field('กำหนดส่งคำตอบ', '20/06/2562'),
+        field(
+          'กลุ่มผู้รับแบบ',
+          'ผู้ผลิตเหล็กแผ่นรีดร้อนในประเทศตามรายชื่อหลักจากสรุปข้อมูล 4 หน่วยงาน (SSI, G Steel, G J Steel, Sahamit)',
+          true,
+        ),
+        field(
+          'ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย',
+          'ระบุว่าเป็นผู้ผลิตในประเทศ ผู้ยื่นคำขอ หรือผู้ที่เกี่ยวข้องอย่างอื่น พร้อมหลักฐานประกอบ',
+          true,
+        ),
+        field(
+          'ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต',
+          'กรอกกำลังการผลิตและปริมาณการผลิต ปี 2560–2561 และไตรมาส 1 ปี 2562 ตามแบบที่กำหนด',
+          true,
+        ),
+        field(
+          'ส่วนที่ 3 ราคา',
+          'แนบหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 และระบุช่วงเวลาที่ครอบคลุม',
+          true,
+        ),
+        field(
+          'ส่วนที่ 4 ความเสียหาย',
+          'อธิบายว่าปริมาณนำเข้าเชื่อมกับตัวชี้วัดความเสียหายของอุตสาหกรรมภายในอย่างไร',
+          true,
+        ),
+        field(
+          'ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น',
+          'ยืนยันรายชื่อผู้ผลิตที่ร่วมยื่นครบตามหนังสือมอบอำนาจหรือไม่',
+          true,
+        ),
+        field('ช่องทางส่งคำตอบ', 'ส่งกลับกองปกป้องและตอบโต้ทางการค้า พร้อมไฟล์แบบที่กรอกแล้ว และภาคผนวกตาราง'),
+        field('ผู้จัดทำ', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
       ],
     },
   ];
@@ -309,6 +437,28 @@ const defaultNoticeGaps: DocGap[] = [
   { place: 'ส่วนที่ 4 ราคา', title: 'หลักฐานราคายังไม่ครอบคลุมช่วงเวลา', detail: 'ยังขาดราคาช่วงปลายปี 2561 ถึงต้นปี 2562' },
   { place: 'ส่วนที่ 5 ปริมาณและมูลค่า', title: 'ปริมาณนำเข้ายังไม่เชื่อมกับความเสียหาย', detail: 'ตัวเลขปริมาณนำเข้ายังอธิบายไม่ครบว่าเชื่อมกับความเสียหายอย่างไร' },
   { place: 'ส่วนที่ 3 ผู้ผลิตในประเทศ', title: 'รายชื่อผู้ผลิตที่ร่วมยื่นยังไม่ครบ', detail: 'รายชื่อยังไม่ครบตามหนังสือมอบอำนาจ' },
+];
+
+/** ส่วนถัดจากแจ้งผลการตรวจ — รวมเล่มแบบคำขอฉบับเปิดเผย / แบบคำขอฉบับปกปิด เหมือนแบบคำขอ */
+const OPEN_EDITION_KIND = 'แบบคำขอฉบับเปิดเผย';
+const CLOSED_EDITION_KIND = 'แบบคำขอฉบับปกปิด';
+/** ชื่อ kind เก่าใน localStorage — ย้ายมา kind ใหม่เมื่อ seed */
+const OPEN_EDITION_ALIASES = [OPEN_EDITION_KIND, 'ฉบับเปิดเผย', 'แบบคำขอ ฉบับเปิดเผยสมบูรณ์', 'แบบคำขอ ฉบับเปิดเผย'];
+const CLOSED_EDITION_ALIASES = [CLOSED_EDITION_KIND, 'ฉบับปกปิด', 'ฉบับปกปิดสมบูรณ์', 'แบบคำขอ ฉบับปกปิด'];
+/** ไฟล์ตัวอย่างตามโฟลเดอร์จริง — ชื่อแยกตามฉบับ */
+const OPEN_EDITION_FILES: { name: string; title: string }[] = [
+  { name: 'คำขอ ปร.1 Noncon final ฉบับเปิดเผย.pdf', title: 'คำขอ ปร.1 Noncon final ฉบับเปิดเผย' },
+  { name: 'คำขอ ปร.1 Noncon final ฉบับเปิดเผย.docx', title: 'คำขอ ปร.1 Noncon final ฉบับเปิดเผย' },
+  { name: 'คำถามเพิ่มเติม Noncon final ฉบับเปิดเผย.pdf', title: 'คำถามเพิ่มเติม Noncon final ฉบับเปิดเผย' },
+  { name: 'คำถามเพิ่มเติม Noncon final ฉบับเปิดเผย.docx', title: 'คำถามเพิ่มเติม Noncon final ฉบับเปิดเผย' },
+  { name: 'สิ่งที่ส่งมาด้วย - บัญชีรายการ ฉบับเปิดเผย.pdf', title: 'สิ่งที่ส่งมาด้วย - บัญชีรายการ ฉบับเปิดเผย' },
+];
+const CLOSED_EDITION_FILES: { name: string; title: string }[] = [
+  { name: 'คำขอ ปร.1 Noncon final ฉบับปกปิด.pdf', title: 'คำขอ ปร.1 Noncon final ฉบับปกปิด' },
+  { name: 'คำขอ ปร.1 Noncon final ฉบับปกปิด.docx', title: 'คำขอ ปร.1 Noncon final ฉบับปกปิด' },
+  { name: 'คำถามเพิ่มเติม Noncon final ฉบับปกปิด.pdf', title: 'คำถามเพิ่มเติม Noncon final ฉบับปกปิด' },
+  { name: 'คำถามเพิ่มเติม Noncon final ฉบับปกปิด.docx', title: 'คำถามเพิ่มเติม Noncon final ฉบับปกปิด' },
+  { name: 'สิ่งที่ส่งมาด้วย - บัญชีรายการ ฉบับปกปิด.pdf', title: 'สิ่งที่ส่งมาด้วย - บัญชีรายการ ฉบับปกปิด' },
 ];
 
 function gapSentence(gap: DocGap): string {
@@ -330,15 +480,16 @@ function noticeLetterFields(action: DocAction, noticedOn: string, dueOn: string,
     ? 'แจ้งผลการตรวจคำขอครบถ้วนถูกต้อง'
     : action === 'late'
       ? 'แจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน'
-      : 'แจ้งให้ส่งข้อมูลเพิ่มเติมคำขอตอบโต้การทุ่มตลาด';
+      : 'แจ้งให้แก้ไขปรับปรุงข้อมูลคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาด';
   const body = noticeBody(action, dueOn, defaultNoticeGaps);
   return [
-    field('ที่', 'กพ. / กองปกป้องและตอบโต้ทางการค้า'),
+    // เว้นว่าง — ออกจากระบบยังไม่มีเลข ต้องไปลงเลขที่ e-Office
+    field('ที่', ''),
     field('วันที่', noticedOn),
     field('เรื่อง', subject),
-    field('เรียน', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
+    field('เรียน', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน)'),
     field('อ้างถึง', 'คำขอเลขที่อ้างอิง R6201 ลงวันที่ 15/05/2563 เลขสารบรรณ สบ.1605/2562'),
-    field('สิ่งที่ส่งมาด้วย', '-'),
+    field('สิ่งที่ส่งมาด้วย', 'รายการแก้ไขปรับปรุงข้อมูลคำขอ (แบบปร. 1)'),
     field('เนื้อความ', body, true),
     field('กำหนดส่งข้อมูล', action === 'complete' ? '-' : dueOn),
     field('ลงชื่อ', signer || 'นางสาวจรีณา กิจส่งเสริมกุล'),
@@ -367,11 +518,19 @@ const agendaSections: { id: string; label: string; labels: string[] }[] = [
   { id: 'resolution', label: 'มติที่ประชุม', labels: ['มติที่ประชุม'] },
 ];
 
-const inquiryPack: { step: 'agenda' | 'notice' | 'sign' | 'letters' | 'news' | 'hearing' | 'visit'; group: string; kind: string }[] = [
-  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'บันทึกขออนุมัติวาระ ทตอ. เปิดไต่สวน' },
-  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'วาระการประชุม ทตอ. เปิดไต่สวน' },
-  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'เอกสารแนบวาระ ทตอ. เปิดไต่สวน' },
+const inquiryPack: { step: 'draftAgenda' | 'subAgenda' | 'agenda' | 'notice' | 'sign' | 'letters' | 'news' | 'hearing' | 'visit'; group: string; kind: string }[] = [
+  { step: 'draftAgenda', group: 'วาระเปิดไต่สวน', kind: 'วาระพิจารณาคำขอเปิดไต่สวน' },
+  { step: 'draftAgenda', group: 'วาระเปิดไต่สวน', kind: 'ตารางปริมาณนำเข้าและความเสียหาย' },
+  { step: 'draftAgenda', group: 'วาระเปิดไต่สวน', kind: 'ข้อพิจารณา (ตัวเลือก)' },
+  { step: 'subAgenda', group: 'วาระอนุไต่สวน', kind: 'บันทึกเสนอ อธ. เข้าอนุฯ พิจารณาคำขอ' },
+  { step: 'subAgenda', group: 'วาระอนุไต่สวน', kind: 'วาระพิจารณาคำขอเปิดไต่สวน (อนุ)' },
+  { step: 'subAgenda', group: 'วาระอนุไต่สวน', kind: 'PowerPoint อนุไต่สวน' },
+  { step: 'subAgenda', group: 'วาระอนุไต่สวน', kind: 'มติคณะอนุฯ ไต่สวน' },
+  { step: 'subAgenda', group: 'วาระอนุไต่สวน', kind: 'รายงานการประชุมอนุไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'บันทึกเสนอวาระ ทตอ. เปิดไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'วาระพิจารณาคำขอเปิดไต่สวน (ทตอ.)' },
   { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'Chairman’s Note เปิดไต่สวน' },
+  { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'PowerPoint ทตอ. เปิดไต่สวน' },
   { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'มติที่ประชุม ทตอ. เปิดไต่สวน' },
   { step: 'agenda', group: 'วาระ ทตอ. เปิดไต่สวน', kind: 'รายงานการประชุม ทตอ. เปิดไต่สวน' },
   { step: 'notice', group: 'ประกาศเปิดไต่สวน', kind: 'บันทึกให้ กม. ตรวจร่างประกาศ' },
@@ -702,7 +861,7 @@ const defaultApplicantNoticeText =
 
 @Component({
   selector: 'app-por1-page',
-  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FilledUpload, FilingTabs],
+  imports: [TopHeader, SideNav, DftButton, NgTemplateOutlet, StatusTag, DftModal, ThaiDateField, InputField, FileField, FilledUpload, FilingTabs, TextEditorToolbar, ApprovalLaneStepper, ApprovalLaneActions, ApprovalEofficePanel],
   templateUrl: './por1-page.html',
   styleUrl: './por1-page.css',
 })
@@ -775,7 +934,7 @@ export class Por1Page {
           this.wantSubsidy
             ? 'มาตรการนี้เป็นตอบโต้การอุดหนุน — กรอกส่วนที่ 1–3 ส่วนที่ 7 และส่วนที่ 8'
             : 'มาตรการนี้เป็นตอบโต้การทุ่มตลาด — กรอกส่วนที่ 1–6 และส่วนที่ 8',
-          'เลือกประเภทการยื่น: ในนามตนเอง / แทนผู้ผลิตทั้งหมด / แทนผู้ผลิตบางส่วน แล้วแนบเอกสารตามที่ระบบขอ',
+          'เริ่มจากหนังสือมอบอำนาจ — ขอบเขตและอำนาจในเอกสารจะกำหนดรูปแบบการยื่น ผนวก ก./ข./ค. และการกระทำที่ทำได้',
           'ข้อมูลติดต่อและผู้มีอำนาจลงนามต้องกรอกให้ครบเพื่อใช้ในคำรับรองท้ายแบบ',
         ],
       };
@@ -922,6 +1081,59 @@ export class Por1Page {
     return '';
   }
   protected filing: 'self' | 'all' | 'part' = 'part';
+  /** หนังสือมอบอำนาจเป็นหลัก — รูปแบบการยื่น/ผนวก/การกระทำตามเอกสารนี้ */
+  protected poaAttached = true;
+  protected poaKind: 'person' | 'juristic' | 'sub' = 'person';
+  protected readonly poaKindOptions = [
+    { key: 'person' as const, label: 'มอบให้บุคคลธรรมดา', hint: 'เช่น ทนายความหรือผู้แทนบุคคล' },
+    { key: 'juristic' as const, label: 'มอบให้นิติบุคคล', hint: 'บริษัทหรือสำนักงานกฎหมาย' },
+    { key: 'sub' as const, label: 'มอบอำนาจช่วง', hint: 'ผู้รับมอบมอบต่อให้ผู้อื่นอีกทอด' },
+  ];
+  protected readonly poaPowerOptions = [
+    { key: 'file' as const, label: 'ยื่นคำขอและเอกสารประกอบคำขอ' },
+    { key: 'edit' as const, label: 'เปลี่ยนแปลง/แก้ไขข้อความหรือเอกสารตามคำขอ' },
+    { key: 'contact' as const, label: 'ให้ข้อมูลเพิ่มเติมและติดต่อประสานงานกับเจ้าหน้าที่' },
+    { key: 'full' as const, label: 'ดำเนินการใด ๆ แทนผู้มอบอำนาจตลอดกระบวนการ' },
+  ];
+  /** ตัวอย่างจากเคสจริง AD1046 — ดาวน์โหลด/ใช้แนบในระบบได้ทันที */
+  protected readonly poaSamples: {
+    kind: 'person' | 'juristic' | 'sub';
+    label: string;
+    name: string;
+    href: string;
+    caseId: string;
+  }[] = [
+    { kind: 'person', label: 'SSI มอบบุคคลธรรมดา', name: 'SSI มอบบุคคลธรรมดา.pdf', href: 'assets/samples/poa/SSI มอบบุคคลธรรมดา.pdf', caseId: 'AD1046' },
+    { kind: 'person', label: 'G Steel มอบบุคคลธรรมดา', name: 'G steel มอบบุคคลธรรมดา.pdf', href: 'assets/samples/poa/G steel มอบบุคคลธรรมดา.pdf', caseId: 'AD1046' },
+    { kind: 'person', label: 'GJ มอบบุคคลธรรมดา', name: 'GJ มอบบุคคลธรรมดา.pdf', href: 'assets/samples/poa/GJ มอบบุคคลธรรมดา.pdf', caseId: 'AD1046' },
+    { kind: 'person', label: 'SPM มอบบุคคลธรรมดา', name: 'SPM มอบบุคลลธรรมดา.pdf', href: 'assets/samples/poa/SPM มอบบุคลลธรรมดา.pdf', caseId: 'AD1046' },
+    { kind: 'juristic', label: 'G Steel มอบนิติบุคคล', name: 'G steel มอบนิติบุคคล.pdf', href: 'assets/samples/poa/G steel มอบนิติบุคคล.pdf', caseId: 'AD1046' },
+    { kind: 'juristic', label: 'GJ มอบนิติบุคคล', name: 'GJ มอบนิติบุคคล.pdf', href: 'assets/samples/poa/GJ มอบนิติบุคคล.pdf', caseId: 'AD1046' },
+    { kind: 'juristic', label: 'SPM มอบนิติบุคคล', name: 'SPM มอบนิติบุคคล.pdf', href: 'assets/samples/poa/SPM มอบนิติบุคคล.pdf', caseId: 'AD1046' },
+    { kind: 'sub', label: 'G Steel มอบอำนาจช่วง', name: 'G Steel มอบอำนาจช่วง.pdf', href: 'assets/samples/poa/G Steel มอบอำนาจช่วง.pdf', caseId: 'AD1046' },
+  ];
+  protected poaPowers: Record<'file' | 'edit' | 'contact' | 'full', boolean> = {
+    file: true,
+    edit: true,
+    contact: true,
+    full: false,
+  };
+  /** solo = คนหลักกรอกครบเอง · invite = เชิญผู้ผลิตร่วมกรอกส่วนของตน */
+  protected cofilerMode: 'solo' | 'invite' = 'invite';
+  protected formDeskTab: 'form' | 'invite' = 'form';
+  protected cofilerView = readCofilerView();
+  protected cofilerInviteName = '';
+  protected cofilerInviteEmail = '';
+  protected cofilerInviteOrg = '';
+  protected cofilerCopied = '';
+  protected cofilerPrivateDraft: CofilerPrivate = {
+    inviteId: '',
+    address: '',
+    phone: '',
+    fax: '',
+    volumeNote: '',
+    docs: [],
+  };
   protected nationality = 'ไทย';
   protected readonly nationalities = ['ไทย'];
   protected readonly countries = ['เวียดนาม', 'อียิปต์'];
@@ -1128,11 +1340,11 @@ export class Por1Page {
   /** วันที่ยื่นแบบทางการ — จุดเริ่มนับกำหนด 4 เดือน */
   protected officialOn = readOfficialOn() || firstFiledOn;
   protected amendUntil = addThaiMonths(this.officialOn, 4);
-  protected docKey = 'cert';
+  protected docKey = 'power';
   protected readonly supportDocs: { key: string; label: string; accept: string; hint: string; behalf: boolean }[] = [
+    { key: 'power', label: 'หนังสือมอบอำนาจ', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'ผนวก ค. · png, jpg, jpeg, pdf, doc, docx', behalf: true },
     { key: 'cert', label: 'หนังสือรับรองบริษัท', accept: '.png,.jpg,.jpeg,.pdf', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf', behalf: false },
     { key: 'finance', label: 'งบการเงินที่ผู้สอบบัญชีรับอนุญาตรับรอง', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx', behalf: false },
-    { key: 'power', label: 'หนังสือมอบอำนาจ', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx', behalf: true },
     { key: 'volume', label: 'รายการและปริมาณสินค้าที่ผลิตและ/หรือจำหน่ายของผู้ผลิตทุกราย', accept: '.png,.jpg,.jpeg,.pdf,.doc,.docx', hint: 'เฉพาะนามสกุล png, jpg, jpeg, pdf, doc, docx', behalf: true },
   ];
   protected editingKey = '';
@@ -1273,6 +1485,11 @@ export class Por1Page {
     intentDetail: 'ไม่มีข้อมูล',
   };
   protected submitOpen = false;
+  protected verifyOpen = false;
+  protected verifyBusy = false;
+  protected verifyMessage = '';
+  protected foreignDoc = '';
+  protected foreignAck = false;
   protected historyOpen = false;
   protected historyFull = false;
   protected historyTab: 'activity' | 'version' = 'activity';
@@ -1444,8 +1661,21 @@ export class Por1Page {
   /** ท่อ: ร่าง → รายงานหัวหน้ากอง → เห็นชอบ → e-Office → ลงนาม/ออกเลข → ส่งผู้ยื่น */
   protected noticePipe: NoticePipe = 'draft';
   protected noticePipeAt = '';
+  /** เจ้าหน้าที่ผู้รายงานผลถึงหัวหน้ากลุ่ม */
+  protected noticeReportBy = '';
   protected noticeHeadBy = '';
   protected noticeOfficeRef = '';
+  /** สถานะเชื่อม e-Office ของรายการแจ้งผลที่เปิดอยู่ */
+  protected noticeEofficeLink: ApprovalEofficeLinkState = 'idle';
+  /** ซ่อนขั้นตอนท่ออนุมัติเป็นค่าเริ่มต้น — กดแสดงเมื่อต้องการ */
+  protected noticeLaneStepsOpen = false;
+  protected approvalLaneStepsOpen = false;
+  /** timeline การกระทำของรายการแจ้งผลการตรวจ */
+  protected noticeHistory: NoticeHistoryEntry[] = [];
+  protected noticeHistoryOpen = false;
+  /** รายการแจ้งผลทั้งหมด — สร้างได้เรื่อยๆ ไม่ต้องรอรายการก่อนหน้า */
+  protected noticeItems: NoticeItem[] = [];
+  protected activeNoticeId = '';
 
   protected docNoticedOn = '20/05/2562';
   protected docDueOn = '20/06/2562';
@@ -1473,12 +1703,14 @@ export class Por1Page {
   protected embassyFiles: { name: string; title: string; sentOn: string; docId: string }[] = [];
   protected embassyLetter = embassyLetterFields('05/06/2562', '');
   protected embassyNotice = false;
-  protected inquiryAgendaAt = '10/06/2562';
+  protected inquiryAgendaAt = '09/11/2563';
+  protected inquirySubAgendaAt = '03/11/2563';
+  protected inquiryDraftAgendaAt = '02/10/2563';
   protected inquiryAgenda = '';
   protected inquiryFields = agendaFieldList();
   protected readonly agendaSections = agendaSections;
   protected agendaPart = 0;
-  protected inquiryAgendaFiles: { name: string; title: string; sentOn: string; docId: string }[] = [];
+  protected inquiryAgendaFiles: InquiryAgendaFile[] = [];
   protected inquiryDecide: 'take' | 'return' | '' = '';
   protected inquiryFeeAmount = '10,000';
   protected inquiryFeeDue = '24/06/2562';
@@ -1490,10 +1722,12 @@ export class Por1Page {
   protected inquiryOpenAt = '10/06/2562';
   protected inquiryCaseId = '';
   protected inquiryCloseNote = '';
+  protected inquiryDraftAgendaDone = false;
+  protected inquirySubAgendaDone = false;
   protected inquiryAgendaDone = false;
   protected inquiryReturned = false;
   protected inquirySentBy = '';
-  protected inquiryPart: InquiryStep = 'agenda';
+  protected inquiryPart: InquiryStep = 'draftAgenda';
   protected inquiryDecideDraft: 'take' | 'return' | '' = '';
   protected inquiryNoticeOn = '25/06/2562';
   protected inquiryNoticeSent = false;
@@ -1523,7 +1757,7 @@ export class Por1Page {
   ];
   protected committeeSent = false;
   protected committeeSentBy = '';
-  protected docFiles: NoticeFile[] = [{ name: 'หนังสือแจ้งแก้ไข.pdf', title: 'หนังสือแจ้งขอข้อมูลเพิ่ม', sentOn: '20/05/2562' }];
+  protected docFiles: NoticeFile[] = [{ name: 'หนังสือแจ้งขอข้อมูลเพิ่มเติม.pdf', title: 'หนังสือแจ้งขอข้อมูลเพิ่มเติม', sentOn: '20/05/2562' }];
   protected docSent = false;
   protected docSentBy = '';
   protected links: SystemLink[] = readSystemLinks();
@@ -1533,6 +1767,8 @@ export class Por1Page {
   protected readonly etrRefNo = 'ETR256205170001';
   protected assignMode: 'group' | 'person' = 'group';
   protected assignOpen = false;
+  /** หัวหน้ากลุ่มเปิดดูคิวงานที่ยังไม่มีการมอบหมาย (เมื่อดึง e-Office ไม่ได้) */
+  protected pendingAssignOpen = false;
   protected bureau = 'กองปกป้องและตอบโต้ทางการค้า';
   protected pickedPeople: string[] = [];
   protected pickedGroups: string[] = [];
@@ -2044,7 +2280,7 @@ export class Por1Page {
     if (this.reviewRole === 'staff') return !this.directorAssigned;
     if (this.reviewRole === 'director') return this.consultWaiting();
     if (this.reviewRole === 'head') {
-      if (this.consultWaiting()) return true;
+      if (this.assignPendingInSystem || this.consultWaiting()) return true;
       const mine = this.shownTasks.find((task) => task.head === this.signedPerson);
       return !!mine && (this.groupAct(mine) || this.showForward(mine));
     }
@@ -2654,6 +2890,101 @@ export class Por1Page {
     if (kind === 'groups') this.consultPickGroups = ['กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'];
   }
 
+  /** หัวหน้ากลุ่ม / ผู้อำนวยการ — ดูงานที่ยังไม่ถูกมอบหมายในระบบนี้ */
+  protected get canViewPendingAssign(): boolean {
+    return this.reviewRole === 'head' || this.reviewRole === 'director' || this.isMyGroupHead();
+  }
+
+  protected get assignPendingInSystem(): boolean {
+    return !this.consultClosed && !this.consultJobs.length && (this.filingReturned || this.eofficeDirector.state === 'sent' || this.eofficeDirector.state === 'error' || this.eofficeDirector.state === 'idle');
+  }
+
+  protected get pendingAssignItems(): {
+    ref: string;
+    title: string;
+    applicant: string;
+    reason: string;
+    at: string;
+    groupHint: string;
+  }[] {
+    if (!this.assignPendingInSystem && this.consultJobs.length) return [];
+    const eofficeNote =
+      this.eofficeDirector.state === 'error'
+        ? 'ดึงจาก e-Office ไม่สำเร็จ'
+        : this.eofficeDirector.state === 'sent'
+          ? 'มอบใน e-Office แล้ว แต่ระบบยังดึงผลไม่ได้'
+          : 'ยังไม่มีการมอบหมายในระบบนี้';
+    const mine = this.myWorkGroup();
+    return [
+      {
+        ref: this.refId,
+        title: this.caseGoods || 'คำขอยื่นแบบ',
+        applicant: this.company,
+        reason: eofficeNote,
+        at: this.eofficeDirector.sentAt || this.filedOn || this.replyStamp(),
+        groupHint: mine || 'กลุ่มงานที่เกี่ยวข้อง',
+      },
+    ];
+  }
+
+  protected openPendingAssignQueue(): void {
+    if (!this.canViewPendingAssign) return;
+    this.pendingAssignOpen = true;
+    this.reviewTab = 'assign';
+  }
+
+  protected closePendingAssignQueue(): void {
+    this.pendingAssignOpen = false;
+  }
+
+  /**
+   * เมื่อรู้ว่ามอบหมายใน e-Office/นอกระบบแล้ว แต่ดึงเข้ามาไม่ได้ —
+   * หัวหน้ากลุ่มบันทึกรับงานของกลุ่มตนในระบบนี้ได้เลย
+   */
+  protected claimPendingAssignForMyGroup(): void {
+    if (!this.canViewPendingAssign) return;
+    const group = this.myWorkGroup() || this.assignableGroups[0]?.name || '';
+    if (!group) return;
+    if (this.reviewRole === 'director') {
+      this.consultPickGroups = [group];
+      this.openConsultForm('groups');
+      this.pendingAssignOpen = false;
+      return;
+    }
+    if (!this.isMyGroupHead() && this.reviewRole !== 'head') return;
+    const at = this.replyStamp();
+    const day = at.split(' ')[0] || this.thaiToday();
+    const form: ConsultSlip = {
+      assignedOn: day,
+      dueOn: this.thaiShift(5),
+      dueTime: '16:00',
+      remind: true,
+      order: `บันทึกรับมอบหมายนอกระบบ/e-Office — กลุ่ม ${group} (ดึงเข้าสู่ระบบไม่ได้ จึงบันทึกในระบบนี้)`,
+      signed: true,
+      files: [],
+    };
+    const existing = this.consultJobs.find((job) => job.group === group);
+    this.consultJobs = existing
+      ? this.consultJobs.map((job) => (job.group === group ? { ...job, reply: 'pending', form, repliedAt: '' } : job))
+      : [...this.consultJobs, { group, reply: 'pending' as const, officers: [], form }];
+    this.writeConsultJobs();
+    writeConsultStep('group');
+    writeConsultGroup(group);
+    writeConsultAssigned(true);
+    this.eofficeDirector = {
+      ...this.eofficeDirector,
+      state: 'assigned',
+      mode: 'manual',
+      pulledAt: at,
+      groups: [...new Set([...(this.eofficeDirector.groups || []), group])],
+      detail: `หัวหน้ากลุ่มบันทึกรับมอบหมายในระบบ: ${group}`,
+      error: '',
+    };
+    writeEofficeDirectorHandoff(this.eofficeDirector);
+    this.pendingAssignOpen = false;
+    this.notice = 'saved';
+  }
+
   protected openConsultReply(kind: 'group-reply' | 'officer-reply', receipt: 'accept' | 'return'): void {
     this.openConsultForm(kind);
     this.consultReceipt = receipt;
@@ -2748,14 +3079,22 @@ export class Por1Page {
           found.reply = 'pending';
           found.repliedAt = undefined;
         }
+        found.result = undefined;
+        found.verdict = '';
+        found.handoff = '';
+        found.delivery = '';
       } else {
         next.push({ group, reply: 'pending', officers: [], form });
       }
     }
     this.consultJobs = next;
-    if (fresh) sessionStorage.setItem('dft-por1-filing-assign', 'open');
+    sessionStorage.setItem('dft-por1-filing-assign', 'open');
+    writeConsultStep('group');
+    writeConsultAssigned(false);
+    if (this.consultPickGroups[0]) writeConsultGroup(this.consultPickGroups[0]);
     this.closeConsultForm();
     this.writeConsultJobs();
+    this.notice = 'saved';
   }
 
   protected removeConsultGroup(group: string): void {
@@ -2764,13 +3103,22 @@ export class Por1Page {
     this.writeConsultJobs();
   }
 
+  /** ต้องมอบหมายเจ้าหน้าที่ใหม่ (ผอ.ส่งต่อ / เจ้าหน้าที่ส่งต่อ / ส่งกลับรายงานใหม่) */
+  protected headNeedsReassign(job = this.consultGroupJob()): boolean {
+    if (!job || job.reply === 'return') return false;
+    return job.handoff === 'more' || this.officerForwarded(job) || (job.verdict === 'rework' && !job.result && !!job.officers.length);
+  }
+
   protected get headWorkCanSend(): boolean {
     if (!this.isMyGroupHead()) return false;
     const job = this.consultGroupJob();
     if (!job || job.reply === 'return') return false;
     if (job.reply === 'pending' && this.consultReceipt === 'return') return true;
-    if (this.consultMove !== 'forward') return this.resultCanSend;
-    return this.consultPickOfficers.length > 0 && this.consultFormReady;
+    // หลังรายงานผลแล้ว / ส่งต่อ / ต้องมอบหมายใหม่ — ใช้แบบฟอร์มมอบหมายเจ้าหน้าที่
+    if (this.headNeedsReassign(job) || this.consultMove === 'forward' || !!job.result) {
+      return this.consultPickOfficers.length > 0 && this.consultFormReady;
+    }
+    return this.resultCanSend;
   }
 
   protected submitHeadWork(): void {
@@ -2782,12 +3130,9 @@ export class Por1Page {
       this.clearConsultDraft();
       return;
     }
-    if (this.consultMove !== 'forward') {
-      if (job.reply === 'pending' && this.consultReceipt === 'return') {
-        this.markGroupReply('return');
-        this.clearResultDraft();
-        return;
-      }
+    // มีผลรายงานแล้ว หรือเลือกส่งต่อ = มอบหมายเจ้าหน้าที่ (ปุ่มไม่หายหลังรายงานผล)
+    const forward = this.headNeedsReassign(job) || this.consultMove === 'forward' || !!job.result;
+    if (!forward) {
       if (job.reply === 'pending') this.markGroupReply('accept');
       this.saveGroupResult();
       this.clearResultDraft();
@@ -2974,19 +3319,71 @@ export class Por1Page {
         const found = officers.find((officer) => officer.name === name);
         if (found) {
           found.form = form;
-          if (found.reply === 'return') {
-            found.reply = 'pending';
-            found.move = '';
-            found.repliedAt = undefined;
-          }
+          found.reply = 'pending';
+          found.move = '';
+          found.repliedAt = undefined;
+          found.result = undefined;
+          found.note = undefined;
+          found.noteFiles = undefined;
         } else {
           officers.push({ name, reply: 'pending', move: '', form });
         }
       }
-      return { ...job, officers };
+      // รีเซ็ตท่อหลังผอ.ส่งต่อ / ส่งกลับ — เริ่มรอบมอบหมายใหม่
+      return {
+        ...job,
+        officers,
+        result: undefined,
+        verdict: '',
+        handoff: '',
+        delivery: '',
+      };
     });
+    writeConsultStep('member');
+    writeConsultAssigned(true);
     this.closeConsultForm();
     this.writeConsultJobs();
+    this.notice = 'saved';
+  }
+
+  /** หัวหน้ากลุ่มส่งกลับให้เจ้าหน้าที่รายงานผลใหม่ (ขั้น 12) */
+  protected returnOfficerResult(name: string): void {
+    if (!this.isMyGroupHead()) return;
+    const group = this.myWorkGroup();
+    this.consultJobs = this.consultJobs.map((job) => {
+      if (job.group !== group) return job;
+      return {
+        ...job,
+        officers: job.officers.map((officer) =>
+          officer.name === name ? { ...officer, result: undefined, move: '' } : officer
+        ),
+        result: undefined,
+        verdict: '',
+        handoff: '',
+        delivery: '',
+      };
+    });
+    this.writeConsultJobs();
+    this.notice = 'saved';
+  }
+
+  /** หัวหน้ากลุ่มปิดงานเองหลังตรวจผล (ขั้น 13) — ไม่ส่งผอ. */
+  protected closeHeadJob(): void {
+    if (!this.isMyGroupHead()) return;
+    const group = this.myWorkGroup();
+    const job = this.consultGroupJob();
+    if (!job || job.reply === 'return') return;
+    this.consultJobs = this.consultJobs.map((item) =>
+      item.group === group
+        ? { ...item, verdict: 'approve', handoff: 'stop', delivery: 'close' }
+        : item
+    );
+    this.writeConsultJobs();
+    const live = this.consultJobs.filter((item) => item.reply !== 'return');
+    if (live.length && live.every((item) => item.delivery === 'close' || item.delivery === 'board')) {
+      this.closeConsultWork();
+    }
+    this.notice = 'saved';
   }
 
   protected removeConsultOfficer(name: string): void {
@@ -3124,7 +3521,7 @@ export class Por1Page {
       },
       {
         title: '3. กลุ่ม',
-        detail: tasks.map((task) => task.head).join(' · ') || this.consultJobs.map((job) => this.jobHead(job.group)).join(' · ') || 'รอผลมอบหมายจาก e-Office',
+        detail: tasks.map((task) => task.head).join(' · ') || this.consultJobs.map((job) => this.jobHead(job.group)).join(' · ') || 'รอมอบหมายกลุ่มในระบบ',
         state: headBack ? 'back' : headDone ? 'done' : tasks.length || this.consultJobs.length ? 'now' : '',
       },
       {
@@ -3316,6 +3713,125 @@ export class Por1Page {
     this.flowView = '';
     if (tab === 'inquiry') this.placeInquiry();
     if (tab === 'prelim' && readHearing()) this.prelimPart = 'close';
+    this.syncFilingUrl();
+  }
+
+  private filingUrlReady = false;
+
+  private isReviewTab(value: string): value is ReviewTab {
+    return (this.phaseOrder as string[]).includes(value);
+  }
+
+  private currentDocKey(): string {
+    if (this.completeBundle === 'open') return 'edition-open';
+    if (this.completeBundle === 'closed') return 'edition-closed';
+    if (this.docPart === this.draftAgendaPart) return 'draft-agenda';
+    if (this.docPart === this.approvalSubmitPart) return 'approval-submit';
+    if (this.docPart === this.extendPart) return 'extend';
+    if (this.docPart === this.committeePart) return 'committee';
+    if (this.docPart < 0) return 'bundle';
+    const title = this.workDocs[this.docPart]?.title || '';
+    return this.docSlugFromTitle(title) || `doc-${this.docPart}`;
+  }
+
+  private docSlugFromTitle(title: string): string {
+    if (title === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง') return 'agency-letter';
+    if (title === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง') return 'agency-summary';
+    if (title.startsWith('Pre-questionnaire')) return 'preqn';
+    if (title === this.openEditionKind || title.includes('ฉบับเปิดเผย')) return 'edition-open';
+    if (title === this.closedEditionKind || title.includes('ฉบับปกปิด')) return 'edition-closed';
+    return '';
+  }
+
+  private applyDocKey(key: string): void {
+    if (key === 'draft-agenda') {
+      this.pickDraftAgenda();
+      return;
+    }
+    if (key === 'approval-submit') {
+      this.pickApprovalSubmit();
+      return;
+    }
+    if (key === 'extend') {
+      this.pickExtend();
+      return;
+    }
+    if (key === 'edition-open') {
+      this.pickCompleteBundle('open');
+      return;
+    }
+    if (key === 'edition-closed') {
+      this.pickCompleteBundle('closed');
+      return;
+    }
+    if (key === 'bundle' || key === 'filing') {
+      this.pickFilingBundle();
+      return;
+    }
+    if (key === 'committee') {
+      this.pickDoc(this.committeePart);
+      return;
+    }
+    const bySlug =
+      key === 'agency-letter'
+        ? this.workDocs.findIndex((doc) => doc.title === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง')
+        : key === 'agency-summary'
+          ? this.workDocs.findIndex((doc) => doc.title === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง')
+          : key === 'preqn'
+            ? this.workDocs.findIndex((doc) => this.isPreQnWorkDoc(doc.title))
+            : -1;
+    if (bySlug >= 0) {
+      this.pickDoc(bySlug);
+      return;
+    }
+    const match = /^doc-(\d+)$/.exec(key);
+    if (match) {
+      const index = Number(match[1]);
+      if (index >= 0 && index < this.workDocs.length) this.pickDoc(index);
+    }
+  }
+
+  /** เขียนแท็บ/หัวข้อลง URL เพื่อ refresh แล้วยังอยู่จุดเดิม */
+  private syncFilingUrl(): void {
+    if (!this.filingUrlReady || !this.reviewRole) return;
+    const tab = this.reviewTab;
+    const queryParams: Record<string, string | null> = {
+      tab,
+      doc: tab === 'docs' ? this.currentDocKey() : null,
+      view:
+        tab === 'docs' && this.docPart === this.draftAgendaPart
+          ? this.draftAgendaTab
+          : tab === 'docs' && this.docPart === this.approvalSubmitPart
+            ? this.approvalTab
+            : null,
+      step: tab === 'inquiry' ? this.inquiryPart : null,
+    };
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  /** อ่าน tab/doc/step จาก URL หลังโหลดเคส */
+  private restoreFilingUrl(): void {
+    if (!this.reviewRole) return;
+    const asked = this.route.snapshot.queryParamMap.get('tab') || '';
+    const askedDoc = this.route.snapshot.queryParamMap.get('doc') || '';
+    const askedStep = this.route.snapshot.queryParamMap.get('step') || '';
+    if (asked && this.isReviewTab(asked) && this.showReviewTab(asked) && !this.reviewLocked(asked)) {
+      this.reviewTab = asked;
+    }
+    if (this.reviewTab === 'docs' && askedDoc) {
+      this.applyDocKey(askedDoc);
+    }
+    if (this.reviewTab === 'inquiry') {
+      this.placeInquiry();
+      if (askedStep && (this.inquiryNav.some((step) => step.id === askedStep))) {
+        this.openInquiryStep(askedStep as InquiryStep);
+      }
+    }
   }
 
   protected get docsPassed(): boolean {
@@ -3742,9 +4258,9 @@ export class Por1Page {
   protected approveOpenSummary(): void {
     const prep = this.openPrep;
     if (!prep.sent || prep.approved) return;
-    this.keepPrepDoc('อนุมัติสรุปก่อนเปิดไต่สวน', this.thaiToday(), `อนุมัติสรุปคำขอเลขที่อ้างอิง ${this.refId} แล้ว จึงไปจัดวาระ ทตอ.`);
+    this.keepPrepDoc('อนุมัติสรุปก่อนเปิดไต่สวน', this.thaiToday(), `อนุมัติสรุปคำขอเลขที่อ้างอิง ${this.refId} แล้ว จึงไปจัดทำวาระพิจารณาคำขอเปิดไต่สวน`);
     this.savePrep({ ...prep, approved: true });
-    this.inquiryPart = 'agenda';
+    this.inquiryPart = 'draftAgenda';
   }
 
   private keepPrepDoc(kind: string, at: string, body: string): void {
@@ -3989,8 +4505,14 @@ export class Por1Page {
     this.notice = etr ? 'etr' : 'saved';
   }
 
+  /** จุดสถานะรายการเอกสาร — ผ่านแล้วใช้วงกลมเขียวทึบเดียวกับสารบัญแบบฟอร์ม (por1-dot-done) */
   protected noticeDot(): string {
-    if (this.docSent && this.docAction === 'complete') return 'assets/icons/por1-dot-done.svg';
+    const completePassed = this.noticeItems.some(
+      (item) => item.action === 'complete' && (item.pipe === 'done' || item.sent || item.pipe === 'attach' || item.pipe === 'numbered'),
+    );
+    if ((this.docAction === 'complete' && this.docSent) || completePassed) {
+      return 'assets/icons/por1-dot-done.svg';
+    }
     if (this.docSent || this.madeOf('แจ้งผลการตรวจ').length || this.docFiles.length) return 'assets/icons/por1-dot-wait.svg';
     return 'assets/icons/por1-dot.svg';
   }
@@ -4001,10 +4523,48 @@ export class Por1Page {
     return 'แจ้งแก้ไขเพิ่มเติม';
   }
 
+  /** สลับการดำเนินการแล้วจำลองข้อความ / วันที่ / ไฟล์ตัวอย่างให้ครบทุก option */
+  protected setDocAction(action: DocAction): void {
+    if (this.noticePipeLocked || this.docAction === action) return;
+    this.docAction = action;
+    this.applyDocActionSample(action);
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  private applyDocActionSample(action: DocAction): void {
+    const noticed = this.docNoticedOn || '20/05/2562';
+    if (action === 'amend') {
+      this.docDueOn = this.docDueOn || '20/06/2562';
+      this.docNote =
+        'ตรวจคำขอแล้วยังไม่ครบ จึงเสนอแจ้งแก้ไขเพิ่มเติม — ขอหลักฐานราคาช่วงปลายปี 2561–ต้นปี 2562 ปริมาณนำเข้าที่เชื่อมความเสียหาย และรายชื่อผู้ผลิตที่ร่วมยื่น ตามแก้ไขคำขอครั้งที่ 1';
+      this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
+      this.docFiles = [{ name: 'หนังสือแจ้งขอข้อมูลเพิ่มเติม.pdf', title: 'หนังสือแจ้งขอข้อมูลเพิ่มเติม', sentOn: noticed }];
+      this.noticeLetter = noticeLetterFields('amend', noticed, this.docDueOn, this.signedPerson);
+      this.applyGapBody();
+      return;
+    }
+    if (action === 'late') {
+      this.docDueOn = this.amendUntil || '15/09/2562';
+      this.docNote =
+        `ครบกำหนดแก้ไขเพิ่มเติม 4 เดือนเมื่อ ${this.amendUntil || '15/09/2562'} แล้วยังไม่ครบถ้วนถูกต้อง — เสนอแจ้งผู้ยื่นว่าคำขอไม่ครบภายในกำหนด และปิดรอบแก้ไขเพิ่มเติม`;
+      this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
+      this.docFiles = [{ name: 'หนังสือแจ้งไม่ครบภายใน4เดือน.pdf', title: 'หนังสือแจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน', sentOn: noticed }];
+      this.noticeLetter = noticeLetterFields('late', noticed, this.docDueOn, this.signedPerson);
+      this.applyGapBody();
+      return;
+    }
+    this.docNote =
+      'ตรวจคำขอและเอกสารประกอบครบถ้วนถูกต้องแล้ว — เสนอแจ้งผู้ยื่นว่าคำขอครบถ้วนถูกต้อง พร้อมจัดทำแบบคำขอฉบับเปิดเผย';
+    this.docGaps = [];
+    this.docFiles = [{ name: 'หนังสือแจ้งคำขอครบถ้วนถูกต้อง.pdf', title: 'หนังสือแจ้งคำขอครบถ้วนถูกต้อง', sentOn: noticed }];
+    this.noticeLetter = noticeLetterFields('complete', noticed, '-', this.signedPerson);
+    this.ensureOpenEditionFiles();
+    this.ensureClosedEditionFiles();
+  }
+
   /** จำนวนครั้งที่แจ้งผลการตรวจ (รอบที่ผ่านมา + รอบปัจจุบันถ้ามี) */
   protected get noticeTimes(): number {
-    const current = this.docSent || this.madeOf('แจ้งผลการตรวจ').length || this.docFiles.length ? 1 : 0;
-    return this.noticePasses.length + current;
+    return Math.max(this.noticeItems.length, this.noticePasses.length + (this.docSent || this.docFiles.length ? 1 : 0));
   }
 
   protected get noticeLead(): string {
@@ -4024,20 +4584,54 @@ export class Por1Page {
   }
 
   protected viewingNotice = '';
+  protected noticeViewRows: { label: string; value: string }[] = [];
+
+  /** ชื่อแสดงโดยไม่มีนามสกุลไฟล์ */
+  protected noticeDisplayName(name = this.viewingNotice): string {
+    const file = this.docFiles.find((item) => item.name === name);
+    const raw = (file?.title || name || '').trim();
+    return raw.replace(/\.[^.]+$/, '') || raw || 'หนังสือแจ้งผล';
+  }
+
+  private buildNoticeViewRows(fileName: string): { label: string; value: string }[] {
+    const rows: { label: string; value: string }[] = [
+      { label: 'การดำเนินการ', value: this.docActionLabel(this.docAction) },
+      { label: 'วันที่แจ้ง', value: this.docNoticedOn || '—' },
+    ];
+    if (this.docAction !== 'complete') {
+      rows.push({ label: 'วันที่ครบกำหนด', value: this.docDueOn || '—' });
+    }
+    rows.push({ label: 'ข้อความ', value: this.docNote.trim() || '—' });
+    return rows;
+  }
+
+  protected noticeReportRows(): { label: string; value: string }[] {
+    return this.noticeViewRows.filter((item) =>
+      item.label === 'การดำเนินการ' || item.label === 'วันที่แจ้ง' || item.label === 'วันที่ครบกำหนด' || item.label === 'ข้อความ');
+  }
 
   protected openNoticeFile(name: string): void {
+    this.noticeViewRows = this.buildNoticeViewRows(name);
     this.viewingNotice = name;
   }
 
   protected downloadNoticeFile(name: string): void {
     const file = this.docFiles.find((item) => item.name === name);
-    const title = file?.title || name;
-    const body = this.noticeLetter.map((item) => `<p><strong>${this.escapeHtml(item.label)}</strong><br>${this.escapeHtml(item.value).replaceAll('\n', '<br>')}</p>`).join('');
-    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(title)}</h1><p>เลขที่อ้างอิง ${filingRefId}</p>${body}</body></html>`;
+    const title = this.noticeDisplayName(name);
+    const rows = this.viewingNotice === name && this.noticeViewRows.length
+      ? this.noticeViewRows
+      : this.buildNoticeViewRows(name);
+    const fileLines = (this.docFiles.length ? this.docFiles : [{ name, title: file?.title || name, sentOn: file?.sentOn || this.docNoticedOn || '' }])
+      .map((item, index) => `<p><strong>ไฟล์ ${index + 1}</strong><br>ชื่อเอกสาร ${this.escapeHtml(this.noticeDisplayName(item.name))}<br>ชื่อไฟล์ ${this.escapeHtml(item.name)}<br>วันที่แนบ ${this.escapeHtml(item.sentOn || this.docNoticedOn || '—')}</p>`)
+      .join('');
+    const body = rows
+      .map((item) => `<p><strong>${this.escapeHtml(item.label)}</strong><br>${this.escapeHtml(item.value).replaceAll('\n', '<br>')}</p>`)
+      .join('') + `<h2>ไฟล์หนังสือแจ้งผล</h2>${fileLines}`;
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${this.escapeHtml(title)}</title><style>body{margin:32px 48px;color:#0E2346;font-family:Thonburi,Sarabun,sans-serif;font-size:16px;line-height:28px}h1{margin:0 0 8px;font-size:20px;font-weight:500}h2{margin:24px 0 8px;font-size:16px;font-weight:600}p{margin:0 0 12px}</style></head><body><h1>${this.escapeHtml(title)}</h1><h2>รายงานผลถึงหัวหน้ากลุ่ม</h2>${body}</body></html>`;
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = name.replace(/\.[^.]+$/, '') + '.html';
+    link.download = `${title}-${filingRefId}.html`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -4050,109 +4644,741 @@ export class Por1Page {
   }
 
   protected get canReviewDocs(): boolean {
+    if (this.noticePipe === 'cancelled') return false;
     if (this.docSent || this.noticePipe !== 'draft') return false;
     return this.canHandleCase;
   }
 
+  protected get noticeEvidenceReady(): boolean {
+    return this.noticeLetterVersions.length > 0 || this.docFiles.length > 0;
+  }
+
   protected get docCanSend(): boolean {
     const dueOk = this.docAction === 'complete' || thaiDateOk(this.docDueOn, 'any');
-    const letterOk = this.noticeLetter.every((item) => item.value.trim());
-    // หมายเหตุไม่บังคับ — บันทึกหรือไม่บันทึกก็ได้
-    return this.canReviewDocs && letterOk && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
+    // หมายเหตุไม่บังคับ — ต้องแนบไฟล์หนังสืออย่างน้อย 1 ไฟล์
+    return this.canReviewDocs && this.noticeEvidenceReady && thaiDateOk(this.docNoticedOn, 'any') && dueOk;
   }
+
+  protected readonly noticeLaneStages = NOTICE_LANE_STAGES;
 
   protected get noticePipeLocked(): boolean {
     return this.noticePipe !== 'draft' || this.docSent;
   }
 
   protected noticePipeLabel(pipe = this.noticePipe): string {
-    if (pipe === 'to-head') return 'รอหัวหน้ากองเห็นชอบ';
-    if (pipe === 'head-ok') return 'หัวหน้ากองเห็นชอบแล้ว';
-    if (pipe === 'eoffice') return 'รอผอ.ลงนามใน e-Office';
-    if (pipe === 'signed') return 'ลงนามแล้ว รอออกเลข';
-    if (pipe === 'sent') return 'ส่งถึงผู้ยื่นแล้ว';
-    return 'ร่าง / ตรวจสอบ';
+    if (pipe === 'done' && this.noticeSaraban) return `ส่งถึงผู้ยื่นแล้ว · ${this.noticeSaraban}`;
+    if (pipe === 'numbered' && this.noticeSaraban) return `ได้เลข ${this.noticeSaraban} — รอแนบไฟล์`;
+    return approvalLaneStageLabel(pipe);
+  }
+
+  protected noticePipeTone(pipe = this.noticePipe): 'info' | 'warning' | 'success' | 'danger' | 'neutral' {
+    return approvalLaneStageTone(pipe);
+  }
+
+  protected get noticeStatusVisible(): boolean {
+    return this.noticeItems.some((item) => item.pipe !== 'draft' || item.files.length > 0 || item.sent)
+      || this.docSent || this.noticePipe !== 'draft' || !!this.docFiles.length;
+  }
+
+  /** สถานะรวมในเมนูซ้าย — รายการที่ยังเดินท่ออยู่ก่อน */
+  protected get noticeSidebarPipe(): NoticePipe {
+    const open = this.noticeItems.find((item) =>
+      item.pipe === 'to-head' ||
+      item.pipe === 'to-director' ||
+      item.pipe === 'eoffice' ||
+      item.pipe === 'stamped' ||
+      item.pipe === 'numbered' ||
+      item.pipe === 'attach',
+    );
+    if (open) return open.pipe;
+    const latest = this.noticeItems.at(-1);
+    return latest?.pipe || this.noticePipe;
+  }
+
+  private get isNoticeHeadActor(): boolean {
+    return this.reviewRole === 'head' || this.isMyGroupHead();
+  }
+
+  private get isNoticeDirectorActor(): boolean {
+    return this.reviewRole === 'director' || this.reviewRole === 'staff';
+  }
+
+  protected get isNoticeOfficerActor(): boolean {
+    return this.reviewRole === 'officer' && this.canHandleCase;
+  }
+
+  protected markNoticeStampedRow(item: NoticeItem): void {
+    this.activateNoticeItem(item.id);
+    this.markNoticeStamped();
+  }
+
+  private get isNoticeEofficeStage(): boolean {
+    return (
+      this.noticePipe === 'eoffice' ||
+      this.noticePipe === 'stamped' ||
+      this.noticePipe === 'numbered' ||
+      this.noticePipe === 'attach'
+    );
+  }
+
+  protected get noticeLaneActor(): ApprovalLaneActor {
+    if (this.canHeadApproveNotice) return 'head';
+    if (this.canDirectorApproveNotice) return 'director';
+    if (this.isNoticeDirectorActor && this.isNoticeEofficeStage) return 'director';
+    if (this.isNoticeOfficerActor) return 'officer';
+    return 'viewer';
+  }
+
+  protected get canCreateNotice(): boolean {
+    return this.reviewRole === 'officer' && this.canHandleCase;
   }
 
   protected get canReportNoticeToHead(): boolean {
-    return this.docCanSend && this.noticePipe === 'draft';
+    return this.docCanSend && this.noticePipe === 'draft' && this.reviewRole === 'officer';
+  }
+
+  protected get noticeWaitingHead(): boolean {
+    return this.noticePipe === 'to-head' && !this.isNoticeHeadActor;
   }
 
   protected get canHeadApproveNotice(): boolean {
-    // ต้นแบบ: หัวหน้ากอง/เจ้าหน้าที่ที่รับเคสเดินต่อได้ (สลับบทบาทจริงภายหลัง)
-    return this.noticePipe === 'to-head' && (this.isMyGroupHead() || this.reviewRole === 'staff' || this.reviewRole === 'director' || this.canHandleCase);
+    return this.noticePipe === 'to-head' && this.isNoticeHeadActor;
   }
 
-  protected get canSendNoticeToEoffice(): boolean {
-    return this.noticePipe === 'head-ok' && this.canHandleCase;
+  protected get canDirectorApproveNotice(): boolean {
+    return this.noticePipe === 'to-director' && this.isNoticeDirectorActor;
   }
 
-  protected get canPullNoticeSign(): boolean {
-    return this.noticePipe === 'eoffice' && this.canHandleCase;
+  protected get canContinueNoticePipe(): boolean {
+    return this.isNoticeOfficerActor || (this.isNoticeDirectorActor && this.isNoticeEofficeStage);
+  }
+
+  protected get canSendNoticeEoffice(): boolean {
+    return this.noticePipe === 'eoffice' && this.canContinueNoticePipe;
+  }
+
+  protected get canMarkNoticeStamped(): boolean {
+    return this.noticePipe === 'stamped' && this.canContinueNoticePipe;
+  }
+
+  protected get canPullNoticeSaraban(): boolean {
+    return this.noticePipe === 'numbered' && this.canContinueNoticePipe;
+  }
+
+  protected get canAttachNumberedNotice(): boolean {
+    return this.noticePipe === 'attach' && this.canContinueNoticePipe;
+  }
+
+  protected get canFinishNoticeLane(): boolean {
+    return this.noticePipe === 'attach' && this.canContinueNoticePipe && !!this.noticeSaraban.trim();
+  }
+
+  protected get showNoticeEofficePanel(): boolean {
+    return this.isNoticeEofficeStage && this.canContinueNoticePipe;
+  }
+
+  protected get noticeEofficePayload(): ApprovalEofficePayload {
+    const subject =
+      this.noticeLetter.find((field) => field.label === 'เรื่อง')?.value?.trim() ||
+      this.docActionLabel(this.docAction);
+    const to =
+      this.noticeLetter.find((field) => field.label === 'เรียน')?.value?.trim() ||
+      'ผู้ยื่นคำขอ';
+    const ref =
+      this.noticeLetter.find((field) => field.label === 'อ้างถึง')?.value?.trim() ||
+      `คำขอเลขที่อ้างอิง ${this.refId}`;
+    const letterDate =
+      this.noticeLetter.find((field) => field.label === 'วันที่')?.value?.trim() ||
+      this.docNoticedOn ||
+      this.thaiToday();
+    const fileNames = [
+      ...this.noticeLetterVersions.map((row) => row.fileName || row.title),
+      ...this.docFiles.map((file) => file.name),
+    ].filter((name, index, all) => name && all.indexOf(name) === index);
+    return {
+      subject,
+      from: 'กองปกป้องและตอบโต้ทางการค้า กรมการค้าต่างประเทศ',
+      to,
+      ref,
+      letterDate,
+      speed: 'ปกติ',
+      secrecy: 'ปกติ',
+      fileCount: fileNames.length,
+      fileNames,
+      caseRef: this.refId,
+    };
+  }
+
+  protected get noticeEofficeLinkDetail(): string {
+    if (this.noticeEofficeLink === 'sent') return this.noticeOfficeRef || 'ส่งเข้า e-Office แล้ว — รอ sync เลข';
+    if (this.noticeEofficeLink === 'synced') return this.noticeOfficeRef || `sync แล้ว · ${this.noticeSaraban || '—'}`;
+    if (this.noticeEofficeLink === 'error') return this.noticeOfficeRef || 'เชื่อม e-Office ไม่ได้ — กรอกเลขและแนบไฟล์เองได้';
+    if (this.noticeEofficeLink === 'manual') return this.noticeOfficeRef || `ทำเองในระบบ · ${this.noticeSaraban || '—'}`;
+    return 'ยังไม่ส่ง — กดส่ง Auto หรือกรอกเลขเองเมื่อเชื่อมไม่ได้';
+  }
+
+  /** @deprecated ใช้ท่อ eoffice แทน */
+  protected get canConfirmNoticeFiles(): boolean {
+    return this.canSendNoticeEoffice;
   }
 
   protected get canIssueNoticeNumber(): boolean {
-    return this.noticePipe === 'signed' && this.canHandleCase;
+    return this.canFinishNoticeLane;
   }
 
-  /** เจ้าหน้าที่รายงานผลกลับหัวหน้ากอง (ยังไม่ส่งผู้ยื่น) */
+  protected canConfirmNoticeRow(item: NoticeItem): boolean {
+    return item.pipe === 'eoffice' && (this.isNoticeOfficerActor || this.isNoticeDirectorActor);
+  }
+
+  protected canIssueNoticeRow(item: NoticeItem): boolean {
+    return item.pipe === 'attach' && (this.isNoticeOfficerActor || this.isNoticeDirectorActor) && !!item.sarabanNo.trim();
+  }
+
+  protected canPullNoticeSarabanRow(item: NoticeItem): boolean {
+    return item.pipe === 'numbered' && (this.isNoticeOfficerActor || this.isNoticeDirectorActor);
+  }
+
+  protected canMarkNoticeStampedRow(item: NoticeItem): boolean {
+    return item.pipe === 'stamped' && (this.isNoticeOfficerActor || this.isNoticeDirectorActor);
+  }
+
+  protected canHeadApproveRow(item: NoticeItem): boolean {
+    return item.pipe === 'to-head' && this.isNoticeHeadActor;
+  }
+
+  protected canDirectorApproveRow(item: NoticeItem): boolean {
+    return item.pipe === 'to-director' && this.isNoticeDirectorActor;
+  }
+
+  protected canEditNoticeRow(item: NoticeItem): boolean {
+    return item.pipe === 'draft' && !item.sent && this.isNoticeOfficerActor;
+  }
+
+  protected canCancelNoticeRow(item: NoticeItem): boolean {
+    if (item.pipe === 'cancelled' || item.pipe === 'draft' || item.pipe === 'done') return false;
+    return this.isNoticeOfficerActor || this.isNoticeHeadActor || this.isNoticeDirectorActor;
+  }
+
+  protected get noticeLaneDocs(): ApprovalLaneDoc[] {
+    return this.noticeLetterVersions.map((row) => ({
+      version: row.version,
+      title: row.title,
+      at: row.at,
+      source: row.source,
+      html: row.html,
+      fileName: row.fileName,
+    }));
+  }
+
+  protected onNoticeLaneAction(id: ApprovalLaneActionId): void {
+    if (id === 'save-draft') this.saveNoticeForm();
+    else if (id === 'send-head') this.reportNoticeToHead();
+    else if (id === 'return-officer') this.returnNoticeToOfficer();
+    else if (id === 'approve-head') this.approveNoticeByHead();
+    else if (id === 'approve-director') this.approveNoticeByDirector();
+    else if (id === 'send-eoffice') this.sendNoticeToEoffice();
+    else if (id === 'mark-stamped') this.markNoticeStamped();
+    else if (id === 'pull-number') this.pullNoticeSarabanFromEoffice();
+    else if (id === 'attach-numbered') this.promptAttachNumberedNotice();
+    else if (id === 'finish') this.finishNoticeLane();
+  }
+
   protected reportNoticeToHead(): void {
     if (!this.canReportNoticeToHead) return;
-    this.placeNoticeFile();
+    if (this.noticeLetterWordOpen) {
+      this.captureNoticeLetterEditor();
+      this.syncNoticeLetterFiles();
+    } else {
+      this.syncNoticeLetterFiles();
+    }
     this.noticePipe = 'to-head';
+    this.noticeReportBy = this.signedPerson || this.officerName || '';
     this.noticePipeAt = this.clockToday() || this.thaiToday();
-    writeDocNotice(this.docPayload(false));
+    this.pushNoticeHistory('ส่งหัวหน้ากลุ่ม');
+    this.persistActiveNotice(false);
     this.notice = 'saved';
     this.noticeFormOpen = false;
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
   }
 
-  /** หัวหน้ากองเห็นชอบ — เตรียมส่งหนังสือเข้า e-Office */
   protected approveNoticeByHead(): void {
     if (!this.canHeadApproveNotice) return;
-    this.noticePipe = 'head-ok';
+    this.noticePipe = 'to-director';
     this.noticeHeadBy = this.signedPerson || this.officerName;
     this.noticePipeAt = this.thaiToday();
-    writeDocNotice(this.docPayload(false));
+    this.pushNoticeHistory('หัวหน้ากลุ่มเห็นชอบ → ส่งผู้อำนวยการ');
+    this.persistActiveNotice(false);
+    this.noticeFormOpen = false;
     this.notice = 'saved';
   }
 
-  /** หัวหน้ากองส่งกลับให้เจ้าหน้าที่แก้ */
-  protected returnNoticeToOfficer(): void {
-    if (!this.canHeadApproveNotice) return;
-    this.noticePipe = 'draft';
-    this.noticeHeadBy = '';
+  protected approveNoticeByDirector(): void {
+    if (!this.canDirectorApproveNotice) return;
+    this.noticePipe = 'eoffice';
+    this.noticeEofficeLink = 'idle';
     this.noticeOfficeRef = '';
     this.noticePipeAt = this.thaiToday();
-    writeDocNotice(this.docPayload(false));
+    this.pushNoticeHistory('ผู้อำนวยการเห็นชอบ → รอส่ง e-Office');
+    this.persistActiveNotice(false);
+    // คงฟอร์มเปิดไว้ — ผอ. ส่ง e-Office / กรอกเลขเองต่อได้ทันที
+    this.noticeFormOpen = true;
     this.notice = 'saved';
   }
 
-  /** ส่งหนังสือเข้า e-Office ให้ผู้อำนวยการพิจารณาลงนาม */
+  protected returnNoticeToOfficer(): void {
+    if (!this.canHeadApproveNotice && !this.canDirectorApproveNotice) return;
+    const from = this.noticePipe === 'to-director' ? 'ผู้อำนวยการ' : 'หัวหน้ากลุ่ม';
+    this.noticePipe = 'draft';
+    this.noticeReportBy = '';
+    this.noticeHeadBy = '';
+    this.noticeOfficeRef = '';
+    this.noticeEofficeLink = 'idle';
+    this.noticePipeAt = this.thaiToday();
+    this.pushNoticeHistory(`${from}ส่งกลับเจ้าหน้าที่`);
+    this.persistActiveNotice(false);
+    this.noticeFormOpen = false;
+    this.notice = 'saved';
+  }
+
+  /** บันทึกส่งออก e-Office — ยังไม่มีเลขในระบบ */
   protected sendNoticeToEoffice(): void {
-    if (!this.canSendNoticeToEoffice) return;
-    this.noticePipe = 'eoffice';
-    this.noticeOfficeRef = `EO-NOTICE-${Date.now().toString().slice(-6)}`;
+    if (!this.canSendNoticeEoffice) return;
+    this.noticePipe = 'stamped';
+    this.noticeEofficeLink = 'sent';
+    this.noticeOfficeRef = 'ส่ง e-Office แล้ว — รอประทับตรา/ลงนาม';
+    this.noticeSaraban = '';
     this.noticePipeAt = this.thaiToday();
-    writeDocNotice(this.docPayload(false));
+    this.pushNoticeHistory('ส่ง Auto เข้า e-Office แล้ว (ยังไม่มีเลข)');
+    this.persistActiveNotice(false);
     this.notice = 'saved';
   }
 
-  /** ดึงผลลงนามจาก e-Office (จำลอง) */
-  protected pullNoticeDirectorSign(): void {
-    if (!this.canPullNoticeSign) return;
-    this.noticePipe = 'signed';
+  /** จำลองกรณีเชื่อม e-Office ไม่ได้ — เปิดช่องกรอกเลข/แนบไฟล์ */
+  protected failNoticeEofficeLink(): void {
+    if (!this.canContinueNoticePipe || !this.isNoticeEofficeStage) return;
+    this.noticeEofficeLink = 'error';
+    this.noticeOfficeRef = 'เชื่อม e-Office ไม่ได้ — กรอกเลขและแนบไฟล์เองได้';
     this.noticePipeAt = this.thaiToday();
-    writeDocNotice(this.docPayload(false));
+    this.pushNoticeHistory('เชื่อม e-Office ไม่ได้ — ใช้โหมดกรอกเอง');
+    this.persistActiveNotice(false);
     this.notice = 'saved';
   }
 
-  /** ออกเลขหนังสือแล้วส่งถึงผู้ยื่น */
-  protected issueNoticeAndSend(): void {
-    if (!this.canIssueNoticeNumber) return;
+  /** ดึงเลข / sync จาก e-Office (หรือจำลอง sync สำเร็จ) */
+  protected syncNoticeFromEoffice(): void {
+    if (!this.canContinueNoticePipe) return;
+    if (this.noticePipe === 'eoffice' || this.noticePipe === 'stamped') {
+      this.noticePipe = 'numbered';
+    }
+    const no = this.noticeSaraban.trim() || this.filingSaraban || 'สบ.1605/2562';
+    this.noticeSaraban = no;
+    this.stampNoticeLetterSaraban(no);
+    this.noticeEofficeLink = 'synced';
+    this.noticeOfficeRef = `sync จาก e-Office · ${no}`;
+    this.noticePipe = 'attach';
+    this.noticePipeAt = this.thaiToday();
+    this.pushNoticeHistory(`sync เลขสารบรรณ ${no} จาก e-Office — รอแนบไฟล์กลับระบบ`);
+    this.persistActiveNotice(false);
+    this.notice = 'saved';
+  }
+
+  /** กรอกเลข + แนบไฟล์เองเมื่อเชื่อมไม่ได้ หรือทำแทน sync */
+  protected applyManualNoticeEoffice(payload: { letterNo: string; files: FileList | null }): void {
+    if (!this.canContinueNoticePipe) return;
+    const no = payload.letterNo.trim();
+    if (!no) return;
+    this.noticeSaraban = no;
+    this.stampNoticeLetterSaraban(no);
+    this.noticeEofficeLink = 'manual';
+    this.noticeOfficeRef = `ทำเองในระบบ · ${no}`;
+    if (payload.files?.length) {
+      const sentOn = this.docNoticedOn || this.thaiToday();
+      const files = [...payload.files].map((file) => ({
+        name: file.name,
+        title: file.name.replace(/\.[^.]+$/, '') || 'หนังสือแจ้งผล',
+        sentOn,
+      }));
+      this.docFiles = [...this.docFiles, ...files];
+      files.forEach((file, index) => {
+        this.noticeLetterVersions = [
+          ...this.noticeLetterVersions,
+          {
+            version: this.noticeLetterLatestVersion + index + 1,
+            title: `${file.title} · ออกเลขแล้ว`,
+            at: sentOn,
+            html: '',
+            source: 'upload',
+            fileName: file.name,
+          },
+        ];
+      });
+    }
+    this.noticePipe = 'attach';
+    this.noticePipeAt = this.thaiToday();
+    this.pushNoticeHistory(`กรอกเลข ${no} และแนบไฟล์เอง — รอจัดเก็บ/ส่งถึงผู้ยื่น`);
+    this.persistActiveNotice(false);
+    this.notice = 'saved';
+  }
+
+  protected markNoticeStamped(): void {
+    if (!this.canMarkNoticeStamped) return;
+    this.noticePipe = 'numbered';
+    if (this.noticeEofficeLink === 'idle') this.noticeEofficeLink = 'sent';
+    this.noticeOfficeRef = 'ประทับตรา/ลงนามแล้ว — รอออกเลข';
+    this.noticePipeAt = this.thaiToday();
+    this.pushNoticeHistory('ประทับตรา / ลงนามแล้ว — รอออกเลขสารบรรณ');
+    this.persistActiveNotice(false);
+    this.notice = 'saved';
+  }
+
+  protected attachSignedNoticeFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!this.canAttachNumberedNotice && !this.canSendNoticeEoffice) return;
+    const list = input.files;
+    if (list?.length) {
+      const sentOn = this.docNoticedOn || this.thaiToday();
+      const files = [...list].map((file) => ({
+        name: file.name,
+        title: file.name.replace(/\.[^.]+$/, '') || 'หนังสือแจ้งผล',
+        sentOn,
+      }));
+      this.docFiles = [...this.docFiles, ...files];
+      if (this.canAttachNumberedNotice) {
+        files.forEach((file, index) => {
+          this.noticeLetterVersions = [
+            ...this.noticeLetterVersions,
+            {
+              version: this.noticeLetterLatestVersion + index + 1,
+              title: `${file.title} · ออกเลขแล้ว`,
+              at: sentOn,
+              html: '',
+              source: 'upload',
+              fileName: file.name,
+            },
+          ];
+        });
+      }
+    }
+    input.value = '';
+    if (this.canAttachNumberedNotice && this.docFiles.length) {
+      this.pushNoticeHistory('แนบไฟล์ที่ออกเลขแล้ว');
+      this.persistActiveNotice(false);
+    }
+  }
+
+  protected continueNoticeWithFiles(): void {
+    if (this.canSendNoticeEoffice) this.sendNoticeToEoffice();
+  }
+
+  protected promptAttachNumberedNotice(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.doc,.docx';
+    input.multiple = true;
+    input.onchange = () => this.attachSignedNoticeFiles({ target: input } as unknown as Event);
+    input.click();
+  }
+
+  protected pullNoticeSarabanFromEoffice(): void {
+    if (!this.canPullNoticeSaraban && this.noticePipe !== 'numbered' && this.noticePipe !== 'stamped' && this.noticePipe !== 'eoffice') {
+      return;
+    }
+    if (!this.canContinueNoticePipe) return;
+    const no = this.noticeSaraban.trim() || this.filingSaraban || 'สบ.1605/2562';
+    this.noticeSaraban = no;
+    this.noticeEofficeLink = this.noticeEofficeLink === 'manual' ? 'manual' : 'synced';
+    this.noticeOfficeRef = `e-Office · ${no}`;
+    this.stampNoticeLetterSaraban(no);
+    this.noticePipe = 'attach';
+    this.noticePipeAt = this.thaiToday();
+    this.pushNoticeHistory(`ออกเลขสารบรรณ ${no} — รอแนบไฟล์กลับระบบ`);
+    this.persistActiveNotice(false);
+    this.notice = 'saved';
+  }
+
+  protected pullNoticeSarabanRow(item: NoticeItem): void {
+    this.activateNoticeItem(item.id);
+    this.pullNoticeSarabanFromEoffice();
+  }
+
+  private stampNoticeLetterSaraban(no: string): void {
+    this.noticeLetter = this.noticeLetter.map((field) =>
+      field.label === 'ที่' ? { ...field, value: no } : field,
+    );
+    if (!this.noticeLetterHtml) return;
+    const stamped = this.noticeLetterHtml.replace(
+      /(<strong>\s*ที่\s*<\/strong>)([^<]*)/i,
+      `$1 ${no}`,
+    );
+    this.noticeLetterHtml = stamped;
+    const version = this.noticeLetterActiveVersion || this.noticeLetterLatestVersion;
+    if (version) {
+      this.noticeLetterVersions = this.noticeLetterVersions.map((row) =>
+        row.version === version ? { ...row, html: stamped } : row,
+      );
+    }
+  }
+
+  /** จัดเก็บ / ส่งถึงผู้ยื่น หลังแนบไฟล์ออกเลขแล้ว */
+  protected finishNoticeLane(): void {
+    if (!this.canFinishNoticeLane) return;
+    this.pushNoticeHistory(`จัดเก็บและส่งถึงผู้ยื่น · เลขสารบรรณ ${this.noticeSaraban}`);
     this.saveDocs(true);
-    this.noticePipe = 'sent';
+    this.noticePipe = 'done';
     this.noticePipeAt = this.thaiToday();
-    writeDocNotice(this.docPayload(true));
+    this.persistActiveNotice(true);
+  }
+
+  protected issueNoticeAndSend(): void {
+    if (this.canPullNoticeSaraban) this.pullNoticeSarabanFromEoffice();
+    this.finishNoticeLane();
+  }
+
+  protected openNoticeHistory(id = ''): void {
+    if (id && id !== this.activeNoticeId) this.activateNoticeItem(id);
+    this.noticeHistoryOpen = true;
+  }
+
+  protected closeNoticeHistory(): void {
+    this.noticeHistoryOpen = false;
+  }
+
+  /** รายการ timeline จากใหม่ → เก่า สำหรับแสดง */
+  protected get noticeHistoryItems(): NoticeHistoryEntry[] {
+    return [...this.noticeHistory].reverse();
+  }
+
+  protected continueNoticeRow(item: NoticeItem): void {
+    // เปิดฟอร์มให้ใช้แผง e-Office (auto / sync / กรอกเลข+แนบเอง) ไม่ส่งทันทีจากแถว
+    this.openNoticeForm(item.id);
+  }
+
+  protected issueNoticeRow(item: NoticeItem): void {
+    this.activateNoticeItem(item.id);
+    this.issueNoticeAndSend();
+  }
+
+  /** ยกเลิกสถานะรายการ — หลังส่งแล้วอัปเดตสถานะให้ผู้ที่มีสิทธิ์เห็นด้วย */
+  protected cancelNoticeStatus(item: NoticeItem): void {
+    if (!this.canCancelNoticeRow(item)) return;
+    this.activateNoticeItem(item.id);
+    const wasSent = this.noticePipe === 'done' || this.docSent;
+    const action = this.docAction;
+    this.noticePipe = 'cancelled';
+    this.docSent = false;
+    this.noticePipeAt = this.thaiToday();
+    this.pushNoticeHistory('ยกเลิกสถานะการแจ้งผล');
+    this.persistActiveNotice(false);
+    if (wasSent) {
+      this.publishApplicantNotice(
+        `ยกเลิกหนังสือแจ้งผลการตรวจ (${this.docActionLabel(action)}) เลขที่อ้างอิง ${this.refId}`
+          + (this.noticeSaraban ? ` · เลขรับสารบรรณ ${this.noticeSaraban}` : '')
+          + '\nสถานะรายการนี้เป็น «ยกเลิกแล้ว»',
+        'แจ้งผลการตรวจ',
+      );
+      if (action === 'amend' && this.caseStatus === 'revision' && !this.noticeItems.some((row) => row.id !== item.id && row.sent && row.pipe === 'done' && row.action === 'amend')) {
+        writeCaseStatus('official');
+        this.caseStatus = 'official';
+      }
+    }
+    this.noticeFormOpen = false;
+    this.notice = 'saved';
+  }
+
+  private noticeActorLabel(): string {
+    return this.accounts.displayName || this.signedPerson || this.officerName || 'เจ้าหน้าที่';
+  }
+
+  private noticeStampNow(): string {
+    const now = new Date();
+    const day = this.clockToday() || this.thaiToday();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    return `${day} · ${hh}:${mm} น.`;
+  }
+
+  private pushNoticeHistory(action: string): void {
+    const text = action.trim();
+    if (!text) return;
+    this.noticeHistory = [...this.noticeHistory, {
+      at: this.noticeStampNow(),
+      by: this.noticeActorLabel(),
+      action: text,
+    }];
+  }
+
+  private noticeItemTitle(): string {
+    return this.docFiles[0]?.title
+      || this.noticeLetter.find((field) => field.label === 'เรื่อง')?.value
+      || this.noticeFileTitle();
+  }
+
+  private snapshotActiveNotice(): NoticeItem {
+    const id = this.activeNoticeId || `notice-${Date.now()}`;
+    if (!this.activeNoticeId) this.activeNoticeId = id;
+    return {
+      id,
+      title: this.noticeItemTitle(),
+      action: this.docAction,
+      noticedOn: this.docNoticedOn,
+      dueOn: this.docDueOn,
+      note: this.docNote,
+      files: this.docFiles.map((file) => ({ ...file })),
+      letter: this.noticeLetter.map((field) => ({ ...field })),
+      letterVersions: this.noticeLetterVersions.map((row) => ({ ...row })),
+      gaps: this.docGaps.map((gap) => ({ ...gap })),
+      sarabanNo: this.noticeSaraban,
+      pipe: this.noticePipe,
+      pipeAt: this.noticePipeAt,
+      reportBy: this.noticeReportBy,
+      headBy: this.noticeHeadBy,
+      officeRef: this.noticeOfficeRef,
+      eofficeLink: this.noticeEofficeLink,
+      history: this.noticeHistory.map((item) => ({ ...item })),
+      sent: this.docSent || this.noticePipe === 'done',
+      sentBy: this.docSentBy,
+    };
+  }
+
+  private flushActiveIntoItems(): void {
+    if (!this.activeNoticeId && !this.docFiles.length && this.noticePipe === 'draft' && !this.noticeHistory.length) return;
+    const snap = this.snapshotActiveNotice();
+    const index = this.noticeItems.findIndex((item) => item.id === snap.id);
+    this.noticeItems = index >= 0
+      ? this.noticeItems.map((item, i) => (i === index ? snap : item))
+      : [...this.noticeItems, snap];
+  }
+
+  private persistActiveNotice(sent: boolean): void {
+    if (sent) {
+      this.docSent = true;
+      this.noticePipe = 'done';
+    }
+    this.flushActiveIntoItems();
+    writeDocNotice(this.docPayload(sent || this.docSent));
+  }
+
+  private applyNoticeItem(item: NoticeItem): void {
+    this.activeNoticeId = item.id;
+    this.docAction = item.action;
+    this.docNoticedOn = item.noticedOn || this.docNoticedOn;
+    this.docDueOn = item.dueOn || this.docDueOn;
+    this.docNote = item.note;
+    this.docFiles = item.files.map((file) => ({ ...file }));
+    if (item.letter.length) this.noticeLetter = item.letter.map((field) => ({ ...field }));
+    this.noticeLetterVersions = (item.letterVersions || []).map((row) => ({ ...row }));
+    this.noticeLetterActiveVersion = this.noticeLetterLatestVersion;
+    const current = this.noticeLetterVersions.find((row) => row.version === this.noticeLetterActiveVersion);
+    this.noticeLetterHtml = current?.html || '';
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
+    this.docGaps = item.gaps.map((gap) => ({ ...gap }));
+    this.noticeSaraban = item.sarabanNo;
+    this.noticePipe = item.pipe;
+    this.noticePipeAt = item.pipeAt;
+    this.noticeReportBy = item.reportBy;
+    this.noticeHeadBy = item.headBy;
+    this.noticeOfficeRef = item.officeRef;
+    this.noticeEofficeLink = item.eofficeLink || this.deriveNoticeEofficeLink(item);
+    this.noticeHistory = item.history.map((row) => ({ ...row }));
+    this.docSent = item.sent || item.pipe === 'done';
+    this.docSentBy = item.sentBy;
+  }
+
+  private deriveNoticeEofficeLink(item: NoticeItem): ApprovalEofficeLinkState {
+    if (item.eofficeLink) return item.eofficeLink;
+    const ref = item.officeRef || '';
+    if (ref.includes('ทำเอง') || ref.includes('กรอก')) return 'manual';
+    if (ref.includes('ไม่ได้') || ref.includes('ไม่สำเร็จ')) return 'error';
+    if (ref.includes('sync') || (item.sarabanNo && (item.pipe === 'attach' || item.pipe === 'done' || item.pipe === 'numbered'))) {
+      return 'synced';
+    }
+    if (ref.includes('ส่ง e-Office') || item.pipe === 'stamped' || item.pipe === 'numbered' || item.pipe === 'attach') {
+      return 'sent';
+    }
+    return 'idle';
+  }
+
+  protected activateNoticeItem(id: string): void {
+    if (id === this.activeNoticeId) return;
+    this.flushActiveIntoItems();
+    const found = this.noticeItems.find((item) => item.id === id);
+    if (found) this.applyNoticeItem(found);
+  }
+
+  private startNewNoticeDraft(): void {
+    this.flushActiveIntoItems();
+    const id = `notice-${Date.now()}`;
+    this.activeNoticeId = id;
+    this.docAction = 'amend';
+    this.docNoticedOn = this.clockToday() || this.thaiToday();
+    this.docDueOn = this.thaiShift(14);
+    this.docNote = '';
+    this.docFiles = [];
+    this.noticeLetterVersions = [];
+    this.noticeLetterActiveVersion = 0;
+    this.noticeLetterHtml = '';
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
+    this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.noticeSaraban = '';
+    this.noticePipe = 'draft';
+    this.noticePipeAt = '';
+    this.noticeReportBy = '';
+    this.noticeHeadBy = '';
+    this.noticeOfficeRef = '';
+    this.noticeEofficeLink = 'idle';
+    this.noticeHistory = [];
+    this.docSent = false;
+    this.docSentBy = '';
+    this.pushNoticeHistory('สร้างรายการแจ้งผลการตรวจ');
+    this.flushActiveIntoItems();
+    writeDocNotice(this.docPayload(false));
+  }
+
+  /** เติม timeline จากสถานะเก่าที่ยังไม่มีประวัติ */
+  private seedNoticeHistory(saved: DocNotice): NoticeHistoryEntry[] {
+    if (saved.history.length) return saved.history.map((item) => ({ ...item }));
+    const seeded: NoticeHistoryEntry[] = [];
+    const stamp = (day: string) => (day ? `${day} · —` : '—');
+    if (saved.files.length || saved.pipe !== 'draft' || saved.sent) {
+      seeded.push({
+        at: stamp(saved.noticedOn || saved.pipeAt),
+        by: saved.reportBy || saved.sentBy || 'เจ้าหน้าที่',
+        action: 'บันทึกร่างแจ้งผลการตรวจ',
+      });
+    }
+    if (saved.pipe === 'to-head' || saved.pipe === 'to-director' || saved.pipe === 'eoffice' || saved.pipe === 'stamped' || saved.pipe === 'numbered' || saved.pipe === 'attach' || saved.pipe === 'done' || saved.sent) {
+      seeded.push({
+        at: stamp(saved.pipeAt || saved.noticedOn),
+        by: saved.reportBy || 'เจ้าหน้าที่',
+        action: 'ส่งหัวหน้ากลุ่ม',
+      });
+    }
+    if (saved.pipe === 'to-director' || saved.pipe === 'eoffice' || saved.pipe === 'stamped' || saved.pipe === 'numbered' || saved.pipe === 'attach' || saved.pipe === 'done' || saved.sent) {
+      seeded.push({
+        at: stamp(saved.pipeAt),
+        by: saved.headBy || 'หัวหน้ากลุ่ม',
+        action: 'หัวหน้ากลุ่มเห็นชอบ',
+      });
+    }
+    if (saved.pipe === 'eoffice' || saved.pipe === 'stamped' || saved.pipe === 'numbered' || saved.pipe === 'attach' || saved.pipe === 'done' || saved.sent) {
+      seeded.push({
+        at: stamp(saved.pipeAt),
+        by: saved.reportBy || saved.sentBy || 'เจ้าหน้าที่',
+        action: 'ผู้อำนวยการเห็นชอบ / ส่ง e-Office',
+      });
+    }
+    if (saved.pipe === 'done' || saved.sent) {
+      seeded.push({
+        at: stamp(saved.pipeAt || saved.noticedOn),
+        by: saved.sentBy || saved.reportBy || 'เจ้าหน้าที่',
+        action: 'จัดเก็บและส่งถึงผู้ยื่น',
+      });
+    }
+    return seeded;
   }
 
   protected suggestGaps(): void {
@@ -4196,36 +5422,127 @@ export class Por1Page {
   }
 
   protected addGap(): void {
-    if (this.docSent) return;
+    if (this.docSent || this.noticePipeLocked) return;
     this.docGaps = [...this.docGaps, { place: '', title: '', detail: '' }];
+    if (!this.docSent) writeDocNotice(this.docPayload(false));
   }
 
   protected setGap(index: number, key: keyof DocGap, value: string): void {
+    if (this.noticePipeLocked) return;
     this.docGaps = this.docGaps.map((gap, item) => item === index ? { ...gap, [key]: value } : gap);
+    if (this.docAction !== 'complete') this.applyGapBody();
     if (!this.docSent) writeDocNotice(this.docPayload(false));
   }
 
   protected removeGap(index: number): void {
+    if (this.docSent || this.noticePipeLocked) return;
     this.docGaps = this.docGaps.filter((_, item) => item !== index);
+    if (this.docAction !== 'complete') this.applyGapBody();
     if (!this.docSent) writeDocNotice(this.docPayload(false));
+  }
+
+  /**
+   * ครั้งแก้ไขที่แจ้งผลต้องยึด — เสมอใช้ครั้งล่าสุดที่ผู้ยื่นยื่นเข้ามา
+   * (รอบยื่น 1 = แบบคำขอ, รอบ 2+ = แก้ไขครั้งที่ round-1)
+   */
+  protected noticeSourceRound(): number {
+    return this.latestAmendPassNo();
+  }
+
+  /** ครั้งที่แก้ไขล่าสุดจากรอบยื่น (เช่น รอบยื่น 4 = แก้ไขครั้งที่ 3) */
+  protected latestAmendPassNo(): number {
+    const latestFiling = Math.max(
+      1,
+      this.bundleRoundNo,
+      ...this.rounds.map((round) => round.round),
+      ...this.bundleRoundOptions.map((row) => row.round),
+    );
+    return Math.max(1, latestFiling <= 1 ? 1 : latestFiling - 1);
+  }
+
+  /** ลำดับครั้งแจ้งผลครั้งนี้ (ไม่ใช่ครั้งแก้ไข) */
+  protected noticeIssueNo(): number {
+    return Math.max(1, this.noticePasses.length + 1);
+  }
+
+  private amendHtmlForRound(round: number): string {
+    try {
+      const raw = sessionStorage.getItem(`${this.bundleAmendKey}-${round}`) || '';
+      if (raw && !this.amendHtmlIsEmpty(raw)) {
+        if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
+        return raw
+          .split('\n')
+          .map((line) => `<p>${this.escapeHtml(line) || '<br>'}</p>`)
+          .join('');
+      }
+    } catch {
+      /* ignore */
+    }
+    if (round === this.bundleRoundNo && this.bundleAmendText && !this.amendHtmlIsEmpty(this.bundleAmendText)) {
+      return this.bundleAmendText;
+    }
+    if (round === 1) return this.amendSampleHtml();
+    return '';
+  }
+
+  /** สรุปประเด็นจากเนื้อหาแก้ไขคำขอของรอบนั้น (เน้นรายการที่มีป้ายเพิ่ม/แก้ไข หรือ AI แนะนำ) */
+  private gapsFromAmendHtml(html: string): DocGap[] {
+    if (!html || this.amendHtmlIsEmpty(html)) return [];
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const gaps: DocGap[] = [];
+    const seen = new Set<string>();
+    for (const node of Array.from(doc.body.querySelectorAll('p, li'))) {
+      const el = node as HTMLElement;
+      const raw = (el.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!raw) continue;
+      if (/^(รายละเอียด|อ้างอิง|กองปกป้อง)/.test(raw)) continue;
+      if (/^\d+\.\s+ข้อมูล/.test(raw) && raw.length < 80) continue;
+      const marked =
+        el.hasAttribute('data-amend-by') ||
+        el.hasAttribute('data-amend-edit-by') ||
+        el.getAttribute('data-ai-suggest') === '1';
+      const actionable = /(ให้|ขอให้|แก้ไข|ตรวจสอบ|ชี้แจง|เพิ่ม|แนบ|ปรับปรุง)/.test(raw);
+      const numbered = /^(?:\d+(?:\.\d+)*)\b/.test(raw) || !!el.querySelector('strong');
+      if (!marked && !(actionable && numbered)) continue;
+
+      const strong = (el.querySelector('strong')?.textContent || '').replace(/\s+/g, ' ').trim();
+      let body = raw;
+      if (strong && body.startsWith(strong)) body = body.slice(strong.length).trim();
+      body = body.replace(/^[:：]\s*/, '');
+      if (!body) continue;
+
+      const place = strong || (raw.match(/^(\d+(?:\.\d+)*(?:\s*ข้อ\s*[\d.]+)?)/)?.[1] || '').trim();
+      const title = body.length > 140 ? `${body.slice(0, 137).trim()}…` : body;
+      const detailBits: string[] = [];
+      if (el.getAttribute('data-ai-suggest') === '1') {
+        const hint = (el.getAttribute('title') || '').trim();
+        if (hint && !hint.startsWith('เพิ่มโดย') && !hint.startsWith('แก้ไขโดย')) detailBits.push(hint);
+      }
+      const by = el.dataset['amendBy'] || '';
+      const at = el.dataset['amendAt'] || '';
+      const editBy = el.dataset['amendEditBy'] || '';
+      const editAt = el.dataset['amendEditAt'] || '';
+      if (by) detailBits.push(`เพิ่มโดย ${by}${at ? ` · ${at}` : ''}`);
+      if (editBy) detailBits.push(`แก้ไขโดย ${editBy}${editAt ? ` · ${editAt}` : ''}`);
+      if (!detailBits.length && body.length > 140) detailBits.push(body);
+
+      const key = `${place}|${title}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      gaps.push({ place, title, detail: detailBits.join(' · ') });
+    }
+    const preferred = gaps.filter((gap) => /AI|เพิ่มโดย|แก้ไขโดย/.test(gap.detail) || gap.detail.includes('AI'));
+    // รายการที่มีป้ายในแก้ไขคำขอมาก่อน แล้วเติมรายการอื่นให้พอสำหรับหนังสือ
+    const ranked = [
+      ...gaps.filter((gap) => preferred.includes(gap)),
+      ...gaps.filter((gap) => !preferred.includes(gap)),
+    ];
+    return ranked.slice(0, 12);
   }
 
   protected assistNotice(): void {
     if (this.docSent || this.noticePipeLocked) return;
-    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
-    if (this.docAction === 'amend') {
-      this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
-      this.applyGapBody();
-      this.docNote = this.docGaps.map((gap) => gap.title).join(' ');
-    } else if (this.docAction === 'late') {
-      this.docGaps = defaultNoticeGaps.map((gap) => ({ ...gap }));
-      this.applyGapBody();
-      this.docNote = `ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil || '15/09/2562'} แล้วยังไม่ครบถ้วนถูกต้อง`;
-    } else {
-      this.docGaps = [];
-      this.docNote = 'ตรวจแล้วคำขอและเอกสารประกอบครบถ้วนถูกต้อง';
-    }
-    writeDocNotice(this.docPayload(false));
+    this.prepareNoticeLetterAiSource();
     this.notice = 'check';
   }
 
@@ -4265,19 +5582,25 @@ export class Por1Page {
       'เลขที่หนังสือตอบกลับ': 4,
       'วิธีจัดทำ': 4,
       'วัตถุประสงค์': 3,
-      'รายชื่อผู้ผลิต': 3,
-      'กำลังการผลิตและปริมาณการผลิต': 3,
-      'ปริมาณความต้องการใช้ภายในประเทศ': 3,
-      'จุดที่ข้อมูลยังไม่ครบ': 3,
-      'สรุปที่นำไปใช้': 3,
+      'รายชื่อผู้ผลิต': 4,
+      'รายชื่อผู้ผลิตหลัก': 6,
+      'กำลังการผลิตและปริมาณการผลิต': 6,
+      'ปริมาณความต้องการใช้ภายในประเทศ': 5,
+      'จุดที่ข้อมูลยังไม่ครบ': 5,
+      'สรุปที่นำไปใช้': 5,
     };
     const written = field.value ? field.value.split('\n').length : 0;
     return Math.min(10, Math.max(room[field.label] ?? 3, written));
   }
 
   protected agencyLead(item: MadeDoc): string {
-    const topic = item.fields.find((field) => field.label === 'เรื่อง' || field.label === 'ชื่อแบบ' || field.label === 'วัตถุประสงค์');
+    const topic = item.fields.find((field) => field.label === 'เรื่อง' || field.label === 'ชื่อแบบ' || field.label === 'วัตถุประสงค์' || field.label === 'ชื่อรายงาน');
     return topic?.value.split('\n')[0] || item.kind;
+  }
+
+  /** อ่านค่าฟิลด์จากเอกสารที่สร้างในระบบ */
+  protected madeField(item: MadeDoc | null | undefined, label: string): string {
+    return item?.fields.find((field) => field.label === label)?.value.trim() || '';
   }
 
   protected openAgencyForm(id = ''): void {
@@ -4321,39 +5644,77 @@ export class Por1Page {
     this.filePop = '';
   }
 
+  protected noticeFormFull = false;
+  /** หนังสือแจ้งผล — แนวเดียวกับร่างวาระ */
+  protected noticeLetterVersions: NoticeLetterVersion[] = [];
+  protected noticeLetterActiveVersion = 0;
+  protected noticeLetterHtml = '';
+  protected noticeLetterEmpty = true;
+  protected noticeLetterWordOpen = false;
+  protected noticeLetterTab: 'files' | 'editor' = 'files';
+  protected noticeLetterAiBusy = false;
+  protected noticeLetterZoom = 100;
+  protected noticeLetterFitScale = 1.25;
+  protected noticeLetterPageFrames: { n: number; top: number; height: number }[] = [{ n: 1, top: 0, height: 1123 }];
+  private noticeLetterLayoutRaf = 0;
+  private readonly noticeLetterZoomBase = 1.25;
+  private readonly noticeLetterZoomSteps = [50, 75, 100, 125, 150, 200];
+  @ViewChild('noticeLetterEditor') private noticeLetterEditorRef?: ElementRef<HTMLElement>;
+  @ViewChild('noticeLetterStage') private noticeLetterStageRef?: ElementRef<HTMLElement>;
+
   protected openNoticeForm(id = ''): void {
-    const fresh = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
     if (id) {
-      const found = this.madeDocs.find((item) => item.id === id);
-      if (!found) return;
-      this.editingId = id;
-      this.noticeLetter = fresh.map((field) => ({ ...field, value: found.fields.find((item) => item.label === field.label)?.value ?? '' }));
+      const row = this.noticeItems.find((item) => item.id === id);
+      if (row) {
+        this.activateNoticeItem(id);
+        this.editingId = id;
+      } else {
+        const found = this.madeDocs.find((item) => item.id === id);
+        if (!found) return;
+        this.editingId = id;
+        const fresh = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+        this.noticeLetter = fresh.map((field) => ({ ...field, value: found.fields.find((item) => item.label === field.label)?.value ?? '' }));
+      }
     } else {
-      this.editingId = '';
-      this.noticeLetter = fresh.map((field) => ({ ...field }));
+      this.startNewNoticeDraft();
+      this.editingId = this.activeNoticeId;
     }
-    this.foldGapsIntoNotice();
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
+    this.noticeFormFull = false;
     this.noticeFormOpen = true;
   }
 
+  protected toggleNoticeFormFull(): void {
+    this.noticeFormFull = !this.noticeFormFull;
+  }
+
   protected closeNoticeForm(): void {
+    if (this.noticeLetterWordOpen) {
+      this.captureNoticeLetterEditor();
+      this.syncNoticeLetterFiles();
+    }
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
     this.noticeFormOpen = false;
+    this.noticeFormFull = false;
     this.editingId = '';
   }
 
   protected saveNoticeForm(): void {
-    if (!this.canReviewDocs) return;
-    const topic = this.noticeLetter.find((field) => field.label === 'เรื่อง')?.value.trim() || this.docActionLabel(this.docAction);
-    const fields = this.noticeLetter.map((item) => item.label === 'เรื่อง' && !item.value.trim() ? { ...item, value: topic } : { ...item });
-    this.noticeLetter = fields.map((item) => ({ ...item }));
-    if (this.editingId) {
-      this.madeDocs = this.madeDocs.map((item) => item.id === this.editingId ? { ...item, fields, at: this.docNoticedOn || '20/05/2562' } : item);
+    if (!this.canReviewDocs || !this.noticeEvidenceReady) return;
+    if (this.noticeLetterWordOpen) {
+      this.captureNoticeLetterEditor();
+      this.syncNoticeLetterFiles();
     } else {
-      this.madeDocs = [...this.madeDocs, { id: `notice-${Date.now()}`, kind: 'แจ้งผลการตรวจ', at: this.docNoticedOn || '20/05/2562', fields }];
-      this.editingId = '';
+      this.syncNoticeLetterFiles();
     }
-    writeMadeDocs(this.madeDocs);
-    if (!this.docSent) writeDocNotice(this.docPayload(false));
+    if (!this.docSent) {
+      this.pushNoticeHistory(this.editingId ? 'แก้ไขร่างแจ้งผลการตรวจ' : 'บันทึกร่างแจ้งผลการตรวจ');
+      this.persistActiveNotice(false);
+    }
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
     this.noticeFormOpen = false;
   }
 
@@ -4387,16 +5748,58 @@ export class Por1Page {
     if (!list?.length || this.docSent) return;
     const files = [...list].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: this.docNoticedOn || '20/05/2562' }));
     this.docFiles = [...this.docFiles, ...files];
+    this.pushNoticeHistory(files.length === 1 ? `แนบไฟล์ ${files[0].title || files[0].name}` : `แนบไฟล์ ${files.length} ฉบับ`);
     writeDocNotice(this.docPayload(this.docSent));
   }
 
   private pushExtraFiles(list: FileList | null | undefined): void {
-    const kind = this.filePop === 'committee' ? 'พิจารณาของคณะกรรมการ' : this.filePop === 'inquiry' ? 'เปิดไต่สวน' : this.filePop === 'prelim' ? 'ผลขั้นต้น' : this.filePop === 'draft' ? 'ร่างผลสิ้นสุด' : this.filePop === 'final' ? 'ผลสิ้นสุด' : this.workDocs[this.docPart]?.title;
+    const kind = this.filePop === 'committee' ? 'พิจารณาของคณะกรรมการ'
+      : this.filePop === 'inquiry' ? 'เปิดไต่สวน'
+      : this.filePop === 'prelim' ? 'ผลขั้นต้น'
+      : this.filePop === 'draft' ? 'ร่างผลสิ้นสุด'
+      : this.filePop === 'final' ? 'ผลสิ้นสุด'
+      : this.editionKindAt() || this.workDocs[this.docPart]?.title;
     if (!kind || !list?.length) return;
-    const sentOn = this.filePop === 'committee' ? (this.committeeAt || '05/06/2562') : this.filePop === 'inquiry' ? (this.inquiryNoticeOn || '10/06/2562') : this.filePop === 'prelim' ? (this.prelimOn || '20/08/2562') : this.filePop === 'draft' ? (this.draftOn || '15/10/2562') : this.filePop === 'final' ? (this.finalOn || '20/12/2562') : '20/05/2562';
+    const sentOn = this.filePop === 'committee' ? (this.committeeAt || '05/06/2562')
+      : this.filePop === 'inquiry' ? (this.inquiryNoticeOn || '10/06/2562')
+      : this.filePop === 'prelim' ? (this.prelimOn || '20/08/2562')
+      : this.filePop === 'draft' ? (this.draftOn || '15/10/2562')
+      : this.filePop === 'final' ? (this.finalOn || '20/12/2562')
+      : kind === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง' ? '28/05/2562'
+      : (this.docNoticedOn || '20/05/2562');
     const files = [...list].map((file) => ({ kind, name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn }));
     this.extraFiles = [...this.extraFiles, ...files];
     this.writeExtraFiles();
+  }
+
+  protected openExtraFile(file: { name: string; title: string; sentOn: string }): void {
+    this.viewingMade = {
+      id: `extra-${file.name}`,
+      kind: file.title || file.name,
+      at: file.sentOn,
+      fields: [
+        { label: 'ชื่อเอกสาร', value: file.title || file.name },
+        { label: 'ชื่อไฟล์', value: file.name },
+        { label: 'วันที่บันทึก', value: file.sentOn },
+        { label: 'เนื้อความ', value: `เอกสาร${file.title || file.name} ของคำขอเลขที่อ้างอิง ${this.refId}`, long: true },
+      ],
+    };
+  }
+
+  protected seedOpenEditionSamples(): void {
+    this.ensureOpenEditionFiles();
+  }
+
+  protected seedClosedEditionSamples(): void {
+    this.ensureClosedEditionFiles();
+  }
+
+  protected seedEditionSamples(): void {
+    if (this.completeBundle === 'closed' || this.docPart === this.closedEditionPart) {
+      this.ensureClosedEditionFiles();
+      return;
+    }
+    this.ensureOpenEditionFiles();
   }
 
   protected renameExtraFile(kind: string, index: number, title: string): void {
@@ -4420,7 +5823,11 @@ export class Por1Page {
   }
 
   protected downloadExtraFile(file: { name: string; title: string; sentOn: string }): void {
-    const sample = this.preSamples.find((item) => item.name === file.name);
+    const sample =
+      this.agencySummaryReplies.find((item) => item.name === file.name) ||
+      this.agencySummarySamples.find((item) => item.name === file.name) ||
+      this.agencyLetterSamples.find((item) => item.name === file.name) ||
+      this.preSamples.find((item) => item.name === file.name);
     if (sample) {
       const link = document.createElement('a');
       link.href = sample.href;
@@ -4488,6 +5895,10 @@ export class Por1Page {
       this.docListCollapsed = true;
       this.bundleTocCollapsed = true;
     }
+    window.setTimeout(() => {
+      this.syncBundleFitScale();
+      this.scheduleAmendWordLayout();
+    }, 0);
   }
 
   protected zoomBundle(dir: 1 | -1): void {
@@ -4495,6 +5906,13 @@ export class Por1Page {
     const index = at < 0 ? this.bundleZoomSteps.indexOf(100) : at;
     const next = this.bundleZoomSteps[Math.min(this.bundleZoomSteps.length - 1, Math.max(0, index + dir))];
     this.bundleZoom = next ?? 100;
+    this.syncBundleFitScale();
+    this.scheduleAmendWordLayout();
+  }
+
+  /** 100% = กระดาษกว้างเต็มพื้นที่อ่าน (เหมือนหน้าร่างวาระ) */
+  protected get bundleZoomCss(): number {
+    return (this.bundleZoom / 100) * Math.max(this.bundleFitScale, this.bundleZoomBase);
   }
 
   protected get canZoomBundleIn(): boolean {
@@ -4505,39 +5923,1980 @@ export class Por1Page {
     return this.bundleZoom > this.bundleZoomSteps[0];
   }
 
+  private syncBundleFitScale(): void {
+    const stage =
+      this.amendCommentStageRef?.nativeElement ||
+      (document.querySelector(
+        '.bundle-viewer .bundle-reader--comments, .bundle-viewer .bundle-reader, .bundle-viewer .word-print-canvas',
+      ) as HTMLElement | null);
+    if (!stage) return;
+    // clientWidth ถูก CSS zoom ย่อ — ใช้ความกว้าง layout จริงก่อนซูม
+    const layoutW = stage.offsetWidth || stage.clientWidth;
+    const paperW = this.measureMmAsPx(210);
+    const avail = Math.max(320, layoutW - 56);
+    this.bundleFitScale = Math.max(1.25, avail / paperW);
+  }
+
   protected docMatches(title: string): boolean {
     const query = this.docQuery.trim();
     return !query || title.includes(query);
   }
 
+  /** ดัชนีส่วนแบบคำขอฉบับเปิดเผย (ถัดจากแจ้งผลการตรวจ) */
+  protected get openEditionPart(): number {
+    return this.workDocs.length + 1;
+  }
+
+  /** ดัชนีส่วนแบบคำขอฉบับปกปิด */
+  protected get closedEditionPart(): number {
+    return this.workDocs.length + 2;
+  }
+
+  /** ดัชนีพิจารณาของคณะกรรมการฯ */
+  protected get committeePart(): number {
+    return this.workDocs.length + 3;
+  }
+
+  /** ดัชนีขอขยายเวลาในรายการเอกสาร (กลุ่มคำขอผู้ยื่น) */
+  protected get extendPart(): number {
+    return this.workDocs.length + 4;
+  }
+
+  /** ดัชนีร่างวาระในรายการเอกสาร (คู่ขนานตอนตรวจเอกสาร) */
+  protected get draftAgendaPart(): number {
+    return this.workDocs.length + 5;
+  }
+
+  /** ดัชนีเสนออนุมัติ (บันทึกเสนอ อธ.) ในรายการเอกสาร */
+  protected get approvalSubmitPart(): number {
+    return this.workDocs.length + 6;
+  }
+
+  protected isAgencyWorkDoc(title: string): boolean {
+    return (
+      title === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง' ||
+      title === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง'
+    );
+  }
+
+  protected isPreQnWorkDoc(title: string): boolean {
+    return title.startsWith('Pre-questionnaire');
+  }
+
+  /** แสดงหัวกลุ่ม TOC เมื่อมีรายการในกลุ่มผ่านตัวกรองค้นหา */
+  protected docGroupVisible(group: 'applicant' | 'agency' | 'preqn' | 'agenda'): boolean {
+    if (group === 'applicant') {
+      return (
+        this.docMatches(this.bundleDocTitle) ||
+        this.docMatches('แบบคำขอ') ||
+        this.docMatches('แบบคำขอรวมเล่ม') ||
+        this.docMatches('แบบยื่นคำขอรวมเล่ม') ||
+        this.docMatches('แจ้งผลการตรวจ') ||
+        this.docMatches('ขอขยายเวลา') ||
+        this.docMatches('ขยายเวลา') ||
+        this.docMatches(this.openEditionKind) ||
+        this.docMatches('ฉบับเปิดเผย') ||
+        this.docMatches('แบบคำขอฉบับเปิดเผย') ||
+        this.docMatches(this.closedEditionKind) ||
+        this.docMatches('ฉบับปกปิด') ||
+        this.docMatches('แบบคำขอฉบับปกปิด')
+      );
+    }
+    if (group === 'agency') {
+      return this.workDocs.some((doc) => this.isAgencyWorkDoc(doc.title) && this.docMatches(doc.title));
+    }
+    if (group === 'agenda') {
+      return (
+        this.docMatches('วาระพิจารณาคำขอเปิดไต่สวน') ||
+        this.docMatches('ร่างวาระ') ||
+        this.docMatches('วาระเปิด') ||
+        this.docMatches('วาระ') ||
+        this.docMatches('เสนออนุมัติ') ||
+        this.docMatches('บันทึกเสนอ') ||
+        this.docMatches('เอกสารขออนุมัติ')
+      );
+    }
+    return this.workDocs.some((doc) => this.isPreQnWorkDoc(doc.title) && this.docMatches(doc.title));
+  }
+
+  private draftAgendaWorkspaceReady = false;
+
+  /** เปิดวาระพิจารณาคำขอเปิดไต่สวนในหน้าตรวจเอกสาร — ไม่สลับแท็บ */
+  protected pickDraftAgenda(): void {
+    if (this.agencyWordOpen) {
+      this.captureAgencySummaryEditor();
+      this.agencyWordOpen = false;
+    }
+    if (this.approvalWordOpen) {
+      this.captureApprovalEditor();
+      this.writeApprovalComments();
+      this.approvalWordOpen = false;
+      this.approvalTab = 'files';
+      this.restoreParkedAmendComments();
+    }
+    this.completeBundle = '';
+    this.editingId = '';
+    this.docShelf = 'files';
+    this.docPart = this.draftAgendaPart;
+    this.notice = null;
+    if (!this.draftAgendaWorkspaceReady) {
+      this.resetDraftAgendaWorkspace();
+      this.draftAgendaWorkspaceReady = true;
+    } else {
+      this.loadDraftAgendaVersions();
+    }
+    const view = this.route.snapshot.queryParamMap.get('view');
+    if (view === 'editor' && (this.draftAgendaVersions.length || this.draftAgendaWordOpen)) {
+      this.pickDraftAgendaTab('editor');
+    } else {
+      this.draftAgendaTab = 'files';
+      this.draftAgendaWordOpen = false;
+    }
+    this.syncFilingUrl();
+  }
+
+  protected get canOpenDraftAgendaEditor(): boolean {
+    return this.draftAgendaWordOpen || this.draftAgendaVersions.some((row) => row.source === 'created' || row.source === 'ai');
+  }
+
+  protected pickDraftAgendaTab(tab: 'files' | 'editor'): void {
+    if (tab === 'editor') {
+      if (this.draftAgendaWordOpen) {
+        this.draftAgendaTab = 'editor';
+        this.syncFilingUrl();
+        return;
+      }
+      const editable = [...this.draftAgendaVersions].reverse().find((row) => row.source === 'created' || row.source === 'ai');
+      if (editable) {
+        this.openDraftAgendaVersion(editable.version);
+        return;
+      }
+      return;
+    }
+    this.captureDraftAgendaEditor();
+    this.writeDraftAgendaComments();
+    this.draftAgendaWordOpen = false;
+    this.draftAgendaTab = 'files';
+    this.draftAgendaViewerFull = false;
+    this.commentPinMode = false;
+    this.restoreParkedAmendComments();
+    this.syncFilingUrl();
+  }
+
+  /** ตัดแฟ้มตัวอย่างออก — คงเวอร์ชันที่ผู้ใช้สร้าง/อัปเดตไว้ */
+  private resetDraftAgendaWorkspace(): void {
+    this.draftAgendaWordOpen = false;
+    this.draftAgendaTab = 'files';
+    this.draftAgendaVersionConfirm = null;
+    const samples = new Set(this.agendaSampleCatalog.draft.map((file) => file.name));
+    this.inquiryAgendaFiles = this.inquiryAgendaFiles.filter(
+      (file) => (file.lane || 'tdc') !== 'draft' || (!samples.has(file.name) && file.source !== 'sample'),
+    );
+    this.loadDraftAgendaVersions();
+    this.writeInquiry(true);
+  }
+
+  /** ไฟล์ที่สร้างหรืออัปเดตเอง — ไม่โชว์แฟ้มตัวอย่าง */
+  protected get draftAgendaOwnFiles(): InquiryAgendaFile[] {
+    return this.agendaLaneFiles('draft').filter((file) => file.source === 'upload' || file.source === 'created' || file.source === 'ai');
+  }
+
+  /** ไฟล์อัปโหลดที่ยังไม่ผูกเวอร์ชันในตารางร่างวาระ */
+  protected get draftAgendaOrphanFiles(): InquiryAgendaFile[] {
+    return this.draftAgendaOwnFiles.filter((file) => !file.version);
+  }
+
+  protected openDraftAgendaUpload(row: DraftAgendaVersion): void {
+    if (row.source === 'created' || row.source === 'ai') {
+      this.openDraftAgendaVersion(row.version);
+      return;
+    }
+    const file =
+      this.inquiryAgendaFiles.find((item) => item.lane === 'draft' && item.version === row.version) ||
+      this.inquiryAgendaFiles.find((item) => item.lane === 'draft' && item.name === row.fileName);
+    if (file) this.openEmbassyFile(file);
+    this.draftAgendaTab = 'files';
+    this.syncFilingUrl();
+  }
+
+  protected get draftAgendaNavOn(): boolean {
+    return this.reviewTab === 'docs' && this.docPart === this.draftAgendaPart;
+  }
+
+  protected draftAgendaDot(): string {
+    if (this.inquiryDraftAgendaDone) return 'assets/icons/por1-dot-done.svg';
+    if (this.draftAgendaNavOn) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
+  protected fillDraftAgendaPack(): void {
+    this.inquiryPart = 'draftAgenda';
+    this.fillInquiryPack();
+  }
+
+  protected saveDraftAgendaFromDocs(): void {
+    this.inquiryPart = 'draftAgenda';
+    this.saveInquiryAgenda();
+  }
+
+  protected get draftAgendaLatestVersion(): number {
+    return this.draftAgendaVersions.reduce((max, row) => Math.max(max, row.version), 0);
+  }
+
+  protected get draftAgendaVersionConfirmDetail(): string {
+    const next = this.draftAgendaLatestVersion + 1;
+    const mode =
+      this.draftAgendaVersionConfirm === 'ai'
+        ? 'AI ช่วยร่างตามรูปแบบตัวอย่างวาระพิจารณาคำขอเปิดไต่สวน'
+        : 'สร้างเอกสารวาระพิจารณาคำขอเปิดไต่สวนใหม่ (หน้าว่าง)';
+    return `มีเอกสารวาระพิจารณาคำขอเปิดไต่สวนเวอร์ชัน ${this.draftAgendaLatestVersion} อยู่แล้ว การ${mode}จะบันทึกเป็นเวอร์ชัน ${next} โดยเก็บเวอร์ชันเดิมไว้ครบ`;
+  }
+
+  protected requestCreateDraftAgendaDoc(): void {
+    if (this.draftAgendaVersions.length) {
+      this.draftAgendaVersionConfirm = 'create';
+      return;
+    }
+    this.commitDraftAgendaVersion('created');
+  }
+
+  /** AI ช่วยร่าง — ถ้ายังไม่มีเอกสารให้สร้างหน้าว่างก่อน แล้วหมุนโหลด ~10 วิ ดึงรูปแบบจากตัวอย่าง */
+  protected requestAiDraftAgenda(): void {
+    if (this.draftAgendaAiBusy) return;
+    if (this.draftAgendaWordOpen && this.draftAgendaActiveVersion) {
+      this.startAiDraftAgendaFill();
+      return;
+    }
+    if (this.draftAgendaVersions.length) {
+      this.draftAgendaVersionConfirm = 'ai';
+      return;
+    }
+    this.commitDraftAgendaVersion('created');
+    this.startAiDraftAgendaFill();
+  }
+
+  protected onDraftAgendaVersionConfirm(action: string): void {
+    const mode = this.draftAgendaVersionConfirm;
+    this.draftAgendaVersionConfirm = null;
+    if (action !== 'ยืนยัน' || !mode) return;
+    this.commitDraftAgendaVersion('created');
+    if (mode === 'ai') this.startAiDraftAgendaFill();
+  }
+
+  protected cancelDraftAgendaVersion(): void {
+    this.draftAgendaVersionConfirm = null;
+  }
+
+  private commitDraftAgendaVersion(source: 'created' | 'ai'): void {
+    this.inquiryPart = 'draftAgenda';
+    const at = this.draftAgendaStamp();
+    this.inquiryDraftAgendaAt = at;
+    const version = this.draftAgendaLatestVersion + 1;
+    const html = this.buildDraftAgendaBlankHtml();
+    const title = `วาระพิจารณาคำขอเปิดไต่สวน · เวอร์ชัน ${version}`;
+    const fileName = `วาระพิจารณาคำขอเปิดไต่สวน-v${version}.docx`;
+    const entry: DraftAgendaVersion = { version, title, at, html, source, fileName };
+    this.draftAgendaVersions = [...this.draftAgendaVersions, entry];
+    this.writeDraftAgendaVersions();
+    this.draftAgendaActiveVersion = version;
+    this.draftAgendaHtml = html;
+    this.parkAmendCommentsForDraft();
+    this.draftAgendaEmpty = true;
+    this.draftAgendaWordOpen = true;
+    this.draftAgendaTab = 'editor';
+    this.draftAgendaZoom = 100;
+    this.loadDraftAgendaComments();
+    this.inquiryAgendaFiles = [
+      ...this.inquiryAgendaFiles,
+      {
+        name: fileName,
+        title,
+        sentOn: at,
+        docId: `draft-agenda-v${version}`,
+        lane: 'draft',
+        version,
+        source,
+      },
+    ];
+    this.writeInquiry(true);
+    this.notice = null;
+    this.syncFilingUrl();
+    window.setTimeout(() => this.fillDraftAgendaEditor(), 0);
+  }
+
+  /** โหลดตัวอย่างวาระจริง รออย่างน้อย 10 วิ แล้วใส่ใน editor */
+  private startAiDraftAgendaFill(): void {
+    if (this.draftAgendaAiBusy) return;
+    if (!this.draftAgendaActiveVersion) {
+      this.commitDraftAgendaVersion('created');
+    }
+    this.draftAgendaAiBusy = true;
+    this.view.markForCheck();
+    const minWait = new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 10000);
+    });
+    const fetchSample = fetch(this.draftAgendaSampleUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`sample ${res.status}`);
+        return res.text();
+      })
+      .catch(() => this.buildDraftAgendaAiHtml(this.inquiryDraftAgendaAt.trim() || this.thaiToday()));
+    Promise.all([fetchSample, minWait]).then(([html]) => {
+      this.applyAiDraftAgendaHtml(typeof html === 'string' ? html : String(html));
+      this.draftAgendaAiBusy = false;
+      this.view.markForCheck();
+    });
+  }
+
+  private applyAiDraftAgendaHtml(html: string): void {
+    const version = this.draftAgendaActiveVersion || this.draftAgendaLatestVersion;
+    const at = this.draftAgendaStamp();
+    this.inquiryDraftAgendaAt = at;
+    this.draftAgendaHtml = html;
+    this.draftAgendaEmpty = this.amendHtmlIsEmpty(html);
+    if (version) {
+      this.draftAgendaVersions = this.draftAgendaVersions.map((row) =>
+        row.version === version ? { ...row, html, at, source: 'ai' } : row,
+      );
+      this.writeDraftAgendaVersions();
+      this.inquiryAgendaFiles = this.inquiryAgendaFiles.map((file) =>
+        file.version === version && file.lane === 'draft' ? { ...file, source: 'ai', sentOn: at } : file,
+      );
+    }
+    this.writeInquiry(true);
+    this.notice = null;
+    this.draftAgendaWordOpen = true;
+    this.draftAgendaTab = 'editor';
+    this.syncFilingUrl();
+    window.setTimeout(() => this.fillDraftAgendaEditor(), 0);
+  }
+
+  protected uploadDraftAgendaFiles(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const list = input.files;
+    if (!list?.length) return;
+    const at = this.draftAgendaStamp();
+    this.inquiryDraftAgendaAt = at;
+    const added: InquiryAgendaFile[] = [];
+    const versions: DraftAgendaVersion[] = [];
+    [...list].forEach((file) => {
+      const version = this.draftAgendaLatestVersion + versions.length + 1;
+      const title = file.name.replace(/\.[^.]+$/, '');
+      added.push({
+        name: file.name,
+        title: `${title} · เวอร์ชัน ${version}`,
+        sentOn: at,
+        docId: `draft-upload-${Date.now()}-${version}`,
+        lane: 'draft',
+        version,
+        source: 'upload',
+      });
+      versions.push({
+        version,
+        title: `${title} · เวอร์ชัน ${version}`,
+        at,
+        html: `<p><strong>ไฟล์อัปโหลด</strong> ${file.name}</p><p>อัปโหลดเมื่อ ${at} — เปิดหรือดาวน์โหลดจากรายการเอกสาร</p>`,
+        source: 'upload',
+        fileName: file.name,
+      });
+    });
+    this.draftAgendaVersions = [...this.draftAgendaVersions, ...versions];
+    this.writeDraftAgendaVersions();
+    this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, ...added];
+    this.draftAgendaActiveVersion = this.draftAgendaLatestVersion;
+    this.inquiryDraftAgendaAt = at;
+    this.inquiryDraftAgendaDone = true;
+    input.value = '';
+    this.writeInquiry(true);
+    this.notice = null;
+    this.draftAgendaTab = 'files';
+    this.syncFilingUrl();
+  }
+
+  protected openDraftAgendaVersion(version: number): void {
+    const row = this.draftAgendaVersions.find((item) => item.version === version);
+    if (!row) return;
+    this.parkAmendCommentsForDraft();
+    this.draftAgendaActiveVersion = version;
+    this.draftAgendaHtml = row.html;
+    this.draftAgendaWordOpen = true;
+    this.draftAgendaTab = 'editor';
+    this.draftAgendaZoom = 100;
+    this.loadDraftAgendaComments();
+    this.syncFilingUrl();
+    window.setTimeout(() => {
+      this.fillDraftAgendaEditor();
+      this.scheduleAmendWordLayout();
+    }, 0);
+  }
+
+  protected closeDraftAgendaWord(): void {
+    this.captureDraftAgendaEditor();
+    this.writeDraftAgendaComments();
+    this.draftAgendaWordOpen = false;
+    this.draftAgendaTab = 'files';
+    this.draftAgendaViewerFull = false;
+    this.commentPinMode = false;
+    this.restoreParkedAmendComments();
+    this.syncFilingUrl();
+  }
+
+  protected zoomDraftAgenda(dir: 1 | -1): void {
+    const at = this.draftAgendaZoomSteps.indexOf(this.draftAgendaZoom);
+    const index = at < 0 ? this.draftAgendaZoomSteps.indexOf(100) : at;
+    const next = this.draftAgendaZoomSteps[Math.min(this.draftAgendaZoomSteps.length - 1, Math.max(0, index + dir))];
+    this.draftAgendaZoom = next ?? 100;
+    this.scheduleAmendWordLayout();
+  }
+
+  /** 100% = กระดาษกว้างเต็มพื้นที่อ่าน (ชัดกว่าซูมเดิมมาก) */
+  protected get draftAgendaZoomCss(): number {
+    return (this.draftAgendaZoom / 100) * Math.max(this.draftAgendaFitScale, this.draftAgendaZoomBase);
+  }
+
+  protected get canZoomDraftAgendaIn(): boolean {
+    return this.draftAgendaZoom < this.draftAgendaZoomSteps[this.draftAgendaZoomSteps.length - 1];
+  }
+
+  protected get canZoomDraftAgendaOut(): boolean {
+    return this.draftAgendaZoom > this.draftAgendaZoomSteps[0];
+  }
+
+  protected toggleDraftAgendaViewerFull(): void {
+    this.draftAgendaViewerFull = !this.draftAgendaViewerFull;
+    if (this.draftAgendaViewerFull) {
+      this.docListCollapsed = true;
+    }
+    this.scheduleDraftAgendaPageFrames();
+  }
+
+  private syncDraftAgendaFitScale(): void {
+    const stage = this.draftAgendaStageRef?.nativeElement;
+    if (!stage) return;
+    const paperW = this.measureMmAsPx(210);
+    const layoutW = stage.offsetWidth || stage.clientWidth;
+    const avail = Math.max(320, layoutW - 56);
+    // เต็มความกว้างพื้นที่อ่านที่ 100%
+    this.draftAgendaFitScale = Math.max(1.25, avail / paperW);
+  }
+
+  /** บันทึกร่าง — เก็บไว้แก้ต่อ ไม่ปิด editor */
+  protected saveDraftAgendaDraft(): void {
+    this.persistDraftAgendaWord(false);
+  }
+
+  /** บันทึกเอกสาร — เก็บแล้วกลับแท็บไฟล์ */
+  protected saveDraftAgendaWord(): void {
+    this.persistDraftAgendaWord(true);
+  }
+
+  /** ดาวน์โหลดวาระพิจารณาคำขอเปิดไต่สวนจาก editor (เปิดด้วย Word ได้) */
+  protected downloadDraftAgendaWord(): void {
+    this.captureDraftAgendaEditor();
+    const version = this.draftAgendaActiveVersion || this.draftAgendaLatestVersion || 1;
+    const title = `วาระพิจารณาคำขอเปิดไต่สวน · เวอร์ชัน ${version}`;
+    const fileName = `วาระพิจารณาคำขอเปิดไต่สวน-v${version}-${this.refId || filingRefId}.doc`;
+    this.downloadEditorHtmlAsWord(fileName, title, this.draftAgendaHtml || '<p><br></p>');
+  }
+
+  /** แก้ชื่อเอกสารจากแถวที่มาจากการอัปเดตไฟล์ */
+  protected renameDraftAgendaVersion(version: number, title: string): void {
+    const next = title.trim() || `วาระพิจารณาคำขอเปิดไต่สวน · เวอร์ชัน ${version}`;
+    this.draftAgendaVersions = this.draftAgendaVersions.map((row) =>
+      row.version === version ? { ...row, title: next } : row,
+    );
+    this.writeDraftAgendaVersions();
+    this.inquiryAgendaFiles = this.inquiryAgendaFiles.map((file) =>
+      file.lane === 'draft' && file.version === version ? { ...file, title: next } : file,
+    );
+    this.writeInquiry(true);
+  }
+
+  /** แก้ชื่อไฟล์อัปโหลดที่ยังไม่ผูกเวอร์ชัน */
+  protected renameDraftAgendaOrphanFile(file: InquiryAgendaFile, title: string): void {
+    const next = title.trim() || file.name;
+    this.inquiryAgendaFiles = this.inquiryAgendaFiles.map((item) => {
+      if (file.docId && item.docId === file.docId) return { ...item, title: next };
+      if (!file.docId && item.lane === 'draft' && !item.version && item.name === file.name) {
+        return { ...item, title: next };
+      }
+      return item;
+    });
+    this.writeInquiry(true);
+  }
+
+  /** โหลดไฟล์จากแถวในตารางประวัติร่างวาระ */
+  protected downloadDraftAgendaVersion(row: DraftAgendaVersion): void {
+    if (this.draftAgendaWordOpen && this.draftAgendaActiveVersion === row.version) {
+      this.downloadDraftAgendaWord();
+      return;
+    }
+    const title = row.title || `วาระพิจารณาคำขอเปิดไต่สวน · เวอร์ชัน ${row.version}`;
+    const base = (row.fileName || `วาระพิจารณาคำขอเปิดไต่สวน-v${row.version}`).replace(/\.[^.]+$/, '');
+    const fileName = `${base}-${this.refId || filingRefId}.doc`;
+    this.downloadEditorHtmlAsWord(fileName, title, row.html || '<p><br></p>');
+  }
+
+  /** แสดงวันที่พร้อมเวลา (เช่น 02/10/2563 09:00 น.) */
+  protected draftAgendaAtLabel(at: string): string {
+    const raw = (at || '').trim();
+    if (!raw) return '—';
+    if (/\d{1,2}:\d{2}/.test(raw)) return /น\./.test(raw) ? raw : `${raw} น.`;
+    return `${raw} 09:00 น.`;
+  }
+
+  private draftAgendaStamp(): string {
+    return this.replyStamp();
+  }
+
+  private persistDraftAgendaWord(closeToFiles: boolean): void {
+    this.captureDraftAgendaEditor();
+    const version = this.draftAgendaActiveVersion || this.draftAgendaLatestVersion;
+    if (!version) return;
+    const at = this.draftAgendaStamp();
+    this.inquiryDraftAgendaAt = at;
+    this.draftAgendaVersions = this.draftAgendaVersions.map((row) =>
+      row.version === version ? { ...row, html: this.draftAgendaHtml, at } : row,
+    );
+    this.writeDraftAgendaVersions();
+    const kind = 'วาระพิจารณาคำขอเปิดไต่สวน';
+    const fields = [
+      field('ชื่อเอกสาร', `วาระพิจารณาคำขอเปิดไต่สวน · เวอร์ชัน ${version}`),
+      field('วันที่', at),
+      field('เวอร์ชัน', String(version)),
+      field('เนื้อหาเอกสาร', this.draftAgendaHtml, true),
+    ];
+    const existing = this.madeDocs.find((item) => item.kind === kind && item.fields.some((row) => row.label === 'เวอร์ชัน' && row.value === String(version)));
+    if (existing) {
+      this.madeDocs = this.madeDocs.map((item) => (item.id === existing.id ? { ...item, at, fields } : item));
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `draft-agenda-doc-v${version}`, kind, at, fields }];
+    }
+    writeMadeDocs(this.madeDocs);
+    this.inquiryPart = 'draftAgenda';
+    this.inquiryDraftAgendaAt = at;
+    if (closeToFiles) this.inquiryDraftAgendaDone = true;
+    this.writeInquiry(true);
+    this.notice = null;
+    if (closeToFiles) {
+      this.draftAgendaTab = 'files';
+      this.draftAgendaWordOpen = false;
+      this.syncFilingUrl();
+    }
+  }
+
+  protected draftAgendaFormat(command: string, value?: string): void {
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand(command, false, value);
+    this.lockOfficialFontOnSelection();
+    this.captureDraftAgendaEditor();
+    this.refreshAmendToolbar();
+    this.draftAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected applyDraftAgendaFontSize(size: string): void {
+    this.amendFontSize = size;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('fontSize', false, '3');
+    const root = this.draftAgendaEditorRef?.nativeElement;
+    root?.querySelectorAll('font[size="3"]').forEach((node) => {
+      const span = document.createElement('span');
+      span.style.fontSize = size;
+      span.style.fontFamily = this.officialFontName;
+      span.innerHTML = node.innerHTML;
+      node.replaceWith(span);
+    });
+    this.lockOfficialFontOnSelection();
+    this.captureDraftAgendaEditor();
+    this.draftAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected applyDraftAgendaColor(color: string): void {
+    this.amendColor = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, color);
+    this.lockOfficialFontOnSelection();
+    this.captureDraftAgendaEditor();
+    this.refreshAmendToolbar();
+    this.draftAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected applyDraftAgendaHighlight(color: string): void {
+    this.amendHighlight = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('hiliteColor', false, color === 'transparent' ? 'transparent' : color);
+    this.lockOfficialFontOnSelection();
+    this.captureDraftAgendaEditor();
+    this.refreshAmendToolbar();
+    this.draftAgendaEditorRef?.nativeElement.focus();
+  }
+
+  protected onDraftAgendaEditorInput(): void {
+    this.captureDraftAgendaEditor();
+    this.refreshAmendToolbar();
+    this.scheduleDraftAgendaPageFrames();
+  }
+
+  protected insertDraftAgendaPageBreak(): void {
+    const pageH = this.measureMmAsPx(297);
+    const editor = this.draftAgendaEditorRef?.nativeElement;
+    const sheet = editor?.closest('.word-print-sheet') as HTMLElement | null;
+    const stage = this.draftAgendaStageRef?.nativeElement;
+    let remain = Math.round(pageH * 0.35);
+    const sel = window.getSelection();
+    const node = sel?.anchorNode;
+    const el = node instanceof Element ? node : node?.parentElement;
+    if (el && sheet && stage && sheet.contains(el)) {
+      const rect = (el as HTMLElement).getBoundingClientRect();
+      const sheetTop = sheet.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop;
+      const y = rect.bottom - sheet.getBoundingClientRect().top + stage.scrollTop - sheetTop;
+      const offsetInPage = ((y % pageH) + pageH) % pageH;
+      remain = Math.max(28, Math.ceil(pageH - offsetInPage));
+    }
+    const breakHtml =
+      `<div class="word-page-break" data-page-break="1" contenteditable="false" style="height:${remain}px" aria-hidden="true"></div>` +
+      `<p style="font-family:${this.officialFontName};font-size:16pt;line-height:1.15;margin:0"><br></p>`;
+    this.textEditorFormat('insertHTML', breakHtml);
+    this.scheduleDraftAgendaPageFrames();
+  }
+
+  protected scheduleDraftAgendaPageFrames(): void {
+    if (this.draftAgendaLayoutRaf) cancelAnimationFrame(this.draftAgendaLayoutRaf);
+    this.draftAgendaLayoutRaf = requestAnimationFrame(() => {
+      this.draftAgendaLayoutRaf = 0;
+      this.syncDraftAgendaPageFrames();
+    });
+  }
+
+  private syncDraftAgendaPageFrames(): void {
+    const sheet = this.draftAgendaEditorRef?.nativeElement?.closest('.word-print-sheet') as HTMLElement | null;
+    const stage = this.draftAgendaStageRef?.nativeElement;
+    if (!stage) return;
+    this.syncDraftAgendaFitScale();
+    const pageH = this.measureMmAsPx(297);
+    const sheetTop = sheet
+      ? sheet.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop
+      : 0;
+    const contentH = Math.max(pageH, sheet?.offsetHeight || pageH);
+    const count = Math.max(1, Math.ceil(contentH / pageH));
+    this.draftAgendaPageFrames = Array.from({ length: count }, (_, i) => ({
+      n: i + 1,
+      top: sheetTop + i * pageH,
+      height: pageH,
+    }));
+    this.view.markForCheck();
+  }
+
+  private captureDraftAgendaEditor(): void {
+    const el = this.draftAgendaEditorRef?.nativeElement;
+    if (!el) return;
+    const empty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+    this.draftAgendaEmpty = empty;
+    this.draftAgendaHtml = empty ? '' : el.innerHTML;
+    const version = this.draftAgendaActiveVersion;
+    if (version) {
+      this.draftAgendaVersions = this.draftAgendaVersions.map((row) =>
+        row.version === version ? { ...row, html: this.draftAgendaHtml } : row,
+      );
+      this.writeDraftAgendaVersions();
+    }
+  }
+
+  private fillDraftAgendaEditor(tries = 0): void {
+    const run = () => {
+      const el = this.draftAgendaEditorRef?.nativeElement;
+      if (!el) {
+        if (tries < 8) window.setTimeout(() => this.fillDraftAgendaEditor(tries + 1), 50);
+        return;
+      }
+      el.innerHTML = this.draftAgendaHtml;
+      this.draftAgendaEmpty = this.amendHtmlIsEmpty(this.draftAgendaHtml);
+      this.refreshAmendToolbar();
+      this.scheduleAmendWordLayout();
+      window.setTimeout(() => this.scheduleAmendWordLayout(), 120);
+      this.view.markForCheck();
+    };
+    window.setTimeout(run, tries === 0 ? 0 : 50);
+  }
+
+  /** สร้างเอกสาร = หน้าว่าง ให้พิมพ์เอง หรือกด AI ช่วยร่าง */
+  private buildDraftAgendaBlankHtml(): string {
+    return `<p style="font-family:${this.officialFontName}"><br></p>`;
+  }
+
+  /** fallback ถ้าโหลดตัวอย่างไม่ได้ */
+  private buildDraftAgendaAiHtml(at: string): string {
+    const lines = this.inquiryAgendaText().split('\n');
+    const facts = this.inquiryFacts
+      .map((item) => `<tr><td>${item.label}</td><td>${item.value}</td></tr>`)
+      .join('');
+    return [
+      `<p style="text-align:center;font-family:${this.officialFontName}"><strong>กรมการค้าต่างประเทศ</strong></p>`,
+      `<p style="text-align:center;font-family:${this.officialFontName}"><strong>วาระพิจารณาคำขอเปิดไต่สวน</strong></p>`,
+      `<p style="font-family:${this.officialFontName}">เลขที่อ้างอิง ${this.refId || 'R6201'} · วันที่ร่าง ${at}</p>`,
+      `<p style="font-family:${this.officialFontName}"><span style="background:#e6f1f9;color:#0e2346">AI ช่วยร่าง · ข้อมูลตั้งต้นจากเคส</span></p>`,
+      `<table class="amend-table"><tbody>${facts}</tbody></table>`,
+      ...lines.map((line) => `<p style="font-family:${this.officialFontName}">${line}</p>`),
+      `<p style="font-family:${this.officialFontName}"><strong>ข้อเสนอฝ่ายเลขานุการ</strong> เห็นควรเปิดไต่สวนตามมาตรา 39</p>`,
+    ].join('');
+  }
+
+  private loadDraftAgendaVersions(): void {
+    try {
+      const raw = sessionStorage.getItem(this.draftAgendaVersionsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as DraftAgendaVersion[];
+      if (!Array.isArray(parsed)) return;
+      this.draftAgendaVersions = parsed.filter((row) => row && typeof row.version === 'number' && typeof row.html === 'string');
+      this.draftAgendaActiveVersion = this.draftAgendaLatestVersion;
+      const current = this.draftAgendaVersions.find((row) => row.version === this.draftAgendaActiveVersion);
+      if (current) this.draftAgendaHtml = current.html;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private writeDraftAgendaVersions(): void {
+    try {
+      sessionStorage.setItem(this.draftAgendaVersionsKey, JSON.stringify(this.draftAgendaVersions));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  protected draftAgendaSourceLabel(source: DraftAgendaVersion['source'] | InquiryAgendaFile['source'] | ApprovalSubmitRound['source']): string {
+    if (source === 'ai') return 'AI ช่วยร่าง';
+    if (source === 'upload') return 'อัปเดตไฟล์';
+    if (source === 'created') return 'สร้างในระบบ';
+    if (source === 'sample') return 'แฟ้มเคส';
+    return 'เอกสาร';
+  }
+
+  private approvalWorkspaceReady = false;
+
+  protected pickApprovalSubmit(): void {
+    if (this.agencyWordOpen) {
+      this.captureAgencySummaryEditor();
+      this.agencyWordOpen = false;
+    }
+    if (this.draftAgendaWordOpen) {
+      this.captureDraftAgendaEditor();
+      this.writeDraftAgendaComments();
+      this.draftAgendaWordOpen = false;
+      this.draftAgendaTab = 'files';
+      this.restoreParkedAmendComments();
+    }
+    this.completeBundle = '';
+    this.editingId = '';
+    this.docShelf = 'files';
+    this.docPart = this.approvalSubmitPart;
+    this.notice = null;
+    this.loadDraftAgendaVersions();
+    if (!this.approvalWorkspaceReady) {
+      this.resetApprovalWorkspace();
+      this.approvalWorkspaceReady = true;
+    } else {
+      this.loadApprovalRounds();
+    }
+    const view = this.route.snapshot.queryParamMap.get('view');
+    if (view === 'editor' && (this.approvalRounds.length || this.approvalWordOpen)) {
+      this.pickApprovalTab('editor');
+    } else {
+      this.approvalTab = 'files';
+      this.approvalWordOpen = false;
+    }
+    this.syncFilingUrl();
+  }
+
+  protected get canOpenApprovalEditor(): boolean {
+    return this.approvalWordOpen || this.approvalRounds.some((row) => row.source === 'created' || row.source === 'ai');
+  }
+
+  protected pickApprovalTab(tab: 'files' | 'editor'): void {
+    if (tab === 'editor') {
+      if (this.approvalWordOpen) {
+        this.approvalTab = 'editor';
+        this.syncFilingUrl();
+        return;
+      }
+      const editable = [...this.approvalRounds].reverse().find((row) => row.source === 'created' || row.source === 'ai');
+      if (editable) {
+        this.openApprovalRound(editable.round);
+        return;
+      }
+      return;
+    }
+    this.captureApprovalEditor();
+    this.writeApprovalComments();
+    this.approvalWordOpen = false;
+    this.approvalTab = 'files';
+    this.approvalViewerFull = false;
+    this.commentPinMode = false;
+    this.restoreParkedAmendComments();
+    this.syncFilingUrl();
+  }
+
+  private resetApprovalWorkspace(): void {
+    this.approvalWordOpen = false;
+    this.approvalTab = 'files';
+    this.approvalAgendaPickerOpen = false;
+    this.approvalAgendaPickerMode = null;
+    this.approvalNeedAgendaOpen = false;
+    this.approvalPendingFiles = null;
+    this.loadApprovalRounds();
+  }
+
+  protected get approvalNavOn(): boolean {
+    return this.reviewTab === 'docs' && this.docPart === this.approvalSubmitPart;
+  }
+
+  protected approvalDot(): string {
+    if (this.approvalRounds.some((row) => row.source === 'ai' || row.source === 'created' || row.source === 'upload')) {
+      return 'assets/icons/por1-dot-done.svg';
+    }
+    if (this.approvalNavOn) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
+  protected get approvalLatestRound(): number {
+    return this.approvalRounds.reduce((max, row) => Math.max(max, row.round), 0);
+  }
+
+  protected get approvalSelectableAgendas(): DraftAgendaVersion[] {
+    return this.draftAgendaVersions;
+  }
+
+  protected get approvalAgendaPickCount(): number {
+    return this.approvalSelectableAgendas.filter((row) => this.approvalAgendaPick[row.version]).length;
+  }
+
+  protected get canConfirmApprovalAgendaPick(): boolean {
+    return this.approvalAgendaPickCount >= 1;
+  }
+
+  protected approvalFileCount(row: ApprovalSubmitRound): number {
+    return (row.agendaVersions?.length || 0) + (row.attachments?.length || 0);
+  }
+
+  protected approvalFileCountLabel(row: ApprovalSubmitRound): string {
+    const count = this.approvalFileCount(row);
+    return count ? `${count} ไฟล์` : '—';
+  }
+
+  protected toggleApprovalAgendaPick(version: number, checked: boolean): void {
+    this.approvalAgendaPick = { ...this.approvalAgendaPick, [version]: checked };
+  }
+
+  protected requestCreateApprovalRound(): void {
+    this.beginApprovalAgendaPicker('create');
+  }
+
+  protected requestAiApproval(): void {
+    if (this.approvalAiBusy) return;
+    if (this.approvalWordOpen && this.approvalActiveRound) {
+      this.startAiApprovalFill();
+      return;
+    }
+    this.beginApprovalAgendaPicker('ai');
+  }
+
+  protected requestUploadApproval(): void {
+    this.beginApprovalAgendaPicker('upload');
+  }
+
+  private beginApprovalAgendaPicker(mode: 'create' | 'ai' | 'upload' | 'add'): void {
+    this.loadDraftAgendaVersions();
+    if (!this.draftAgendaVersions.length) {
+      this.approvalNeedAgendaOpen = true;
+      return;
+    }
+    this.approvalAgendaPickerMode = mode;
+    this.approvalAgendaPick = {};
+    if (mode === 'add' && this.approvalActiveRound) {
+      const current = this.approvalRounds.find((row) => row.round === this.approvalActiveRound);
+      (current?.agendaVersions || []).forEach((version) => {
+        this.approvalAgendaPick[version] = true;
+      });
+    } else {
+      const latest = this.draftAgendaLatestVersion;
+      if (latest) this.approvalAgendaPick = { [latest]: true };
+    }
+    this.approvalAgendaPickerOpen = true;
+    this.approvalPendingFiles = null;
+  }
+
+  protected cancelApprovalAgendaPicker(): void {
+    this.approvalAgendaPickerOpen = false;
+    this.approvalAgendaPickerMode = null;
+    this.approvalPendingFiles = null;
+  }
+
+  protected dismissApprovalNeedAgenda(): void {
+    this.approvalNeedAgendaOpen = false;
+  }
+
+  protected onApprovalNeedAgenda(action: string): void {
+    this.approvalNeedAgendaOpen = false;
+    if (action === 'ยืนยัน') this.pickDraftAgenda();
+  }
+
+  protected confirmApprovalAgendaPicker(): void {
+    if (!this.canConfirmApprovalAgendaPick || !this.approvalAgendaPickerMode) return;
+    const agendaVersions = this.approvalSelectableAgendas
+      .filter((row) => this.approvalAgendaPick[row.version])
+      .map((row) => row.version);
+    const mode = this.approvalAgendaPickerMode;
+    this.approvalAgendaPickerOpen = false;
+    this.approvalAgendaPickerMode = null;
+    if (mode === 'add') {
+      this.setApprovalAgendaVersions(agendaVersions);
+      return;
+    }
+    if (mode === 'upload') {
+      if (this.approvalPendingFiles?.length) {
+        this.commitApprovalUpload(this.approvalPendingFiles, agendaVersions);
+        this.approvalPendingFiles = null;
+        return;
+      }
+      this.approvalPendingAgendaVersions = agendaVersions;
+      window.setTimeout(() => this.approvalUploadInput?.nativeElement.click(), 0);
+      return;
+    }
+    this.commitApprovalRound('created', agendaVersions, { seedForm: mode !== 'ai' });
+    if (mode === 'ai') this.startAiApprovalFill();
+  }
+
+  protected onApprovalUploadPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const list = input.files;
+    if (!list?.length) return;
+    if (this.approvalPendingAgendaVersions.length) {
+      this.commitApprovalUpload(list, this.approvalPendingAgendaVersions);
+      this.approvalPendingAgendaVersions = [];
+      input.value = '';
+      return;
+    }
+    this.approvalPendingFiles = list;
+    this.beginApprovalAgendaPicker('upload');
+    input.value = '';
+  }
+
+  private commitApprovalRound(
+    source: 'created' | 'ai',
+    agendaVersions: number[],
+    opts?: { seedForm?: boolean },
+  ): void {
+    const at = this.approvalStamp();
+    const round = this.approvalLatestRound + 1;
+    const html = this.buildApprovalFormHtml();
+    const title = `เอกสารขออนุมัติ บันทึกเสนอ · รอบ ${round}`;
+    const fileName = `เอกสารขออนุมัติ บันทึกเสนอ-รอบ${round}.docx`;
+    const entry: ApprovalSubmitRound = {
+      round,
+      title,
+      at,
+      html,
+      source,
+      fileName,
+      agendaVersions: [...agendaVersions],
+      laneStage: 'draft',
+      sarabanNo: '',
+      laneHistory: [{ at, by: this.signedPerson || this.officerName || 'เจ้าหน้าที่', action: 'สร้างรายการเสนออนุมัติ' }],
+    };
+    this.approvalRounds = [...this.approvalRounds, entry];
+    this.writeApprovalRounds();
+    this.approvalActiveRound = round;
+    this.approvalHtml = html;
+    this.parkAmendCommentsForDraft();
+    this.approvalEmpty = this.amendHtmlIsEmpty(html);
+    this.approvalWordOpen = true;
+    this.approvalTab = 'editor';
+    this.approvalZoom = 100;
+    this.loadApprovalComments();
+    this.notice = null;
+    this.syncFilingUrl();
+    window.setTimeout(() => this.fillApprovalEditor(), 0);
+    if (opts?.seedForm !== false && source === 'created') {
+      this.seedApprovalFormFromSample();
+    }
+  }
+
+  private commitApprovalUpload(list: FileList | File[], agendaVersions: number[]): void {
+    const at = this.approvalStamp();
+    const files = [...list];
+    const added: ApprovalSubmitRound[] = files.map((file, index) => {
+      const round = this.approvalLatestRound + index + 1;
+      const title = `${file.name.replace(/\.[^.]+$/, '')} · รอบ ${round}`;
+      return {
+        round,
+        title,
+        at,
+        html: `<p><strong>ไฟล์อัปโหลด</strong> ${file.name}</p><p>อัปโหลดเมื่อ ${at} — เปิดหรือดาวน์โหลดจากรายการ</p>`,
+        source: 'upload' as const,
+        fileName: file.name,
+        agendaVersions: [...agendaVersions],
+        laneStage: 'draft' as const,
+        sarabanNo: '',
+        laneHistory: [{ at, by: this.signedPerson || this.officerName || 'เจ้าหน้าที่', action: 'อัปโหลดรายการเสนออนุมัติ' }],
+      };
+    });
+    this.approvalRounds = [...this.approvalRounds, ...added];
+    this.writeApprovalRounds();
+    this.approvalActiveRound = this.approvalLatestRound;
+    this.approvalTab = 'files';
+    this.approvalWordOpen = false;
+    this.notice = null;
+    this.syncFilingUrl();
+  }
+
+  private startAiApprovalFill(): void {
+    if (this.approvalAiBusy) return;
+    if (!this.approvalActiveRound) {
+      const latestAgenda = this.draftAgendaLatestVersion;
+      this.commitApprovalRound('created', latestAgenda ? [latestAgenda] : [], { seedForm: false });
+    }
+    this.approvalAiBusy = true;
+    this.view.markForCheck();
+    const minWait = new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 10000);
+    });
+    const fetchSample = fetch(this.approvalSampleUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`sample ${res.status}`);
+        return res.text();
+      })
+      .catch(() => this.buildApprovalFallbackHtml());
+    Promise.all([fetchSample, minWait]).then(([html]) => {
+      this.applyAiApprovalHtml(typeof html === 'string' ? html : String(html));
+      this.approvalAiBusy = false;
+      this.view.markForCheck();
+    });
+  }
+
+  private applyAiApprovalHtml(html: string): void {
+    const round = this.approvalActiveRound || this.approvalLatestRound;
+    const at = this.approvalStamp();
+    this.approvalHtml = html;
+    this.approvalEmpty = this.amendHtmlIsEmpty(html);
+    if (round) {
+      this.approvalRounds = this.approvalRounds.map((row) =>
+        row.round === round ? { ...row, html, at, source: 'ai' } : row,
+      );
+      this.writeApprovalRounds();
+    }
+    this.notice = null;
+    this.approvalWordOpen = true;
+    this.approvalTab = 'editor';
+    this.syncFilingUrl();
+    window.setTimeout(() => this.fillApprovalEditor(), 0);
+  }
+
+  protected openApprovalRound(round: number): void {
+    const row = this.approvalRounds.find((item) => item.round === round);
+    if (!row) return;
+    this.parkAmendCommentsForDraft();
+    this.approvalActiveRound = round;
+    const needsTemplate = this.approvalHtmlNeedsTemplate(row.html);
+    this.approvalHtml = needsTemplate ? this.buildApprovalFormHtml() : row.html;
+    this.approvalWordOpen = true;
+    this.approvalTab = 'editor';
+    this.approvalZoom = 100;
+    this.loadApprovalComments();
+    this.syncFilingUrl();
+    window.setTimeout(() => {
+      this.fillApprovalEditor();
+      this.scheduleAmendWordLayout();
+    }, 0);
+    if (needsTemplate) this.seedApprovalFormFromSample();
+  }
+
+  /** ไฟล์วาระที่ผูกกับรอบที่เปิดอยู่ */
+  protected get approvalLinkedAgendas(): DraftAgendaVersion[] {
+    const round = this.approvalRounds.find((row) => row.round === this.approvalActiveRound);
+    if (!round?.agendaVersions?.length) return [];
+    return round.agendaVersions
+      .map((version) => this.draftAgendaVersions.find((row) => row.version === version))
+      .filter((row): row is DraftAgendaVersion => !!row);
+  }
+
+  /** ไฟล์แนบเพิ่มของรอบที่เปิดอยู่ */
+  protected get approvalLinkedAttachments(): ApprovalSubmitAttachment[] {
+    const round = this.approvalRounds.find((row) => row.round === this.approvalActiveRound);
+    return round?.attachments || [];
+  }
+
+  protected requestAddApprovalAgenda(): void {
+    if (!this.approvalActiveRound) return;
+    this.beginApprovalAgendaPicker('add');
+  }
+
+  protected removeApprovalAgendaLink(version: number): void {
+    const round = this.approvalActiveRound;
+    if (!round) return;
+    const current = this.approvalRounds.find((row) => row.round === round);
+    if (!current) return;
+    const next = current.agendaVersions.filter((item) => item !== version);
+    if (!next.length) return; // ต้องเหลือวาระอย่างน้อย 1 ไฟล์
+    this.setApprovalAgendaVersions(next);
+  }
+
+  protected viewApprovalAgendaLink(version: number): void {
+    this.captureApprovalEditor();
+    this.writeApprovalComments();
+    this.approvalWordOpen = false;
+    this.approvalTab = 'files';
+    this.pickDraftAgenda();
+    this.openDraftAgendaVersion(version);
+  }
+
+  protected downloadApprovalAgendaLink(row: DraftAgendaVersion): void {
+    this.downloadDraftAgendaVersion(row);
+  }
+
+  private setApprovalAgendaVersions(versions: number[]): void {
+    const round = this.approvalActiveRound;
+    if (!round) return;
+    this.approvalRounds = this.approvalRounds.map((row) =>
+      row.round === round ? { ...row, agendaVersions: [...versions] } : row,
+    );
+    this.writeApprovalRounds();
+    this.view.markForCheck();
+  }
+
+  protected requestAddApprovalAttachment(): void {
+    this.approvalAttachUploadInput?.nativeElement.click();
+  }
+
+  protected onApprovalAttachPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const list = input.files;
+    if (!list?.length || !this.approvalActiveRound) return;
+    const at = this.approvalStamp();
+    const added: ApprovalSubmitAttachment[] = [...list].map((file, index) => ({
+      id: `apr-att-${Date.now()}-${index}`,
+      name: file.name,
+      title: file.name.replace(/\.[^.]+$/, ''),
+      at,
+    }));
+    this.approvalRounds = this.approvalRounds.map((row) =>
+      row.round === this.approvalActiveRound
+        ? { ...row, attachments: [...(row.attachments || []), ...added] }
+        : row,
+    );
+    this.writeApprovalRounds();
+    input.value = '';
+    this.view.markForCheck();
+  }
+
+  protected removeApprovalAttachment(id: string): void {
+    const round = this.approvalActiveRound;
+    if (!round) return;
+    this.approvalRounds = this.approvalRounds.map((row) =>
+      row.round === round
+        ? { ...row, attachments: (row.attachments || []).filter((item) => item.id !== id) }
+        : row,
+    );
+    this.writeApprovalRounds();
+  }
+
+  protected openApprovalUpload(row: ApprovalSubmitRound): void {
+    if (row.source === 'created' || row.source === 'ai') {
+      this.openApprovalRound(row.round);
+      return;
+    }
+    this.approvalTab = 'files';
+    this.syncFilingUrl();
+  }
+
+  protected closeApprovalWord(): void {
+    this.captureApprovalEditor();
+    this.writeApprovalComments();
+    this.approvalWordOpen = false;
+    this.approvalTab = 'files';
+    this.approvalViewerFull = false;
+    this.commentPinMode = false;
+    this.restoreParkedAmendComments();
+    this.syncFilingUrl();
+  }
+
+  protected zoomApproval(dir: 1 | -1): void {
+    const at = this.approvalZoomSteps.indexOf(this.approvalZoom);
+    const index = at < 0 ? this.approvalZoomSteps.indexOf(100) : at;
+    const next = this.approvalZoomSteps[Math.min(this.approvalZoomSteps.length - 1, Math.max(0, index + dir))];
+    this.approvalZoom = next ?? 100;
+    this.scheduleAmendWordLayout();
+  }
+
+  protected get approvalZoomCss(): number {
+    return (this.approvalZoom / 100) * Math.max(this.approvalFitScale, this.approvalZoomBase);
+  }
+
+  protected get canZoomApprovalIn(): boolean {
+    return this.approvalZoom < this.approvalZoomSteps[this.approvalZoomSteps.length - 1];
+  }
+
+  protected get canZoomApprovalOut(): boolean {
+    return this.approvalZoom > this.approvalZoomSteps[0];
+  }
+
+  protected toggleApprovalViewerFull(): void {
+    this.approvalViewerFull = !this.approvalViewerFull;
+    if (this.approvalViewerFull) this.docListCollapsed = true;
+    this.scheduleApprovalPageFrames();
+  }
+
+  private syncApprovalFitScale(): void {
+    const stage = this.approvalStageRef?.nativeElement;
+    if (!stage) return;
+    const paperW = this.measureMmAsPx(210);
+    const layoutW = stage.offsetWidth || stage.clientWidth;
+    const avail = Math.max(320, layoutW - 56);
+    this.approvalFitScale = Math.max(1.25, avail / paperW);
+  }
+
+  protected saveApprovalDraft(): void {
+    this.persistApprovalWord(false);
+  }
+
+  protected saveApprovalWord(): void {
+    this.persistApprovalWord(true);
+  }
+
+  protected downloadApprovalWord(): void {
+    this.captureApprovalEditor();
+    const round = this.approvalActiveRound || this.approvalLatestRound || 1;
+    const title = `เอกสารขออนุมัติ บันทึกเสนอ · รอบ ${round}`;
+    const fileName = `เอกสารขออนุมัติ บันทึกเสนอ-รอบ${round}-${this.refId || filingRefId}.doc`;
+    this.downloadEditorHtmlAsWord(fileName, title, this.approvalHtml || '<p><br></p>');
+  }
+
+  protected downloadApprovalRound(row: ApprovalSubmitRound): void {
+    if (this.approvalWordOpen && this.approvalActiveRound === row.round) {
+      this.downloadApprovalWord();
+      return;
+    }
+    const title = row.title || `เอกสารขออนุมัติ บันทึกเสนอ · รอบ ${row.round}`;
+    const base = (row.fileName || `เอกสารขออนุมัติ บันทึกเสนอ-รอบ${row.round}`).replace(/\.[^.]+$/, '');
+    const fileName = `${base}-${this.refId || filingRefId}.doc`;
+    this.downloadEditorHtmlAsWord(fileName, title, row.html || '<p><br></p>');
+  }
+
+  protected renameApprovalRound(round: number, title: string): void {
+    const next = title.trim() || `เอกสารขออนุมัติ บันทึกเสนอ · รอบ ${round}`;
+    this.approvalRounds = this.approvalRounds.map((row) => (row.round === round ? { ...row, title: next } : row));
+    this.writeApprovalRounds();
+  }
+
+  protected approvalAtLabel(at: string): string {
+    return this.draftAgendaAtLabel(at);
+  }
+
+  protected readonly approvalLaneStages = AGENDA_APPROVAL_LANE_STAGES;
+
+  protected get approvalLaneStage(): ApprovalLaneStage {
+    const row = this.approvalRounds.find((item) => item.round === this.approvalActiveRound);
+    return row?.laneStage || 'draft';
+  }
+
+  protected get approvalLaneActor(): ApprovalLaneActor {
+    const stage = this.approvalLaneStage;
+    const eofficeStage =
+      stage === 'eoffice' || stage === 'stamped' || stage === 'numbered' || stage === 'attach';
+    if (stage === 'to-head' && (this.reviewRole === 'head' || this.isMyGroupHead())) return 'head';
+    if (stage === 'to-director' && (this.reviewRole === 'director' || this.reviewRole === 'staff')) {
+      return 'director';
+    }
+    if (eofficeStage && (this.reviewRole === 'director' || this.reviewRole === 'staff')) return 'director';
+    if (this.reviewRole === 'officer' || !this.reviewRole) return 'officer';
+    return 'viewer';
+  }
+
+  protected get showApprovalEofficePanel(): boolean {
+    const stage = this.approvalLaneStage;
+    if (stage !== 'eoffice' && stage !== 'stamped' && stage !== 'numbered' && stage !== 'attach') return false;
+    return this.approvalLaneActor === 'officer' || this.approvalLaneActor === 'director';
+  }
+
+  protected get canFinishApprovalLane(): boolean {
+    return this.approvalLaneStage === 'attach' && !!this.approvalEofficeLetterNo.trim();
+  }
+
+  protected get approvalEofficePayload(): ApprovalEofficePayload {
+    const row = this.approvalRounds.find((item) => item.round === this.approvalActiveRound);
+    const fileNames = [
+      ...(row?.agendaVersions || []).map((version) => {
+        const agenda = this.draftAgendaVersions.find((item) => item.version === version);
+        return agenda?.fileName || agenda?.title || `วาระ · เวอร์ชัน ${version}`;
+      }),
+      ...(row?.attachments || []).map((file) => file.name),
+      row?.fileName || '',
+    ].filter((name, index, all) => !!name && all.indexOf(name) === index);
+    return {
+      subject: row?.title || 'เอกสารขออนุมัติ บันทึกเสนอ',
+      from: 'กองปกป้องและตอบโต้ทางการค้า กรมการค้าต่างประเทศ',
+      to: 'อธิบดีกรมการค้าต่างประเทศ',
+      ref: `คำขอเลขที่อ้างอิง ${this.refId}`,
+      letterDate: row?.at?.split('·')[0]?.trim() || this.thaiToday(),
+      speed: 'ปกติ',
+      secrecy: 'ปกติ',
+      fileCount: fileNames.length,
+      fileNames,
+      caseRef: this.refId,
+    };
+  }
+
+  protected get approvalEofficeLink(): ApprovalEofficeLinkState {
+    const row = this.approvalRounds.find((item) => item.round === this.approvalActiveRound);
+    return row?.eofficeLink || 'idle';
+  }
+
+  protected get approvalEofficeLetterNo(): string {
+    return this.approvalRounds.find((item) => item.round === this.approvalActiveRound)?.sarabanNo || '';
+  }
+
+  protected get approvalEofficeLinkDetail(): string {
+    const link = this.approvalEofficeLink;
+    const no = this.approvalEofficeLetterNo;
+    if (link === 'sent') return 'ส่งเข้า e-Office แล้ว — รอ sync เลข';
+    if (link === 'synced') return `sync แล้ว · ${no || '—'}`;
+    if (link === 'error') return 'เชื่อม e-Office ไม่ได้ — กรอกเลขและแนบไฟล์เองได้';
+    if (link === 'manual') return `ทำเองในระบบ · ${no || '—'}`;
+    return 'ยังไม่ส่ง — กดส่ง Auto หรือกรอกเลขเองเมื่อเชื่อมไม่ได้';
+  }
+
+  private patchActiveApprovalEofficeLink(link: ApprovalEofficeLinkState): void {
+    const round = this.approvalActiveRound || this.approvalLatestRound;
+    if (!round) return;
+    this.approvalRounds = this.approvalRounds.map((row) =>
+      row.round === round ? { ...row, eofficeLink: link } : row,
+    );
+    this.writeApprovalRounds();
+  }
+
+  protected approvalLaneLabel(stage = this.approvalLaneStage): string {
+    const no = this.approvalRounds.find((row) => row.round === this.approvalActiveRound)?.sarabanNo;
+    if (stage === 'done' && no) return `จัดเก็บแล้ว · ${no}`;
+    if (stage === 'numbered' && no) return `ได้เลข ${no}`;
+    return approvalLaneStageLabel(stage);
+  }
+
+  protected approvalLaneStageLabel = approvalLaneStageLabel;
+  protected approvalLaneStageTone = approvalLaneStageTone;
+
+  private patchActiveApprovalLane(
+    stage: ApprovalLaneStage,
+    action: string,
+    extra?: Partial<Pick<ApprovalSubmitRound, 'sarabanNo'>>,
+  ): void {
+    const round = this.approvalActiveRound || this.approvalLatestRound;
+    if (!round) return;
+    const at = this.approvalStamp();
+    const by = this.signedPerson || this.officerName || 'เจ้าหน้าที่';
+    this.approvalRounds = this.approvalRounds.map((row) => {
+      if (row.round !== round) return row;
+      return {
+        ...row,
+        laneStage: stage,
+        sarabanNo: extra?.sarabanNo ?? row.sarabanNo ?? '',
+        laneHistory: [...(row.laneHistory || []), { at, by, action }],
+        ...extra,
+      };
+    });
+    this.writeApprovalRounds();
+  }
+
+  protected onApprovalLaneAction(id: ApprovalLaneActionId): void {
+    if (id === 'save-draft') {
+      this.saveApprovalDraft();
+      return;
+    }
+    if (id === 'send-head') {
+      this.patchActiveApprovalLane('to-head', 'ส่งหัวหน้ากลุ่ม');
+      this.approvalTab = 'files';
+      this.approvalWordOpen = false;
+      this.notice = 'saved';
+      return;
+    }
+    if (id === 'return-officer') {
+      this.patchActiveApprovalLane('draft', 'ส่งกลับเจ้าหน้าที่');
+      this.notice = 'saved';
+      return;
+    }
+    if (id === 'approve-head') {
+      this.patchActiveApprovalLane('to-director', 'หัวหน้ากลุ่มเห็นชอบ → ส่งผู้อำนวยการ');
+      this.notice = 'saved';
+      return;
+    }
+    if (id === 'approve-director') {
+      this.patchActiveApprovalLane('eoffice', 'ผู้อำนวยการเห็นชอบ → รอส่ง e-Office');
+      this.patchActiveApprovalEofficeLink('idle');
+      this.notice = 'saved';
+      return;
+    }
+    if (id === 'send-eoffice') {
+      this.patchActiveApprovalLane('stamped', 'ส่ง Auto เข้า e-Office แล้ว (ยังไม่มีเลข)');
+      this.patchActiveApprovalEofficeLink('sent');
+      this.notice = 'saved';
+      return;
+    }
+    if (id === 'mark-stamped') {
+      this.patchActiveApprovalLane('numbered', 'ประทับตรา / ลงนามแล้ว — รอออกเลข');
+      if (this.approvalEofficeLink === 'idle') this.patchActiveApprovalEofficeLink('sent');
+      this.notice = 'saved';
+      return;
+    }
+    if (id === 'pull-number') {
+      const no = this.filingSaraban || 'สบ.1605/2562';
+      this.patchActiveApprovalLane('attach', `ออกเลขสารบรรณ ${no}`, { sarabanNo: no });
+      this.patchActiveApprovalEofficeLink('synced');
+      this.notice = 'saved';
+      return;
+    }
+    if (id === 'attach-numbered') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx';
+      input.onchange = () => {
+        const list = input.files;
+        if (list?.length) this.onApprovalAttachPicked({ target: input } as unknown as Event);
+        this.patchActiveApprovalLane('attach', 'แนบไฟล์ที่ออกเลขแล้ว');
+        this.notice = 'saved';
+      };
+      input.click();
+      return;
+    }
+    if (id === 'finish') {
+      const no =
+        this.approvalRounds.find((row) => row.round === this.approvalActiveRound)?.sarabanNo ||
+        this.filingSaraban ||
+        'สบ.1605/2562';
+      this.patchActiveApprovalLane('done', `จัดเก็บ / ส่งต่อ · ${no}`, { sarabanNo: no });
+      this.approvalTab = 'files';
+      this.approvalWordOpen = false;
+      this.notice = 'saved';
+    }
+  }
+
+  protected failApprovalEofficeLink(): void {
+    if (!this.showApprovalEofficePanel) return;
+    this.patchActiveApprovalEofficeLink('error');
+    this.patchActiveApprovalLane(this.approvalLaneStage, 'เชื่อม e-Office ไม่ได้ — ใช้โหมดกรอกเอง');
+    this.notice = 'saved';
+  }
+
+  protected syncApprovalFromEoffice(): void {
+    if (!this.showApprovalEofficePanel) return;
+    const no = this.approvalEofficeLetterNo || this.filingSaraban || 'สบ.1605/2562';
+    this.patchActiveApprovalLane('attach', `sync เลขสารบรรณ ${no} จาก e-Office`, { sarabanNo: no });
+    this.patchActiveApprovalEofficeLink('synced');
+    this.notice = 'saved';
+  }
+
+  protected applyManualApprovalEoffice(payload: { letterNo: string; files: FileList | null }): void {
+    if (!this.showApprovalEofficePanel) return;
+    const no = payload.letterNo.trim();
+    if (!no) return;
+    if (payload.files?.length) {
+      this.onApprovalAttachPicked({ target: { files: payload.files } } as unknown as Event);
+    }
+    this.patchActiveApprovalLane('attach', `กรอกเลข ${no} และแนบไฟล์เอง`, { sarabanNo: no });
+    this.patchActiveApprovalEofficeLink('manual');
+    this.notice = 'saved';
+  }
+
+  private approvalStamp(): string {
+    return this.replyStamp();
+  }
+
+  private persistApprovalWord(closeToFiles: boolean): void {
+    this.captureApprovalEditor();
+    const round = this.approvalActiveRound || this.approvalLatestRound;
+    if (!round) return;
+    const at = this.approvalStamp();
+    this.approvalRounds = this.approvalRounds.map((row) =>
+      row.round === round ? { ...row, html: this.approvalHtml, at } : row,
+    );
+    this.writeApprovalRounds();
+    const kind = 'เอกสารขออนุมัติ บันทึกเสนอ';
+    const current = this.approvalRounds.find((row) => row.round === round);
+    const fields = [
+      field('ชื่อเอกสาร', current?.title || `เอกสารขออนุมัติ บันทึกเสนอ · รอบ ${round}`),
+      field('วันที่', at),
+      field('รอบ', String(round)),
+      field('วาระที่ผูก', (current?.agendaVersions || []).join(', ')),
+      field('เนื้อหาเอกสาร', this.approvalHtml, true),
+    ];
+    const existing = this.madeDocs.find(
+      (item) => item.kind === kind && item.fields.some((row) => row.label === 'รอบ' && row.value === String(round)),
+    );
+    if (existing) {
+      this.madeDocs = this.madeDocs.map((item) => (item.id === existing.id ? { ...item, at, fields } : item));
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `approval-submit-r${round}`, kind, at, fields }];
+    }
+    writeMadeDocs(this.madeDocs);
+    this.notice = null;
+    if (closeToFiles) {
+      this.approvalTab = 'files';
+      this.approvalWordOpen = false;
+      this.syncFilingUrl();
+    }
+  }
+
+  protected approvalFormat(command: string, value?: string): void {
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand(command, false, value);
+    this.lockOfficialFontOnSelection();
+    this.captureApprovalEditor();
+    this.refreshAmendToolbar();
+    this.approvalEditorRef?.nativeElement.focus();
+  }
+
+  protected applyApprovalFontSize(size: string): void {
+    this.amendFontSize = size;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('fontSize', false, '3');
+    const root = this.approvalEditorRef?.nativeElement;
+    root?.querySelectorAll('font[size="3"]').forEach((node) => {
+      const span = document.createElement('span');
+      span.style.fontSize = size;
+      span.style.fontFamily = this.officialFontName;
+      span.innerHTML = node.innerHTML;
+      node.replaceWith(span);
+    });
+    this.lockOfficialFontOnSelection();
+    this.captureApprovalEditor();
+    this.approvalEditorRef?.nativeElement.focus();
+  }
+
+  protected applyApprovalColor(color: string): void {
+    this.amendColor = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, color);
+    this.lockOfficialFontOnSelection();
+    this.captureApprovalEditor();
+    this.refreshAmendToolbar();
+    this.approvalEditorRef?.nativeElement.focus();
+  }
+
+  protected applyApprovalHighlight(color: string): void {
+    this.amendHighlight = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('hiliteColor', false, color === 'transparent' ? 'transparent' : color);
+    this.lockOfficialFontOnSelection();
+    this.captureApprovalEditor();
+    this.refreshAmendToolbar();
+    this.approvalEditorRef?.nativeElement.focus();
+  }
+
+  protected onApprovalEditorInput(): void {
+    this.captureApprovalEditor();
+    this.refreshAmendToolbar();
+    this.scheduleApprovalPageFrames();
+  }
+
+  protected insertApprovalPageBreak(): void {
+    const pageH = this.measureMmAsPx(297);
+    const editor = this.approvalEditorRef?.nativeElement;
+    const sheet = editor?.closest('.word-print-sheet') as HTMLElement | null;
+    const stage = this.approvalStageRef?.nativeElement;
+    let remain = Math.round(pageH * 0.35);
+    const sel = window.getSelection();
+    const node = sel?.anchorNode;
+    const el = node instanceof Element ? node : node?.parentElement;
+    if (el && sheet && stage && sheet.contains(el)) {
+      const rect = (el as HTMLElement).getBoundingClientRect();
+      const sheetTop = sheet.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop;
+      const y = rect.bottom - sheet.getBoundingClientRect().top + stage.scrollTop - sheetTop;
+      const offsetInPage = ((y % pageH) + pageH) % pageH;
+      remain = Math.max(28, Math.ceil(pageH - offsetInPage));
+    }
+    const breakHtml =
+      `<div class="word-page-break" data-page-break="1" contenteditable="false" style="height:${remain}px" aria-hidden="true"></div>` +
+      `<p style="font-family:${this.officialFontName};font-size:16pt;line-height:1.15;margin:0"><br></p>`;
+    this.textEditorFormat('insertHTML', breakHtml);
+    this.scheduleApprovalPageFrames();
+  }
+
+  protected scheduleApprovalPageFrames(): void {
+    if (this.approvalLayoutRaf) cancelAnimationFrame(this.approvalLayoutRaf);
+    this.approvalLayoutRaf = requestAnimationFrame(() => {
+      this.approvalLayoutRaf = 0;
+      this.syncApprovalPageFrames();
+    });
+  }
+
+  private syncApprovalPageFrames(): void {
+    const sheet = this.approvalEditorRef?.nativeElement?.closest('.word-print-sheet') as HTMLElement | null;
+    const stage = this.approvalStageRef?.nativeElement;
+    if (!stage) return;
+    this.syncApprovalFitScale();
+    const pageH = this.measureMmAsPx(297);
+    const sheetTop = sheet
+      ? sheet.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop
+      : 0;
+    const contentH = Math.max(pageH, sheet?.offsetHeight || pageH);
+    const count = Math.max(1, Math.ceil(contentH / pageH));
+    this.approvalPageFrames = Array.from({ length: count }, (_, i) => ({
+      n: i + 1,
+      top: sheetTop + i * pageH,
+      height: pageH,
+    }));
+    this.view.markForCheck();
+  }
+
+  private captureApprovalEditor(): void {
+    const el = this.approvalEditorRef?.nativeElement;
+    if (!el) return;
+    const empty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+    this.approvalEmpty = empty;
+    this.approvalHtml = empty ? '' : el.innerHTML;
+    const round = this.approvalActiveRound;
+    if (round) {
+      this.approvalRounds = this.approvalRounds.map((row) =>
+        row.round === round ? { ...row, html: this.approvalHtml } : row,
+      );
+      this.writeApprovalRounds();
+    }
+  }
+
+  private fillApprovalEditor(tries = 0): void {
+    const run = () => {
+      const el = this.approvalEditorRef?.nativeElement;
+      if (!el) {
+        if (tries < 8) window.setTimeout(() => this.fillApprovalEditor(tries + 1), 50);
+        return;
+      }
+      if (this.approvalHtmlNeedsTemplate(this.approvalHtml)) {
+        this.approvalHtml = this.buildApprovalFormHtml();
+        this.seedApprovalFormFromSample();
+      }
+      el.innerHTML = this.approvalHtml;
+      this.approvalEmpty = this.amendHtmlIsEmpty(this.approvalHtml);
+      this.refreshAmendToolbar();
+      this.scheduleAmendWordLayout();
+      window.setTimeout(() => this.scheduleAmendWordLayout(), 120);
+      this.view.markForCheck();
+    };
+    window.setTimeout(run, tries === 0 ? 0 : 50);
+  }
+
+  private approvalHtmlNeedsTemplate(html: string): boolean {
+    if (!html || this.amendHtmlIsEmpty(html)) return true;
+    return !/บันทึกข้อความ/.test(html);
+  }
+
+  /** โครงแบบฟอร์มบันทึกข้อความ (ครุฑ + หัวเรื่อง) — ใช้ตอนเปิดหน้าสร้างทันที */
+  private buildApprovalFormHtml(): string {
+    const font = this.officialFontName;
+    return [
+      `<div class="approval-memo-sample" data-source="form" style="font-family:${font};font-size:16pt;line-height:1.15;color:#0E2346">`,
+      `<p class="approval-memo-head" style="font-family:${font};font-size:16pt;line-height:1.15;margin:0 0 8pt;color:#0E2346;position:relative;min-height:80px;text-align:center">`,
+      `<img src="assets/samples/ad1046/agenda/approval/garuda.png" alt="ตราครุฑ" width="78" height="88" style="position:absolute;left:0;top:0;width:78px;height:88px;object-fit:contain" />`,
+      `<span style="font-family:${font};font-size:28pt;font-weight:700;display:inline-block;margin-top:28px"><strong>บันทึกข้อความ</strong></span>`,
+      `</p>`,
+      `<p style="font-family:${font};font-size:16pt;line-height:1.15;margin:0;color:#0E2346;text-align:justify"><strong style="font-size:20pt">ส่วนราชการ</strong> กองปกป้องและตอบโต้ทางการค้า กลุ่ม 1 โทร. ๔๘๕๗, ๔๘๖๕</p>`,
+      `<p style="font-family:${font};font-size:16pt;line-height:1.15;margin:0;color:#0E2346;text-align:justify"><strong style="font-size:20pt">ที่</strong> ปค&emsp;<strong style="font-size:20pt">วันที่</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ตุลาคม ๒๕๖๓</p>`,
+      `<p style="font-family:${font};font-size:16pt;line-height:1.15;margin:0;color:#0E2346;text-align:justify"><strong style="font-size:20pt">เรื่อง</strong> การพิจารณาคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาด</p>`,
+      `<p style="font-family:${font};font-size:16pt;line-height:1.15;margin:0;color:#0E2346;text-align:justify"><strong style="font-size:20pt">เรียน</strong> อธิบดี</p>`,
+      `<p style="font-family:${font};font-size:16pt;line-height:1.15;margin:12pt 0 0;color:#0E2346"><br></p>`,
+      `</div>`,
+    ].join('');
+  }
+
+  /** โหลดต้นฉบับบันทึกเสนอใส่ editor ทันทีหลังสร้าง (ไม่รอ AI) */
+  private approvalSeedInFlight = false;
+  private seedApprovalFormFromSample(): void {
+    if (this.approvalSeedInFlight) return;
+    const round = this.approvalActiveRound;
+    if (!round) return;
+    this.approvalSeedInFlight = true;
+    fetch(this.approvalSampleUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`sample ${res.status}`);
+        return res.text();
+      })
+      .then((html) => {
+        if (this.approvalActiveRound !== round) return;
+        this.approvalHtml = html;
+        this.approvalEmpty = this.amendHtmlIsEmpty(html);
+        this.approvalRounds = this.approvalRounds.map((row) =>
+          row.round === round ? { ...row, html, source: row.source === 'ai' ? 'ai' : 'created' } : row,
+        );
+        this.writeApprovalRounds();
+        const el = this.approvalEditorRef?.nativeElement;
+        if (el) {
+          el.innerHTML = html;
+          this.approvalEmpty = false;
+        } else {
+          this.fillApprovalEditor();
+        }
+        this.scheduleAmendWordLayout();
+        this.view.markForCheck();
+      })
+      .catch(() => {
+        /* คงโครงแบบฟอร์มที่เปิดไว้แล้ว */
+      })
+      .finally(() => {
+        this.approvalSeedInFlight = false;
+      });
+  }
+
+  private buildApprovalFallbackHtml(): string {
+    return this.buildApprovalFormHtml();
+  }
+
+  private loadApprovalRounds(): void {
+    try {
+      const raw = sessionStorage.getItem(this.approvalRoundsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as ApprovalSubmitRound[];
+      if (!Array.isArray(parsed)) return;
+      this.approvalRounds = parsed
+        .filter(
+          (row) => row && typeof row.round === 'number' && typeof row.html === 'string' && Array.isArray(row.agendaVersions),
+        )
+        .map((row) => ({
+          ...row,
+          title: (row.title || '').replaceAll('เอกสารขออนุมัติ_บันทึกเสนอ', 'เอกสารขออนุมัติ บันทึกเสนอ'),
+          fileName: row.fileName
+            ? row.fileName.replaceAll('เอกสารขออนุมัติ_บันทึกเสนอ', 'เอกสารขออนุมัติ บันทึกเสนอ')
+            : row.fileName,
+          attachments: Array.isArray(row.attachments) ? row.attachments : [],
+          laneStage: row.laneStage || 'draft',
+          sarabanNo: row.sarabanNo || '',
+          laneHistory: Array.isArray(row.laneHistory) ? row.laneHistory : [],
+          html: this.approvalHtmlNeedsTemplate(row.html) ? this.buildApprovalFormHtml() : row.html,
+        }));
+      this.approvalActiveRound = this.approvalLatestRound;
+      const current = this.approvalRounds.find((row) => row.round === this.approvalActiveRound);
+      if (current) this.approvalHtml = current.html;
+      this.writeApprovalRounds();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private writeApprovalRounds(): void {
+    try {
+      sessionStorage.setItem(this.approvalRoundsKey, JSON.stringify(this.approvalRounds));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private approvalCommentsStorageKey(round = this.approvalActiveRound): string {
+    return `${this.approvalCommentsKey}-r${round || 0}`;
+  }
+
+  private loadApprovalComments(): void {
+    try {
+      const raw = sessionStorage.getItem(this.approvalCommentsStorageKey());
+      const parsed = raw ? (JSON.parse(raw) as AmendWordComment[]) : [];
+      this.amendWordComments = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      this.amendWordComments = [];
+    }
+    this.amendWordActiveId = '';
+    this.amendWordDraftId = '';
+    this.commentPinMode = false;
+  }
+
+  private writeApprovalComments(): void {
+    try {
+      const key = this.approvalCommentsStorageKey();
+      if (!this.amendWordComments.length) sessionStorage.removeItem(key);
+      else sessionStorage.setItem(key, JSON.stringify(this.amendWordComments));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  protected pickExtend(): void {
+    if (this.agencyWordOpen) {
+      this.captureAgencySummaryEditor();
+      this.agencyWordOpen = false;
+    }
+    this.completeBundle = '';
+    this.docPart = this.extendPart;
+    this.editingId = '';
+    this.docShelf = 'files';
+    this.syncFilingUrl();
+  }
+
+  protected extendDot(): string {
+    if (!this.extendRoundCount) return 'assets/icons/por1-dot.svg';
+    if (this.extendStatusLabel === 'รอพิจารณา') return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot-done.svg';
+  }
+
+  protected get extendRoundCount(): number {
+    return this.extendRounds.length;
+  }
+
+  protected get extendStatusLabel(): string {
+    return this.extendRounds[0]?.status || 'ยังไม่มีคำขอ';
+  }
+
+  protected get extendRounds(): {
+    at: string;
+    due: string;
+    reason: string;
+    status: string;
+    tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral';
+  }[] {
+    const rows: {
+      at: string;
+      due: string;
+      reason: string;
+      status: string;
+      tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral';
+    }[] = [];
+    if (this.replySent && this.replyKind === 'extend') {
+      rows.push({
+        at: this.replyAt || '—',
+        due: this.replyNewDue || '—',
+        reason: this.amendReason || '—',
+        status: 'รอพิจารณา',
+        tone: 'warning',
+      });
+    }
+    for (const pass of this.noticePasses) {
+      const reply = pass.reply;
+      if (!reply || reply.kind !== 'extend') continue;
+      rows.push({
+        at: reply.at || pass.noticedOn || '—',
+        due: reply.newDue || '—',
+        reason: reply.reason || pass.note || '—',
+        status: 'บันทึกแล้ว',
+        tone: 'info',
+      });
+    }
+    return rows;
+  }
+
+  protected get extendFiles(): ReplyFile[] {
+    const fromReply = this.replyFilesOf('extend');
+    if (fromReply.length) return fromReply;
+    const fromPasses = this.noticePasses.flatMap((pass) =>
+      pass.reply?.kind === 'extend' ? pass.reply.files?.filter((file) => file.group === 'extend') || [] : [],
+    );
+    return fromPasses;
+  }
+
+  protected get openEditionKind(): string {
+    return OPEN_EDITION_KIND;
+  }
+
+  protected get closedEditionKind(): string {
+    return CLOSED_EDITION_KIND;
+  }
+
+  protected editionKindAt(part = this.docPart): string {
+    if (part === this.openEditionPart) return OPEN_EDITION_KIND;
+    if (part === this.closedEditionPart) return CLOSED_EDITION_KIND;
+    return '';
+  }
+
   protected openDocShelf(shelf: 'files' | 'committee'): void {
     // แท็บคณะกรรมการซ่อนไว้ก่อน — บังคับอยู่ที่รายการเอกสาร
     this.docShelf = 'files';
-    if (shelf === 'committee' || this.docPart > this.workDocs.length) this.pickDoc(-1);
+    if (shelf === 'committee' || this.docPart === this.committeePart) this.pickDoc(-1);
   }
 
   protected pickDoc(index: number): void {
-    // แท็บคณะกรรมการซ่อนไว้ก่อน
-    const next = index > this.workDocs.length ? -1 : index;
+    // ฉบับสมบูรณ์เปิดเป็นรวมเล่ม — คณะกรรมการยังซ่อนในรายการนี้
+    if (index === this.openEditionPart) {
+      this.pickCompleteBundle('open');
+      return;
+    }
+    if (index === this.closedEditionPart) {
+      this.pickCompleteBundle('closed');
+      return;
+    }
+    if (index === this.extendPart) {
+      this.pickExtend();
+      return;
+    }
+    if (index === this.draftAgendaPart) {
+      this.pickDraftAgenda();
+      return;
+    }
+    if (index === this.approvalSubmitPart) {
+      this.pickApprovalSubmit();
+      return;
+    }
+    this.completeBundle = '';
+    const next = index === this.committeePart || index > this.extendPart ? -1 : index;
+    if (this.agencyWordOpen && this.workDocs[next]?.title !== 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง') {
+      this.captureAgencySummaryEditor();
+      this.agencyWordOpen = false;
+    }
     this.docPart = next;
     this.editingId = '';
     this.docShelf = 'files';
+    if (next >= 0 && next < this.workDocs.length) {
+      this.ensureAgencyDocForms(this.workDocs[next].title);
+    }
+    this.syncFilingUrl();
   }
+
+  /** โหมดรวมเล่มฉบับสมบูรณ์หลังแจ้งครบถ้วน — แยกเปิดเผย / ปกปิด */
+  protected completeBundle: '' | 'open' | 'closed' = '';
 
   /** เลือกแบบคำขอ — เปิดเล่มรอบยื่นครั้งแรกตาม Prototype */
   protected pickFilingBundle(): void {
+    this.completeBundle = '';
     this.ensureRoundFolders();
     this.pickDoc(-1);
     this.bundleEdition = 'original';
     this.bundleComments = this.readBundleComments();
     this.bundleReviewNotes = this.readBundleReviewNotes();
     this.bundleFormCode = this.caseForms[0]?.code || 'ปร. 1';
-    this.bundleRoundNo = this.bundleRoundOptions[0]?.round || 1;
+    this.bundleRoundNo = this.bundleRoundOptions.at(-1)?.round || this.bundleRoundOptions[0]?.round || 1;
     this.placeBundleItem(this.bundleToc[0]?.items[0] || null);
   }
 
+  /** เปิดรวมเล่มฉบับเปิดเผยสมบูรณ์ / ฉบับปกปิดสมบูรณ์ — UI เดียวกับแบบคำขอ */
+  protected pickCompleteBundle(kind: 'open' | 'closed'): void {
+    this.ensureRoundFolders();
+    this.completeBundle = kind;
+    this.docPart = kind === 'open' ? this.openEditionPart : this.closedEditionPart;
+    this.editingId = '';
+    this.docShelf = 'files';
+    this.ensureOpenEditionFiles();
+    this.ensureClosedEditionFiles();
+    this.bundleEdition = 'original';
+    this.bundleComments = this.readBundleComments();
+    this.bundleReviewNotes = this.readBundleReviewNotes();
+    this.bundleFormCode = this.caseForms[0]?.code || 'ปร. 1';
+    this.bundleRoundNo = this.bundleRoundOptions.at(-1)?.round || this.bundleRoundOptions[0]?.round || 1;
+    this.placeBundleItem(this.bundleToc[0]?.items[0] || null);
+    this.syncFilingUrl();
+  }
+
   protected get showFilingBundle(): boolean {
-    return this.docPart < 0;
+    return this.docPart < 0 || !!this.completeBundle;
+  }
+
+  protected get showCompleteBundle(): boolean {
+    return !!this.completeBundle;
+  }
+
+  /** ชื่อหัวเล่ม — แบบคำขอ หรือฉบับสมบูรณ์ */
+  protected get activeBundleTitle(): string {
+    if (this.completeBundle === 'open') return OPEN_EDITION_KIND;
+    if (this.completeBundle === 'closed') return CLOSED_EDITION_KIND;
+    return this.bundleDocTitle;
+  }
+
+  protected get completeBundleKind(): string {
+    return this.completeBundle === 'closed' ? CLOSED_EDITION_KIND : OPEN_EDITION_KIND;
+  }
+
+  protected get completeBundleFiles(): { kind: string; name: string; title: string; sentOn: string }[] {
+    if (!this.completeBundle) return [];
+    return this.extrasOf(this.completeBundleKind);
   }
 
   /** รอบที่เปิดดูเล่ม (หนึ่งรอบ = หนึ่งโฟลเดอร์ เช่น 1. 15 พค 62) */
@@ -4545,6 +7904,7 @@ export class Por1Page {
 
   protected get bundleRoundOptions(): { round: number; folder: string; on: string }[] {
     const source = this.rounds.length ? this.rounds : this.ad1046SampleRounds();
+    // แสดงทุกรอบที่ยื่น — แบบคำขอ + แก้ไขที่ยื่นเข้ามาใหม่ (ยึดครั้งล่าสุดตอนแจ้งผล)
     return source.map((round) => ({
       round: round.round,
       folder: round.folder || this.roundFolderName(round.round, round.submittedOn),
@@ -4599,15 +7959,18 @@ export class Por1Page {
     });
   }
 
-  /** เติมชื่อโฟลเดอร์รอบยื่น · โหมดเจ้าหน้าที่ใช้รอบตาม Prototype AD1046 */
+  /** เติมชื่อโฟลเดอร์รอบยื่น — รวมครั้งแก้ไขที่ยื่นเข้ามาใหม่ */
   private ensureRoundFolders(): void {
-    const stale =
-      this.rounds.length > 0 &&
-      (!this.rounds.some((round) => /2563/.test(round.submittedOn)) ||
-        !this.rounds.some((round) => round.round <= 1 && /แบบคำขอครั้งที่ 1/.test(round.folder || '')));
-    if (this.reviewRole || !this.rounds.length || stale) {
-      this.rounds = this.ad1046SampleRounds();
+    const sample = this.ad1046SampleRounds();
+    const needsSeed =
+      this.reviewRole ||
+      !this.rounds.length ||
+      this.rounds.length < sample.length ||
+      !this.rounds.some((round) => round.round === sample[sample.length - 1]?.round);
+    if (needsSeed) {
+      this.rounds = sample;
       writeRounds(this.rounds);
+      this.bundleRoundNo = sample[sample.length - 1]?.round || 1;
       return;
     }
     let changed = false;
@@ -4620,65 +7983,60 @@ export class Por1Page {
     if (changed) writeRounds(this.rounds);
   }
 
-  /** รอบยื่นตามเคสจริง AD1046 · ยื่นครั้งแรก 15 พ.ค. 2563 แล้วส่งแก้ไขตามหนังสือกรม */
+  /**
+   * รอบยื่น AD1046 — แบบคำขอ + แก้ไขที่ยื่นเข้ามาใหม่ 3 ครั้ง
+   * ครั้งล่าสุด = แก้ไขคำขอครั้งที่ 3 (9 ตค 63)
+   */
   private ad1046SampleRounds(): FilingRound[] {
     const annex = this.realFilingAnnex();
-    const firstOn = this.filedOn || firstFiledOn || '15/05/2563';
+    const firstOn = this.prototypeActionDay();
     const baseAnswers = this.formAnswers();
-    const amendAnswers = [
-      ...baseAnswers.filter((row) => row.label !== 'ผู้ผลิตต่างประเทศ'),
-      {
-        group: 'ส่วนที่ 3 ผู้ผลิต ผู้ส่งออก ผู้นำเข้า',
-        label: 'ผู้ผลิตต่างประเทศ',
-        value:
-          'Formosa Ha Tinh Steel Corporation (เวียดนาม); Ezz El Dekheila Steel Company (อียิปต์); Al Ezz Flat Steel (EFS) (อียิปต์ — เพิ่มตามหนังสือแก้ไขครั้งที่ 1)',
-      },
-      {
-        group: 'ส่วนที่ 1 ผู้ยื่นคำขอ',
-        label: 'ผู้ผลิตที่มิได้ขอให้กระทำการแทน (แก้ไข)',
-        value: 'บมจ. แอล พี เอ็น เพลทมิล — แนบรายการและปริมาณสินค้าที่ผลิต/จำหน่าย ตามหนังสือแก้ไขครั้งที่ 1 ข้อ 1.1.2',
-      },
-      {
-        group: 'ส่วนที่ 2 สินค้า',
-        label: '2.1.10 ข้อเปรียบเทียบอื่น ๆ (แก้ไข)',
-        value: 'ส่วนที่เหมือนกัน: ลักษณะทางกายภาพ เคมี มาตรฐาน และกระบวนการผลิตใช้ทดแทนกันได้\nส่วนที่แตกต่างกัน: แหล่งกำเนิดและช่องทางจำหน่ายต่างกันตามข้อ 2.1.5–2.1.9',
-      },
+    const amendOns = [
+      { round: 2, on: '22/07/2563' },
+      { round: 3, on: '15/09/2563' },
+      { round: 4, on: '09/10/2563' },
     ];
-    const make = (
-      round: number,
-      submittedOn: string,
-      folder: string,
-      findings: RoundFinding[],
-      answers: RoundAnswer[],
-    ): FilingRound => ({
-      round,
-      submittedOn,
-      folder,
-      state: findings.length ? 'revision' : 'review',
+    const first: FilingRound = {
+      round: 1,
+      submittedOn: firstOn,
+      folder: this.roundFolderName(1, firstOn),
+      state: 'revision',
       company: this.company,
       measure: this.measureName,
       signer: this.signer,
       files: annex,
-      findings,
-      answers,
-    });
-    return [
-      make(1, firstOn, this.roundFolderName(1, firstOn), this.revisionFindings, baseAnswers),
-      make(2, '22/07/2563', this.roundFolderName(2, '22/07/2563'), this.secondFindings, amendAnswers),
-      make(3, '28/08/2563', this.roundFolderName(3, '28/08/2563'), this.thirdFindings, amendAnswers),
-      make(4, '09/10/2563', this.roundFolderName(4, '09/10/2563'), [], amendAnswers),
-      make(5, '16/10/2563', '5. แก้ไขคำขอเพิ่มเติม นำส่งวันที่ 16 ตค 63', [], amendAnswers),
-      make(6, '22/10/2563', '6. แก้ไขคำขอเพิ่มเติมส่งทาง mail 22 ตค. 63', [], amendAnswers),
-    ];
+      findings: this.revisionFindings,
+      answers: baseAnswers,
+    };
+    const amends: FilingRound[] = amendOns.map((row, index) => ({
+      round: row.round,
+      submittedOn: row.on,
+      folder: this.roundFolderName(row.round, row.on),
+      state: index === amendOns.length - 1 ? 'review' : 'revision',
+      company: this.company,
+      measure: this.measureName,
+      signer: this.signer,
+      files: annex,
+      findings: this.revisionFindings,
+      answers: baseAnswers,
+    }));
+    return [first, ...amends];
   }
 
-  /** ชื่อโฟลเดอร์รอบยื่นตามแบบแฟ้มจริง AD1046 */
+  /** วันที่ยื่น/กระทำสำหรับ Prototype — ใช้วันปัจจุบัน (หรือวันที่ action ที่บันทึกไว้) */
+  private prototypeActionDay(): string {
+    const saved = (sessionStorage.getItem('dft-por1-action-on') || '').split(' ')[0];
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(saved)) return saved;
+    return this.thaiToday() || this.clockToday() || this.filedOn || firstFiledOn;
+  }
+
+  /** ชื่อโฟลเดอร์รอบยื่น — เช่น 1. แบบคำขอครั้งที่ 1 (23พย69) */
   private roundFolderName(round: number, submittedOn: string): string {
     const short = this.thaiFolderDate(submittedOn);
     const compact = short.replace(/\s+/g, '');
-    if (round <= 1) return `1. แบบคำขอครั้งที่ 1 ${compact}`;
-    if (round === 2) return `2. คำขอแก้ไขครั้งที่ 1 ${compact}`;
-    return `${round}. แก้ไขคำขอครั้งที่ ${round - 1} ${compact}`;
+    if (round <= 1) return `1. แบบคำขอครั้งที่ 1 (${compact})`;
+    if (round === 2) return `2. คำขอแก้ไขครั้งที่ 1 (${compact})`;
+    return `${round}. แก้ไขคำขอครั้งที่ ${round - 1} (${compact})`;
   }
 
   private thaiFolderDate(value: string): string {
@@ -4706,17 +8064,21 @@ export class Por1Page {
   protected bundleAmendText = '';
   protected amendEditorEmpty = true;
   protected amendMarks: Record<string, boolean> = {};
-  protected amendFontSize = '16px';
+  protected amendFontSize = '16pt';
   protected amendColor = '#0E2346';
-  /** ขนาดตัวอักษรที่ใช้งานจริง */
+  protected amendHighlight = 'transparent';
+  /** ฟอนต์เอกสารราชการ — ล็อกเหลือ TH SarabunPSK เท่านั้น */
+  protected readonly officialFontName = 'TH SarabunPSK';
+  /** ขนาดตัวอักษรแบบราชการ (pt) */
   protected readonly amendFontSizes = [
-    { label: '12', value: '12px' },
-    { label: '14', value: '14px' },
-    { label: '16', value: '16px' },
-    { label: '18', value: '18px' },
-    { label: '20', value: '20px' },
-    { label: '24', value: '24px' },
-    { label: '28', value: '28px' },
+    { label: '14', value: '14pt' },
+    { label: '16', value: '16pt' },
+    { label: '18', value: '18pt' },
+    { label: '20', value: '20pt' },
+    { label: '22', value: '22pt' },
+    { label: '24', value: '24pt' },
+    { label: '28', value: '28pt' },
+    { label: '36', value: '36pt' },
   ] as const;
   /** สีตัวอักษรจาก design-system/colors.ts เท่านั้น */
   protected readonly amendColors = [
@@ -4729,6 +8091,15 @@ export class Por1Page {
     { label: 'เหลือง', value: '#B7791F' },
     { label: 'แดง', value: '#C0182B' },
   ] as const;
+  /** สีเน้นข้อความ (ไฮไลต์) จาก design tokens */
+  protected readonly amendHighlights = [
+    { label: 'ไม่มี', value: 'transparent' },
+    { label: 'เหลือง', value: '#FDF3E1' },
+    { label: 'เขียว', value: '#E8F4EE' },
+    { label: 'ฟ้า', value: '#E6F1F9' },
+    { label: 'ชมพู', value: '#FAECEE' },
+    { label: 'เทา', value: '#F2F2F3' },
+  ] as const;
   /** Tree โฟลเดอร์แนบไฟล์ตอนแก้ไขคำขอ */
   protected amendFolders: { id: string; name: string; open: boolean }[] = [];
   protected amendFiles: { id: string; folderId: string; name: string; saved: string }[] = [];
@@ -4737,13 +8108,121 @@ export class Por1Page {
   protected amendFolderDraft = '';
   protected amendTreeCollapsed = true;
   @ViewChild('amendEditor') private amendEditorRef?: ElementRef<HTMLElement>;
+  @ViewChild('agencySummaryEditor') private agencySummaryEditorRef?: ElementRef<HTMLElement>;
+  @ViewChild('draftAgendaEditor') private draftAgendaEditorRef?: ElementRef<HTMLElement>;
+  @ViewChild('draftAgendaStage') private draftAgendaStageRef?: ElementRef<HTMLElement>;
+  @ViewChild('approvalEditor') private approvalEditorRef?: ElementRef<HTMLElement>;
+  @ViewChild('approvalStage') private approvalStageRef?: ElementRef<HTMLElement>;
+  @ViewChild('approvalUpload') private approvalUploadInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('approvalAttachUpload') private approvalAttachUploadInput?: ElementRef<HTMLInputElement>;
+  protected agencyWordOpen = false;
+  protected agencySummaryHtml = '';
+  protected agencySummaryEmpty = true;
+  protected agencyReplyPick: Record<string, boolean> = {};
+  private readonly agencySummaryHtmlKey = 'dft-por1-agency-summary-html';
+  protected draftAgendaWordOpen = false;
+  protected draftAgendaHtml = '';
+  protected draftAgendaEmpty = true;
+  protected draftAgendaVersions: DraftAgendaVersion[] = [];
+  protected draftAgendaActiveVersion = 0;
+  /** แท็บหน้าวาระ — ไฟล์ (หน้าแรก) | editor (ร่าง text) */
+  protected draftAgendaTab: 'files' | 'editor' = 'files';
+  /** รอ confirm ก่อนสร้างเวอร์ชันใหม่ — create | ai */
+  protected draftAgendaVersionConfirm: 'create' | 'ai' | null = null;
+  /** AI กำลังดึงรูปแบบจากตัวอย่างวาระ */
+  protected draftAgendaAiBusy = false;
+  /** ซูมกระดาษวาระ — 100% = เต็มความกว้างพื้นที่อ่าน */
+  protected draftAgendaZoom = 100;
+  protected draftAgendaViewerFull = false;
+  /** สเกลให้กระดาษกว้างเท่าพื้นที่ editor */
+  protected draftAgendaFitScale = 1.5;
+  /** กรอบหน้า A4 + เลขหน้า แบบ Word Print Layout */
+  protected draftAgendaPageFrames: { n: number; top: number; height: number }[] = [{ n: 1, top: 0, height: 1123 }];
+  private draftAgendaLayoutRaf = 0;
+  private readonly draftAgendaZoomBase = 1.5;
+  private readonly draftAgendaZoomSteps = [50, 75, 100, 125, 150, 200];
+  private readonly draftAgendaSampleUrl =
+    'assets/samples/ad1046/agenda/sub/2-วาระพิจารณาคำขอเปิดไต่สวน.html';
+  private readonly draftAgendaVersionsKey = 'dft-por1-draft-agenda-versions';
+  protected approvalWordOpen = false;
+  protected approvalHtml = '';
+  protected approvalEmpty = true;
+  protected approvalRounds: ApprovalSubmitRound[] = [];
+  protected approvalActiveRound = 0;
+  protected approvalTab: 'files' | 'editor' = 'files';
+  protected approvalAiBusy = false;
+  protected approvalZoom = 100;
+  protected approvalViewerFull = false;
+  protected approvalFitScale = 1.5;
+  protected approvalPageFrames: { n: number; top: number; height: number }[] = [{ n: 1, top: 0, height: 1123 }];
+  private approvalLayoutRaf = 0;
+  private readonly approvalZoomBase = 1.5;
+  private readonly approvalZoomSteps = [50, 75, 100, 125, 150, 200];
+  private readonly approvalSampleUrl =
+    'assets/samples/ad1046/agenda/approval/1-บันทึกเสนอ-อธ-เข้าอนุฯ-พิจารณาคำขอ.html';
+  private readonly approvalRoundsKey = 'dft-por1-approval-submit-rounds';
+  private readonly approvalCommentsKey = 'dft-por1-approval-submit-comments';
+  protected approvalAgendaPickerOpen = false;
+  protected approvalAgendaPickerMode: 'create' | 'ai' | 'upload' | 'add' | null = null;
+  protected approvalAgendaPick: Record<number, boolean> = {};
+  protected approvalNeedAgendaOpen = false;
+  protected approvalPendingAgendaVersions: number[] = [];
+  private approvalPendingFiles: FileList | File[] | null = null;
+  /** ระบบสร้างฉบับเปิดเผยจากฉบับปกปิดแล้ว (ตามประชุม 19/11) */
+  protected openEditionBuilt = false;
+  /** รายชื่อผู้ผลิตที่ติ๊กส่ง Pre-questionnaire */
+  protected agencyProducerPick: Record<string, boolean> = {
+    ssi: true,
+    gsteel: true,
+    gj: true,
+    sahamit: true,
+  };
+  /** สถานะส่งอนุมัติ Pre-questionnaire: ร่าง → หัวหน้ากลุ่ม → ผอ. → ส่งแล้ว */
+  protected preQnPipe: 'draft' | 'head' | 'director' | 'sent' = 'draft';
+  /** Comment แบบ Word บนเล่มแก้ไขคำขอ */
+  protected amendWordComments: AmendWordComment[] = [];
+  protected amendWordDraftId = '';
+  protected amendWordDraftQuote = '';
+  protected amendWordDraftText = '';
+  protected amendWordReplyTo = '';
+  protected amendWordActiveId = '';
+  /** โหมดปักกล้อง — คลิกหรือลากวางบนแถว/จุดในเล่ม */
+  protected commentPinMode = false;
+  protected amendWordPinLayout: AmendWordPinLayout[] = [];
+  protected amendWordCardTops: Record<string, number> = {};
+  protected amendWordCardLefts: Record<string, number> = {};
+  /** กรอบหน้ากระดาษ A4 แนวตั้งแบบ Word Print Layout */
+  protected amendPageFrames: { n: number; top: number; height: number }[] = [{ n: 1, top: 0, height: 1123 }];
+  /** ฟอง Comment ลอยเมื่อเลือกข้อความ (แบบ Word Online) */
+  protected amendSelBubble = { show: false, x: 0, y: 0 };
+  @ViewChild('amendCommentDraft') private amendCommentDraftRef?: ElementRef<HTMLTextAreaElement>;
+  protected amendLineHeight = '1.5';
+  protected readonly amendLineHeights = [
+    { label: '1.0', value: '1' },
+    { label: '1.15', value: '1.15' },
+    { label: '1.5', value: '1.5' },
+    { label: '2.0', value: '2' },
+    { label: '2.5', value: '2.5' },
+    { label: '3.0', value: '3' },
+  ] as const;
+  private pinDragId = '';
+  private pinDragMoved = false;
+  private pinDraggingNew = false;
+  private pinDragUnlisten: (() => void) | null = null;
+  private amendLayoutRaf = 0;
+  private readonly amendWordCommentKey = 'dft-por1-amend-word-comments';
+  @ViewChild('amendCommentStage') private amendCommentStageRef?: ElementRef<HTMLElement>;
   protected bundleFormCode = 'ปร. 1';
   protected bundleItemId = '';
   protected bundleItemLabel = '';
   protected bundleFilePick: Record<string, boolean> = {};
   protected bundleViewerFull = false;
   protected bundleZoom = 100;
-  private readonly bundleZoomSteps = [75, 90, 100, 110, 125, 150];
+  protected bundleFitScale = 1.5;
+  private readonly bundleZoomBase = 1.5;
+  private readonly bundleZoomSteps = [50, 75, 100, 125, 150, 200];
+  private parkingAmendComments: AmendWordComment[] | null = null;
+  private readonly draftAgendaCommentsKey = 'dft-por1-draft-agenda-comments';
 
   private readonly bundleCommentKey = 'dft-por1-bundle-comments';
   private readonly bundleReviewKey = 'dft-por1-bundle-review';
@@ -4780,7 +8259,9 @@ export class Por1Page {
     }
     if (edition === 'amend') {
       this.loadAmendWorkspace();
+      this.amendWordComments = this.readAmendWordComments();
       this.fillAmendEditor();
+      window.setTimeout(() => this.scheduleAmendWordLayout(), 0);
     }
   }
 
@@ -4797,8 +8278,815 @@ export class Por1Page {
     this.writeBundleAmend(value);
   }
 
+  /** ชื่อย่อผู้เขียน comment — เหมือน Word Comment [XX1] */
+  protected commentInitials(name = this.accounts.displayName || this.signedPerson || 'เจ้าหน้าที่'): string {
+    const parts = name.replace(/[()]/g, ' ').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'OF';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  protected get amendWordRoots(): AmendWordComment[] {
+    return this.amendWordComments.filter((item) => !item.parentId && !item.resolved);
+  }
+
+  /** การ์ดลอยที่เปิดอยู่ (ไม่มีแถบ Comments ค้างด้านขวา) */
+  protected get activeAmendWordRoot(): AmendWordComment | null {
+    if (this.amendWordDraftId) return null;
+    return this.amendWordRoots.find((item) => item.id === this.amendWordActiveId) || null;
+  }
+
+  protected clearAmendWordFocus(): void {
+    this.amendWordActiveId = '';
+    const root = this.activeWordCommentEditor();
+    root?.querySelectorAll('mark.word-cmt-mark.is-active').forEach((node) => node.classList.remove('is-active'));
+    this.scheduleAmendWordLayout();
+  }
+
+  protected amendWordReplies(parentId: string): AmendWordComment[] {
+    return this.amendWordComments.filter((item) => item.parentId === parentId && !item.resolved);
+  }
+
+  protected amendWordLabel(item: AmendWordComment): string {
+    const roots = this.amendWordComments.filter((row) => !row.parentId);
+    const index = roots.findIndex((row) => row.id === (item.parentId || item.id)) + 1;
+    return `Comment [${item.initials}${Math.max(1, index)}]`;
+  }
+
+  protected get canAddAmendWordComment(): boolean {
+    return !!this.reviewRole && this.bundleIsAmend && !this.showCompleteBundle;
+  }
+
+  /** Comment บนหน้าร่างวาระ — แสดงปุ่มเหมือนหน้าแก้ไขคำขอ */
+  protected get canAddDraftAgendaComment(): boolean {
+    return !!this.reviewRole && this.draftAgendaWordOpen;
+  }
+
+  protected get canAddApprovalComment(): boolean {
+    return !!this.reviewRole && this.approvalWordOpen;
+  }
+
+  protected get canAddWordComment(): boolean {
+    return this.canAddDraftAgendaComment || this.canAddApprovalComment || this.canAddAmendWordComment;
+  }
+
+  private activeWordCommentEditor(): HTMLElement | undefined {
+    if (this.approvalWordOpen) return this.approvalEditorRef?.nativeElement;
+    if (this.draftAgendaWordOpen) return this.draftAgendaEditorRef?.nativeElement;
+    return this.amendEditorRef?.nativeElement;
+  }
+
+  private activeWordCommentStage(): HTMLElement | undefined {
+    if (this.approvalWordOpen) return this.approvalStageRef?.nativeElement;
+    if (this.draftAgendaWordOpen) return this.draftAgendaStageRef?.nativeElement;
+    return this.amendCommentStageRef?.nativeElement;
+  }
+
+  private captureActiveWordEditor(): void {
+    if (this.approvalWordOpen) {
+      this.captureApprovalEditor();
+      this.writeApprovalComments();
+      return;
+    }
+    if (this.draftAgendaWordOpen) {
+      this.captureDraftAgendaEditor();
+      this.writeDraftAgendaComments();
+      return;
+    }
+    this.captureAmendEditor();
+  }
+
+  /**
+   * Comment ปุ่มเดียว: มีข้อความที่เลือก → ไฮไลต์ + เปิดกล่อง
+   * ไม่ได้เลือก → เข้า/ออกโหมดคลิกแถวในเล่ม (หรือลากปุ่มไปวาง)
+   */
+  protected beginAmendWordComment(): void {
+    if (!this.canAddWordComment) return;
+    this.hideAmendSelBubble();
+    const root = this.activeWordCommentEditor();
+    if (!root) return;
+    root.focus();
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && !sel.isCollapsed && root.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      const quote = sel.toString().replace(/\s+/g, ' ').trim();
+      if (quote) {
+        this.commentPinMode = false;
+        this.openAmendWordDraftFromRange(sel.getRangeAt(0), quote, 'text');
+        return;
+      }
+    }
+    this.commentPinMode = !this.commentPinMode;
+    this.view.markForCheck();
+  }
+
+  /** เปิดโหมดปักกล้อง — คลิกหรือลากวางบนแถว/จุดในเอกสาร */
+  protected toggleCommentPinMode(): void {
+    if (!this.canAddWordComment) return;
+    this.commentPinMode = !this.commentPinMode;
+    this.hideAmendSelBubble();
+    this.view.markForCheck();
+  }
+
+  protected onAmendCommentDraftKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelAmendWordDraft();
+      return;
+    }
+    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      this.saveAmendWordComment();
+    }
+  }
+
+  private focusAmendCommentDraft(): void {
+    window.setTimeout(() => {
+      const el =
+        this.amendCommentDraftRef?.nativeElement ||
+        this.activeWordCommentStage()?.querySelector<HTMLTextAreaElement>('.word-cmt-card--draft textarea');
+      el?.focus();
+      el?.select();
+    }, 30);
+  }
+
+  protected cancelAmendWordDraft(): void {
+    if (this.amendWordDraftId && !this.amendWordComments.some((item) => item.id === this.amendWordDraftId)) {
+      this.unwrapAmendWordMark(this.amendWordDraftId);
+      this.captureActiveWordEditor();
+    }
+    this.amendWordDraftId = '';
+    this.amendWordDraftQuote = '';
+    this.amendWordDraftText = '';
+    this.amendWordReplyTo = '';
+    this.scheduleAmendWordLayout();
+  }
+
+  protected saveAmendWordComment(): void {
+    const text = this.amendWordDraftText.trim();
+    if (!text || !this.amendWordDraftId) return;
+    const author = this.accounts.displayName || this.signedPerson || 'เจ้าหน้าที่';
+    const mark = this.activeWordCommentEditor()?.querySelector<HTMLElement>(
+      `mark.word-cmt-mark[data-comment-id="${this.amendWordDraftId}"]`,
+    );
+    const anchor = (mark?.dataset?.['cmtAnchor'] as 'text' | 'point' | undefined) || 'text';
+    const next: AmendWordComment = {
+      id: this.amendWordDraftId,
+      quote: this.amendWordDraftQuote,
+      text,
+      author,
+      initials: this.commentInitials(author),
+      at: this.replyStamp(),
+      hue: this.amendWordRoots.length % 3,
+      parentId: this.amendWordReplyTo || undefined,
+      anchor,
+    };
+    this.amendWordComments = [...this.amendWordComments, next];
+    if (this.approvalWordOpen) this.writeApprovalComments();
+    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else this.writeAmendWordComments();
+    this.amendWordActiveId = next.id;
+    this.amendWordDraftId = '';
+    this.amendWordDraftQuote = '';
+    this.amendWordDraftText = '';
+    this.amendWordReplyTo = '';
+    this.captureActiveWordEditor();
+    this.scheduleAmendWordLayout();
+    this.notice = null;
+  }
+
+  protected startAmendWordReply(parentId: string): void {
+    const parent = this.amendWordComments.find((item) => item.id === parentId);
+    if (!parent || !this.canAddWordComment) return;
+    this.amendWordDraftId = `awc-${Date.now()}`;
+    this.amendWordDraftQuote = parent.quote;
+    this.amendWordDraftText = '';
+    this.amendWordReplyTo = parentId;
+    this.amendWordActiveId = parentId;
+    this.scheduleAmendWordLayout();
+    this.focusAmendCommentDraft();
+  }
+
+  protected focusAmendWordComment(id: string): void {
+    this.amendWordActiveId = id;
+    const root = this.amendEditorRef?.nativeElement;
+    const mark = root?.querySelector<HTMLElement>(`mark.word-cmt-mark[data-comment-id="${id}"]`);
+    mark?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    root?.querySelectorAll('mark.word-cmt-mark.is-active').forEach((node) => node.classList.remove('is-active'));
+    mark?.classList.add('is-active');
+    this.scheduleAmendWordLayout();
+  }
+
+  protected onAmendEditorClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    const mark = target?.closest?.('mark.word-cmt-mark') as HTMLElement | null;
+    const id = mark?.dataset?.['commentId'];
+    if (id) {
+      this.focusAmendWordComment(id);
+      this.refreshAmendToolbar();
+      return;
+    }
+    if (this.commentPinMode && this.canAddWordComment) {
+      event.preventDefault();
+      this.placeCommentPinAtPoint(event.clientX, event.clientY);
+      return;
+    }
+    if (this.amendWordActiveId && !this.amendWordDraftId) this.clearAmendWordFocus();
+    this.refreshAmendToolbar();
+  }
+
+  protected onAmendEditorMouseUp(event: MouseEvent): void {
+    this.refreshAmendToolbar();
+    if (!this.canAddWordComment || this.commentPinMode || this.pinDragId) {
+      this.hideAmendSelBubble();
+      return;
+    }
+    const root = this.activeWordCommentEditor();
+    const sel = window.getSelection();
+    if (!root || !sel || sel.isCollapsed || !sel.rangeCount) {
+      this.hideAmendSelBubble();
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    if (!root.contains(range.commonAncestorContainer)) {
+      this.hideAmendSelBubble();
+      return;
+    }
+    const quote = sel.toString().replace(/\s+/g, ' ').trim();
+    if (!quote) {
+      this.hideAmendSelBubble();
+      return;
+    }
+    const rect = range.getBoundingClientRect();
+    const stage = this.activeWordCommentStage();
+    const box = stage?.getBoundingClientRect();
+    this.amendSelBubble = {
+      show: true,
+      x: Math.max(8, rect.left - (box?.left || 0) + rect.width / 2),
+      y: Math.max(8, rect.top - (box?.top || 0) - 40),
+    };
+    this.view.markForCheck();
+  }
+
+  protected hideAmendSelBubble(): void {
+    if (!this.amendSelBubble.show) return;
+    this.amendSelBubble = { ...this.amendSelBubble, show: false };
+  }
+
+  /** เริ่มลากกล้อง comment เพื่อย้ายจุดชี้ */
+  protected onCommentPinPointerDown(event: PointerEvent, id: string): void {
+    if (!this.canAddWordComment || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.pinDragId = id;
+    this.pinDragMoved = false;
+    this.focusAmendWordComment(id);
+    const move = (ev: PointerEvent) => {
+      if (!this.pinDragId) return;
+      this.pinDragMoved = true;
+      const stage = this.amendCommentStageRef?.nativeElement;
+      if (!stage) return;
+      const box = stage.getBoundingClientRect();
+      const top = ev.clientY - box.top + stage.scrollTop - 12;
+      const left = ev.clientX - box.left - 16;
+      this.amendWordPinLayout = this.amendWordPinLayout.map((pin) =>
+        pin.id === this.pinDragId ? { ...pin, top: Math.max(0, top), left: Math.max(0, left) } : pin,
+      );
+      this.view.markForCheck();
+    };
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      this.pinDragUnlisten = null;
+      const dragId = this.pinDragId;
+      this.pinDragId = '';
+      if (!dragId) return;
+      if (this.pinDragMoved) {
+        this.reanchorCommentPin(dragId, ev.clientX, ev.clientY);
+      } else {
+        this.focusAmendWordComment(dragId);
+      }
+      this.scheduleAmendWordLayout();
+    };
+    this.pinDragUnlisten = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
+  /** ลากกล้องใหม่จากแถบเครื่องมือมาวางบนเอกสาร */
+  protected onNewPinDragStart(event: DragEvent): void {
+    if (!this.canAddWordComment) {
+      event.preventDefault();
+      return;
+    }
+    this.commentPinMode = true;
+    this.pinDraggingNew = true;
+    event.dataTransfer?.setData('text/plain', 'dft-comment-pin');
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
+    const end = () => {
+      this.pinDraggingNew = false;
+      window.removeEventListener('dragend', end);
+    };
+    window.addEventListener('dragend', end);
+  }
+
+  protected onAmendEditorDragOver(event: DragEvent): void {
+    if (!this.pinDraggingNew && !this.commentPinMode) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  }
+
+  protected onAmendEditorDrop(event: DragEvent): void {
+    if (!this.pinDraggingNew && !this.commentPinMode) return;
+    const payload = event.dataTransfer?.getData('text/plain') || '';
+    if (payload && payload !== 'dft-comment-pin') return;
+    event.preventDefault();
+    this.pinDraggingNew = false;
+    this.placeCommentPinAtPoint(event.clientX, event.clientY);
+  }
+
+  protected resolveAmendWordComment(id: string): void {
+    const ids = new Set([id, ...this.amendWordComments.filter((item) => item.parentId === id).map((item) => item.id)]);
+    this.amendWordComments = this.amendWordComments.map((item) => (ids.has(item.id) ? { ...item, resolved: true } : item));
+    if (this.approvalWordOpen) this.writeApprovalComments();
+    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else this.writeAmendWordComments();
+    ids.forEach((markId) => this.unwrapAmendWordMark(markId));
+    this.captureActiveWordEditor();
+    if (this.amendWordActiveId === id) this.amendWordActiveId = '';
+    this.scheduleAmendWordLayout();
+  }
+
+  protected removeAmendWordComment(id: string): void {
+    const ids = new Set([id, ...this.amendWordComments.filter((item) => item.parentId === id).map((item) => item.id)]);
+    this.amendWordComments = this.amendWordComments.filter((item) => !ids.has(item.id));
+    if (this.approvalWordOpen) this.writeApprovalComments();
+    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else this.writeAmendWordComments();
+    ids.forEach((markId) => this.unwrapAmendWordMark(markId));
+    this.captureActiveWordEditor();
+    if (this.amendWordActiveId === id) this.amendWordActiveId = '';
+    if (this.amendWordDraftId === id) this.cancelAmendWordDraft();
+    this.scheduleAmendWordLayout();
+  }
+
+  protected cardTopFor(id: string): number {
+    return this.amendWordCardTops[id] ?? 0;
+  }
+
+  protected cardLeftFor(id: string): number {
+    return this.amendWordCardLefts[id] ?? 0;
+  }
+
+  /** editor ที่เปิดอยู่ — ให้ toolbar ชุดเดียวกันยิงไปที่เป้าหมายถูก */
+  private activeTextEditor(): 'notice' | 'approval' | 'draft' | 'agency' | 'amend' {
+    if (this.noticeLetterWordOpen) return 'notice';
+    if (this.approvalWordOpen) return 'approval';
+    if (this.draftAgendaWordOpen) return 'draft';
+    if (this.agencyWordOpen) return 'agency';
+    return 'amend';
+  }
+
+  protected textEditorFormat(command: string, value?: string): void {
+    const target = this.activeTextEditor();
+    if (target === 'notice') this.noticeLetterFormat(command, value);
+    else if (target === 'approval') this.approvalFormat(command, value);
+    else if (target === 'draft') this.draftAgendaFormat(command, value);
+    else if (target === 'agency') this.agencySummaryFormat(command, value);
+    else this.amendFormat(command, value);
+  }
+
+  protected textEditorFontSize(size: string): void {
+    const target = this.activeTextEditor();
+    if (target === 'notice') this.applyNoticeLetterFontSize(size);
+    else if (target === 'approval') this.applyApprovalFontSize(size);
+    else if (target === 'draft') this.applyDraftAgendaFontSize(size);
+    else if (target === 'agency') this.applyAgencySummaryFontSize(size);
+    else this.applyAmendFontSize(size);
+  }
+
+  protected textEditorColor(color: string): void {
+    const target = this.activeTextEditor();
+    if (target === 'notice') this.applyNoticeLetterColor(color);
+    else if (target === 'approval') this.applyApprovalColor(color);
+    else if (target === 'draft') this.applyDraftAgendaColor(color);
+    else if (target === 'agency') this.applyAgencySummaryColor(color);
+    else this.applyAmendColor(color);
+  }
+
+  protected textEditorHighlight(color: string): void {
+    const target = this.activeTextEditor();
+    if (target === 'notice') this.applyNoticeLetterHighlight(color);
+    else if (target === 'approval') this.applyApprovalHighlight(color);
+    else if (target === 'draft') this.applyDraftAgendaHighlight(color);
+    else if (target === 'agency') this.applyAgencySummaryHighlight(color);
+    else this.applyAmendHighlight(color);
+  }
+
+  protected insertAmendTable(): void {
+    const table =
+      '<table class="amend-table"><tbody>' +
+      '<tr><td>หัวข้อ</td><td>รายละเอียด</td></tr>' +
+      '<tr><td>&nbsp;</td><td>&nbsp;</td></tr>' +
+      '</tbody></table><p><br></p>';
+    this.textEditorFormat('insertHTML', table);
+  }
+
+  protected insertAmendHr(): void {
+    this.textEditorFormat('insertHorizontalRule');
+  }
+
+  protected insertTextEditorPageBreak(): void {
+    if (this.approvalWordOpen) {
+      this.insertApprovalPageBreak();
+      return;
+    }
+    if (this.draftAgendaWordOpen) {
+      this.insertDraftAgendaPageBreak();
+      return;
+    }
+    const breakHtml =
+      '<div class="word-page-break" data-page-break="1" contenteditable="false"></div><p style="font-family:TH SarabunPSK;font-size:16pt;line-height:1.15;margin:0"><br></p>';
+    this.textEditorFormat('insertHTML', breakHtml);
+    if (this.agencyWordOpen) return;
+    this.scheduleAmendWordLayout();
+  }
+
+  protected applyAmendLineHeight(value: string): void {
+    this.amendLineHeight = value;
+    const target = this.activeTextEditor();
+    if (target === 'notice' || target === 'approval' || target === 'draft' || target === 'agency') {
+      document.execCommand('styleWithCSS', false, 'true');
+      this.textEditorFormat('formatBlock', 'p');
+      const root =
+        target === 'notice'
+          ? this.noticeLetterEditorRef?.nativeElement
+          : target === 'approval'
+            ? this.approvalEditorRef?.nativeElement
+            : target === 'draft'
+              ? this.draftAgendaEditorRef?.nativeElement
+              : this.agencySummaryEditorRef?.nativeElement;
+      const sel = window.getSelection();
+      const node = sel?.anchorNode;
+      const el = node instanceof Element ? node : node?.parentElement;
+      const block = el?.closest('p, h1, h2, h3, li, td') as HTMLElement | null;
+      if (block && root?.contains(block)) block.style.lineHeight = value;
+      if (target === 'notice') this.captureNoticeLetterEditor();
+      else if (target === 'approval') this.captureApprovalEditor();
+      else if (target === 'draft') this.captureDraftAgendaEditor();
+      else this.captureAgencySummaryEditor();
+      return;
+    }
+    this.amendWrapSelection({ lineHeight: value, fontFamily: this.officialFontName });
+  }
+
+  private openAmendWordDraftFromRange(range: Range, quote: string, anchor: 'text' | 'point'): void {
+    const id = `awc-${Date.now()}`;
+    const mark = document.createElement('mark');
+    mark.className = 'word-cmt-mark' + (anchor === 'point' ? ' word-cmt-mark--point' : '');
+    mark.dataset['commentId'] = id;
+    mark.dataset['cmtHue'] = String(this.amendWordRoots.length % 3);
+    mark.dataset['cmtAnchor'] = anchor;
+    try {
+      range.surroundContents(mark);
+    } catch {
+      const frag = range.extractContents();
+      mark.appendChild(frag);
+      range.insertNode(mark);
+    }
+    window.getSelection()?.removeAllRanges();
+    this.amendWordDraftId = id;
+    this.amendWordDraftQuote = quote;
+    this.amendWordDraftText = '';
+    this.amendWordReplyTo = '';
+    this.amendWordActiveId = id;
+    this.commentPinMode = false;
+    this.hideAmendSelBubble();
+    this.captureActiveWordEditor();
+    this.scheduleAmendWordLayout();
+    this.focusAmendCommentDraft();
+    this.view.markForCheck();
+  }
+
+  protected placeCommentPinAtPoint(clientX: number, clientY: number): void {
+    const root = this.activeWordCommentEditor();
+    if (!root) return;
+    const range = this.rangeFromPoint(clientX, clientY, root);
+    if (!range) {
+      this.notice = 'suggest';
+      return;
+    }
+    const block = this.blockFromNode(range.startContainer);
+    let quote = '';
+    let useRange = range;
+    if (block) {
+      quote = (block.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+      useRange = document.createRange();
+      useRange.selectNodeContents(block);
+    } else {
+      // ขยายเป็นคำ/ช่วงสั้นรอบ caret
+      useRange = range.cloneRange();
+      try {
+        (useRange as Range & { expand?: (unit: string) => void }).expand?.('word');
+      } catch {
+        /* expand ไม่รองรับบางเบราว์เซอร์ */
+      }
+      quote = useRange.toString().replace(/\s+/g, ' ').trim().slice(0, 120) || 'จุดที่ปักกล้อง';
+    }
+    if (!quote) quote = 'จุดที่ปักกล้อง';
+    this.openAmendWordDraftFromRange(useRange, quote, 'point');
+  }
+
+  private reanchorCommentPin(id: string, clientX: number, clientY: number): void {
+    const root = this.activeWordCommentEditor();
+    if (!root) return;
+    const range = this.rangeFromPoint(clientX, clientY, root);
+    if (!range) {
+      this.scheduleAmendWordLayout();
+      return;
+    }
+    const block = this.blockFromNode(range.startContainer);
+    let quote = '';
+    let useRange = range.cloneRange();
+    if (block) {
+      quote = (block.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+      useRange = document.createRange();
+      useRange.selectNodeContents(block);
+    } else {
+      quote = useRange.toString().replace(/\s+/g, ' ').trim().slice(0, 120) || 'จุดที่ปักกล้อง';
+    }
+    const prev = root.querySelector<HTMLElement>(`mark.word-cmt-mark[data-comment-id="${id}"]`);
+    const hue = prev?.dataset?.['cmtHue'] || '0';
+    this.unwrapAmendWordMark(id);
+    const mark = document.createElement('mark');
+    mark.className = 'word-cmt-mark word-cmt-mark--point';
+    mark.dataset['commentId'] = id;
+    mark.dataset['cmtHue'] = hue;
+    mark.dataset['cmtAnchor'] = 'point';
+    try {
+      useRange.surroundContents(mark);
+    } catch {
+      const frag = useRange.extractContents();
+      mark.appendChild(frag);
+      useRange.insertNode(mark);
+    }
+    this.amendWordComments = this.amendWordComments.map((item) =>
+      item.id === id ? { ...item, quote: quote || item.quote, anchor: 'point' } : item,
+    );
+    if (this.amendWordDraftId === id) this.amendWordDraftQuote = quote || this.amendWordDraftQuote;
+    if (this.approvalWordOpen) this.writeApprovalComments();
+    if (this.draftAgendaWordOpen) this.writeDraftAgendaComments();
+    else this.writeAmendWordComments();
+    this.captureActiveWordEditor();
+    this.focusAmendWordComment(id);
+  }
+
+  private rangeFromPoint(clientX: number, clientY: number, root: HTMLElement): Range | null {
+    const doc = document as Document & {
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+    };
+    let range: Range | null = null;
+    if (typeof doc.caretRangeFromPoint === 'function') {
+      range = doc.caretRangeFromPoint(clientX, clientY);
+    } else if (typeof doc.caretPositionFromPoint === 'function') {
+      const pos = doc.caretPositionFromPoint(clientX, clientY);
+      if (pos) {
+        range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse(true);
+      }
+    }
+    if (!range || !root.contains(range.commonAncestorContainer)) return null;
+    return range;
+  }
+
+  private blockFromNode(node: Node): HTMLElement | null {
+    const el = node instanceof Element ? node : node.parentElement;
+    return el?.closest?.('p, li, h1, h2, h3, h4, td, th, div.bundle-amend-editor > *') as HTMLElement | null;
+  }
+
+  private unwrapAmendWordMark(id: string): void {
+    const root = this.activeWordCommentEditor();
+    root?.querySelectorAll(`mark.word-cmt-mark[data-comment-id="${id}"]`).forEach((node) => {
+      const parent = node.parentNode;
+      if (!parent) return;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      parent.removeChild(node);
+    });
+  }
+
+  /** จัดตำแหน่งกล้อง + การ์ดให้ชิดแถวที่ชี้ (แบบ Word Online) */
+  protected scheduleAmendWordLayout(): void {
+    if (this.amendLayoutRaf) cancelAnimationFrame(this.amendLayoutRaf);
+    this.amendLayoutRaf = requestAnimationFrame(() => {
+      this.amendLayoutRaf = 0;
+      this.syncAmendWordLayout();
+    });
+  }
+
+  private syncAmendWordLayout(): void {
+    const onDraft = this.draftAgendaWordOpen;
+    const onApproval = this.approvalWordOpen;
+    const onAmend = this.bundleIsAmend && !this.showCompleteBundle;
+    if (!onDraft && !onApproval && !onAmend) {
+      this.amendWordPinLayout = [];
+      this.amendWordCardTops = {};
+      this.amendWordCardLefts = {};
+      return;
+    }
+    if (onAmend && !onDraft && !onApproval) this.syncBundleFitScale();
+    const stage = this.activeWordCommentStage();
+    const editor = this.activeWordCommentEditor();
+    const sheet = stage?.querySelector<HTMLElement>('.bundle-amend-sheet, .word-print-sheet');
+    if (!stage || !editor) return;
+    const stageBox = stage.getBoundingClientRect();
+    const sheetBox = sheet?.getBoundingClientRect();
+    const pins: AmendWordPinLayout[] = [];
+    const tops: Record<string, number> = {};
+    const lefts: Record<string, number> = {};
+    const pinLeftBase = sheetBox
+      ? Math.min(stage.clientWidth - 44, Math.max(8, sheetBox.right - stageBox.left - 28))
+      : Math.max(8, stage.clientWidth - 48);
+    const cardLeftBase = sheetBox
+      ? Math.min(stage.clientWidth - 300, Math.max(8, sheetBox.right - stageBox.left + 8))
+      : Math.max(8, stage.clientWidth - 320);
+    const place = (id: string, index: number, hue: number, active: boolean, anchor: 'text' | 'point', mark: HTMLElement | null) => {
+      let top = 24 + index * 36;
+      let left = pinLeftBase;
+      if (mark) {
+        const markBox = mark.getBoundingClientRect();
+        top = Math.max(8, markBox.top - stageBox.top + stage.scrollTop);
+        left = Math.min(stage.clientWidth - 40, Math.max(8, markBox.right - stageBox.left + 6));
+      }
+      pins.push({ id, index, top, left, hue, active, anchor });
+      tops[id] = top;
+      lefts[id] = Math.min(stage.clientWidth - 292, Math.max(left + 36, cardLeftBase));
+    };
+    this.amendWordRoots.forEach((note, index) => {
+      const mark = editor.querySelector<HTMLElement>(`mark.word-cmt-mark[data-comment-id="${note.id}"]`);
+      place(
+        note.id,
+        index + 1,
+        note.hue,
+        this.amendWordActiveId === note.id || this.amendWordDraftId === note.id,
+        note.anchor || (mark?.dataset?.['cmtAnchor'] as 'text' | 'point') || 'text',
+        mark,
+      );
+    });
+    if (this.amendWordDraftId && !this.amendWordComments.some((item) => item.id === this.amendWordDraftId)) {
+      const mark = editor.querySelector<HTMLElement>(`mark.word-cmt-mark[data-comment-id="${this.amendWordDraftId}"]`);
+      place(
+        this.amendWordDraftId,
+        pins.length + 1,
+        0,
+        true,
+        (mark?.dataset?.['cmtAnchor'] as 'text' | 'point') || 'point',
+        mark,
+      );
+    }
+    this.amendWordPinLayout = pins;
+    this.amendWordCardTops = tops;
+    this.amendWordCardLefts = lefts;
+    if (onApproval) this.syncApprovalPageFrames();
+    else if (onDraft) this.syncDraftAgendaPageFrames();
+    else this.syncAmendPageFrames(sheet, stage);
+    this.view.markForCheck();
+  }
+
+  private draftAgendaCommentsStorageKey(version = this.draftAgendaActiveVersion): string {
+    return `${this.draftAgendaCommentsKey}-v${version || 0}`;
+  }
+
+  private loadDraftAgendaComments(): void {
+    try {
+      const raw = sessionStorage.getItem(this.draftAgendaCommentsStorageKey());
+      const parsed = raw ? (JSON.parse(raw) as AmendWordComment[]) : [];
+      this.amendWordComments = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      this.amendWordComments = [];
+    }
+    this.amendWordActiveId = '';
+    this.amendWordDraftId = '';
+    this.commentPinMode = false;
+  }
+
+  private writeDraftAgendaComments(): void {
+    try {
+      const key = this.draftAgendaCommentsStorageKey();
+      if (!this.amendWordComments.length) sessionStorage.removeItem(key);
+      else sessionStorage.setItem(key, JSON.stringify(this.amendWordComments));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private parkAmendCommentsForDraft(): void {
+    if (this.parkingAmendComments) return;
+    this.parkingAmendComments = [...this.amendWordComments];
+  }
+
+  private restoreParkedAmendComments(): void {
+    if (!this.parkingAmendComments) return;
+    this.amendWordComments = this.parkingAmendComments;
+    this.parkingAmendComments = null;
+    this.amendWordActiveId = '';
+    this.amendWordDraftId = '';
+    this.commentPinMode = false;
+  }
+
+  /** นับหน้า A4 แนวตั้ง + เลขหน้ามุมขวาบนแบบ Word */
+  private syncAmendPageFrames(sheet: HTMLElement | null | undefined, stage: HTMLElement): void {
+    const pageH = this.measureMmAsPx(297);
+    const sheetTop = sheet
+      ? sheet.getBoundingClientRect().top - stage.getBoundingClientRect().top + stage.scrollTop
+      : 0;
+    const contentH = Math.max(pageH, sheet?.offsetHeight || pageH);
+    const count = Math.max(1, Math.ceil(contentH / pageH));
+    this.amendPageFrames = Array.from({ length: count }, (_, i) => ({
+      n: i + 1,
+      top: sheetTop + i * pageH,
+      height: pageH,
+    }));
+  }
+
+  private measureMmAsPx(mm: number): number {
+    const probe = document.createElement('div');
+    probe.style.cssText = `position:absolute;visibility:hidden;height:${mm}mm;`;
+    document.body.appendChild(probe);
+    const px = probe.offsetHeight || Math.round((mm * 96) / 25.4);
+    probe.remove();
+    return px;
+  }
+
+  @HostListener('window:resize')
+  protected onWindowResizeForComments(): void {
+    this.syncBundleFitScale();
+    this.scheduleAmendWordLayout();
+    if (this.approvalWordOpen) this.scheduleApprovalPageFrames();
+    if (this.draftAgendaWordOpen) this.scheduleDraftAgendaPageFrames();
+  }
+
+  private readAmendWordComments(): AmendWordComment[] {
+    try {
+      const raw = JSON.parse(sessionStorage.getItem(`${this.amendWordCommentKey}-${this.bundleRoundNo}`) || '[]') as AmendWordComment[];
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeAmendWordComments(): void {
+    const key = `${this.amendWordCommentKey}-${this.bundleRoundNo}`;
+    try {
+      if (!this.amendWordComments.length) sessionStorage.removeItem(key);
+      else sessionStorage.setItem(key, JSON.stringify(this.amendWordComments));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private seedAmendWordCommentsIfEmpty(): void {
+    if (this.amendWordComments.length || !this.reviewRole) return;
+    const root = this.amendEditorRef?.nativeElement;
+    if (!root) return;
+    const sample = root.querySelector<HTMLElement>('[data-ai-suggest]') || root.querySelector('p');
+    if (!sample) return;
+    const quote = (sample.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!quote) return;
+    const id = `awc-sample-${this.bundleRoundNo}`;
+    if (root.querySelector(`mark.word-cmt-mark[data-comment-id="${id}"]`)) return;
+    const mark = document.createElement('mark');
+    mark.className = 'word-cmt-mark';
+    mark.dataset['commentId'] = id;
+    mark.dataset['cmtHue'] = '0';
+    mark.dataset['cmtAnchor'] = 'text';
+    while (sample.firstChild) mark.appendChild(sample.firstChild);
+    sample.appendChild(mark);
+    const author = this.accounts.displayName || 'เจ้าหน้าที่ AD';
+    this.amendWordComments = [
+      {
+        id,
+        quote,
+        text: 'ขอให้ตรวจสอบและแก้ไขตามรายการนี้ให้ครบก่อนแจ้งผล',
+        author,
+        initials: this.commentInitials(author),
+        at: this.replyStamp(),
+        hue: 0,
+        anchor: 'text',
+      },
+    ];
+    this.writeAmendWordComments();
+    this.captureAmendEditor();
+    this.scheduleAmendWordLayout();
+  }
+
   protected amendFormat(command: string, value?: string): void {
+    document.execCommand('styleWithCSS', false, 'true');
     document.execCommand(command, false, value);
+    this.lockOfficialFontOnSelection();
     this.captureAmendEditor();
     this.refreshAmendToolbar();
     this.amendEditorRef?.nativeElement.focus();
@@ -4806,13 +9094,24 @@ export class Por1Page {
 
   protected applyAmendFontSize(size: string): void {
     this.amendFontSize = size;
-    this.amendWrapSelection({ fontSize: size });
+    this.amendWrapSelection({ fontSize: size, fontFamily: this.officialFontName });
   }
 
   protected applyAmendColor(color: string): void {
     this.amendColor = color;
     document.execCommand('styleWithCSS', false, 'true');
     document.execCommand('foreColor', false, color);
+    this.lockOfficialFontOnSelection();
+    this.captureAmendEditor();
+    this.refreshAmendToolbar();
+    this.amendEditorRef?.nativeElement.focus();
+  }
+
+  protected applyAmendHighlight(color: string): void {
+    this.amendHighlight = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('hiliteColor', false, color === 'transparent' ? 'transparent' : color);
+    this.lockOfficialFontOnSelection();
     this.captureAmendEditor();
     this.refreshAmendToolbar();
     this.amendEditorRef?.nativeElement.focus();
@@ -4823,7 +9122,20 @@ export class Por1Page {
   }
 
   protected refreshAmendToolbar(): void {
-    const cmds = ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'justifyLeft', 'justifyCenter', 'justifyRight'];
+    const cmds = [
+      'bold',
+      'italic',
+      'underline',
+      'strikeThrough',
+      'subscript',
+      'superscript',
+      'insertUnorderedList',
+      'insertOrderedList',
+      'justifyLeft',
+      'justifyCenter',
+      'justifyRight',
+      'justifyFull',
+    ];
     const next: Record<string, boolean> = {};
     for (const cmd of cmds) {
       try {
@@ -4835,13 +9147,68 @@ export class Por1Page {
     this.amendMarks = next;
     const node = window.getSelection()?.anchorNode;
     const el = node instanceof Element ? node : node?.parentElement;
-    const root = this.amendEditorRef?.nativeElement;
+    const root =
+      this.draftAgendaWordOpen
+        ? this.draftAgendaEditorRef?.nativeElement
+        : this.agencyWordOpen
+          ? this.agencySummaryEditorRef?.nativeElement
+          : this.amendEditorRef?.nativeElement;
     if (el && root?.contains(el)) {
       const style = getComputedStyle(el);
       const hex = this.cssColorToHex(style.color);
       if (hex) this.amendColor = hex.toUpperCase();
-      if (style.fontSize) this.amendFontSize = style.fontSize;
+      const bgRaw = style.backgroundColor;
+      const bgHex = this.cssColorToHex(bgRaw);
+      if (!bgHex || bgHex.toUpperCase() === '#FFFFFF' || bgRaw === 'transparent' || bgRaw.startsWith('rgba(0, 0, 0, 0)')) {
+        this.amendHighlight = 'transparent';
+      } else {
+        const hit = this.amendHighlights.find((h) => h.value.toUpperCase() === bgHex.toUpperCase());
+        this.amendHighlight = hit?.value ?? bgHex.toUpperCase();
+      }
+      if (style.fontSize) {
+        const px = parseFloat(style.fontSize);
+        if (!Number.isNaN(px)) {
+          const pt = Math.round((px * 72) / 96);
+          const match = this.amendFontSizes.find((s) => s.value === `${pt}pt`);
+          this.amendFontSize = match?.value ?? `${pt}pt`;
+        }
+      }
     }
+  }
+
+  /** บังคับฟอนต์ TH SarabunPSK บน selection ที่เพิ่งจัดรูปแบบ */
+  private lockOfficialFontOnSelection(): void {
+    try {
+      document.execCommand('fontName', false, this.officialFontName);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** วางข้อความแล้วล้างฟอนต์อื่น — คงเหลือ TH SarabunPSK เท่านั้น */
+  protected onOfficialEditorPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const html = event.clipboardData?.getData('text/html') || '';
+    const text = event.clipboardData?.getData('text/plain') || '';
+    if (html) {
+      const box = document.createElement('div');
+      box.innerHTML = html;
+      box.querySelectorAll('*').forEach((node) => {
+        const el = node as HTMLElement;
+        el.style.fontFamily = this.officialFontName;
+        el.removeAttribute('face');
+      });
+      document.execCommand('insertHTML', false, box.innerHTML);
+    } else if (text) {
+      document.execCommand('insertHTML', false, text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
+    }
+    this.lockOfficialFontOnSelection();
+    if (this.agencyWordOpen) {
+      this.captureAgencySummaryEditor();
+    } else {
+      this.captureAmendEditor();
+    }
+    this.refreshAmendToolbar();
   }
 
   protected onAmendEditorInput(): void {
@@ -5019,6 +9386,9 @@ export class Por1Page {
       el.querySelectorAll<HTMLElement>('[data-amend-by]').forEach((block) => this.paintAmendBadge(block));
       this.amendEditorEmpty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
       this.refreshAmendToolbar();
+      if (!this.amendWordComments.length) this.amendWordComments = this.readAmendWordComments();
+      if (!this.amendWordComments.length) this.seedAmendWordCommentsIfEmpty();
+      this.scheduleAmendWordLayout();
       this.view.markForCheck();
     };
     window.setTimeout(run, tries === 0 ? 0 : 50);
@@ -5145,16 +9515,57 @@ export class Por1Page {
   }
 
   private seedAmendSampleTree(): void {
+    const amendPass = this.latestAmendPassNo();
     const folderId = this.newAmendId('folder');
-    this.amendFolders = [{ id: folderId, name: 'รายการแก้ไขครั้งที่ 1', open: true }];
-    this.amendFiles = [
-      {
-        id: this.newAmendId('file'),
-        folderId,
-        name: '1 หนังสือแก้ไขคำขอ ครั้งที่ 1.pdf',
-        saved: this.clockToday() || '22/07/2563',
-      },
-    ];
+    this.amendFolders = [{ id: folderId, name: `รายการแก้ไขครั้งที่ ${amendPass}`, open: true }];
+    this.amendFiles =
+      amendPass >= 3
+        ? [
+            {
+              id: this.newAmendId('file'),
+              folderId,
+              name: 'รายการแก้ไขปรับปรุงข้อมูลคำขอ ครั้งที่ 3.docx',
+              saved: '09/10/2563',
+            },
+            {
+              id: this.newAmendId('file'),
+              folderId,
+              name: 'สิ่งที่ส่งมาด้วย 12 ค่าขนส่งไปยังตลาด บางสะพาน-กรุงเทพฯ.pdf',
+              saved: '09/10/2563',
+            },
+            {
+              id: this.newAmendId('file'),
+              folderId,
+              name: 'AD VN-EG_Table 8.1-8.8 SSI.xlsx',
+              saved: '09/10/2563',
+            },
+            {
+              id: this.newAmendId('file'),
+              folderId,
+              name: 'AD VN-EG_Table 8.1-8.8 GJS.xlsx',
+              saved: '09/10/2563',
+            },
+            {
+              id: this.newAmendId('file'),
+              folderId,
+              name: 'AD VN-EG_Table 8.1-8.8 GST.xlsx',
+              saved: '09/10/2563',
+            },
+            {
+              id: this.newAmendId('file'),
+              folderId,
+              name: 'AD VN-EG_Table 8.1-8.8 SPM.xlsx',
+              saved: '09/10/2563',
+            },
+          ]
+        : [
+            {
+              id: this.newAmendId('file'),
+              folderId,
+              name: `1 หนังสือแก้ไขคำขอ ครั้งที่ ${amendPass}.pdf`,
+              saved: this.clockToday() || '22/07/2563',
+            },
+          ];
     this.amendFolderId = folderId;
     this.writeAmendTree();
   }
@@ -5348,6 +9759,7 @@ export class Por1Page {
    * สารบัญในรอบยื่น — ตามโฟลเดอร์จริง (ไม่ใส่เลข 1. 2. 3. หน้าชื่อ)
    * หนังสือนำส่ง → แบบคำขอ ปร.1 → มอบอำนาจ → งบ → ตาราง 8.1–8.8 → ภาคผนวก → สิ่งที่ส่งมาด้วย
    * เลขรอบอยู่ที่แถบโฟลเดอร์ด้านบน เช่น 1. 15 พค 63
+   * โหมดฉบับสมบูรณ์: เพิ่มกลุ่มเล่มเปิดเผย/ปกปิด ด้านบน
    */
   protected get bundleToc(): TocGroup[] {
     const letterName = this.letterFileName || 'หนังสือนำส่ง.pdf';
@@ -5366,7 +9778,7 @@ export class Por1Page {
           items: [{ id: 'annex', label, anchor: `file-group-${label}` }],
         })),
     ];
-    return [
+    const base: TocGroup[] = [
       {
         label: 'หนังสือนำส่ง',
         items: [{ id: 'letter-file', label: 'หนังสือนำส่ง', anchor: `file-letter-${letterName}` }],
@@ -5377,6 +9789,73 @@ export class Por1Page {
       },
       ...annexToc,
     ];
+    // ฉบับเปิดเผย/ปกปิดใช้สารบัญเดียวกับแบบคำขอ — ไม่ซ้ำหัวข้อพร้อมจำนวนไฟล์
+    return base;
+  }
+
+  /** รวมเล่มผ่านแล้ว — มีไฟล์ตัวอย่างครบ */
+  protected editionBundleReady(kind: 'open' | 'closed'): boolean {
+    const label = kind === 'closed' ? CLOSED_EDITION_KIND : OPEN_EDITION_KIND;
+    return this.extrasOf(label).length > 0;
+  }
+
+  /** จุดสถานะในรายการเอกสาร — ผ่านแล้ววงกลมเขียวทึบแบบสารบัญแบบฟอร์ม ไม่ใช้แท็ก/สีรอ */
+  protected editionDot(kind: 'open' | 'closed'): string {
+    if (kind === 'closed') {
+      if ((this.docAction === 'complete' && this.docSent) || this.editionBundleReady('closed')) {
+        return 'assets/icons/por1-dot-done.svg';
+      }
+      return 'assets/icons/por1-dot.svg';
+    }
+    if (this.openEditionBuilt) return 'assets/icons/por1-dot-done.svg';
+    if (this.docAction === 'complete' && this.docSent) return 'assets/icons/por1-dot-wait.svg';
+    return 'assets/icons/por1-dot.svg';
+  }
+
+  /** หลังแจ้งครบถ้วน — เปิดฉบับปกปิดสมบูรณ์ก่อน แล้วค่อยให้ระบบสร้างฉบับเปิดเผย */
+  protected get canBuildOpenEdition(): boolean {
+    return this.docAction === 'complete' && this.docSent && this.editionBundleReady('closed') && !this.openEditionBuilt;
+  }
+
+  /**
+   * ระบบสร้างฉบับเปิดเผยจากฉบับปกปิด — คัดลอกแล้วปกปิดค่าตัวเลขอ่อนไหว
+   * (ตามประชุม: ระบบเป็นคนทำ ไม่ให้ผู้ยื่นทำตอนข้อมูลยังไม่นิ่ง)
+   */
+  protected generateOpenEditionFromClosed(): void {
+    this.ensureClosedEditionFiles();
+    this.ensureOpenEditionFiles();
+    this.openEditionBuilt = true;
+    const indexNote = [
+      field('เรื่อง', 'ดัชนีการเปิดเผยจากฉบับปกปิดสมบูรณ์'),
+      field('วันที่สร้าง', this.thaiToday()),
+      field('วิธีทำ', 'ระบบคัดลอกฉบับปกปิดสมบูรณ์ แล้วแทนค่าอ่อนไหวด้วย [ข้อมูลปกปิด] ตามมาร์กในแบบ', true),
+      field(
+        'รายการที่ปกปิด',
+        [
+          'ข้อ 1.2 ความเกี่ยวข้องกับผู้นำเข้า/ผู้ส่งออก — รายละเอียดความสัมพันธ์',
+          'ข้อ 4 มูลค่าปกติ — ตัวเลขราคาและต้นทุน',
+          'ข้อ 5 ราคาส่งออก — ตัวเลขราคา',
+          'ข้อ 6 ดัชนีการทุ่มตลาด — ผลคำนวณเปอร์เซ็นต์',
+        ].join('\n'),
+        true,
+      ),
+      field('หมายเหตุ', 'เจ้าหน้าที่ตรวจทานดัชนีก่อนส่งเข้าวาระ — การประสานขอฉบับเปิดเผยจากผู้ยื่นเป็นนอกรอบเมื่อจำเป็นเท่านั้น', true),
+    ];
+    const existing = this.madeDocs.find((item) => item.kind === OPEN_EDITION_KIND && item.fields.some((row) => row.label === 'รายการที่ปกปิด'));
+    if (existing) {
+      this.madeDocs = this.madeDocs.map((item) => (item.id === existing.id ? { ...item, at: this.thaiToday(), fields: indexNote } : item));
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `open-index-${Date.now()}`, kind: OPEN_EDITION_KIND, at: this.thaiToday(), fields: indexNote }];
+    }
+    writeMadeDocs(this.madeDocs);
+    this.pickCompleteBundle('open');
+    this.notice = 'assist';
+  }
+
+  /** จุดสถานะเอกสารหน่วยงาน — มีไฟล์/แบบฟอร์มแล้วเขียว ไม่ผ่านวางเทาให้ layout เท่ากัน */
+  protected workDocDot(title: string): string {
+    if (this.madeOf(title).length || this.extrasOf(title).length) return 'assets/icons/por1-dot-done.svg';
+    return 'assets/icons/por1-dot.svg';
   }
 
   /** กลุ่มในสารบัญที่เป็นไฟล์รวม — คลิกชื่อกลุ่มพอ ไม่ไล่ทีละไฟล์ */
@@ -5665,7 +10144,8 @@ export class Por1Page {
   }
 
   /**
-   * ลำดับเล่ม: หนังสือนำส่ง (ไฟล์) → แบบ ปร. ส่วนที่ 1–8 + คำรับรอง → เอกสารแนบ
+   * ลำดับเล่ม: หนังสือนำส่ง → แบบ ปร. ส่วนที่ 1–8 + คำรับรอง → เอกสารแนบ
+   * (ฉบับเปิดเผย/ปกปิดใช้โครงเดียวกับแบบคำขอ)
    */
   protected get filingBundlePages(): BundlePage[] {
     const info = this.bundleFormInfo;
@@ -6364,6 +10844,24 @@ export class Por1Page {
     return `แบบคำขอ ปร.1 AD เวียดนาม อียิปต์_Sub${round}_${stamp} 1.pdf`;
   }
 
+  /** ดาวน์โหลดเอกสารที่เปิดอยู่บนหน้าแบบคำขอ — ต้นฉบับ/ฉบับปกปิดเป็น PDF · แก้ไขคำขอเป็นไฟล์ Word */
+  protected downloadActiveFilingDoc(): void {
+    if (this.bundleIsAmend) {
+      this.downloadAmendWordDoc();
+      return;
+    }
+    this.downloadFilingBundle();
+  }
+
+  /** ดาวน์โหลดข้อความแก้ไขคำขอจาก editor */
+  protected downloadAmendWordDoc(): void {
+    this.captureAmendEditor();
+    const round = this.bundleRoundNo || 1;
+    const title = `แก้ไขคำขอ ปร.1 · รอบ ${round}`;
+    const fileName = `แก้ไขคำขอ-ปร1-รอบ${round}-${this.refId || filingRefId}.doc`;
+    this.downloadEditorHtmlAsWord(fileName, title, this.bundleAmendText || '<p><br></p>');
+  }
+
   /** Export PDF จัดเรียงตามแบบคำขอ ปร.1 ตัวอย่าง AD1046 Sub1 */
   protected downloadFilingBundle(edition: 'original' | 'review' | 'amend' = this.bundleEdition): void {
     const fileName = this.por1ExportPdfName();
@@ -6373,6 +10871,40 @@ export class Por1Page {
       return;
     }
     this.printPor1FormPdf(pdfEdition, fileName);
+  }
+
+  /** HTML จาก contenteditable → .doc ให้เปิดใน Word ได้ */
+  private downloadEditorHtmlAsWord(fileName: string, title: string, bodyHtml: string): void {
+    const safeTitle = this.escapeHtml(title);
+    const html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="th">
+<head>
+<meta charset="utf-8">
+<title>${safeTitle}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+<style>
+  @page { size: A4; margin: 2.54cm; }
+  body { margin: 0; color: #0E2346; font-family: 'TH SarabunPSK', 'TH Sarabun New', Sarabun, sans-serif; font-size: 16pt; line-height: 1.15; }
+  p { margin: 0 0 0.35em; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border: 1px solid #0E2346; padding: 4px 8px; vertical-align: top; }
+  mark.word-cmt-mark { background: transparent; }
+</style>
+</head>
+<body>
+<p><strong>${safeTitle}</strong></p>
+<p>เลขที่อ้างอิง ${this.escapeHtml(this.refId || filingRefId)}</p>
+<hr>
+${bodyHtml || '<p><br></p>'}
+</body>
+</html>`;
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName.endsWith('.doc') ? fileName : `${fileName}.doc`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   /** Export All — แบบคำขอ + หนังสือนำส่ง + ไฟล์แนบทั้งหมดในรอบนี้ */
@@ -6527,7 +11059,112 @@ window.onload=function(){
     else sessionStorage.setItem(this.bundleReviewKey, JSON.stringify(Object.fromEntries(entries)));
   }
 
+  /** ไฟล์ตัวอย่างจากเคสจริง (AD1022 / AD1019 / AD1042) */
+  protected readonly agencyLetterSamples = [
+    { name: 'หนังสือขอข้อมูล-4-หน่วยงาน.pdf', title: 'หนังสือขอข้อมูลผู้ผลิตจาก 4 หน่วยงาน', href: 'assets/samples/agency/หนังสือขอข้อมูล-4-หน่วยงาน.pdf' },
+    { name: 'ใบปะหน้า-ขอข้อมูลผู้ผลิต-4-หน่วยงาน.docx', title: 'ใบปะหน้าหนังสือขอข้อมูลผู้ผลิต 4 หน่วยงาน', href: 'assets/samples/agency/ใบปะหน้า-ขอข้อมูลผู้ผลิต-4-หน่วยงาน.docx' },
+  ];
+
+  /** สิ่งที่ส่งมาด้วย 1–3 ของหนังสือขอข้อมูลหน่วยงาน — แบบฟอร์มว่างให้ดาวน์โหลด */
+  protected readonly agencyLetterEnclosures = [
+    {
+      no: 1,
+      title: 'แบบแสดงรายชื่อผู้ผลิต พร้อมสถานที่ตั้งโรงงาน',
+      name: '1-แบบแสดงรายชื่อผู้ผลิต-พร้อมสถานที่ตั้ง.xlsx',
+      href: 'assets/samples/agency/enclosures/1-แบบแสดงรายชื่อผู้ผลิต-พร้อมสถานที่ตั้ง.xlsx',
+    },
+    {
+      no: 2,
+      title: 'แบบแสดงกำลังการผลิตและปริมาณการผลิต ปี 2560–2561 และไตรมาส 1 ปี 2562',
+      name: '2-แบบแสดงกำลังการผลิตและปริมาณการผลิต.xlsx',
+      href: 'assets/samples/agency/enclosures/2-แบบแสดงกำลังการผลิตและปริมาณการผลิต.xlsx',
+    },
+    {
+      no: 3,
+      title: 'แบบแสดงปริมาณความต้องการใช้ภายในประเทศในช่วงเวลาเดียวกัน',
+      name: '3-แบบแสดงปริมาณความต้องการใช้ภายในประเทศ.xlsx',
+      href: 'assets/samples/agency/enclosures/3-แบบแสดงปริมาณความต้องการใช้ภายในประเทศ.xlsx',
+    },
+  ];
+
+  protected downloadAgencyEnclosure(file: { name: string; href: string }): void {
+    const link = document.createElement('a');
+    link.href = file.href;
+    link.download = file.name;
+    link.click();
+  }
+
+  protected get agencyLetterDoc(): boolean {
+    return this.workDocs[this.docPart]?.title === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง';
+  }
+
+  protected readonly agencySummarySamples = [
+    { name: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง-R6201.xlsx', title: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง (R6201)', href: 'assets/samples/agency/replies/สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง-R6201.xlsx' },
+    { name: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง.xlsx', title: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง', href: 'assets/samples/agency/สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง.xlsx' },
+    { name: 'รายชื่อผู้ผลิตจากหน่วยงาน.xlsx', title: 'รายชื่อและที่อยู่ผู้ผลิตจากหน่วยงาน', href: 'assets/samples/agency/รายชื่อผู้ผลิตจากหน่วยงาน.xlsx' },
+    { name: 'สรุปความเห็นจากหน่วยงาน.docx', title: 'สรุปความเห็นจากหน่วยงานที่เกี่ยวข้อง', href: 'assets/samples/agency/สรุปความเห็นจากหน่วยงาน.docx' },
+  ];
+
+  /** ไฟล์ที่หน่วยงานส่งกลับ — แนบกับหัวข้อสรุปข้อมูล */
+  protected readonly agencySummaryReplies = [
+    {
+      name: 'กรมโรงงาน-รายชื่อโรงงานประเภท59-เหล็กแผ่น.xlsx',
+      title: 'กรมโรงงานอุตสาหกรรม — รายชื่อโรงงานประเภท 59 เหล็กแผ่น (ไฟล์จริง)',
+      href: 'assets/samples/agency/replies/กรมโรงงาน-รายชื่อโรงงานประเภท59-เหล็กแผ่น.xlsx',
+      sentOn: '24/05/2562',
+    },
+    {
+      name: 'กรมโรงงาน-แบบแสดงรายชื่อและกำลังการผลิต-ส่งกลับ.xlsx',
+      title: 'กรมโรงงานอุตสาหกรรม — แบบแสดงรายชื่อและกำลังการผลิต (ส่งกลับ)',
+      href: 'assets/samples/agency/replies/กรมโรงงาน-แบบแสดงรายชื่อและกำลังการผลิต-ส่งกลับ.xlsx',
+      sentOn: '24/05/2562',
+    },
+    {
+      name: 'สถาบันเหล็ก-ข้อมูลผู้ผลิตและอุปสงค์-ส่งกลับ.xlsx',
+      title: 'สถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย — ผู้ผลิตและอุปสงค์ (ส่งกลับ)',
+      href: 'assets/samples/agency/replies/สถาบันเหล็ก-ข้อมูลผู้ผลิตและอุปสงค์-ส่งกลับ.xlsx',
+      sentOn: '25/05/2562',
+    },
+    {
+      name: 'สภาอุตสาหกรรม-รายชื่อผู้ผลิตและอุปสงค์-ส่งกลับ.xlsx',
+      title: 'สภาอุตสาหกรรมแห่งประเทศไทย — รายชื่อผู้ผลิตและอุปสงค์ (ส่งกลับ)',
+      href: 'assets/samples/agency/replies/สภาอุตสาหกรรม-รายชื่อผู้ผลิตและอุปสงค์-ส่งกลับ.xlsx',
+      sentOn: '27/05/2562',
+    },
+    {
+      name: 'สำนักงานเศรษฐกิจอุตสาหกรรม-กำลังผลิตและอุปสงค์-ส่งกลับ.xlsx',
+      title: 'สำนักงานเศรษฐกิจอุตสาหกรรม — กำลังผลิตและอุปสงค์ (ส่งกลับ)',
+      href: 'assets/samples/agency/replies/สำนักงานเศรษฐกิจอุตสาหกรรม-กำลังผลิตและอุปสงค์-ส่งกลับ.xlsx',
+      sentOn: '28/05/2562',
+    },
+    {
+      name: 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง-R6201.xlsx',
+      title: 'สรุปรวมจากหน่วยงานที่เกี่ยวข้อง — R6201',
+      href: 'assets/samples/agency/replies/สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง-R6201.xlsx',
+      sentOn: '28/05/2562',
+    },
+  ];
+
+  protected get agencySummaryDoc(): boolean {
+    return this.workDocs[this.docPart]?.title === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง';
+  }
+
+  private seedAgencySummaryReplies(): boolean {
+    const kind = 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง';
+    const existing = new Set(this.extrasOf(kind).map((file) => file.name));
+    const add = this.agencySummaryReplies
+      .filter((file) => !existing.has(file.name))
+      .map((file) => ({ kind, name: file.name, title: file.title, sentOn: file.sentOn }));
+    if (!add.length) return false;
+    this.extraFiles = [...this.extraFiles, ...add];
+    this.writeExtraFiles();
+    return true;
+  }
+
   protected readonly preSamples = [
+    { name: 'แบบสอบถามเบื้องต้น.docx', title: 'แบบสอบถามเบื้องต้น', href: 'assets/samples/pre-qn/แบบสอบถามเบื้องต้น.docx' },
+    { name: 'หนังสือขอความร่วมมือตอบแบบสอบถามเบื้องต้น.docx', title: 'หนังสือขอความร่วมมือตอบแบบสอบถามเบื้องต้น', href: 'assets/samples/pre-qn/หนังสือขอความร่วมมือตอบแบบสอบถามเบื้องต้น.docx' },
+    { name: 'หนังสือส่งแบบสอบถามเบื้องต้น.pdf', title: 'หนังสือส่งแบบสอบถามเบื้องต้น', href: 'assets/samples/pre-qn/หนังสือส่งแบบสอบถามเบื้องต้น.pdf' },
     { name: 'แบบสอบถามเบื้องต้น-17.01.66.docx', title: 'แบบสอบถามเบื้องต้นถึงผู้ผลิตในประเทศ', href: 'assets/samples/pre-qn/แบบสอบถามเบื้องต้น-17.01.66.docx' },
     { name: 'Pre-Qn_Exporter.docx', title: 'Pre-questionnaire ผู้ส่งออก', href: 'assets/samples/pre-qn/Pre-Qn_Exporter.docx' },
     { name: 'Appendix_Pre-Qn_Exporter.xlsx', title: 'ภาคผนวก Pre-questionnaire', href: 'assets/samples/pre-qn/Appendix_Pre-Qn_Exporter.xlsx' },
@@ -6538,13 +11175,354 @@ window.onload=function(){
     return this.workDocs[this.docPart]?.title === 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง';
   }
 
-  protected usePreSamples(): void {
-    const kind = 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง';
-    const have = new Set(this.extrasOf(kind).map((file) => file.name));
-    const next = this.preSamples.filter((sample) => !have.has(sample.name)).map((sample) => ({ kind, name: sample.name, title: sample.title, sentOn: '28/05/2562' }));
-    if (!next.length) return;
-    this.extraFiles = [...this.extraFiles, ...next];
-    this.writeExtraFiles();
+  /** คำขอมีข้อ 1.2 — แบบสอบถามจะถามละเอียดกว่า (ตามประชุม 19/11) */
+  protected get hasApplicantSection12(): boolean {
+    return toc.some((group) => group.items.some((item) => item.anchor === 'part-1-2' || item.label.includes('1.2')));
+  }
+
+  /** ช่วงเวลาในแบบสอบถามต้องสอดคล้องกับช่วงในแบบคำขอ */
+  protected get filingPeriodLabel(): string {
+    return 'ปี 2560–2561 และไตรมาส 1 ปี 2562';
+  }
+
+  protected get preQnPipeLabel(): string {
+    if (this.preQnPipe === 'head') return 'รอหัวหน้ากลุ่ม';
+    if (this.preQnPipe === 'director') return 'รอ ผอ.';
+    if (this.preQnPipe === 'sent') return 'ส่งแบบแล้ว';
+    return 'ร่าง';
+  }
+
+  protected get preQnPipeTone(): 'success' | 'info' | 'warning' | 'neutral' {
+    if (this.preQnPipe === 'sent') return 'success';
+    if (this.preQnPipe === 'draft') return 'neutral';
+    return 'warning';
+  }
+
+  protected get canSendPreQnUp(): boolean {
+    return this.preQuestionnaire && this.preQnPipe !== 'sent' && this.agencyProducerSelected.length > 0;
+  }
+
+  /** ส่ง Pre-questionnaire ขึ้นสายอนุมัติ: ร่าง → หัวหน้ากลุ่ม → ผอ. → ส่งออก */
+  protected sendPreQnForApproval(): void {
+    if (!this.canSendPreQnUp) return;
+    if (this.preQnPipe === 'draft') this.preQnPipe = 'head';
+    else if (this.preQnPipe === 'head') this.preQnPipe = 'director';
+    else if (this.preQnPipe === 'director') this.preQnPipe = 'sent';
+    this.notice = 'saved';
+  }
+
+  /** ตารางเทียบผู้ผลิตข้ามหน่วยงาน (ตามประชุม — ไม่สรุปข้อความอย่างเดียว) */
+  protected readonly agencyCompareRows: {
+    id: string;
+    name: string;
+    diw: string;
+    iron: string;
+    fti: string;
+    oie: string;
+    capacity: string;
+  }[] = [
+    {
+      id: 'ssi',
+      name: 'บมจ. สหวิริยาสตีลอินดัสตรี',
+      diw: '1,800,000',
+      iron: '1,800,000',
+      fti: '1,800,000',
+      oie: '1,750,000',
+      capacity: '1,800,000',
+    },
+    {
+      id: 'gsteel',
+      name: 'บมจ. จี สตีล',
+      diw: '1,800,000',
+      iron: '1,780,000',
+      fti: '1,800,000',
+      oie: '1,800,000',
+      capacity: '1,800,000',
+    },
+    {
+      id: 'gj',
+      name: 'บมจ. จี เจ สตีล',
+      diw: '1,500,000',
+      iron: '1,500,000',
+      fti: '1,480,000',
+      oie: '1,500,000',
+      capacity: '1,500,000',
+    },
+    {
+      id: 'sahamit',
+      name: 'บจ. สหมิตรเหล็กและเหล็กกล้า',
+      diw: '120,000',
+      iron: '110,000',
+      fti: '120,000',
+      oie: '—',
+      capacity: '120,000',
+    },
+  ];
+
+  protected toggleAgencyProducer(id: string): void {
+    this.agencyProducerPick = { ...this.agencyProducerPick, [id]: !this.agencyProducerPick[id] };
+  }
+
+  protected get agencyProducerSelected(): typeof this.agencyCompareRows {
+    return this.agencyCompareRows.filter((row) => this.agencyProducerPick[row.id]);
+  }
+
+  protected get agencyProducerPickCount(): number {
+    return this.agencyProducerSelected.length;
+  }
+
+  /** นำรายชื่อที่ติ๊กไปเติมกลุ่มผู้รับใน Pre-questionnaire */
+  protected applyProducersToPreQn(): void {
+    const picked = this.agencyProducerSelected;
+    if (!picked.length) return;
+    const names = picked.map((row) => row.name).join(', ');
+    const period = this.filingPeriodLabel;
+    const detail = this.hasApplicantSection12
+      ? `สอบถามละเอียด (มีข้อ 1.2 ในแบบคำขอ) · ช่วงเวลา ${period} · ผู้รับ ${picked.length} ราย: ${names}`
+      : `สอบถามแบบมาตรฐาน (ไม่มีข้อ 1.2) · ช่วงเวลา ${period} · ผู้รับ ${picked.length} ราย: ${names}`;
+    this.workDocs = this.workDocs.map((doc) => {
+      if (doc.title !== 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง') return doc;
+      return {
+        ...doc,
+        fields: doc.fields.map((row) => {
+          if (row.label === 'กลุ่มผู้รับแบบ') return { ...row, value: `${names}\n(${detail})` };
+          if (row.label === 'กำหนดส่งคำตอบ') return row;
+          if (row.label.includes('กำลังการผลิต') || row.label.includes('ส่วนที่ 2')) {
+            return { ...row, value: `กรอกกำลังการผลิตและปริมาณการผลิต ${period} ตามแบบที่กำหนด` };
+          }
+          return row;
+        }),
+      };
+    });
+    writeWorkDrafts(this.workDocs);
+    const preIndex = this.workDocs.findIndex((doc) => doc.title === 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง');
+    if (preIndex >= 0) this.pickDoc(preIndex);
+    this.notice = 'saved';
+  }
+
+  /** คำอธิบายตาม Flow หลังตรวจพบประเด็น */
+  protected agencyFlowHint(title: string): string {
+    if (title === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง') {
+      return 'ตาม Flow — จัดทำหนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง หลังตรวจ Required / Related / Recheck แล้วพบประเด็น เจ้าหน้าที่ตรวจสอบความถูกต้องก่อนส่ง';
+    }
+    if (title === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง') {
+      return 'ตามประชุม — เทียบข้อมูลรายผู้ผลิตข้ามหน่วยงานเป็นตาราง ติ๊กเลือกรายที่จะส่ง Pre-questionnaire แล้วค่อยสรุป';
+    }
+    if (title === 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง') {
+      const mode = this.hasApplicantSection12 ? 'แบบละเอียด (มีข้อ 1.2)' : 'แบบมาตรฐาน';
+      return `ตามประชุม — ${mode} · ช่วงเวลาต้องตรงกับแบบคำขอ (${this.filingPeriodLabel}) · ส่งอนุมัติหัวหน้ากลุ่ม → ผอ. ก่อนส่งออก`;
+    }
+    return 'เอกสารที่สร้างในระบบตามขั้นตอนยื่นคำขอและตรวจสอบ';
+  }
+
+  /** สร้างแบบฟอร์มจริงทั้ง 3 หัวข้อตาม Flow (ไม่ใช่แค่ไฟล์แนบ) */
+  protected seedAllAgencySamples(): void {
+    this.ensureAiAgencyForms();
+  }
+
+  /** เมื่อเปิดหัวข้อหน่วยงาน — ให้มีแบบฟอร์ม AI พร้อมตรวจ */
+  protected ensureAgencyDocForms(title = this.workDocs[this.docPart]?.title || ''): void {
+    if (!title || !this.agencyDoc(title)) return;
+    this.ensureAiAgencyForms(title);
+  }
+
+  private ensureAiAgencyForms(only?: string): void {
+    const targets = only
+      ? this.workDocs.filter((doc) => doc.title === only)
+      : this.workDocs.filter((doc) => this.agencyDoc(doc.title));
+    let changed = false;
+    let extrasChanged = false;
+    for (const doc of targets) {
+      if (doc.title === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง') {
+        // รีเฟรชแบบฟอร์ม AI เก่าที่ยังไม่มีตัวเลขสมจริง + แนบไฟล์ที่หน่วยงานส่งกลับ
+        const stale = this.madeOf(doc.title).some(
+          (item) =>
+            String(item.id).startsWith('ai-') &&
+            !`${this.madeField(item, 'รายชื่อผู้ผลิตหลัก')}${this.madeField(item, 'กำลังการผลิตและปริมาณการผลิต')}`.includes('1,800,000'),
+        );
+        if (stale) {
+          const beforeMade = this.madeDocs.length;
+          this.madeDocs = this.madeDocs.filter((item) => item.kind !== doc.title || !String(item.id).startsWith('ai-'));
+          if (this.madeDocs.length !== beforeMade) changed = true;
+        }
+        if (this.seedAgencySummaryReplies()) extrasChanged = true;
+      } else {
+        // เอกสารหน่วยงานอื่นใช้แบบฟอร์มในระบบ — ล้างไฟล์แนบเก่าที่ไม่ใช้แล้ว
+        const before = this.extraFiles.length;
+        this.extraFiles = this.extraFiles.filter((file) => file.kind !== doc.title);
+        if (this.extraFiles.length !== before) extrasChanged = true;
+      }
+      const added = this.buildAiFormsFor(doc.title);
+      if (added.length) {
+        this.madeDocs = [...this.madeDocs, ...added];
+        changed = true;
+      }
+    }
+    if (changed) writeMadeDocs(this.madeDocs);
+    if (extrasChanged) this.writeExtraFiles();
+  }
+
+  /** สร้างแบบฟอร์มตามหัวข้อ — เนื้อหาสมจริงจากเคส AD */
+  private buildAiFormsFor(kind: string): MadeDoc[] {
+    if (this.madeOf(kind).length) return [];
+    const ref = this.refId || 'R6201';
+    if (kind === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง') {
+      const template = defaultWorkDrafts().find((item) => item.title === kind);
+      return [{
+        id: `ai-letter-${Date.now()}`,
+        kind,
+        at: '20/05/2562',
+        fields: (template?.fields || []).map((row) => ({
+          ...row,
+          value: row.label === 'อ้างถึง' ? `คำขอเลขที่อ้างอิง ${ref} บริษัท สหวิริยาสตีลอินดัสตรี จำกัด ลงวันที่ 15/05/2562` : row.value,
+        })),
+      }];
+    }
+    if (kind === 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง') {
+      const template = defaultWorkDrafts().find((item) => item.title === kind);
+      const master = {
+        id: `ai-summary-${Date.now()}`,
+        kind,
+        at: '28/05/2562',
+        fields: (template?.fields || []).map((row) => ({
+          ...row,
+          value: row.label === 'ชื่อรายงาน' ? `สรุปข้อมูลผู้ผลิตจากหน่วยงานที่เกี่ยวข้อง — คำขอ ${ref}` : row.value,
+        })),
+      };
+      const replies: MadeDoc[] = [
+        {
+          id: `ai-reply-diw-${Date.now()}`,
+          kind,
+          at: '24/05/2562',
+          fields: [
+            field('ชื่อรายงาน', 'คำตอบจากกรมโรงงานอุตสาหกรรม'),
+            field('หน่วยงาน', 'กรมโรงงานอุตสาหกรรม'),
+            field('เลขที่หนังสือตอบกลับ', 'อก 0307/1234 ลงวันที่ 24/05/2562'),
+            field('วันที่ได้รับข้อมูล', '24/05/2562'),
+            field(
+              'รายชื่อผู้ผลิต',
+              '1. บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน) — ประจวบคีรีขันธ์\n2. บริษัท จี สตีล จำกัด (มหาชน) — ระยอง · กำลังผลิต 1,800,000 ตัน/ปี\n3. บริษัท จี เจ สตีล จำกัด (มหาชน) — ระยอง\n4. บริษัท สหมิตรเหล็กและเหล็กกล้า จำกัด — สมุทรปราการ\n(อ้างอิงทะเบียนโรงงานประเภท 59 และแบบแสดงรายชื่อที่ส่งกลับ)',
+              true,
+            ),
+            field(
+              'กำลังการผลิตและปริมาณการผลิต',
+              'SSI 1,800,000 ตัน/ปี · ผลิต 2560/2561/Q1-62 = 1,450,000 / 1,380,000 / 340,000 ตัน\nG Steel 1,800,000 ตัน/ปี · 980,000 / 920,000 / 210,000 ตัน\nGJ Steel 1,500,000 ตัน/ปี · 720,000 / 680,000 / 160,000 ตัน\nสหมิตร 120,000 ตัน/ปี · 85,000 / 78,000 / 18,000 ตัน',
+              true,
+            ),
+            field('สรุปที่นำไปใช้', 'ใช้เป็นฐานรายชื่อหลักและยอดกำลังการผลิตในรายงานสรุปรวม — ไฟล์แนบกรมโรงงาน', true),
+          ],
+        },
+        {
+          id: `ai-reply-isi-${Date.now() + 1}`,
+          kind,
+          at: '25/05/2562',
+          fields: [
+            field('ชื่อรายงาน', 'คำตอบจากสถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย'),
+            field('หน่วยงาน', 'สถาบันเหล็กและเหล็กกล้าแห่งประเทศไทย'),
+            field('เลขที่หนังสือตอบกลับ', 'เหล็ก 88/2562 ลงวันที่ 25/05/2562'),
+            field('วันที่ได้รับข้อมูล', '25/05/2562'),
+            field('รายชื่อผู้ผลิต', 'ยืนยันรายชื่อผู้ผลิต HRC 4 รายหลักสอดคล้องฐานข้อมูลสถาบัน ยอดผลิตใกล้เคียงกรมโรงงาน (ส่วนต่าง ≤ 3%)', true),
+            field(
+              'ปริมาณความต้องการใช้ภายในประเทศ',
+              'ปี 2560: 5,200,000 ตัน\nปี 2561: 5,050,000 ตัน\nไตรมาส 1 ปี 2562: 1,180,000 ตัน',
+              true,
+            ),
+            field('สรุปที่นำไปใช้', 'ใช้เทียบยอดผลิตกับกรมโรงงาน และเป็นหนึ่งในสามแหล่งคำนวณค่ากลางอุปสงค์', true),
+          ],
+        },
+        {
+          id: `ai-reply-fti-${Date.now() + 2}`,
+          kind,
+          at: '27/05/2562',
+          fields: [
+            field('ชื่อรายงาน', 'คำตอบจากสภาอุตสาหกรรมแห่งประเทศไทย (กลุ่มอุตสาหกรรมเหล็ก)'),
+            field('หน่วยงาน', 'สภาอุตสาหกรรมแห่งประเทศไทย'),
+            field('เลขที่หนังสือตอบกลับ', 'ส.อ.ท. 56/2562 ลงวันที่ 27/05/2562'),
+            field('วันที่ได้รับข้อมูล', '27/05/2562'),
+            field('รายชื่อผู้ผลิต', 'ยืนยัน SSI / G Steel / GJ Steel เป็นสมาชิกกลุ่มอุตสาหกรรมเหล็ก และระบุสหมิตรเป็นผู้ผลิตรอง/แปรรูป', true),
+            field(
+              'ปริมาณความต้องการใช้ภายในประเทศ',
+              'ปี 2560: 5,350,000 ตัน\nปี 2561: 5,120,000 ตัน\nไตรมาส 1 ปี 2562: 1,210,000 ตัน\n(รวมการใช้ในอุตสาหกรรมต่อเนื่อง)',
+              true,
+            ),
+            field('สรุปที่นำไปใช้', 'ใช้ประกอบการประเมินอุปสงค์ในประเทศและยืนยันขอบเขตผู้ผลิตหลัก', true),
+          ],
+        },
+        {
+          id: `ai-reply-oie-${Date.now() + 3}`,
+          kind,
+          at: '28/05/2562',
+          fields: [
+            field('ชื่อรายงาน', 'คำตอบจากสำนักงานเศรษฐกิจอุตสาหกรรม'),
+            field('หน่วยงาน', 'สำนักงานเศรษฐกิจอุตสาหกรรม'),
+            field('เลขที่หนังสือตอบกลับ', 'ศก 0704/210 ลงวันที่ 28/05/2562'),
+            field('วันที่ได้รับข้อมูล', '28/05/2562'),
+            field(
+              'กำลังการผลิตและปริมาณการผลิต',
+              'ยืนยันยอดกำลังการผลิตและปริมาณการผลิตช่วง 2560–Q1/2562 สอดคล้องกรมโรงงาน สำหรับรายชื่อหลัก 4 ราย',
+              true,
+            ),
+            field(
+              'ปริมาณความต้องการใช้ภายในประเทศ',
+              'ปี 2560: 5,280,000 ตัน\nปี 2561: 5,085,000 ตัน\nไตรมาส 1 ปี 2562: 1,195,000 ตัน',
+              true,
+            ),
+            field('สรุปที่นำไปใช้', 'ใช้เป็นแหล่งที่สามสำหรับค่ากลางอุปสงค์ และยืนยันช่องว่างอุปสงค์–การผลิตในประเทศ', true),
+          ],
+        },
+      ];
+      return [master, ...replies];
+    }
+    if (kind === 'Pre-questionnaire กลุ่มที่เกี่ยวข้อง') {
+      const template = defaultWorkDrafts().find((item) => item.title === kind);
+      const form = {
+        id: `ai-preqn-${Date.now()}`,
+        kind,
+        at: '28/05/2562',
+        fields: (template?.fields || []).map((row) => ({
+          ...row,
+          value: row.label === 'คำขอ' ? `${ref} สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์` : row.value,
+        })),
+      };
+      const answers: MadeDoc[] = [
+        {
+          id: `ai-preqn-ssi-${Date.now() + 2}`,
+          kind,
+          at: '10/06/2562',
+          fields: [
+            field('ชื่อแบบ', 'คำตอบ Pre-questionnaire — บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
+            field('กลุ่มผู้รับแบบ', 'ผู้ผลิตในประเทศ / ผู้ยื่นคำขอ'),
+            field('คำขอ', `${ref} สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์`),
+            field('วันที่จัดทำ', '10/06/2562'),
+            field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'เป็นผู้ยื่นคำขอและผู้ผลิตเหล็กแผ่นรีดร้อนในประเทศ', true),
+            field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'ส่งข้อมูลกำลังการผลิตและปริมาณการผลิตปี 2560–2561 และไตรมาส 1 ปี 2562 ครบตามแบบ', true),
+            field('ส่วนที่ 3 ราคา', 'แนบหลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562', true),
+            field('ส่วนที่ 4 ความเสียหาย', 'ปริมาณนำเข้าจากเวียดนามและอียิปต์เพิ่มขึ้น ส่งผลต่อราคาและส่วนแบ่งตลาดภายใน', true),
+            field('ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น', 'มีหนังสือมอบอำนาจจากผู้ผลิตร่วมยื่นครบตามรายชื่อ', true),
+            field('ผู้จัดทำ', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด'),
+          ],
+        },
+        {
+          id: `ai-preqn-gsteel-${Date.now() + 3}`,
+          kind,
+          at: '12/06/2562',
+          fields: [
+            field('ชื่อแบบ', 'คำตอบ Pre-questionnaire — บริษัท จี สตีล จำกัด (มหาชน)'),
+            field('กลุ่มผู้รับแบบ', 'ผู้ผลิตในประเทศ'),
+            field('คำขอ', `${ref} สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์`),
+            field('วันที่จัดทำ', '12/06/2562'),
+            field('ส่วนที่ 1 ฐานะผู้มีส่วนได้เสีย', 'เป็นผู้ผลิตในประเทศที่เกี่ยวข้องกับสินค้าในคำขอ', true),
+            field('ส่วนที่ 2 กำลังการผลิตและปริมาณการผลิต', 'กรอกกำลังการผลิตและปริมาณการผลิตตามแบบสอบถามเบื้องต้น', true),
+            field('ส่วนที่ 3 ราคา', 'ส่งหลักฐานราคาช่วงเวลาที่ร้องขอ', true),
+            field('ส่วนที่ 4 ความเสียหาย', 'เห็นผลกระทบต่อราคาขายในประเทศในช่วงเวลาเดียวกัน', true),
+            field('ส่วนที่ 5 ผู้ผลิตที่ร่วมยื่น', 'ไม่ใช่ผู้ร่วมยื่นคำขอ แต่ตอบแบบสอบถามในฐานะผู้ผลิตในประเทศ', true),
+            field('ผู้จัดทำ', 'บริษัท จี สตีล จำกัด (มหาชน)'),
+          ],
+        },
+      ];
+      return [form, ...answers];
+    }
+    return [];
   }
 
   protected prePick: Record<string, boolean> = {};
@@ -6578,6 +11556,244 @@ window.onload=function(){
     writeMadeDocs(this.madeDocs);
     this.prePick = {};
     this.notice = 'assist';
+  }
+
+  protected toggleAgencyReplyPick(name: string): void {
+    this.agencyReplyPick = { ...this.agencyReplyPick, [name]: !this.agencyReplyPick[name] };
+  }
+
+  protected get agencyReplyPickCount(): number {
+    const kind = 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง';
+    const files = this.extrasOf(kind);
+    const picked = files.filter((file) => this.agencyReplyPick[file.name]);
+    return picked.length || files.length;
+  }
+
+  /** AI สรุปไฟล์ที่หน่วยงานส่งกลับ — เปิดเอกสารแบบ Word เหมือนหน้าแก้คำขอ */
+  protected summarizeAgencyReplies(): void {
+    const kind = 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง';
+    const all = this.extrasOf(kind);
+    if (!all.length) return;
+    const picked = all.filter((file) => this.agencyReplyPick[file.name]);
+    const sources = (picked.length ? picked : all).map((file) => ({ title: file.title || file.name, name: file.name, sentOn: file.sentOn }));
+    const html = this.buildAgencySummaryHtml(sources);
+    this.agencySummaryHtml = html;
+    this.writeAgencySummaryHtml(html);
+    this.agencyWordOpen = true;
+    const fields = [
+      field('ชื่อรายงาน', `สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง — คำขอ ${this.refId || 'R6201'}`),
+      field('วันที่จัดทำ', '28/05/2562'),
+      field('ผู้จัดทำ', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
+      field('รายการไฟล์ที่สรุป', sources.map((file, i) => `${i + 1}. ${file.title}`).join('\n'), true),
+      field('เนื้อหาเอกสาร', html, true),
+      field('สรุปผลการวิเคราะห์', 'สรุปจากไฟล์ที่หน่วยงานส่งกลับ รายชื่อหลัก 4 ราย กำลังผลิตรวม 5.22 ล้านตัน/ปี และอุปสงค์ในประเทศช่วง 2560–Q1/2562', true),
+    ];
+    const existing = this.madeDocs.find((item) => item.kind === kind && item.fields.some((row) => row.label === 'เนื้อหาเอกสาร'));
+    if (existing) {
+      this.madeDocs = this.madeDocs.map((item) => item.id === existing.id ? { ...item, fields, at: '28/05/2562' } : item);
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `ai-summary-word-${Date.now()}`, kind, at: '28/05/2562', fields }];
+    }
+    writeMadeDocs(this.madeDocs);
+    this.agencyReplyPick = {};
+    this.notice = 'assist';
+    window.setTimeout(() => this.fillAgencySummaryEditor(), 0);
+  }
+
+  protected openAgencySummaryWord(item?: MadeDoc): void {
+    const html = item ? (this.madeField(item, 'เนื้อหาเอกสาร') || this.agencySummaryHtml || this.readAgencySummaryHtml()) : (this.agencySummaryHtml || this.readAgencySummaryHtml() || this.buildAgencySummaryHtml(
+      this.extrasOf('สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง').map((file) => ({ title: file.title || file.name, name: file.name, sentOn: file.sentOn })),
+    ));
+    if (!html.trim()) return;
+    this.agencySummaryHtml = html;
+    this.agencyWordOpen = true;
+    window.setTimeout(() => this.fillAgencySummaryEditor(), 0);
+  }
+
+  protected viewAgencyMade(item: MadeDoc): void {
+    if (this.madeField(item, 'เนื้อหาเอกสาร')) this.openAgencySummaryWord(item);
+    else this.viewingMade = item;
+  }
+
+  protected editAgencyMade(item: MadeDoc): void {
+    if (this.madeField(item, 'เนื้อหาเอกสาร')) this.openAgencySummaryWord(item);
+    else this.openAgencyForm(item.id);
+  }
+
+  protected closeAgencySummaryWord(): void {
+    this.captureAgencySummaryEditor();
+    this.agencyWordOpen = false;
+  }
+
+  protected saveAgencySummaryWord(): void {
+    this.captureAgencySummaryEditor();
+    const kind = 'สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง';
+    const html = this.agencySummaryHtml;
+    const fields = [
+      field('ชื่อรายงาน', `สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง — คำขอ ${this.refId || 'R6201'}`),
+      field('วันที่จัดทำ', '28/05/2562'),
+      field('ผู้จัดทำ', 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)'),
+      field('เนื้อหาเอกสาร', html, true),
+      field('สรุปผลการวิเคราะห์', 'บันทึกเอกสารสรุปแบบ Word จากไฟล์ที่หน่วยงานส่งกลับ', true),
+    ];
+    const existing = this.madeDocs.find((item) => item.kind === kind && item.fields.some((row) => row.label === 'เนื้อหาเอกสาร'));
+    if (existing) {
+      this.madeDocs = this.madeDocs.map((item) => item.id === existing.id ? { ...item, fields, at: '28/05/2562' } : item);
+    } else {
+      this.madeDocs = [...this.madeDocs, { id: `ai-summary-word-${Date.now()}`, kind, at: '28/05/2562', fields }];
+    }
+    writeMadeDocs(this.madeDocs);
+    this.writeAgencySummaryHtml(html);
+    this.notice = 'saved';
+  }
+
+  protected agencySummaryFormat(command: string, value?: string): void {
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand(command, false, value);
+    this.lockOfficialFontOnSelection();
+    this.captureAgencySummaryEditor();
+    this.refreshAmendToolbar();
+    this.agencySummaryEditorRef?.nativeElement.focus();
+  }
+
+  protected applyAgencySummaryFontSize(size: string): void {
+    this.amendFontSize = size;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('fontSize', false, '3');
+    const root = this.agencySummaryEditorRef?.nativeElement;
+    root?.querySelectorAll('font[size="3"]').forEach((node) => {
+      const span = document.createElement('span');
+      span.style.fontSize = size;
+      span.style.fontFamily = this.officialFontName;
+      span.innerHTML = node.innerHTML;
+      node.replaceWith(span);
+    });
+    this.lockOfficialFontOnSelection();
+    this.captureAgencySummaryEditor();
+    this.agencySummaryEditorRef?.nativeElement.focus();
+  }
+
+  protected applyAgencySummaryColor(color: string): void {
+    this.amendColor = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, color);
+    this.lockOfficialFontOnSelection();
+    this.captureAgencySummaryEditor();
+    this.refreshAmendToolbar();
+    this.agencySummaryEditorRef?.nativeElement.focus();
+  }
+
+  protected applyAgencySummaryHighlight(color: string): void {
+    this.amendHighlight = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('hiliteColor', false, color === 'transparent' ? 'transparent' : color);
+    this.lockOfficialFontOnSelection();
+    this.captureAgencySummaryEditor();
+    this.refreshAmendToolbar();
+    this.agencySummaryEditorRef?.nativeElement.focus();
+  }
+
+  protected onAgencySummaryEditorInput(): void {
+    this.captureAgencySummaryEditor();
+    this.refreshAmendToolbar();
+  }
+
+  private captureAgencySummaryEditor(): void {
+    const el = this.agencySummaryEditorRef?.nativeElement;
+    if (!el) return;
+    const empty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+    this.agencySummaryEmpty = empty;
+    this.agencySummaryHtml = empty ? '' : el.innerHTML;
+    this.writeAgencySummaryHtml(this.agencySummaryHtml);
+  }
+
+  private fillAgencySummaryEditor(tries = 0): void {
+    const run = () => {
+      const el = this.agencySummaryEditorRef?.nativeElement;
+      if (!el) {
+        if (tries < 8) window.setTimeout(() => this.fillAgencySummaryEditor(tries + 1), 50);
+        return;
+      }
+      const html = this.agencySummaryHtml || this.readAgencySummaryHtml();
+      el.innerHTML = html;
+      this.agencySummaryEmpty = this.amendHtmlIsEmpty(html);
+      this.refreshAmendToolbar();
+      this.view.markForCheck();
+    };
+    window.setTimeout(run, tries === 0 ? 0 : 50);
+  }
+
+  protected get hasAgencySummaryWord(): boolean {
+    return !!(this.agencySummaryHtml || this.readAgencySummaryHtml() || this.madeOf('สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง').some((item) => this.madeField(item, 'เนื้อหาเอกสาร')));
+  }
+
+  private readAgencySummaryHtml(): string {
+    try {
+      return sessionStorage.getItem(this.agencySummaryHtmlKey) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private writeAgencySummaryHtml(value: string): void {
+    try {
+      if (!value.trim()) sessionStorage.removeItem(this.agencySummaryHtmlKey);
+      else sessionStorage.setItem(this.agencySummaryHtmlKey, value);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private buildAgencySummaryHtml(sources: { title: string; name: string; sentOn: string }[]): string {
+    const ref = this.refId || 'R6201';
+    const list = sources.length
+      ? sources.map((file) => `<li>${this.escapeHtml(file.title)} <small>(${this.escapeHtml(file.sentOn)} · ${this.escapeHtml(file.name)})</small></li>`).join('')
+      : '<li>ยังไม่มีไฟล์แนบ</li>';
+    const picked = this.agencyProducerSelected;
+    const rows = (picked.length ? picked : this.agencyCompareRows)
+      .map(
+        (row) =>
+          `<tr><td>${this.escapeHtml(row.name)}</td><td>${row.diw}</td><td>${row.iron}</td><td>${row.fti}</td><td>${row.oie}</td><td><strong>${row.capacity}</strong></td></tr>`,
+      )
+      .join('');
+    const pickLine = picked.length
+      ? picked.map((row) => row.name).join(' · ')
+      : 'ยังไม่ได้ติ๊ก — ใช้รายชื่อหลักทั้งชุด';
+    return [
+      '<h3>สรุปข้อมูลจากหน่วยงานที่เกี่ยวข้อง</h3>',
+      `<p><strong>คำขอ</strong> เลขที่อ้างอิง ${this.escapeHtml(ref)} · สินค้าเหล็กแผ่นรีดร้อนจากเวียดนามและสาธารณรัฐอาหรับอียิปต์</p>`,
+      '<p><strong>วันที่จัดทำ</strong> 28/05/2562 · <strong>ผู้จัดทำ</strong> กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)</p>',
+      '<p><strong>1. ไฟล์ที่หน่วยงานส่งกลับ (ที่ใช้สรุป)</strong></p>',
+      `<ol>${list}</ol>`,
+      '<p data-ai-suggest="1" data-ai-label="AI สรุป" title="ตารางเทียบข้ามหน่วยงานตามที่ประชุม"><strong>2. ตารางเปรียบเทียบกำลังการผลิต (ตัน/ปี)</strong></p>',
+      '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:13px">',
+      '<thead><tr><th>ผู้ผลิต</th><th>กรมโรงงาน</th><th>สถาบันเหล็ก</th><th>ส.อ.ท.</th><th>ศก.</th><th>ใช้เป็นหลัก</th></tr></thead>',
+      `<tbody>${rows}</tbody>`,
+      '</table>',
+      `<p><strong>รายที่เลือกส่ง Pre-questionnaire:</strong> ${this.escapeHtml(pickLine)}</p>`,
+      '<p data-ai-suggest="1" data-ai-label="AI สรุป"><strong>3. กำลังการผลิตและปริมาณการผลิต</strong></p>',
+      '<p>ใช้ค่าสูงสุดที่ครบถ้วนจากตารางเทียบ — กำลังการผลิตรวมรายชื่อหลัก = <strong>5,220,000 ตัน/ปี</strong></p>',
+      '<ul>',
+      '<li>ปี 2560: ปริมาณการผลิต 3,235,000 ตัน</li>',
+      '<li>ปี 2561: ปริมาณการผลิต 3,058,000 ตัน</li>',
+      '<li>ไตรมาส 1 ปี 2562: ปริมาณการผลิต 728,000 ตัน</li>',
+      '</ul>',
+      '<p>อัตราใช้กำลังการผลิตโดยประมาณ 45–76% ตามราย ส่วนต่างระหว่างหน่วยงานไม่เกิน 3%</p>',
+      '<p data-ai-suggest="1" data-ai-label="AI สรุป"><strong>4. ปริมาณความต้องการใช้ภายในประเทศ</strong></p>',
+      '<p>ค่ากลางจากสถาบันเหล็กฯ / ส.อ.ท. / ศก. · ปี 2560: 5,276,667 · ปี 2561: 5,085,000 · Q1/2562: 1,195,000 ตัน</p>',
+      '<p><strong>5. จุดที่ข้อมูลยังไม่ครบ</strong></p>',
+      '<ol>',
+      '<li>หลักฐานราคาช่วงปลายปี 2561 ถึงต้นปี 2562 จากผู้ผลิตบางราย</li>',
+      '<li>ปริมาณนำเข้าที่เชื่อมกับความเสียหายโดยตรง แยกตามแหล่งเวียดนามและอียิปต์</li>',
+      '<li>รายชื่อผู้ผลิตที่ร่วมยื่นตามหนังสือมอบอำนาจให้ครบทุกฉบับ</li>',
+      '</ol>',
+      '<p data-ai-suggest="1" data-ai-label="AI สรุป"><strong>6. สรุปที่นำไปใช้</strong></p>',
+      '<ol>',
+      `<li>ส่ง Pre-questionnaire เฉพาะรายที่ติ๊ก (${picked.length || this.agencyCompareRows.length} ราย)</li>`,
+      `<li>ช่วงเวลาในแบบสอบถามต้องตรงกับแบบคำขอ (${this.escapeHtml(this.filingPeriodLabel)})</li>`,
+      '<li>เก็บไฟล์ตอบกลับจากหน่วยงานไว้เป็นหลักฐานประกอบสรุป</li>',
+      '</ol>',
+    ].join('');
   }
 
   protected assistDraft(): void {
@@ -6679,24 +11895,39 @@ window.onload=function(){
   private loadDocNotice(): void {
     const saved = readDocNotice();
     if (!saved) return;
-    this.docAction = saved.action;
-    this.docNoticedOn = saved.noticedOn || this.docNoticedOn;
-    this.docDueOn = saved.dueOn || this.docDueOn;
-    this.docNote = saved.note || this.docNote;
-    if (saved.letter.length === this.noticeLetter.length && saved.letter.every((item, index) => item.label === this.noticeLetter[index]?.label)) {
-      this.noticeLetter = saved.letter.map((item) => ({ ...item }));
+    this.noticeItems = saved.items.map((item) => ({
+      ...item,
+      files: item.files.map((file) => ({ ...file })),
+      letter: item.letter.map((field) => ({ ...field })),
+      gaps: item.gaps.map((gap) => ({ ...gap })),
+      history: item.history.length ? item.history.map((row) => ({ ...row })) : this.seedNoticeHistory({ ...saved, ...item, history: [] }),
+    }));
+    this.activeNoticeId = saved.activeId || this.noticeItems.at(-1)?.id || '';
+    const active = this.noticeItems.find((item) => item.id === this.activeNoticeId) || this.noticeItems.at(-1);
+    if (active) this.applyNoticeItem(active);
+    else {
+      this.docAction = saved.action;
+      this.docNoticedOn = saved.noticedOn || this.docNoticedOn;
+      this.docDueOn = saved.dueOn || this.docDueOn;
+      this.docNote = saved.note || this.docNote;
+      if (saved.letter.length === this.noticeLetter.length && saved.letter.every((item, index) => item.label === this.noticeLetter[index]?.label)) {
+        this.noticeLetter = saved.letter.map((item) => ({ ...item }));
+      }
+      if (saved.files.length) this.docFiles = saved.files;
+      if (saved.gaps.length) this.docGaps = saved.gaps.map((gap) => ({ ...gap }));
+      this.noticeSaraban = saved.sarabanNo;
+      this.docSent = saved.sent;
+      this.docSentBy = saved.sentBy;
+      this.noticePipe = saved.pipe || (saved.sent ? 'done' : 'draft');
+      this.noticePipeAt = saved.pipeAt || '';
+      this.noticeReportBy = saved.reportBy || '';
+      this.noticeHeadBy = saved.headBy || '';
+      this.noticeOfficeRef = saved.officeRef || '';
+      this.noticeHistory = this.seedNoticeHistory(saved);
     }
-    if (saved.files.length) this.docFiles = saved.files;
-    if (saved.gaps.length) this.docGaps = saved.gaps.map((gap) => ({ ...gap }));
-    this.noticeSaraban = saved.sarabanNo;
     if (saved.committee) this.applyCommittee(saved.committee);
     if (saved.inquiry) this.applyInquiry(saved.inquiry);
-    this.docSent = saved.sent;
-    this.docSentBy = saved.sentBy;
-    this.noticePipe = saved.pipe || (saved.sent ? 'sent' : 'draft');
-    this.noticePipeAt = saved.pipeAt || '';
-    this.noticeHeadBy = saved.headBy || '';
-    this.noticeOfficeRef = saved.officeRef || '';
+    if (!saved.items.length && this.noticeItems.length) writeDocNotice(this.docPayload(this.docSent));
     this.noticePasses = saved.passes.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null }));
     if (saved.reply) this.applyReply(saved.reply);
     else if (saved.action === 'complete') {
@@ -7075,7 +12306,19 @@ window.onload=function(){
   }
 
   protected get inquiryDocStep(): boolean {
-    return this.inquiryPart === 'agenda' || this.inquiryPart === 'notice' || this.inquiryPart === 'sign' || this.inquiryPart === 'letters' || this.inquiryPart === 'news';
+    return this.inquiryPart === 'draftAgenda' || this.inquiryPart === 'subAgenda' || this.inquiryPart === 'agenda'
+      || this.inquiryPart === 'notice' || this.inquiryPart === 'sign' || this.inquiryPart === 'letters' || this.inquiryPart === 'news';
+  }
+
+  protected get inquiryAgendaLane(): AgendaLane | null {
+    if (this.inquiryPart === 'draftAgenda') return 'draft';
+    if (this.inquiryPart === 'subAgenda') return 'sub';
+    if (this.inquiryPart === 'agenda') return 'tdc';
+    return null;
+  }
+
+  protected agendaLaneFiles(lane: AgendaLane): InquiryAgendaFile[] {
+    return this.inquiryAgendaFiles.filter((file) => (file.lane || 'tdc') === lane);
   }
 
   protected inquiryStepTitle(): string {
@@ -7083,11 +12326,70 @@ window.onload=function(){
   }
 
   protected inquiryStepHint(): string {
-    if (this.inquiryPart === 'agenda') return 'บันทึกขออนุมัติวาระ วาระการประชุม เอกสารแนบ Chairman’s Note มติที่ประชุม และรายงานการประชุม';
-    if (this.inquiryPart === 'notice') return 'ร่างประกาศกรม ร่างประกาศเรียกเก็บอากรต่อไป และบันทึกให้กองกฎหมายตรวจร่าง';
-    if (this.inquiryPart === 'sign') return 'ลงนามประกาศ ส่งราชกิจจานุเบกษา และเก็บหนังสือแจ้งว่าลงประกาศแล้ว';
-    if (this.inquiryPart === 'letters') return 'แจ้งสถานทูต ผู้ส่งออก สพต./สคต. กรมศุลกากร ผู้นำเข้า อุตสาหกรรมภายใน และสมาคม';
-    return 'ข่าวภาษาไทยและภาษาอังกฤษหลังประกาศเปิดไต่สวน';
+    if (this.inquiryPart === 'draftAgenda') return 'วาระพิจารณาคำขอเปิดไต่สวนและตารางประกอบก่อนเสนออนุ';
+    if (this.inquiryPart === 'subAgenda') return 'บันทึก · วาระ · PPT · มติ · รายงานอนุไต่สวน';
+    if (this.inquiryPart === 'agenda') return 'บันทึก · วาระ · Chairman’s Note · PPT · มติ · รายงาน ทตอ.';
+    if (this.inquiryPart === 'notice') return 'ร่างประกาศกรมและส่งกองกฎหมายตรวจร่าง';
+    if (this.inquiryPart === 'sign') return 'ลงนามและส่งราชกิจจานุเบกษา';
+    if (this.inquiryPart === 'letters') return 'หนังสือแจ้งผู้เกี่ยวข้อง';
+    return 'ข่าวหลังประกาศเปิดไต่สวน';
+  }
+
+  protected inquiryAgendaDateLabel(): string {
+    if (this.inquiryPart === 'draftAgenda') return 'วันที่ร่าง';
+    if (this.inquiryPart === 'subAgenda') return 'วันที่ประชุมอนุ';
+    return 'วันที่ประชุม ทตอ.';
+  }
+
+  protected get inquiryAgendaDateValue(): string {
+    if (this.inquiryPart === 'draftAgenda') return this.inquiryDraftAgendaAt;
+    if (this.inquiryPart === 'subAgenda') return this.inquirySubAgendaAt;
+    return this.inquiryAgendaAt;
+  }
+
+  protected setInquiryAgendaDate(value: string): void {
+    if (this.inquiryPart === 'draftAgenda') this.inquiryDraftAgendaAt = value;
+    else if (this.inquiryPart === 'subAgenda') this.inquirySubAgendaAt = value;
+    else this.inquiryAgendaAt = value;
+  }
+
+  protected get inquiryAgendaStepDone(): boolean {
+    if (this.inquiryPart === 'draftAgenda') return this.inquiryDraftAgendaDone;
+    if (this.inquiryPart === 'subAgenda') return this.inquirySubAgendaDone;
+    return this.inquiryAgendaDone;
+  }
+
+  private readonly agendaSampleCatalog: Record<AgendaLane, InquiryAgendaFile[]> = {
+    draft: [
+      { name: 'วาระเปิด-ก่อนปรับปรุง.docx', title: 'วาระพิจารณาคำขอเปิดไต่สวน (ก่อนปรับปรุง)', sentOn: '02/10/2563', docId: '', href: 'assets/samples/ad1046/agenda/draft/วาระเปิด-ก่อนปรับปรุง.docx', lane: 'draft', source: 'sample' },
+      { name: '2. วาระพิจารณาคำขอเปิดไต่สวน-ร่าง.doc', title: 'วาระพิจารณาคำขอเปิดไต่สวน', sentOn: '02/10/2563', docId: '', href: 'assets/samples/ad1046/agenda/draft/2. วาระพิจารณาคำขอเปิดไต่สวน-ร่าง.doc', lane: 'draft', source: 'sample' },
+      { name: 'ปริมาณนำเข้า PJ.xlsx', title: 'ตารางปริมาณนำเข้า', sentOn: '02/10/2563', docId: '', href: 'assets/samples/ad1046/agenda/tables/ปริมาณนำเข้า PJ.xlsx', lane: 'draft', source: 'sample' },
+      { name: 'ตารางผลกระทบ Sup3 เทียบ Sup2.xlsx', title: 'ตารางผลกระทบ Sup3 เทียบ Sup2', sentOn: '02/10/2563', docId: '', href: 'assets/samples/ad1046/agenda/tables/ตารางผลกระทบ Sup3 เทียบ Sup2.xlsx', lane: 'draft', source: 'sample' },
+    ],
+    sub: [
+      { name: '1 บันทึกเสนอ อธ เข้าอนุฯ พิจารณาคำขอ.docx', title: 'บันทึกเสนอ อธ. เข้าอนุฯ', sentOn: '03/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/sub/1 บันทึกเสนอ อธ เข้าอนุฯ พิจารณาคำขอ.docx', lane: 'sub' },
+      { name: '2. วาระพิจารณาคำขอเปิดไต่สวน.docx', title: 'วาระพิจารณาคำขอเปิดไต่สวน (อนุ)', sentOn: '03/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/sub/2. วาระพิจารณาคำขอเปิดไต่สวน.docx', lane: 'sub' },
+      { name: '3. PowerPoint อนุ ทตอ 3 พย 63.pptx', title: 'PowerPoint อนุไต่สวน', sentOn: '03/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/sub/3. PowerPoint อนุ ทตอ 3 พย 63.pptx', lane: 'sub' },
+      { name: '4. มติคณะอนุฯ ไต่สวน HR 3 พย 63.docx', title: 'มติคณะอนุฯ ไต่สวน', sentOn: '03/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/sub/4. มติคณะอนุฯ ไต่สวน HR 3 พย 63.docx', lane: 'sub' },
+      { name: '5. รายงานการประชุม HR 3 พย 63.docx', title: 'รายงานการประชุมอนุ', sentOn: '03/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/sub/5. รายงานการประชุม HR 3 พย 63.docx', lane: 'sub' },
+      { name: 'ข้อพิจารณา (ตัวเลือก).docx', title: 'ข้อพิจารณา (ตัวเลือก)', sentOn: '03/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/sub/ข้อพิจารณา (ตัวเลือก).docx', lane: 'sub' },
+    ],
+    tdc: [
+      { name: '1 บันทึกเสนอวาระ ทตอ เปิดไต่สวน HR 9 พย 63.docx', title: 'บันทึกเสนอวาระ ทตอ.', sentOn: '09/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/tdc/1 บันทึกเสนอวาระ ทตอ เปิดไต่สวน HR 9 พย 63.docx', lane: 'tdc' },
+      { name: '2. วาระพิจารณาคำขอเปิดไต่สวน ทตอ.docx', title: 'วาระพิจารณาคำขอเปิดไต่สวน (ทตอ.)', sentOn: '09/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/tdc/2. วาระพิจารณาคำขอเปิดไต่สวน ทตอ.docx', lane: 'tdc' },
+      { name: '3. Chairman ทตอ HR 9 พย 63.docx', title: 'Chairman’s Note', sentOn: '09/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/tdc/3. Chairman ทตอ HR 9 พย 63.docx', lane: 'tdc' },
+      { name: '4. ทตอ PowerPoint ฉบับจริง.pptx', title: 'PowerPoint ทตอ.', sentOn: '09/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/tdc/4. ทตอ PowerPoint ฉบับจริง.pptx', lane: 'tdc' },
+      { name: '5. มติคณะกรรมการ ทตอ.docx', title: 'มติคณะกรรมการ ทตอ.', sentOn: '09/11/2563', docId: '', href: 'assets/samples/ad1046/agenda/tdc/5. มติคณะกรรมการ ทตอ.docx', lane: 'tdc' },
+    ],
+  };
+
+  private ensureAgendaSampleFiles(lane: AgendaLane): void {
+    const samples = this.agendaSampleCatalog[lane];
+    const have = new Set(this.inquiryAgendaFiles.filter((file) => (file.lane || 'tdc') === lane).map((file) => file.name));
+    const missing = samples.filter((file) => !have.has(file.name));
+    if (!missing.length) return;
+    this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, ...missing.map((file) => ({ ...file }))];
+    this.writeInquiry(lane === 'draft' || this.draftAgendaNavOn);
   }
 
   protected inquiryPackDone(step: string): boolean {
@@ -7117,7 +12419,12 @@ window.onload=function(){
       return;
     }
     const rows = this.inquiryFormsOf(this.inquiryPart);
-    const at = this.inquiryPart === 'agenda' || this.inquiryPart === 'hearing' || this.inquiryPart === 'visit' ? (this.inquiryAgendaAt || '10/06/2562') : (this.inquiryNoticeOn || '25/06/2562');
+    const lane = this.inquiryAgendaLane;
+    const at = lane
+      ? this.inquiryAgendaDateValue
+      : this.inquiryPart === 'hearing' || this.inquiryPart === 'visit'
+        ? (this.inquiryAgendaAt || '09/11/2563')
+        : (this.inquiryNoticeOn || '25/06/2562');
     rows.forEach((row, index) => {
       if (this.committeeFormDone(row.kind)) return;
       const fields = this.inquiryDraft(row.kind);
@@ -7125,7 +12432,10 @@ window.onload=function(){
       this.madeDocs = [...this.madeDocs, { id: `inquiry-${Date.now()}-${index}`, kind: row.kind, at, fields }];
     });
     writeMadeDocs(this.madeDocs);
-    if (this.inquiryPart === 'agenda') this.inquiryFields = agendaFieldList();
+    if (lane) {
+      if (lane !== 'draft') this.ensureAgendaSampleFiles(lane);
+      this.inquiryFields = agendaFieldList();
+    }
     if (this.inquiryPart === 'visit') this.fillVisitData();
     this.notice = 'assist';
   }
@@ -7415,17 +12725,24 @@ window.onload=function(){
 
   protected draftAgencyLetter(): void {
     const kind = this.workDocs[this.docPart]?.title || 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง';
-    const at = '28/05/2562';
-    this.madeDocs = [...this.madeDocs, {
-      id: `agency-letter-${Date.now()}`,
-      kind,
-      at,
-      fields: [
-        { label: 'เรียน', value: 'หน่วยงานที่เกี่ยวข้อง' },
-        { label: 'เรื่อง', value: 'ขอข้อมูลเพื่อประกอบการไต่สวน' },
-        { label: 'เนื้อความ', value: `ด้วยกรมการค้าต่างประเทศอยู่ระหว่างพิจารณาคำขอเลขที่อ้างอิง ${this.refId} จึงขอความอนุเคราะห์ข้อมูลที่เกี่ยวข้องกับสินค้าในคำขอ เพื่อใช้ประกอบการพิจารณา`, long: true },
-      ],
-    }];
+    const at = kind === 'หนังสือขอข้อมูลหน่วยงานที่เกี่ยวข้อง' ? '20/05/2562' : '28/05/2562';
+    const template = defaultWorkDrafts().find((item) => item.title === kind);
+    const fields = template
+      ? template.fields.map((row) => ({ ...row }))
+      : [
+          { label: 'เรียน', value: 'หน่วยงานที่เกี่ยวข้อง' },
+          { label: 'เรื่อง', value: 'ขอข้อมูลเพื่อประกอบการไต่สวน' },
+          { label: 'เนื้อความ', value: `ด้วยกรมการค้าต่างประเทศอยู่ระหว่างพิจารณาคำขอเลขที่อ้างอิง ${this.refId} จึงขอความอนุเคราะห์ข้อมูลที่เกี่ยวข้องกับสินค้าในคำขอ เพื่อใช้ประกอบการพิจารณา`, long: true },
+        ];
+    this.madeDocs = [
+      ...this.madeDocs,
+      {
+        id: `agency-letter-${Date.now()}`,
+        kind,
+        at,
+        fields,
+      },
+    ];
     writeMadeDocs(this.madeDocs);
     this.notice = 'assist';
   }
@@ -7634,12 +12951,25 @@ window.onload=function(){
     writeMadeDocs(this.madeDocs);
   }
 
-  protected openEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string }): void {
+  protected openEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string; href?: string }): void {
+    if (file.href) {
+      window.open(file.href, '_blank', 'noopener');
+      return;
+    }
     const made = this.madeDocs.find((item) => item.id === file.docId);
     this.viewingMade = made ?? { id: file.name, kind: file.title, at: file.sentOn, fields: [{ label: 'ไฟล์แนบ', value: file.name }, { label: 'ชื่อเอกสาร', value: file.title }] };
   }
 
-  protected downloadEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string }): void {
+  protected downloadEmbassyFile(file: { name: string; title: string; sentOn: string; docId: string; href?: string }): void {
+    if (file.href) {
+      const link = document.createElement('a');
+      link.href = file.href;
+      link.download = file.name;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.click();
+      return;
+    }
     const made = this.madeDocs.find((item) => item.id === file.docId);
     if (made) {
       this.downloadMade(made);
@@ -7697,6 +13027,8 @@ window.onload=function(){
     this.inquiryOpenAt = record.openAt || this.inquiryOpenAt;
     this.inquiryCaseId = record.caseId;
     this.inquiryCloseNote = record.closeNote;
+    this.inquiryDraftAgendaDone = record.draftAgendaDone;
+    this.inquirySubAgendaDone = record.subAgendaDone;
     this.inquiryAgendaDone = record.agendaDone;
     this.inquiryReturned = record.returned;
     this.inquirySentBy = record.sentBy;
@@ -7730,6 +13062,8 @@ window.onload=function(){
       openAt: this.inquiryOpenAt.trim(),
       caseId: this.inquiryCaseId,
       closeNote: this.inquiryCloseNote.trim(),
+      draftAgendaDone: this.inquiryDraftAgendaDone,
+      subAgendaDone: this.inquirySubAgendaDone,
       agendaDone: this.inquiryAgendaDone,
       agendaFields: this.inquiryFields.map((item) => ({ ...item })),
       agendaFiles: this.inquiryAgendaFiles.map((file) => ({ ...file })),
@@ -7746,10 +13080,11 @@ window.onload=function(){
     };
   }
 
-  private writeInquiry(): void {
+  private writeInquiry(silent = false): void {
     this.inquirySentBy = this.signedPerson || this.directorName;
     writeDocNotice(this.docPayload(this.docSent));
-    this.notice = 'saved';
+    // หน้าวาระพิจารณาคำขอเปิดไต่สวน — ไม่ขึ้น modal สำเร็จ
+    if (!silent && !this.draftAgendaNavOn) this.notice = 'saved';
   }
 
   protected get inquiryReached(): boolean {
@@ -7808,6 +13143,8 @@ window.onload=function(){
     const prep = this.openPrep;
     if (!prep.approved) this.inquiryPart = 'prepare';
     else if (this.inquiryDecide === 'return' && !this.inquiryReturned) this.inquiryPart = 'letter';
+    else if (!this.inquiryDraftAgendaDone) this.inquiryPart = 'draftAgenda';
+    else if (!this.inquirySubAgendaDone) this.inquiryPart = 'subAgenda';
     else if (!this.inquiryAgendaDone) this.inquiryPart = 'agenda';
     else if (!this.inquiryDecide) this.inquiryPart = 'decide';
     else if (this.inquiryDecide === 'take' && !prep.prenotify) this.inquiryPart = 'prenotify';
@@ -7825,6 +13162,8 @@ window.onload=function(){
     const prep = this.openPrep;
     const steps: { id: InquiryStep; label: string; done: boolean; group: string }[] = [
       { id: 'prepare', label: 'เตรียมข้อมูล', done: prep.approved, group: 'เปิดไต่สวน' },
+      { id: 'draftAgenda', label: 'วาระพิจารณาคำขอเปิดไต่สวน', done: this.inquiryDraftAgendaDone, group: 'เปิดไต่สวน' },
+      { id: 'subAgenda', label: 'วาระอนุ', done: this.inquirySubAgendaDone, group: 'เปิดไต่สวน' },
       { id: 'agenda', label: 'วาระ ทตอ.', done: this.inquiryAgendaDone, group: 'เปิดไต่สวน' },
       { id: 'decide', label: 'รับหรือไม่รับคำขอ', done: this.inquiryDecide !== '', group: 'เปิดไต่สวน' },
     ];
@@ -7855,10 +13194,26 @@ window.onload=function(){
     return steps;
   }
 
+  protected inquiryStepLocked(id: InquiryStep): boolean {
+    if (id === 'prepare') return false;
+    if (!this.openPrep.approved && id !== 'draftAgenda') return true;
+    // ร่างวาระทำคู่ขนานจากตรวจเอกสารได้ — ในแท็บเปิดไต่สวนเข้าได้หลังอนุมัติเตรียมข้อมูล หรือมีร่างแล้ว
+    if (id === 'draftAgenda') return !this.openPrep.approved && !this.inquiryDraftAgendaDone;
+    if (id === 'subAgenda' && !this.inquiryDraftAgendaDone) return true;
+    if (id === 'agenda' && !this.inquirySubAgendaDone) return true;
+    if (id === 'decide' && !this.inquiryAgendaDone) return true;
+    if ((id === 'prenotify' || id === 'fee' || id === 'proof') && this.inquiryDecide !== 'take') return true;
+    if (id === 'letter' && this.inquiryDecide !== 'return') return true;
+    return false;
+  }
+
   protected openInquiryStep(id: InquiryStep): void {
     if (!this.inquiryNav.some((step) => step.id === id)) return;
-    if (id !== 'prepare' && !this.openPrep.approved) return;
+    if (this.inquiryStepLocked(id)) return;
+    if (id === 'subAgenda') this.ensureAgendaSampleFiles('sub');
+    if (id === 'agenda') this.ensureAgendaSampleFiles('tdc');
     this.inquiryPart = id;
+    this.syncFilingUrl();
   }
 
   protected agendaFieldsOf(): { item: { label: string; value: string; long?: boolean }; index: number }[] {
@@ -7877,30 +13232,63 @@ window.onload=function(){
   }
 
   protected saveInquiryAgenda(): void {
-    if (!this.inquiryReached || !this.agendaReady) return;
-    const id = `agenda-${Date.now()}`;
+    const lane = this.inquiryAgendaLane;
+    if (!lane) return;
+    if (lane !== 'draft' && !this.inquiryReached) return;
+    if (lane !== 'draft') this.ensureAgendaSampleFiles(lane);
+    const at = this.inquiryAgendaDateValue.trim();
+    if (!thaiDateOk(at, 'any')) return;
+    if (lane === 'tdc' && !this.agendaReady) return;
+    const kind = lane === 'draft' ? 'วาระพิจารณาคำขอเปิดไต่สวน' : lane === 'sub' ? 'วาระอนุไต่สวน' : 'วาระ ทตอ. เปิดไต่สวน';
+    const id = `agenda-${lane}-${Date.now()}`;
     const fields = [
       { label: 'หน่วยงาน', value: 'กระทรวงพาณิชย์ กรมการค้าต่างประเทศ' },
-      { label: 'ชื่อวาระ', value: 'วาระการประชุมคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน' },
-      { label: 'วันที่ประชุม', value: this.inquiryAgendaAt.trim() },
-      ...this.inquiryFields.map((item) => item.label === 'มติที่ประชุม' && !item.value.trim() ? { ...item, value: 'รอที่ประชุมบันทึกมติ' } : { ...item }),
+      { label: 'ชื่อวาระ', value: kind },
+      { label: 'วันที่', value: at },
+      ...this.inquiryFields.map((item) => item.label === 'มติที่ประชุม' && !item.value.trim() ? { ...item, value: lane === 'draft' ? 'อยู่ระหว่างจัดทำร่าง' : 'รอที่ประชุมบันทึกมติ' } : { ...item }),
     ];
-    this.madeDocs = [...this.madeDocs, { id, kind: 'วาระพิจารณาคำขอ', at: this.inquiryAgendaAt, fields }];
+    this.madeDocs = [...this.madeDocs, { id, kind, at, fields }];
     writeMadeDocs(this.madeDocs);
-    const base = `วาระพิจารณาคำขอ-${this.inquiryAgendaAt.replaceAll('/', '')}.pdf`;
-    const name = this.inquiryAgendaFiles.some((file) => file.name === base) ? `วาระพิจารณาคำขอ-${this.inquiryAgendaAt.replaceAll('/', '')}-${this.inquiryAgendaFiles.length + 1}.pdf` : base;
-    this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, { name, title: 'วาระพิจารณาคำขอ', sentOn: this.inquiryAgendaAt, docId: id }];
-    this.inquiryAgendaDone = true;
+    if (lane === 'draft') {
+      this.inquiryDraftAgendaDone = true;
+      if (this.docsPassed) {
+        this.inquiryPart = 'subAgenda';
+        this.ensureAgendaSampleFiles('sub');
+      } else {
+        this.docPart = this.draftAgendaPart;
+        this.reviewTab = 'docs';
+      }
+    } else if (lane === 'sub') {
+      this.inquirySubAgendaDone = true;
+      this.inquiryPart = 'agenda';
+      this.ensureAgendaSampleFiles('tdc');
+    } else {
+      this.inquiryAgendaDone = true;
+      this.inquiryPart = 'decide';
+    }
     this.writeInquiry();
   }
 
   protected addAgendaFiles(event: Event): void {
     if (this.inquiryDecide) return;
     const input = event.target as HTMLInputElement;
-    const sentOn = this.inquiryAgendaAt.trim() || '10/06/2562';
-    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn, docId: '' }));
+    const lane = this.inquiryAgendaLane || (this.draftAgendaNavOn ? 'draft' : 'tdc');
+    const sentOn =
+      lane === 'draft'
+        ? this.inquiryDraftAgendaAt.trim() || this.thaiToday()
+        : lane === 'sub'
+          ? this.inquirySubAgendaAt.trim() || this.thaiToday()
+          : this.inquiryAgendaAt.trim() || '10/06/2562';
+    const files = [...(input.files ?? [])].map((file) => ({
+      name: file.name,
+      title: file.name.replace(/\.[^.]+$/, ''),
+      sentOn,
+      docId: '',
+      lane,
+      source: 'upload' as const,
+    }));
     this.inquiryAgendaFiles = [...this.inquiryAgendaFiles, ...files];
-    this.inquiryAgendaDone = this.inquiryAgendaFiles.length > 0;
+    if (lane === 'tdc') this.inquiryAgendaDone = this.inquiryAgendaFiles.some((file) => (file.lane || 'tdc') === 'tdc');
     input.value = '';
     this.writeInquiry();
   }
@@ -8479,7 +13867,9 @@ window.onload=function(){
     };
   }
 
-  private docPayload(sent: boolean) {
+  private docPayload(sent: boolean): DocNotice {
+    this.flushActiveIntoItems();
+    const pipe = this.noticePipe === 'cancelled' ? 'cancelled' : (sent ? 'done' : this.noticePipe);
     return {
       action: this.docAction,
       noticedOn: this.docNoticedOn.trim(),
@@ -8493,18 +13883,28 @@ window.onload=function(){
       committee: this.committeeSent ? this.committeePayload() : null,
       inquiry: this.inquiryPayload(),
       passes: this.noticePasses.map((pass) => ({ ...pass, reply: pass.reply ? { ...pass.reply, files: pass.reply.files.map((file) => ({ ...file })) } : null })),
-      sent,
-      sentBy: sent ? (this.signedPerson || this.directorName) : this.docSentBy,
-      pipe: sent ? ('sent' as NoticePipe) : this.noticePipe,
+      sent: pipe === 'done',
+      sentBy: pipe === 'done' ? (this.signedPerson || this.directorName || this.docSentBy) : this.docSentBy,
+      pipe,
       pipeAt: this.noticePipeAt,
-      headBy: this.noticeHeadBy,
-      officeRef: this.noticeOfficeRef,
+      reportBy: this.noticeReportBy || '',
+      headBy: this.noticeHeadBy || '',
+      officeRef: this.noticeOfficeRef || '',
+      history: this.noticeHistory.map((item) => ({ ...item })),
+      items: this.noticeItems.map((item) => ({
+        ...item,
+        files: item.files.map((file) => ({ ...file })),
+        letter: item.letter.map((field) => ({ ...field })),
+        gaps: item.gaps.map((gap) => ({ ...gap })),
+        history: item.history.map((row) => ({ ...row })),
+      })),
+      activeId: this.activeNoticeId,
     };
   }
 
   protected saveDocs(send: boolean): void {
     if (send) {
-      if (this.noticePipe !== 'signed' && this.noticePipe !== 'sent') return;
+      if (this.noticePipe !== 'attach' && this.noticePipe !== 'done' && this.noticePipe !== 'numbered') return;
     } else if (this.docSent || !this.canReviewDocs) {
       return;
     }
@@ -8512,11 +13912,11 @@ window.onload=function(){
     if (send) {
       this.replySent = false;
       this.issueNotice();
-      this.noticePipe = 'sent';
+      this.noticePipe = 'done';
     }
     const payload = this.docPayload(send);
     writeDocNotice(payload);
-    this.docSent = send;
+    this.docSent = payload.sent;
     this.docSentBy = payload.sentBy;
     if (send && this.docAction === 'amend') {
       writeCaseStatus('revision');
@@ -8535,9 +13935,10 @@ window.onload=function(){
   }
 
   private issueNotice(): void {
-    const numbers = ['สบ.2005/2562', 'สบ.2805/2562', 'สบ.0506/2562', 'สบ.1006/2562'];
-    const no = numbers[this.noticePasses.length] || `สบ.${this.noticePasses.length + 1}/2562`;
+    // เลขต้องมาจาก e-Office เท่านั้น — ไม่สร้างเลขในระบบนี้
+    const no = this.noticeSaraban.trim() || this.filingSaraban || 'สบ.1605/2562';
     this.noticeSaraban = no;
+    this.stampNoticeLetterSaraban(no);
     const title = this.noticeFileTitle();
     const at = `${this.docNoticedOn} 10:30`;
     this.placeNoticeFile(no);
@@ -8554,7 +13955,7 @@ window.onload=function(){
       no,
       at,
       events: [
-        { at, text: `ส่ง${title}เข้าระบบสารบรรณ` },
+        { at, text: `ลงเลขที่ e-Office แล้วส่ง${title}` },
         { at, text: `ได้รับเลขรับ ${no}` },
       ],
     };
@@ -8565,7 +13966,7 @@ window.onload=function(){
   private noticeFileTitle(): string {
     if (this.docAction === 'complete') return 'หนังสือแจ้งคำขอครบถ้วนถูกต้อง';
     if (this.docAction === 'late') return 'หนังสือแจ้งคำขอไม่ครบถ้วนถูกต้องภายใน 4 เดือน';
-    return `หนังสือแจ้งขอข้อมูลเพิ่ม ครั้งที่ ${this.noticePasses.length + 1}`;
+    return `หนังสือแจ้งแก้ไขปรับปรุงข้อมูลคำขอ ครั้งที่ ${this.latestAmendPassNo()}`;
   }
 
   private placeNoticeFile(saraban = ''): void {
@@ -8600,17 +14001,7 @@ window.onload=function(){
     if (!this.canDecideReply) return;
     this.noticePasses = [...this.noticePasses, this.passNow()];
     this.replySent = false;
-    this.docSent = false;
-    this.noticePipe = 'draft';
-    this.noticePipeAt = '';
-    this.noticeHeadBy = '';
-    this.noticeOfficeRef = '';
-    this.noticeSaraban = '';
-    this.docAction = 'amend';
-    this.docNoticedOn = this.thaiToday();
-    this.docDueOn = this.thaiShift(14);
-    this.docFiles = [];
-    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson);
+    this.startNewNoticeDraft();
     this.suggestGaps();
     this.noticeFormOpen = true;
     this.docPart = this.workDocs.length;
@@ -8629,12 +14020,83 @@ window.onload=function(){
     this.issueNotice();
     this.docSent = true;
     this.docSentBy = this.signedPerson || this.directorName;
+    this.noticePipe = 'done';
+    this.noticePipeAt = this.thaiToday();
+    this.pushNoticeHistory('จัดเก็บและส่งถึงผู้ยื่น — แจ้งคำขอครบถ้วนถูกต้อง');
+    this.ensureClosedEditionFiles();
+    this.openEditionBuilt = false;
+    this.seedAllAgencySamples();
     writeDocNotice(this.docPayload(true));
     this.becomeOfficial();
     this.reviewTab = 'docs';
-    this.docPart = this.workDocs.length + 1;
+    this.pickCompleteBundle('closed');
     this.seedCommitteePack();
     this.notice = 'docs';
+  }
+
+  /** ข้าม flow มาที่แจ้งคำขอครบถ้วนถูกต้อง + เปิดฉบับปกปิดสมบูรณ์ (สร้างฉบับเปิดเผยทีหลัง) */
+  protected jumpToCompleteOpenEdition(): void {
+    this.applyDocActionSample('complete');
+    this.docAction = 'complete';
+    this.docNoticedOn = this.docNoticedOn || this.clockToday() || this.thaiToday();
+    this.docNote = this.docNote || 'ตรวจคำขอและเอกสารประกอบครบถ้วนถูกต้องแล้ว — จัดทำฉบับปกปิดสมบูรณ์ แล้วให้ระบบสร้างฉบับเปิดเผย';
+    this.noticeLetter = noticeLetterFields('complete', this.docNoticedOn, '-', this.signedPerson);
+    this.noticePipe = 'done';
+    this.noticePipeAt = this.docNoticedOn;
+    this.noticeReportBy = this.noticeReportBy || this.signedPerson || this.officerName || '';
+    this.docSent = true;
+    this.docSentBy = this.docSentBy || this.signedPerson || this.officerName || 'เจ้าหน้าที่';
+    if (!this.noticeHistory.some((item) => item.action.includes('ครบถ้วนถูกต้อง'))) {
+      this.pushNoticeHistory('แจ้งคำขอครบถ้วนถูกต้อง');
+    }
+    this.ensureClosedEditionFiles();
+    this.openEditionBuilt = false;
+    this.seedAllAgencySamples();
+    this.flushActiveIntoItems();
+    writeDocNotice(this.docPayload(true));
+    if (this.caseStatus !== 'official' && this.caseStatus !== 'approval') this.becomeOfficial();
+    this.reviewTab = 'docs';
+    this.pickCompleteBundle('closed');
+    this.notice = 'docs';
+  }
+
+  /** แนบไฟล์ฉบับเปิดเผย (คำขอ + คำถามเพิ่มเติม + สิ่งที่ส่งมาด้วย) */
+  private ensureOpenEditionFiles(): void {
+    this.ensureEditionFiles(OPEN_EDITION_KIND, OPEN_EDITION_FILES, OPEN_EDITION_ALIASES);
+  }
+
+  /** แนบไฟล์ฉบับปกปิด (คำขอ + คำถามเพิ่มเติม + สิ่งที่ส่งมาด้วย) */
+  private ensureClosedEditionFiles(): void {
+    this.ensureEditionFiles(CLOSED_EDITION_KIND, CLOSED_EDITION_FILES, CLOSED_EDITION_ALIASES);
+  }
+
+  /** seed ไฟล์ตัวอย่างครบ — ย้าย kind เก่า และแทนที่ชื่อไฟล์ตัวอย่างเดิม */
+  private ensureEditionFiles(kind: string, files: { name: string; title: string }[], aliases: string[]): void {
+    const sentOn = this.docNoticedOn || this.thaiToday();
+    const aliasSet = new Set(aliases);
+    const sampleNames = new Set(files.map((file) => file.name));
+    const legacySample = /AD เวียดนาม|ฉบับเปิดเผยสมบูรณ์|ฉบับปกปิดสมบูรณ์|Final\.docx$/i;
+    const others = this.extraFiles.filter((file) => !aliasSet.has(file.kind));
+    const underAlias = this.extraFiles.filter((file) => aliasSet.has(file.kind));
+    const custom = underAlias
+      .filter((file) => !sampleNames.has(file.name) && !legacySample.test(file.name))
+      .map((file) => ({ ...file, kind }));
+    const seeded = files.map((file) => ({
+      kind,
+      name: file.name,
+      title: file.title,
+      sentOn: underAlias.find((row) => row.name === file.name)?.sentOn || sentOn,
+    }));
+    const next = [...others, ...seeded, ...custom];
+    const same =
+      next.length === this.extraFiles.length &&
+      next.every((file, index) => {
+        const cur = this.extraFiles[index];
+        return cur && cur.kind === file.kind && cur.name === file.name && cur.title === file.title;
+      });
+    if (same) return;
+    this.extraFiles = next;
+    this.writeExtraFiles();
   }
 
   protected get replyGroups(): { id: ReplyFile['group']; label: string; required: boolean }[] {
@@ -8690,8 +14152,7 @@ window.onload=function(){
 
   protected addDocFiles(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = [...(input.files ?? [])].map((file) => ({ name: file.name, title: file.name.replace(/\.[^.]+$/, ''), sentOn: this.docNoticedOn || '20/05/2562' }));
-    this.docFiles = [...this.docFiles, ...files];
+    this.uploadNoticeLetterFiles(input.files);
     input.value = '';
   }
 
@@ -8701,8 +14162,440 @@ window.onload=function(){
   }
 
   protected removeDocFile(index: number): void {
+    const removed = this.docFiles[index];
     this.docFiles = this.docFiles.filter((_, item) => item !== index);
-    if (!this.docSent) writeDocNotice(this.docPayload(false));
+    if (removed) {
+      this.noticeLetterVersions = this.noticeLetterVersions.filter((row) => row.fileName !== removed.name);
+    }
+    if (!this.docSent) {
+      this.persistActiveNotice(false);
+    }
+  }
+
+  protected get noticeLetterLatestVersion(): number {
+    return this.noticeLetterVersions.reduce((max, row) => Math.max(max, row.version), 0);
+  }
+
+  /** ไฟล์อัปโหลดเก่าที่ยังไม่อยู่ในตารางเวอร์ชัน */
+  protected get noticeLetterOrphanFiles(): { file: NoticeFile; index: number }[] {
+    const linked = new Set(this.noticeLetterVersions.map((row) => row.fileName).filter(Boolean));
+    return this.docFiles
+      .map((file, index) => ({ file, index }))
+      .filter((row) => !linked.has(row.file.name));
+  }
+
+  protected get canOpenNoticeLetterEditor(): boolean {
+    return this.noticeLetterWordOpen || this.noticeLetterVersions.some((row) => row.source === 'created' || row.source === 'ai');
+  }
+
+  protected noticeLetterSourceLabel(source: NoticeLetterVersion['source']): string {
+    return this.draftAgendaSourceLabel(source);
+  }
+
+  protected noticeLetterAtLabel(at: string): string {
+    return this.draftAgendaAtLabel(at);
+  }
+
+  protected requestCreateNoticeLetter(): void {
+    if (this.noticePipeLocked) return;
+    this.commitNoticeLetterVersion('created');
+  }
+
+  protected requestAiNoticeLetter(): void {
+    if (this.noticePipeLocked || this.noticeLetterAiBusy) return;
+    if (!this.noticeLetterActiveVersion || !this.noticeLetterWordOpen) {
+      this.commitNoticeLetterVersion('created');
+    }
+    this.startAiNoticeLetterFill();
+  }
+
+  protected uploadNoticeLetterFiles(list: FileList | File[] | null | undefined): void {
+    if (!list?.length || this.noticePipeLocked) return;
+    const at = this.replyStamp();
+    const files = [...list];
+    const addedFiles: NoticeFile[] = [];
+    const versions: NoticeLetterVersion[] = [];
+    files.forEach((file, index) => {
+      const version = this.noticeLetterLatestVersion + index + 1;
+      const title = file.name.replace(/\.[^.]+$/, '');
+      addedFiles.push({ name: file.name, title, sentOn: at });
+      versions.push({
+        version,
+        title: `${title} · เวอร์ชัน ${version}`,
+        at,
+        html: `<p><strong>ไฟล์อัปโหลด</strong> ${file.name}</p><p>อัปโหลดเมื่อ ${at}</p>`,
+        source: 'upload',
+        fileName: file.name,
+      });
+    });
+    this.docFiles = [...this.docFiles, ...addedFiles];
+    this.noticeLetterVersions = [...this.noticeLetterVersions, ...versions];
+    this.noticeLetterActiveVersion = this.noticeLetterLatestVersion;
+    this.noticeLetterTab = 'files';
+    this.noticeLetterWordOpen = false;
+    this.pushNoticeHistory(files.length === 1 ? `แนบไฟล์ ${addedFiles[0].title}` : `แนบไฟล์ ${files.length} ฉบับ`);
+    this.persistActiveNotice(false);
+  }
+
+  private commitNoticeLetterVersion(source: 'created' | 'ai'): void {
+    const at = this.replyStamp();
+    const version = this.noticeLetterLatestVersion + 1;
+    const html = this.buildNoticeLetterBlankHtml();
+    const title = `หนังสือแจ้งผล · เวอร์ชัน ${version}`;
+    const fileName = `หนังสือแจ้งผล-v${version}.docx`;
+    const entry: NoticeLetterVersion = { version, title, at, html, source, fileName };
+    this.noticeLetterVersions = [...this.noticeLetterVersions, entry];
+    this.noticeLetterActiveVersion = version;
+    this.noticeLetterHtml = html;
+    this.noticeLetterEmpty = true;
+    this.noticeLetterWordOpen = true;
+    this.noticeLetterTab = 'editor';
+    this.noticeLetterZoom = 100;
+    this.noticeFormFull = true;
+    this.upsertNoticeLetterDocFile(entry);
+    this.persistActiveNotice(false);
+    window.setTimeout(() => this.fillNoticeLetterEditor(), 0);
+  }
+
+  private startAiNoticeLetterFill(): void {
+    if (this.noticeLetterAiBusy) return;
+    if (!this.noticeLetterActiveVersion) this.commitNoticeLetterVersion('created');
+    this.noticeLetterAiBusy = true;
+    this.view.markForCheck();
+    this.prepareNoticeLetterAiSource();
+    const minWait = new Promise<void>((resolve) => window.setTimeout(resolve, 10000));
+    // ดึงต้นฉบับ 100% จากรายการแก้ไขครั้งล่าสุด (AD1046 ครั้งที่ 3)
+    const fetchSample = fetch(this.noticeLetterSampleUrl(this.latestAmendPassNo()))
+      .then((res) => {
+        if (!res.ok) throw new Error(`sample ${res.status}`);
+        return res.text();
+      })
+      .catch(() => this.buildNoticeLetterAiHtml());
+    Promise.all([fetchSample, minWait]).then(([html]) => {
+      this.applyAiNoticeLetterHtml(typeof html === 'string' ? html : String(html));
+      this.noticeLetterAiBusy = false;
+      this.view.markForCheck();
+    });
+  }
+
+  /** เติมฟิลด์/ช่องว่างจากแก้ไขคำขอครั้งล่าสุด — ไม่เปิดโมดัล (ใช้ตอน AI) */
+  private prepareNoticeLetterAiSource(): void {
+    if (this.docSent || this.noticePipeLocked) return;
+    const amendPass = this.latestAmendPassNo();
+    // รอบยื่นที่ผูกกับครั้งแก้ไขล่าสุด (แก้ไขครั้งที่ N = รอบยื่น N+1)
+    const filingRound = Math.max(1, amendPass + 1);
+    const amendHtml =
+      this.amendHtmlForRound(filingRound) ||
+      this.amendHtmlForRound(amendPass) ||
+      this.amendHtmlForRound(this.bundleRoundNo) ||
+      this.amendSampleHtml();
+    const fromAmend = this.docAction === 'complete' ? [] : this.gapsFromAmendHtml(amendHtml);
+    this.noticeLetter = noticeLetterFields(this.docAction, this.docNoticedOn, this.docDueOn, this.signedPerson).map((field) =>
+      field.label === 'เรื่อง' && this.docAction === 'amend'
+        ? { ...field, value: `แจ้งให้แก้ไขปรับปรุงข้อมูลคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาด ครั้งที่ ${amendPass}` }
+        : field,
+    );
+    if (this.docAction === 'amend') {
+      this.docGaps = fromAmend.length ? fromAmend : defaultNoticeGaps.map((gap) => ({ ...gap }));
+      this.applyGapBody();
+      const titles = this.docGaps.map((gap) => gap.title).filter(Boolean);
+      this.docNote = `ยึดแก้ไขครั้งที่ ${amendPass} (ล่าสุด) · ${titles.length} รายการ — ${titles.slice(0, 3).join(' · ')}${titles.length > 3 ? ' …' : ''}`;
+    } else if (this.docAction === 'late') {
+      this.docGaps = fromAmend.length ? fromAmend : defaultNoticeGaps.map((gap) => ({ ...gap }));
+      this.applyGapBody();
+      this.docNote = `ครบกำหนด 4 เดือนเมื่อ ${this.amendUntil || '15/09/2562'} แล้วยังไม่ครบถ้วนถูกต้อง · ยึดแก้ไขครั้งที่ ${amendPass}`;
+    } else {
+      this.docGaps = [];
+      this.docNote = 'ตรวจแล้วคำขอและเอกสารประกอบครบถ้วนถูกต้อง — เสนอแจ้งผู้ยื่นและดำเนินการขั้นต่อไป';
+    }
+    writeDocNotice(this.docPayload(false));
+  }
+
+  private applyAiNoticeLetterHtml(html: string): void {
+    const version = this.noticeLetterActiveVersion || this.noticeLetterLatestVersion;
+    const at = this.replyStamp();
+    this.noticeLetterHtml = html;
+    this.noticeLetterEmpty = this.amendHtmlIsEmpty(html);
+    if (version) {
+      this.noticeLetterVersions = this.noticeLetterVersions.map((row) =>
+        row.version === version ? { ...row, html, at, source: 'ai' } : row,
+      );
+      const current = this.noticeLetterVersions.find((row) => row.version === version);
+      if (current) this.upsertNoticeLetterDocFile(current);
+    }
+    this.noticeLetterWordOpen = true;
+    this.noticeLetterTab = 'editor';
+    this.noticeFormFull = true;
+    this.persistActiveNotice(false);
+    window.setTimeout(() => this.fillNoticeLetterEditor(), 0);
+  }
+
+  protected openNoticeLetterVersion(version: number): void {
+    const row = this.noticeLetterVersions.find((item) => item.version === version);
+    if (!row) return;
+    if (row.source === 'upload') {
+      this.downloadNoticeLetterVersion(row);
+      return;
+    }
+    this.noticeLetterActiveVersion = version;
+    this.noticeLetterHtml = row.html;
+    this.noticeLetterWordOpen = true;
+    this.noticeLetterTab = 'editor';
+    this.noticeLetterZoom = 100;
+    this.noticeFormOpen = true;
+    this.noticeFormFull = true;
+    window.setTimeout(() => this.fillNoticeLetterEditor(), 0);
+  }
+
+  protected closeNoticeLetterWord(): void {
+    this.captureNoticeLetterEditor();
+    this.syncNoticeLetterFiles();
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
+    this.persistActiveNotice(false);
+  }
+
+  protected saveNoticeLetterDraft(): void {
+    this.captureNoticeLetterEditor();
+    this.syncNoticeLetterFiles();
+    this.persistActiveNotice(false);
+    this.notice = 'saved';
+  }
+
+  protected saveNoticeLetterWord(): void {
+    this.captureNoticeLetterEditor();
+    this.syncNoticeLetterFiles();
+    this.persistActiveNotice(false);
+    this.noticeLetterWordOpen = false;
+    this.noticeLetterTab = 'files';
+    this.notice = 'saved';
+  }
+
+  protected downloadNoticeLetterWord(): void {
+    this.captureNoticeLetterEditor();
+    const version = this.noticeLetterActiveVersion || this.noticeLetterLatestVersion || 1;
+    const title = `หนังสือแจ้งผล · เวอร์ชัน ${version}`;
+    const fileName = `หนังสือแจ้งผล-v${version}-${this.refId || filingRefId}.doc`;
+    this.downloadEditorHtmlAsWord(fileName, title, this.noticeLetterHtml || '<p><br></p>');
+  }
+
+  protected downloadNoticeLetterVersion(row: NoticeLetterVersion): void {
+    if (this.noticeLetterWordOpen && this.noticeLetterActiveVersion === row.version) {
+      this.downloadNoticeLetterWord();
+      return;
+    }
+    if (row.source === 'upload' && row.fileName) {
+      this.downloadNoticeFile(row.fileName);
+      return;
+    }
+    const title = row.title || `หนังสือแจ้งผล · เวอร์ชัน ${row.version}`;
+    const base = (row.fileName || `หนังสือแจ้งผล-v${row.version}`).replace(/\.[^.]+$/, '');
+    this.downloadEditorHtmlAsWord(`${base}-${this.refId || filingRefId}.doc`, title, row.html || '<p><br></p>');
+  }
+
+  protected renameNoticeLetterVersion(version: number, title: string): void {
+    const next = title.trim() || `หนังสือแจ้งผล · เวอร์ชัน ${version}`;
+    this.noticeLetterVersions = this.noticeLetterVersions.map((row) =>
+      row.version === version ? { ...row, title: next } : row,
+    );
+    const current = this.noticeLetterVersions.find((row) => row.version === version);
+    if (current) this.upsertNoticeLetterDocFile(current);
+    this.persistActiveNotice(false);
+  }
+
+  protected removeNoticeLetterVersion(version: number): void {
+    if (this.noticePipeLocked) return;
+    const row = this.noticeLetterVersions.find((item) => item.version === version);
+    this.noticeLetterVersions = this.noticeLetterVersions.filter((item) => item.version !== version);
+    if (row?.fileName) {
+      this.docFiles = this.docFiles.filter((file) => file.name !== row.fileName);
+    }
+    if (this.noticeLetterActiveVersion === version) {
+      this.noticeLetterActiveVersion = this.noticeLetterLatestVersion;
+      this.noticeLetterWordOpen = false;
+      this.noticeLetterTab = 'files';
+    }
+    this.persistActiveNotice(false);
+  }
+
+  protected zoomNoticeLetter(dir: 1 | -1): void {
+    const at = this.noticeLetterZoomSteps.indexOf(this.noticeLetterZoom);
+    const index = at < 0 ? this.noticeLetterZoomSteps.indexOf(100) : at;
+    const next = this.noticeLetterZoomSteps[Math.min(this.noticeLetterZoomSteps.length - 1, Math.max(0, index + dir))];
+    this.noticeLetterZoom = next ?? 100;
+  }
+
+  protected get noticeLetterZoomCss(): number {
+    return (this.noticeLetterZoom / 100) * Math.max(this.noticeLetterFitScale, this.noticeLetterZoomBase);
+  }
+
+  protected get canZoomNoticeLetterIn(): boolean {
+    return this.noticeLetterZoom < this.noticeLetterZoomSteps[this.noticeLetterZoomSteps.length - 1];
+  }
+
+  protected get canZoomNoticeLetterOut(): boolean {
+    return this.noticeLetterZoom > this.noticeLetterZoomSteps[0];
+  }
+
+  protected onNoticeLetterEditorInput(): void {
+    this.captureNoticeLetterEditor();
+  }
+
+  protected noticeLetterFormat(command: string, value?: string): void {
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand(command, false, value);
+    this.lockOfficialFontOnSelection();
+    this.captureNoticeLetterEditor();
+    this.refreshAmendToolbar();
+    this.noticeLetterEditorRef?.nativeElement.focus();
+  }
+
+  protected applyNoticeLetterFontSize(size: string): void {
+    this.amendFontSize = size;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('fontSize', false, '3');
+    const root = this.noticeLetterEditorRef?.nativeElement;
+    root?.querySelectorAll('font[size="3"]').forEach((node) => {
+      const span = document.createElement('span');
+      span.style.fontSize = size;
+      span.style.fontFamily = this.officialFontName;
+      span.innerHTML = node.innerHTML;
+      node.replaceWith(span);
+    });
+    this.lockOfficialFontOnSelection();
+    this.captureNoticeLetterEditor();
+    this.noticeLetterEditorRef?.nativeElement.focus();
+  }
+
+  protected applyNoticeLetterColor(color: string): void {
+    this.amendColor = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, color);
+    this.lockOfficialFontOnSelection();
+    this.captureNoticeLetterEditor();
+    this.refreshAmendToolbar();
+    this.noticeLetterEditorRef?.nativeElement.focus();
+  }
+
+  protected applyNoticeLetterHighlight(color: string): void {
+    this.amendHighlight = color;
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('hiliteColor', false, color === 'transparent' ? 'transparent' : color);
+    this.lockOfficialFontOnSelection();
+    this.captureNoticeLetterEditor();
+    this.refreshAmendToolbar();
+    this.noticeLetterEditorRef?.nativeElement.focus();
+  }
+
+  private captureNoticeLetterEditor(): void {
+    const el = this.noticeLetterEditorRef?.nativeElement;
+    if (!el) return;
+    const empty = !el.textContent?.replace(/\u00a0/g, ' ').replace(/\u200b/g, '').trim();
+    this.noticeLetterEmpty = empty;
+    this.noticeLetterHtml = empty ? '' : el.innerHTML;
+    const version = this.noticeLetterActiveVersion;
+    if (version) {
+      this.noticeLetterVersions = this.noticeLetterVersions.map((row) =>
+        row.version === version ? { ...row, html: this.noticeLetterHtml } : row,
+      );
+    }
+  }
+
+  private fillNoticeLetterEditor(tries = 0): void {
+    const run = () => {
+      const el = this.noticeLetterEditorRef?.nativeElement;
+      if (!el) {
+        if (tries < 8) window.setTimeout(() => this.fillNoticeLetterEditor(tries + 1), 50);
+        return;
+      }
+      el.innerHTML = this.noticeLetterHtml;
+      this.noticeLetterEmpty = this.amendHtmlIsEmpty(this.noticeLetterHtml);
+      this.refreshAmendToolbar();
+      this.view.markForCheck();
+    };
+    window.setTimeout(run, tries === 0 ? 0 : 50);
+  }
+
+  /** ต้นฉบับรายการแก้ไข — ยึดครั้งล่าสุด (AD1046 มีครั้งที่ 3) */
+  private noticeLetterSampleUrl(amendPass = this.latestAmendPassNo()): string {
+    if (amendPass >= 3) {
+      return 'assets/samples/ad1046/notice/รายการแก้ไขปรับปรุงข้อมูลคำขอ-ครั้งที่-3.html';
+    }
+    return 'assets/samples/ad1046/notice/รายการแก้ไขปรับปรุงข้อมูลคำขอ-ครั้งที่-3.html';
+  }
+
+  private buildNoticeLetterBlankHtml(): string {
+    const font = this.officialFontName;
+    const amendPass = this.latestAmendPassNo();
+    const subject =
+      this.noticeLetter.find((f) => f.label === 'เรื่อง')?.value ||
+      `แจ้งให้แก้ไขปรับปรุงข้อมูลคำขอให้ดำเนินการพิจารณาตอบโต้การทุ่มตลาด ครั้งที่ ${amendPass}`;
+    const to = this.noticeLetter.find((f) => f.label === 'เรียน')?.value || 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน)';
+    return [
+      `<div class="notice-letter-sample" data-source="form" style="font-family:${font};font-size:16pt;line-height:1.15;color:#0E2346">`,
+      `<p class="notice-letter-head" style="font-family:${font};font-size:16pt;line-height:1.15;margin:0 0 12pt;color:#0E2346;text-align:center">`,
+      `<img src="assets/samples/ad1046/agenda/approval/garuda.png" alt="ตราครุฑ" width="78" height="88" style="display:block;margin:0 auto 4pt;width:78px;height:88px;object-fit:contain" />`,
+      `</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346"><strong>ที่</strong> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346;text-align:right"><strong>วันที่</strong> ${this.docNoticedOn || ''}</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:8pt 0 0;color:#0E2346"><strong>เรื่อง</strong> ${subject}</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346"><strong>เรียน</strong> ${to}</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:8pt 0 0;color:#0E2346"><strong>อ้างถึง</strong> คำขอเลขที่อ้างอิง R6201 ลงวันที่ 15/05/2563 เลขสารบรรณ สบ.1605/2562</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346"><strong>สิ่งที่ส่งมาด้วย</strong> รายการแก้ไขปรับปรุงข้อมูลคำขอ (แบบปร. 1) ครั้งที่ ${amendPass}</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:12pt 0 0;text-indent:2em;color:#0E2346">ด้วยกรมการค้าต่างประเทศได้ตรวจสอบคำขอแล้ว เห็นควรให้แก้ไขปรับปรุงตามรายการที่ส่งมาด้วย</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:12pt 0 0;text-indent:2em;color:#0E2346"><br></p>`,
+      `</div>`,
+    ].join('');
+  }
+
+  private buildNoticeLetterAiHtml(): string {
+    const font = this.officialFontName;
+    const amendPass = this.latestAmendPassNo();
+    const get = (label: string) => this.noticeLetter.find((f) => f.label === label)?.value || '';
+    const body = get('เนื้อความ')
+      .split('\n')
+      .map((line) => `<p style="font-family:${font};font-size:16pt;margin:0 0 6pt;text-align:justify;text-indent:2em;color:#0E2346">${line || '<br>'}</p>`)
+      .join('');
+    const due = get('กำหนดส่งข้อมูล');
+    const signer = get('ลงชื่อ');
+    return [
+      `<div class="notice-letter-sample" data-source="ai-fallback" style="font-family:${font};font-size:16pt;line-height:1.15;color:#0E2346">`,
+      `<p class="notice-letter-head" style="font-family:${font};font-size:16pt;line-height:1.15;margin:0 0 12pt;color:#0E2346;text-align:center">`,
+      `<img src="assets/samples/ad1046/agenda/approval/garuda.png" alt="ตราครุฑ" width="78" height="88" style="display:block;margin:0 auto 4pt;width:78px;height:88px;object-fit:contain" />`,
+      `</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346"><strong>ที่</strong> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346;text-align:right"><strong>วันที่</strong> ${get('วันที่') || this.docNoticedOn || ''}</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:8pt 0 0;color:#0E2346"><strong>เรื่อง</strong> ${get('เรื่อง') || `แจ้งให้แก้ไขปรับปรุงข้อมูลคำขอ ครั้งที่ ${amendPass}`}</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346"><strong>เรียน</strong> ${get('เรียน')}</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:8pt 0 0;color:#0E2346"><strong>อ้างถึง</strong> ${get('อ้างถึง') || 'คำขอเลขที่อ้างอิง R6201 เลขสารบรรณ สบ.1605/2562'}</p>`,
+      get('สิ่งที่ส่งมาด้วย') && get('สิ่งที่ส่งมาด้วย') !== '-'
+        ? `<p style="font-family:${font};font-size:16pt;margin:0;color:#0E2346"><strong>สิ่งที่ส่งมาด้วย</strong> ${get('สิ่งที่ส่งมาด้วย')}</p>`
+        : '',
+      `<p style="font-family:${font};font-size:16pt;margin:12pt 0 0;color:#0E2346"><br></p>`,
+      body,
+      due && due !== '-'
+        ? `<p style="font-family:${font};font-size:16pt;margin:12pt 0 0;text-indent:2em;color:#0E2346">ทั้งนี้ ขอให้จัดส่งข้อมูลภายในวันที่ ${due}</p>`
+        : '',
+      `<p style="font-family:${font};font-size:16pt;margin:24pt 0 0;text-align:center;color:#0E2346">ขอแสดงความนับถือ</p>`,
+      `<p style="font-family:${font};font-size:16pt;margin:36pt 0 0;text-align:center;color:#0E2346">${signer || '&nbsp;'}</p>`,
+      `</div>`,
+    ].join('');
+  }
+
+  private upsertNoticeLetterDocFile(row: NoticeLetterVersion): void {
+    const name = row.fileName || `หนังสือแจ้งผล-v${row.version}.docx`;
+    const title = row.title;
+    const sentOn = row.at || this.docNoticedOn || this.thaiToday();
+    const exists = this.docFiles.some((file) => file.name === name);
+    this.docFiles = exists
+      ? this.docFiles.map((file) => (file.name === name ? { ...file, title, sentOn } : file))
+      : [...this.docFiles, { name, title, sentOn }];
+  }
+
+  private syncNoticeLetterFiles(): void {
+    this.noticeLetterVersions
+      .filter((row) => row.source === 'created' || row.source === 'ai')
+      .forEach((row) => this.upsertNoticeLetterDocFile(row));
   }
 
   protected get officeLinks(): OfficeLink[] {
@@ -8865,11 +14758,10 @@ window.onload=function(){
     const people = saved.people.includes(this.directorName) ? saved.people : [...saved.people, this.directorName];
     writeWorkAssignment({ ...saved, people, groups: saved.groups.filter((group) => groupHead(group)) });
     this.pickedPeople = people;
-    if (readCaseStatus() === 'consult' && readConsult()) {
-      writeConsultGroup('');
-      writeConsultStep('director');
-    }
-    this.sendDirectorToEoffice('auto');
+    sessionStorage.setItem('dft-por1-filing-assign', 'wait');
+    writeConsultStep('director');
+    writeConsultGroup('');
+    writeConsultAssigned(false);
     this.notice = 'saved';
   }
 
@@ -8949,12 +14841,8 @@ window.onload=function(){
   }
 
   private ensureDirectorEoffice(): void {
+    // ตัด e-Office ชั่วคราว — ผอมอบหมายในระบบตาม Task Management
     this.eofficeDirector = readEofficeDirectorHandoff();
-    if (!directorWorkNeedsEoffice()) return;
-    if (this.eofficeDirector.state === 'assigned' && this.consultJobs.length) return;
-    if (this.eofficeDirector.state === 'idle' || this.eofficeDirector.state === 'error') {
-      this.sendDirectorToEoffice('auto');
-    }
   }
 
   protected get laterRound(): boolean {
@@ -9188,6 +15076,8 @@ window.onload=function(){
       if (this.caseStatus === 'official') this.syncAmendClock(readOfficialOn() || this.filedOn);
       else this.amendUntil = addThaiMonths(this.filedOn, 4);
       this.filing = 'self';
+      this.poaAttached = false;
+      this.docKey = 'cert';
     }
     this.company = item.applicant || this.company;
     this.address = '';
@@ -9493,11 +15383,79 @@ window.onload=function(){
   }
 
   protected openSubmit(): void {
-    this.submitAck = false;
-    this.submitOpen = true;
+    this.requireIdentityThen(() => {
+      this.submitAck = false;
+      this.submitOpen = true;
+    });
+  }
+
+  protected openOfficial(): void {
+    this.requireIdentityThen(() => {
+      this.officialOpen = true;
+    });
+  }
+
+  protected get identityVerify() {
+    return this.accounts.identityOf();
+  }
+
+  protected get identityVerifyTone() {
+    return this.accounts.identityStatusTone(this.identityVerify.status);
+  }
+
+  protected get identityVerifyLabel() {
+    return this.accounts.identityStatusLabel(this.identityVerify.status);
+  }
+
+  protected get identityNationality() {
+    return this.accounts.nationalityLabel();
+  }
+
+  /** เปิดกระบวนการที่ต้องยืนยันตัวตนก่อน (ยื่น / ยื่นแบบทางการ ฯลฯ) */
+  protected requireIdentityThen(action: () => void): void {
+    if (!this.accounts.isIdentityVerified()) {
+      this.verifyMessage = '';
+      this.foreignDoc = '';
+      this.foreignAck = false;
+      this.verifyOpen = true;
+      return;
+    }
+    action();
+  }
+
+  protected verifyThaiIdForSubmit(): void {
+    this.verifyBusy = true;
+    window.setTimeout(() => {
+      this.accounts.verifyWithThaiId();
+      this.verifyBusy = false;
+      this.verifyOpen = false;
+      this.verifyMessage = '';
+      this.submitAck = false;
+      this.submitOpen = true;
+      this.view.markForCheck();
+    }, 600);
+  }
+
+  protected submitForeignDocsForGate(): void {
+    if (!this.foreignDoc.trim() || !this.foreignAck) {
+      this.verifyMessage = 'โปรดแนบเอกสารบัตรและยืนยันความถูกต้อง';
+      return;
+    }
+    this.accounts.submitForeignIdentity([this.foreignDoc.trim()]);
+    this.verifyMessage = 'ส่งเอกสารให้เจ้าหน้าที่แล้ว — รอผลตรวจที่ Profile ก่อนจึงยื่นได้';
+  }
+
+  protected goProfileVerify(): void {
+    this.verifyOpen = false;
+    void this.router.navigate(['/profile'], { queryParams: { verify: '1' } });
   }
 
   protected confirmSubmit(): void {
+    if (!this.accounts.isIdentityVerified()) {
+      this.submitOpen = false;
+      this.verifyOpen = true;
+      return;
+    }
     if (!this.canConfirm || this.submitting) return;
     this.useClickDate(this.replyStamp());
     this.submitOpen = false;
@@ -9694,9 +15652,7 @@ window.onload=function(){
     const step = readConsultStep();
     if (step === 'receive' || step === 'forward') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
     if (step === 'director' || this.filingReturned) {
-      if (this.eofficeDirector.state === 'sent') return 'รอผู้อำนวยการมอบหมายใน e-Office แล้วระบบจะดึงผลกลับมา';
-      if (this.eofficeDirector.state === 'assigned') return 'ดึงผลมอบหมายจาก e-Office แล้ว รอหัวหน้ากลุ่มรับเรื่อง';
-      return 'กำลังส่งงานมอบหมายเข้า e-Office';
+      return this.consultJobs.length ? 'รอหัวหน้ากลุ่มรับเรื่อง' : 'รอผู้อำนวยการมอบหมายกลุ่มในระบบ';
     }
     if (step === 'group') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่ในกลุ่ม';
     return 'รอผู้ดูแล';
@@ -9704,7 +15660,7 @@ window.onload=function(){
 
   protected get consultWaitTag(): string {
     const step = readConsultStep();
-    if (step === 'director' || this.filingReturned) return this.eofficeDirector.state === 'sent' ? 'รอ e-Office' : 'รอผู้อำนวยการ';
+    if (step === 'director' || this.filingReturned) return this.consultJobs.length ? 'รอหัวหน้ากลุ่ม' : 'รอผู้อำนวยการ';
     if (step === 'group') return 'รอหัวหน้ากลุ่ม';
     return 'รอเจ้าหน้าที่รับเรื่อง';
   }
@@ -10266,6 +16222,274 @@ window.onload=function(){
     return this.filing !== 'self';
   }
 
+  /** ต้องมี tab เชิญเมื่อไม่ได้ยื่นครบเอง และมีผู้ร่วมตามมอบอำนาจ */
+  protected get needsCofilerInvite(): boolean {
+    return this.onBehalf && this.cofilerMode === 'invite';
+  }
+
+  protected get isCofilerMain(): boolean {
+    return !this.needsCofilerInvite || this.cofilerView === 'main';
+  }
+
+  protected get activeCofilerInvite(): CofilerInvite | null {
+    if (this.cofilerView === 'main') return null;
+    return cofilerById(this.cofilerView) || null;
+  }
+
+  protected get canEditShared(): boolean {
+    if (!this.needsCofilerInvite) return this.poaAllows('edit');
+    return this.isCofilerMain && this.poaAllows('edit');
+  }
+
+  protected get cofilerInvites(): CofilerInvite[] {
+    return listCofilerInvites(this.refId || this.formRef || filingRefId);
+  }
+
+  protected get cofilerPrivateVisible(): boolean {
+    return !!this.activeCofilerInvite;
+  }
+
+  protected get poaKindLabel(): string {
+    return this.poaKindOptions.find((item) => item.key === this.poaKind)?.label || '—';
+  }
+
+  protected get poaSamplesVisible(): {
+    kind: 'person' | 'juristic' | 'sub';
+    label: string;
+    name: string;
+    href: string;
+    caseId: string;
+  }[] {
+    if (!this.poaAttached) return this.poaSamples;
+    const matched = this.poaSamples.filter((item) => item.kind === this.poaKind);
+    return matched.length ? matched : this.poaSamples;
+  }
+
+  protected poaSampleKindLabel(kind: 'person' | 'juristic' | 'sub'): string {
+    return this.poaKindOptions.find((item) => item.key === kind)?.label || kind;
+  }
+
+  protected poaSampleOf(name: string): { name: string; href: string } | null {
+    return this.poaSamples.find((item) => item.name === name) || null;
+  }
+
+  protected downloadPoaSample(file: { name: string; href: string }): void {
+    void this.downloadAssetFile(file.href, file.name);
+  }
+
+  protected usePoaSample(file: {
+    kind: 'person' | 'juristic' | 'sub';
+    name: string;
+    href: string;
+  }): void {
+    this.setPoaKind(file.kind);
+    const grouped = this.groups['power'] ?? [];
+    if (!grouped.includes(file.name)) {
+      this.groups = { ...this.groups, power: [...grouped, file.name] };
+    }
+    this.docKey = 'power';
+  }
+
+  protected get poaFilingLabel(): string {
+    if (this.filing === 'self') return 'ยื่นคำขอในนามของตนเอง';
+    if (this.filing === 'all') return 'ยื่นคำขอ โดยกระทำการแทนผู้ผลิตทั้งหมด';
+    return 'ยื่นคำขอ โดยกระทำการแทนผู้ผลิตบางส่วน';
+  }
+
+  protected get poaAnnexLabel(): string {
+    if (this.filing === 'self') return 'ไม่ใช้ผนวก ก./ข. — ไม่บังคับผนวก ค.';
+    if (this.filing === 'all') return 'ผนวก ก. รายชื่อผู้ผลิตทั้งหมด + ผนวก ค. หนังสือมอบอำนาจ';
+    return 'ผนวก ข. ส่วนที่ 1–2 + ผนวก ค. หนังสือมอบอำนาจ';
+  }
+
+  protected get poaPowerSummary(): string {
+    if (!this.poaAttached) return 'ยื่นเอง — ดำเนินการได้ครบในนามตนเอง';
+    if (this.poaPowers.full) return 'ได้รับอำนาจเต็มตลอดกระบวนการ';
+    const picked = this.poaPowerOptions.filter((item) => item.key !== 'full' && this.poaPowers[item.key]).map((item) => item.label);
+    return picked.length ? picked.join(' · ') : 'ยังไม่ได้ระบุอำนาจตามเอกสาร';
+  }
+
+  protected poaAllows(power: 'file' | 'edit' | 'contact' | 'full'): boolean {
+    if (!this.poaAttached) return true;
+    if (this.poaPowers.full) return true;
+    return !!this.poaPowers[power];
+  }
+
+  protected setPoaAttached(on: boolean): void {
+    this.poaAttached = on;
+    if (!on) {
+      this.filing = 'self';
+      this.docKey = 'cert';
+      this.editingKey = '';
+      return;
+    }
+    if (this.filing === 'self') this.filing = 'part';
+    this.docKey = 'power';
+  }
+
+  protected setPoaScope(scope: 'all' | 'part'): void {
+    this.poaAttached = true;
+    this.filing = scope;
+    this.docKey = 'power';
+  }
+
+  protected setPoaKind(kind: 'person' | 'juristic' | 'sub'): void {
+    this.poaKind = kind;
+    this.poaAttached = true;
+    if (this.filing === 'self') this.filing = 'part';
+    this.docKey = 'power';
+  }
+
+  protected togglePoaPower(key: 'file' | 'edit' | 'contact' | 'full'): void {
+    if (key === 'full') {
+      const next = !this.poaPowers.full;
+      this.poaPowers = { file: next, edit: next, contact: next, full: next };
+      return;
+    }
+    const next = {
+      file: key === 'file' ? !this.poaPowers.file : this.poaPowers.file,
+      edit: key === 'edit' ? !this.poaPowers.edit : this.poaPowers.edit,
+      contact: key === 'contact' ? !this.poaPowers.contact : this.poaPowers.contact,
+      full: false,
+    };
+    next.full = next.file && next.edit && next.contact;
+    this.poaPowers = next;
+  }
+
+  protected setCofilerMode(mode: 'solo' | 'invite'): void {
+    this.cofilerMode = mode;
+    if (mode === 'solo') {
+      this.formDeskTab = 'form';
+      this.setCofilerView('main');
+      return;
+    }
+    this.formDeskTab = 'invite';
+  }
+
+  protected openFormDesk(tab: 'form' | 'invite'): void {
+    if (tab === 'invite' && !this.needsCofilerInvite) return;
+    this.formDeskTab = tab;
+    if (tab === 'invite' && this.isCofilerMain && !this.cofilerInvites.length) {
+      this.seedCofilerFromMakers();
+    }
+  }
+
+  protected setCofilerView(view: string): void {
+    this.cofilerView = view === 'main' ? 'main' : view;
+    writeCofilerView(this.cofilerView);
+    if (this.cofilerView !== 'main') {
+      const invite = cofilerById(this.cofilerView);
+      if (invite && invite.status === 'sent') acceptCofilerInvite(invite.id, invite.email || invite.id);
+      this.cofilerPrivateDraft = readCofilerPrivate(this.cofilerView);
+      this.formDeskTab = 'form';
+    }
+  }
+
+  protected seedCofilerFromMakers(): void {
+    const ref = this.refId || this.formRef || filingRefId;
+    const existing = new Set(listCofilerInvites(ref).map((item) => item.makerName));
+    for (const row of this.makers) {
+      const name = row.name.trim();
+      if (!name || existing.has(name)) continue;
+      addCofilerInvite({
+        filingRef: ref,
+        makerName: name,
+        email: `${name.slice(0, 8).replace(/\s+/g, '').toLowerCase() || 'maker'}@example.com`,
+        org: name,
+      });
+      existing.add(name);
+    }
+  }
+
+  protected createCofilerInvite(): void {
+    if (!this.isCofilerMain) return;
+    const name = this.cofilerInviteName.trim();
+    const email = this.cofilerInviteEmail.trim();
+    if (!name || !email.includes('@')) return;
+    const invite = addCofilerInvite({
+      filingRef: this.refId || this.formRef || filingRefId,
+      makerName: name,
+      email,
+      org: this.cofilerInviteOrg.trim() || name,
+    });
+    this.cofilerInviteName = '';
+    this.cofilerInviteEmail = '';
+    this.cofilerInviteOrg = '';
+    this.copyCofilerLink(invite);
+  }
+
+  protected cofilerLinkOf(invite: CofilerInvite): string {
+    return `${location.origin}${cofilerInvitePath(invite.id)}`;
+  }
+
+  protected copyCofilerLink(invite: CofilerInvite): void {
+    const link = this.cofilerLinkOf(invite);
+    void navigator.clipboard?.writeText(link).then(() => {
+      this.cofilerCopied = link;
+      window.setTimeout(() => {
+        if (this.cofilerCopied === link) this.cofilerCopied = '';
+      }, 2000);
+    });
+  }
+
+  protected resendCofiler(invite: CofilerInvite): void {
+    if (!this.isCofilerMain) return;
+    resendCofilerInvite(invite.id);
+    this.copyCofilerLink(invite);
+  }
+
+  protected revokeCofiler(invite: CofilerInvite): void {
+    if (!this.isCofilerMain) return;
+    revokeCofilerInvite(invite.id);
+    if (this.cofilerView === invite.id) this.setCofilerView('main');
+  }
+
+  protected inviteStatusLabel(invite: CofilerInvite): string {
+    return cofilerStatusLabel(invite.status);
+  }
+
+  protected inviteStatusTone(invite: CofilerInvite): 'neutral' | 'info' | 'success' | 'warning' | 'danger' {
+    return cofilerStatusTone(invite.status);
+  }
+
+  protected invitePrivateLabel(invite: CofilerInvite): string {
+    const status = cofilerPrivateStatus(invite.id);
+    if (status === 'ready') return 'ส่งส่วนตัวแล้ว';
+    if (status === 'draft') return 'กำลังกรอก (เนื้อหาลับ)';
+    return 'ยังไม่มีข้อมูลส่วนตัว';
+  }
+
+  protected canSeeCofilerPrivate(inviteId: string): boolean {
+    return this.cofilerView === inviteId;
+  }
+
+  protected saveActiveCofilerPrivate(): void {
+    const invite = this.activeCofilerInvite;
+    if (!invite) return;
+    saveCofilerPrivate(invite.id, this.cofilerPrivateDraft);
+    this.cofilerPrivateDraft = readCofilerPrivate(invite.id);
+  }
+
+  protected submitActiveCofilerPrivate(): void {
+    const invite = this.activeCofilerInvite;
+    if (!invite) return;
+    this.saveActiveCofilerPrivate();
+    markCofilerSubmitted(invite.id);
+  }
+
+  protected makerRowVisible(row: { name: string }): boolean {
+    if (this.isCofilerMain || !this.needsCofilerInvite) return true;
+    const invite = this.activeCofilerInvite;
+    if (!invite) return false;
+    return row.name.trim() === invite.makerName.trim();
+  }
+
+  protected makerContactVisible(row: { name: string }): boolean {
+    if (!this.needsCofilerInvite) return true;
+    if (this.isCofilerMain) return false;
+    return !!this.activeCofilerInvite && row.name.trim() === this.activeCofilerInvite.makerName.trim();
+  }
+
   protected get visibleDocs(): { key: string; label: string; accept: string; hint: string; behalf: boolean }[] {
     return this.supportDocs.filter((item) => !item.behalf || this.onBehalf);
   }
@@ -10275,10 +16499,12 @@ window.onload=function(){
   }
 
   protected openDoc(key: string): void {
+    if (key === 'power' && !this.poaAllows('file')) return;
     this.docKey = key;
   }
 
   protected addRow(): void {
+    if (!this.canEditShared) return;
     if (this.onBehalf) {
       this.makers = [...this.makers, emptyParty()];
       this.editingKey = `maker:${this.makers.length - 1}`;
@@ -10293,6 +16519,7 @@ window.onload=function(){
   }
 
   protected toggleEdit(key: string): void {
+    if (!this.canEditShared) return;
     this.editingKey = this.editingKey === key ? '' : key;
   }
 
@@ -10305,12 +16532,14 @@ window.onload=function(){
   }
 
   protected removeMaker(index: number): void {
+    if (!this.canEditShared) return;
     this.makers = this.makers.filter((_, item) => item !== index);
     if (!this.makers.length) this.makers = [emptyParty()];
     this.editingKey = '';
   }
 
   protected removeGood(index: number): void {
+    if (!this.canEditShared) return;
     this.goods = this.goods.filter((_, item) => item !== index);
     if (!this.goods.length) this.goods = [{ producer: '', goods: '', made: '', sold: '', unit: '' }];
   }
@@ -10349,6 +16578,10 @@ window.onload=function(){
   }
 
   protected pick(key: string, event: Event): void {
+    if ((key === 'power' || key === 'excel') && !this.poaAllows(key === 'excel' ? 'edit' : 'file')) {
+      (event.target as HTMLInputElement).value = '';
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -10364,6 +16597,7 @@ window.onload=function(){
   protected removeListed(key: string, name: string, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
+    if (key === 'power' && !this.poaAllows('file')) return;
     const grouped = this.groups[key];
     if (grouped) {
       this.groups = { ...this.groups, [key]: grouped.filter((item) => item !== name) };
@@ -10908,6 +17142,7 @@ window.onload=function(){
     if (!this.reviewRole && this.accounts.username && !readFilingFiler()) {
       writeFilingFiler(this.accounts.username);
     }
+    this.loadDraftAgendaVersions();
     this.syncCertForMeasure();
     this.caseStatus = readCaseStatus();
     // แยกชั้นปรึกษาออกจากสถานะคำขอ — ค่าเก่า consult ย้ายเป็น revision
@@ -10934,13 +17169,18 @@ window.onload=function(){
     if (this.reviewRole) {
       this.ensureRoundFolders();
     } else if (this.rounds.length) {
+      const today = this.prototypeActionDay();
       let folderFixed = false;
       this.rounds = this.rounds.map((round) => {
-        if (round.folder) return round;
+        const on = round.round <= 1 ? today : round.submittedOn;
+        const folder = this.roundFolderName(round.round, on);
+        if (round.folder === folder && round.submittedOn === on) return round;
         folderFixed = true;
-        return { ...round, folder: this.roundFolderName(round.round, round.submittedOn) };
+        return { ...round, submittedOn: on, folder };
       });
       if (folderFixed) writeRounds(this.rounds);
+    } else {
+      this.ensureRoundFolders();
     }
     this.consultRounds = readConsultRounds();
     this.consult = readConsult() || this.openConsultRound?.request || this.consultRounds.at(-1)?.request || null;
@@ -10963,7 +17203,8 @@ window.onload=function(){
       this.ensureDirectorEoffice();
       const asked = this.route.snapshot.queryParamMap.get('tab');
       const assignNow = this.reviewRole === 'director' && (this.caseStatus === 'official' || this.caseStatus === 'approval') && !this.consultJobs.length;
-      const docsNow = asked === 'docs' && !this.docsPassed && this.showReviewTab('docs') && !this.reviewLocked('docs');
+      const noticeAwaitingHead = this.noticePipe === 'to-head' && !this.docSent;
+      const docsNow = (asked === 'docs' || noticeAwaitingHead) && !this.docsPassed && this.showReviewTab('docs') && !this.reviewLocked('docs');
       this.reviewTab = asked === 'assign' && this.showReviewTab('assign')
         ? 'assign'
         : docsNow
@@ -10971,6 +17212,18 @@ window.onload=function(){
           : assignNow
           ? 'assign'
           : this.reviewRole === 'external' ? 'docs' : this.reviewRole === 'bureau' || this.reviewRole === 'committee' || this.reviewRole === 'interest' ? 'inquiry' : this.docsPassed ? 'inquiry' : this.officerAcceptedFiling() ? 'docs' : 'form';
+      if (this.reviewTab === 'assign' && this.route.snapshot.queryParamMap.get('pending') === '1' && this.canViewPendingAssign) {
+        this.pendingAssignOpen = true;
+      }
+      if (this.reviewTab === 'docs' && (asked === 'docs' || noticeAwaitingHead)) {
+        // ข้ามมาที่แจ้งคำขอครบถ้วนถูกต้อง + ส่วนแบบคำขอฉบับเปิดเผย (เจ้าหน้าที่ /docs)
+        if (this.reviewRole === 'officer' && (asked === 'docs' || this.route.snapshot.queryParamMap.get('jump') === 'complete')) {
+          this.jumpToCompleteOpenEdition();
+        } else {
+          this.pickDoc(this.workDocs.length);
+          if (noticeAwaitingHead && this.reviewRole === 'head') this.openNoticeForm();
+        }
+      }
       if (this.reviewTab === 'inquiry') this.placeInquiry();
       this.ensureReceipt();
       this.seedConsultDraft();
@@ -11004,6 +17257,9 @@ window.onload=function(){
     this.restoreFormNav();
     this.publishGuide();
     this.useClickDate();
+    if (this.reviewRole) this.restoreFilingUrl();
+    this.filingUrlReady = true;
+    this.syncFilingUrl();
   }
 
   private approvalTimer = 0;
@@ -11101,6 +17357,8 @@ window.onload=function(){
     window.clearInterval(this.approvalTimer);
     window.clearInterval(this.assignTimer);
     window.clearInterval(this.inquiryTimer);
+    if (this.amendLayoutRaf) cancelAnimationFrame(this.amendLayoutRaf);
+    this.pinDragUnlisten?.();
     this.guide.clear();
   }
 

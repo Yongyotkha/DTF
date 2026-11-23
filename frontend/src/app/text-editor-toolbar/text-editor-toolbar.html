@@ -1,0 +1,127 @@
+<div class="bundle-amend-tools" role="toolbar" [attr.aria-label]="ariaLabel">
+  <span class="bundle-amend-font" title="ฟอนต์เอกสารราชการ — ล็อก TH SarabunPSK เท่านั้น" aria-label="ฟอนต์ TH SarabunPSK">
+    {{ fontName }}
+    <span class="bundle-amend-font__hint">เท่านั้น</span>
+  </span>
+  <label class="bundle-amend-size">
+    <span class="bundle-amend-size__label">ขนาด</span>
+    <select [value]="fontSize" aria-label="ขนาดตัวอักษร (pt)" (mousedown)="$event.stopPropagation()" (change)="fontSizeChange.emit($any($event.target).value)">
+      @for (size of fontSizes; track size.value) {
+        <option [value]="size.value" [selected]="fontSize === size.value">{{ size.label }}</option>
+      }
+    </select>
+  </label>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <button type="button" class="bundle-amend-tool" title="ตัวหนา" aria-label="ตัวหนา" [class.on]="cmdOn('bold')" (mousedown)="$event.preventDefault()" (click)="run('bold')"><strong>B</strong></button>
+  <button type="button" class="bundle-amend-tool" title="ตัวเอียง" aria-label="ตัวเอียง" [class.on]="cmdOn('italic')" (mousedown)="$event.preventDefault()" (click)="run('italic')"><em>I</em></button>
+  <button type="button" class="bundle-amend-tool" title="ขีดเส้นใต้" aria-label="ขีดเส้นใต้" [class.on]="cmdOn('underline')" (mousedown)="$event.preventDefault()" (click)="run('underline')"><span class="bundle-amend-tool__u">U</span></button>
+  <button type="button" class="bundle-amend-tool" title="ขีดทับ" aria-label="ขีดทับ" [class.on]="cmdOn('strikeThrough')" (mousedown)="$event.preventDefault()" (click)="run('strikeThrough')"><span class="bundle-amend-tool__s">S</span></button>
+  <button type="button" class="bundle-amend-tool" title="ตัวห้อย" aria-label="ตัวห้อย" [class.on]="cmdOn('subscript')" (mousedown)="$event.preventDefault()" (click)="run('subscript')">X<sub>2</sub></button>
+  <button type="button" class="bundle-amend-tool" title="ตัวยก" aria-label="ตัวยก" [class.on]="cmdOn('superscript')" (mousedown)="$event.preventDefault()" (click)="run('superscript')">X<sup>2</sup></button>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <span class="bundle-amend-colors" role="group" aria-label="สีตัวอักษร">
+    @for (tone of colors; track tone.value) {
+      <button
+        type="button"
+        class="bundle-amend-swatch"
+        [class.on]="color.toLowerCase() === tone.value.toLowerCase()"
+        [style.--swatch]="tone.value"
+        [title]="'สีตัวอักษร: ' + tone.label"
+        [attr.aria-label]="'สีตัวอักษร' + tone.label"
+        (mousedown)="$event.preventDefault()"
+        (click)="colorChange.emit(tone.value)"
+      ></button>
+    }
+  </span>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <span class="bundle-amend-colors" role="group" aria-label="สีเน้นข้อความ">
+    @for (tone of highlights; track tone.value) {
+      <button
+        type="button"
+        class="bundle-amend-swatch bundle-amend-swatch--mark"
+        [class.bundle-amend-swatch--clear]="tone.value === 'transparent'"
+        [class.on]="highlight.toLowerCase() === tone.value.toLowerCase()"
+        [style.--swatch]="tone.value === 'transparent' ? '#ffffff' : tone.value"
+        [title]="'เน้นข้อความ: ' + tone.label"
+        [attr.aria-label]="'เน้นข้อความ' + tone.label"
+        (mousedown)="$event.preventDefault()"
+        (click)="highlightChange.emit(tone.value)"
+      ></button>
+    }
+  </span>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <button type="button" class="bundle-amend-tool" title="ชิดซ้าย" aria-label="ชิดซ้าย" [class.on]="cmdOn('justifyLeft')" (mousedown)="$event.preventDefault()" (click)="run('justifyLeft')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="กึ่งกลาง" aria-label="กึ่งกลาง" [class.on]="cmdOn('justifyCenter')" (mousedown)="$event.preventDefault()" (click)="run('justifyCenter')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M7 12h10M5 17h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="ชิดขวา" aria-label="ชิดขวา" [class.on]="cmdOn('justifyRight')" (mousedown)="$event.preventDefault()" (click)="run('justifyRight')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M10 12h10M6 17h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="จัดเต็มบรรทัด" aria-label="จัดเต็มบรรทัด" [class.on]="cmdOn('justifyFull')" (mousedown)="$event.preventDefault()" (click)="run('justifyFull')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <button type="button" class="bundle-amend-tool" title="เพิ่มย่อหน้า" aria-label="เพิ่มย่อหน้า" (mousedown)="$event.preventDefault()" (click)="run('indent')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M10 12h10M4 17h16M4 10l3 2-3 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="ลดย่อหน้า" aria-label="ลดย่อหน้า" (mousedown)="$event.preventDefault()" (click)="run('outdent')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h16M13 10l-3 2 3 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="รายการจุด" aria-label="รายการจุด" [class.on]="cmdOn('insertUnorderedList')" (mousedown)="$event.preventDefault()" (click)="run('insertUnorderedList')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="5" cy="7" r="1.5" fill="currentColor" /><circle cx="5" cy="12" r="1.5" fill="currentColor" /><circle cx="5" cy="17" r="1.5" fill="currentColor" /><path d="M9 7h10M9 12h10M9 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="รายการเลข" aria-label="รายการเลข" [class.on]="cmdOn('insertOrderedList')" (mousedown)="$event.preventDefault()" (click)="run('insertOrderedList')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 7h1M5 12h2M5 17h2M9 7h10M9 12h10M9 17h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <label class="bundle-amend-size">
+    <span class="bundle-amend-size__label">ระยะบรรทัด</span>
+    <select [value]="lineHeight" aria-label="ระยะห่างบรรทัด" (mousedown)="$event.stopPropagation()" (change)="lineHeightChange.emit($any($event.target).value)">
+      @for (row of lineHeights; track row.value) {
+        <option [value]="row.value" [selected]="lineHeight === row.value">{{ row.label }}</option>
+      }
+    </select>
+  </label>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <button type="button" class="bundle-amend-tool" title="หัวข้อ 1" aria-label="หัวข้อ 1" (mousedown)="$event.preventDefault()" (click)="run('formatBlock', 'h1')">H1</button>
+  <button type="button" class="bundle-amend-tool" title="หัวข้อ 2" aria-label="หัวข้อ 2" (mousedown)="$event.preventDefault()" (click)="run('formatBlock', 'h2')">H2</button>
+  <button type="button" class="bundle-amend-tool" title="หัวข้อ 3" aria-label="หัวข้อ 3" (mousedown)="$event.preventDefault()" (click)="run('formatBlock', 'h3')">H3</button>
+  <button type="button" class="bundle-amend-tool" title="ย่อหน้า" aria-label="ย่อหน้า" (mousedown)="$event.preventDefault()" (click)="run('formatBlock', 'p')">¶</button>
+  <button type="button" class="bundle-amend-tool" title="ตาราง" aria-label="แทรกตาราง" (mousedown)="$event.preventDefault()" (click)="insertTable.emit()">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M4 15h16M10 5v14M16 5v14" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="เส้นคั่น" aria-label="แทรกเส้นคั่น" (mousedown)="$event.preventDefault()" (click)="insertHr.emit()">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 12h16M6 8h12M6 16h12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="ขึ้นหน้าใหม่" aria-label="ขึ้นหน้าใหม่" (mousedown)="$event.preventDefault()" (click)="insertPageBreak.emit()">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 4h9l3 3v13H6zM14 4v4h4M8 13h8M8 17h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /><path d="M18 11v3M16.5 12.5 18 14l1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="ล้างรูปแบบ" aria-label="ล้างรูปแบบ" (mousedown)="$event.preventDefault()" (click)="run('removeFormat')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 6h9l-6 12M14 6h5M8 18h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /><path d="m15 13 5 5M20 13l-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+  </button>
+  <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+  <button type="button" class="bundle-amend-tool" title="ยกเลิก" aria-label="ยกเลิก" (mousedown)="$event.preventDefault()" (click)="run('undo')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 7 5 11l4 4M5 11h9a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+  </button>
+  <button type="button" class="bundle-amend-tool" title="ทำซ้ำ" aria-label="ทำซ้ำ" (mousedown)="$event.preventDefault()" (click)="run('redo')">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m15 7 4 4-4 4M19 11H10a5 5 0 0 0 0 10h2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+  </button>
+  @if (showComment) {
+    <span class="bundle-amend-tools__sep" aria-hidden="true"></span>
+    <button
+      type="button"
+      class="bundle-amend-tool bundle-amend-tool--comment"
+      [class.on]="commentOn"
+      title="เลือกข้อความแล้วกด — หรือกดแล้วคลิก/ลากไปวางบนแถวในเล่ม"
+      aria-label="เพิ่ม Comment"
+      draggable="true"
+      (dragstart)="commentDragStart.emit($event)"
+      (mousedown)="$event.preventDefault()"
+      (click)="comment.emit()"
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+    </button>
+  }
+</div>

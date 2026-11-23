@@ -1,5 +1,6 @@
 import { secondApplicant } from '../../accounts';
 import { StatusTone } from '../../status-tag/status-tag';
+import { caseListPhaseNames } from './canonical-stages';
 import { ensureFilingRefSeqAtLeast, parseFilingRefSeq } from './case-status';
 
 export type RequestStep = {
@@ -40,8 +41,9 @@ export type ListedCase = {
   filer?: string;
 };
 
-const investigation = ['ยื่นคำขอ', 'ตรวจสอบข้อมูล', 'เปิดการไต่สวน', 'ผลการไต่สวนชั้นต้น', 'รับฟังความคิดเห็น', 'ร่างผลการไต่สวน', 'ประกาศผลชั้นที่สุด'];
-const review = ['ยื่นคำขอทบทวน', 'ตรวจสอบคำขอ', 'เปิดการทบทวน', 'แบบสอบถาม', 'รับฟังความคิดเห็น', 'ร่างผลการทบทวน', 'ประกาศผลการทบทวน'];
+/** Milestone labels from canonical-stages (case list stepper) */
+const investigation = caseListPhaseNames('original');
+const review = caseListPhaseNames('ssr');
 
 function formSample(id: string, ref: string, kind: string, goods: string, measure: string, note: string): ListedCase {
   return {

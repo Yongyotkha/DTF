@@ -25,6 +25,7 @@ import { ApplicantDeskPage } from './pages/requests/applicant-desk-page';
 import { filingGuard } from './pages/requests/filing-guard';
 import { InterestJoinPage } from './pages/requests/interest-join-page';
 import { ProxyJoinPage } from './pages/requests/proxy-join-page';
+import { CofilerJoinPage } from './pages/requests/cofiler-join-page';
 import { RequestsPage } from './pages/requests/requests-page';
 import { StaffChatPage } from './pages/requests/staff-chat-page';
 import { CaseRegistryPage } from './pages/staff/case-registry-page';
@@ -37,6 +38,7 @@ export const routes: Routes = [
   { path: 'login', component: LoginPage },
   { path: 'join/:code', component: InterestJoinPage },
   { path: 'act/:id', component: ProxyJoinPage },
+  { path: 'cofile/:id', component: CofilerJoinPage },
   { path: 'forgot-password', component: ForgotPage },
   { path: 'register', component: RegisterPage },
   { path: 'register/:kind/:step', component: RegisterStepPage },

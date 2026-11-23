@@ -24,11 +24,28 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
             <span class="tip" role="tooltip">ค้นหา</span>
           </button>
-          <div class="board-view" role="tablist" aria-label="รูปแบบการดู">
-            <button type="button" class="icon-btn" aria-label="แบบคอลัมน์" [class.on]="boardView === 'board'" (click)="boardView = 'board'">
+          @if (role === 'head') {
+            <button
+              type="button"
+              class="icon-btn icon-btn--pick"
+              [class.icon-btn--alert]="pendingGroupPickCount > 0"
+              [attr.aria-label]="pendingGroupPickCount ? 'เลือกงานเข้ากลุ่ม มี ' + pendingGroupPickCount + ' งานรอ' : 'เลือกงานเข้ากลุ่ม'"
+              (click)="openPickGroupTasks()"
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1" /><rect x="10" y="4" width="5" height="16" rx="1" /><rect x="17" y="4" width="4" height="16" rx="1" /></svg>
-              <span class="tip" role="tooltip">แบบคอลัมน์</span>
+              @if (pendingGroupPickCount > 0) {
+                <span class="icon-btn__badge" aria-hidden="true">{{ pendingGroupPickCount > 9 ? '9+' : pendingGroupPickCount }}</span>
+              }
+              <span class="tip" role="tooltip">{{ pendingGroupPickCount ? 'มีงานรอเลือกเข้ากลุ่ม ' + pendingGroupPickCount + ' รายการ' : 'เลือกงานเข้ากลุ่ม' }}</span>
             </button>
+          }
+          <div class="board-view" role="tablist" aria-label="รูปแบบการดู">
+            @if (role !== 'head') {
+              <button type="button" class="icon-btn" aria-label="แบบคอลัมน์" [class.on]="boardView === 'board'" (click)="boardView = 'board'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1" /><rect x="10" y="4" width="5" height="16" rx="1" /><rect x="17" y="4" width="4" height="16" rx="1" /></svg>
+                <span class="tip" role="tooltip">แบบคอลัมน์</span>
+              </button>
+            }
             <button type="button" class="icon-btn" aria-label="แบบรายการ" [class.on]="boardView === 'list'" (click)="boardView = 'list'">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
               <span class="tip" role="tooltip">แบบรายการ</span>
@@ -292,3 +309,72 @@
     </main>
   </div>
 </div>
+@if (pickTasksOpen) {
+  <div class="pick-tasks" (click)="closePickGroupTasks()">
+    <section class="pick-tasks__dialog" role="dialog" aria-modal="true" aria-labelledby="pick-tasks-title" (click)="$event.stopPropagation()">
+      <header class="pick-tasks__head">
+        <div>
+          <h2 id="pick-tasks-title">งานที่รอเลือกเข้ากลุ่ม</h2>
+          <p>รายการที่ยังไม่โชว์บน Dashboard จนกว่าจะบันทึกรับเข้ากลุ่ม — มีได้หลายงานพร้อมกัน</p>
+        </div>
+        <button type="button" class="icon-btn" aria-label="ปิด" (click)="closePickGroupTasks()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </header>
+      <div class="pick-tasks__body">
+        @if (pendingGroupPicks.length) {
+          <p class="pick-tasks__count">ทั้งหมด {{ pendingGroupPicks.length }} รายการ</p>
+          <div class="table-wrap pick-tasks__table">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-no">ลำดับ</th>
+                  <th>เลขที่อ้างอิง</th>
+                  <th>เรื่อง / ผู้ยื่น</th>
+                  <th>วันที่</th>
+                  <th>กำหนดส่ง</th>
+                  <th>สถานะคิว</th>
+                  <th class="col-act">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of pendingGroupPicks; track item.ref; let i = $index) {
+                  <tr>
+                    <td class="col-no">{{ i + 1 }}</td>
+                    <td>
+                      <strong>{{ item.ref }}</strong>
+                      <small>{{ item.code }} · {{ item.kind }}</small>
+                    </td>
+                    <td class="pick-tasks__subject">
+                      <strong>{{ item.title }}</strong>
+                      <small>{{ item.applicant }}</small>
+                      <small>{{ item.measure }}</small>
+                    </td>
+                    <td class="pick-tasks__when">
+                      <strong>{{ item.queuedAt }}</strong>
+                    </td>
+                    <td class="pick-tasks__when">
+                      <strong>{{ item.dueAt }}</strong>
+                    </td>
+                    <td class="pick-tasks__status">
+                      <app-status-tag [tone]="item.tone" label="รอรับเข้ากลุ่ม" />
+                      <small>{{ item.reason }}</small>
+                    </td>
+                    <td class="col-act">
+                      <app-button type="primary" size="sm" label="รับเข้ากลุ่ม" (click)="claimPendingGroupPick(item)" />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="pick-tasks__empty">ไม่มีงานรอเลือกเข้ากลุ่มในขณะนี้</p>
+        }
+      </div>
+      <footer class="pick-tasks__foot">
+        <app-button type="outline" label="ปิด" (click)="closePickGroupTasks()" />
+      </footer>
+    </section>
+  </div>
+}

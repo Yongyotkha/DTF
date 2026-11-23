@@ -1,0 +1,67 @@
+/* Approval Lane stepper — reuse vertical_stepper 551:43562 tokens */
+.lane-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 0;
+  width: 100%;
+  padding: 12px 0;
+}
+
+.lane-stepper--col {
+  flex-direction: column;
+  gap: 0;
+}
+
+.lane-stepper__item {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 7.5rem;
+}
+
+.lane-stepper--col .lane-stepper__item {
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
+.lane-stepper__line {
+  display: block;
+  flex: 1 1 12px;
+  min-width: 12px;
+  height: 2px;
+  margin: 0 4px;
+  background: var(--color-border);
+  align-self: center;
+}
+
+.lane-stepper--col .lane-stepper__line {
+  width: 2px;
+  min-width: 2px;
+  height: 12px;
+  margin: 2px 0 2px 20px;
+  align-self: flex-start;
+}
+
+@media (max-width: 900px) {
+  .lane-stepper:not(.lane-stepper--col) {
+    flex-direction: column;
+  }
+
+  .lane-stepper:not(.lane-stepper--col) .lane-stepper__item {
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .lane-stepper:not(.lane-stepper--col) .lane-stepper__line {
+    width: 2px;
+    min-width: 2px;
+    height: 12px;
+    margin: 2px 0 2px 20px;
+    align-self: flex-start;
+  }
+}

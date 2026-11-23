@@ -1,0 +1,10 @@
+<nav class="lane-stepper" [class.lane-stepper--col]="layout === 'column'" [attr.aria-label]="ariaLabel">
+  @for (item of items(); track item.stage; let last = $last) {
+    <div class="lane-stepper__item">
+      <app-vertical-step [state]="item.state" [label]="item.label" [note]="item.note" [number]="item.number" />
+      @if (!last) {
+        <span class="lane-stepper__line" aria-hidden="true"></span>
+      }
+    </div>
+  }
+</nav>

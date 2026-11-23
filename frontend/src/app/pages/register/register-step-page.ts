@@ -326,7 +326,6 @@ export class RegisterStepPage implements OnInit, OnDestroy {
         this.draft.accepted[kind] = true;
         this.draft.read[kind] = true;
         this.readToEnd = true;
-        this.seedIndividualVerify();
         void this.places.load();
       }
       if (kind === 'corporate' && !this.draft.directorsReady) {
@@ -402,21 +401,19 @@ export class RegisterStepPage implements OnInit, OnDestroy {
   protected get proceedState(): 'default' | 'disabled' {
     if (this.step === 1 && !this.accepted) return 'disabled';
     if (this.step === 3 && this.fields.some((field) => !this.fieldOk(field.key))) return 'disabled';
-    if (this.step === 3 && this.kind === 'individual' && !this.identityVerified) return 'disabled';
+    // สมัครใช้แค่ OTP อีเมล — ยืนยันตัวตน (ThaiID / เอกสาร) ไปทำตอนกดยื่นหรือที่ Profile
     return 'default';
   }
 
   protected get usesThaiIdVerify(): boolean {
-    return this.kind === 'individual' && this.value('identity') !== 'หนังสือเดินทาง';
+    return false;
   }
 
   protected get usesDocSelfVerify(): boolean {
-    return this.kind === 'individual' && this.value('identity') === 'หนังสือเดินทาง';
+    return false;
   }
 
   protected get identityVerified(): boolean {
-    if (this.usesThaiIdVerify) return !!this.ssoAccount('thaiid');
-    if (this.usesDocSelfVerify) return fileOk(this.value('identityDoc'), true) && this.value('selfVerify') === 'yes';
     return true;
   }
 
@@ -956,12 +953,18 @@ export class RegisterStepPage implements OnInit, OnDestroy {
     this.tried.set(true);
     this.failed = false;
     if (this.proceedState === 'disabled') return;
-    if (this.fields.some((field) => this.stateOf(field) === 'error') || (this.step === 3 && this.kind === 'individual' && !this.identityVerified)) {
+    if (this.fields.some((field) => this.stateOf(field) === 'error')) {
       if (this.step === 3) this.failed = true;
-      queueMicrotask(() => document.querySelector('.field--error, .upload--error, label.error, .choice.error, .verify-gap')?.scrollIntoView({ block: 'center' }));
+      queueMicrotask(() => document.querySelector('.field--error, .upload--error, label.error, .choice.error')?.scrollIntoView({ block: 'center' }));
       return;
     }
-    if (this.step === 3) this.accounts.save(this.value('username'), this.value('password'), this.kind, this.value('email'));
+    if (this.step === 3) {
+      this.accounts.save(this.value('username'), this.value('password'), this.kind, this.value('email'), {
+        nationality: this.value('nationality'),
+        country: this.value('country'),
+        idType: this.value('identity'),
+      });
+    }
     void this.router.navigate(['/register', this.kind, this.step + 1]);
   }
 

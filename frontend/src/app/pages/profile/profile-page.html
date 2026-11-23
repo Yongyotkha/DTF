@@ -7,6 +7,81 @@
         <h1>ข้อมูลทั่วไป</h1>
         <app-button label="เปลี่ยนรหัสผ่าน" (click)="openPassword()" />
       </header>
+
+      <section class="card id-verify" aria-label="สถานะยืนยันตัวตน">
+        <div class="id-verify__head">
+          <div>
+            <h2>สถานะยืนยันตัวตน</h2>
+            <p class="id-verify__lead">สมัครบัญชียืนยันแค่ OTP อีเมล — ต้องยืนยันตัวตนก่อนกดยื่นคำขอหรือทำกระบวนการ</p>
+          </div>
+          <app-status-tag [tone]="verifyTone" [label]="verifyLabel" />
+        </div>
+        <div class="id-verify__chips">
+          <span class="id-verify__chip">สัญชาติจากสมัคร · {{ nationalityLabel }}</span>
+          <span class="id-verify__chip id-verify__chip--path">
+            {{ identity.path === 'thaiid' ? 'วิธียืนยัน · ThaiID' : 'วิธียืนยัน · แนบเอกสารบัตร' }}
+          </span>
+        </div>
+        @if (identity.at || identity.note) {
+          <p class="id-verify__meta">
+            @if (identity.at) { อัปเดตล่าสุด {{ identity.at }} }
+            @if (identity.note) { · {{ identity.note }} }
+          </p>
+        }
+        @if (identity.status === 'verified') {
+          <p class="id-verify__ok">บัญชีนี้ยืนยันตัวตนแล้ว สามารถยื่นคำขอและดำเนินการในระบบได้</p>
+        } @else if (identity.path === 'thaiid' && identity.status !== 'pending') {
+          <div class="id-verify__panel">
+            <strong>ยืนยันด้วย ThaiID</strong>
+            <p>ตามสัญชาติจากสมัคร — ยืนยันแล้วใช้งานได้ทันที</p>
+            <button type="button" class="id-verify__thai-btn" [disabled]="verifyBusy" (click)="verifyThaiId()">
+              <img src="assets/auth/thaid.webp" width="28" height="28" alt="" />
+              <span>{{ verifyBusy ? 'กำลังยืนยัน…' : 'ดำเนินการต่อด้วย ThaiID' }}</span>
+            </button>
+          </div>
+        } @else if (identity.path === 'foreign' && identity.status !== 'pending') {
+          <div class="id-verify__panel">
+            <strong>แนบเอกสารยืนยันตัวตน</strong>
+            <p>ตามสัญชาติจากสมัคร — ส่งเอกสารให้เจ้าหน้าที่ตรวจก่อนจึงยื่นได้</p>
+            <app-file-field
+              label="เอกสารบัตร / หนังสือเดินทาง"
+              [required]="true"
+              accept=".pdf,.png,.jpg,.jpeg"
+              note="เฉพาะนามสกุล pdf, png, jpg, jpeg"
+              [value]="foreignDoc"
+              (valueChange)="foreignDoc = $event"
+            />
+            <label class="id-verify__ack">
+              <input type="checkbox" [checked]="foreignAck" (change)="foreignAck = $any($event.target).checked" />
+              <span>ข้าพเจ้ายืนยันว่าเอกสารแนบเป็นของข้าพเจ้าและถูกต้องตามความเป็นจริง</span>
+            </label>
+            <div class="id-verify__actions">
+              <app-button type="primary" label="ส่งให้เจ้าหน้าที่ตรวจสอบ" (click)="submitForeignDocs()" />
+            </div>
+          </div>
+        } @else if (identity.status === 'pending') {
+          <div class="id-verify__panel id-verify__panel--pending">
+            <strong>เอกสารอยู่ระหว่างเจ้าหน้าที่ตรวจสอบ</strong>
+            <p>ยังยื่นคำขอไม่ได้จนกว่าจะผ่าน</p>
+            @if (identity.docs?.length) {
+              <ul>
+                @for (doc of identity.docs; track doc) {
+                  <li>{{ doc }}</li>
+                }
+              </ul>
+            }
+            <div class="id-verify__demo">
+              <span>จำลองผลตรวจ (prototype)</span>
+              <app-button type="outline" label="ผ่าน" (click)="demoStaffApprove(true)" />
+              <app-button type="outline" label="ไม่ผ่าน" (click)="demoStaffApprove(false)" />
+            </div>
+          </div>
+        }
+        @if (verifyMessage) {
+          <p class="id-verify__msg">{{ verifyMessage }}</p>
+        }
+      </section>
+
       <section class="card">
         <div class="grid">
           <app-input-field class="block span-2" label="ชื่อนิติบุคคล" [required]="true" [editable]="true" value="บริษัท ดาต้า มายนิ่ง จำกัด" />

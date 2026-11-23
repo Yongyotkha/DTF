@@ -8,7 +8,30 @@ const trustSpan = 30 * 24 * 60 * 60 * 1000;
 
 export type AccountRole = 'corporate' | 'individual' | 'association' | 'staff' | 'director' | 'head' | 'officer' | 'bureau' | 'committee' | 'interest' | 'external';
 
-type Account = { password: string; role: AccountRole; email?: string; person?: string; personTitle?: string };
+/** สถานะยืนยันตัวตน — สมัครใช้แค่ OTP อีเมล ยืนยันตัวตนตอนยื่น/ทำกระบวนการ */
+export type IdentityVerifyStatus = 'none' | 'pending' | 'verified' | 'rejected';
+export type IdentityVerifyPath = 'thaiid' | 'foreign';
+
+export type IdentityVerify = {
+  path: IdentityVerifyPath;
+  status: IdentityVerifyStatus;
+  docs?: string[];
+  at?: string;
+  note?: string;
+};
+
+type Account = {
+  password: string;
+  role: AccountRole;
+  email?: string;
+  person?: string;
+  personTitle?: string;
+  /** จากสมัคร — ใช้ตัดสินวิธียืนยันตัวตนอัตโนมัติ */
+  nationality?: string;
+  country?: string;
+  idType?: string;
+  identity?: IdentityVerify;
+};
 
 export type SavedLogin = { username: string; password: string; email: string };
 
@@ -72,11 +95,11 @@ export const roleLabel: Record<AccountRole, string> = {
 @Injectable({ providedIn: 'root' })
 export class Accounts {
   private readonly users = new Map<string, Account>([
-    ['0105538041238', { password: 'Dft@2569', role: 'corporate', email: 'support@datamining.co.th' }],
-    [secondApplicant.username, { password: secondApplicant.password, role: 'corporate', email: secondApplicant.email, person: secondApplicant.name, personTitle: 'ผู้ยื่นคำขอ' }],
-    ['0125544004802', { password: 'Dft@2569', role: 'corporate' }],
-    ['1103700123456', { password: 'Person@2569', role: 'individual' }],
-    ['0994000167890', { password: 'Assoc@2569', role: 'association' }],
+    ['0105538041238', { password: 'Dft@2569', role: 'corporate', email: 'support@datamining.co.th', country: 'ประเทศไทย', nationality: 'ไทย' }],
+    [secondApplicant.username, { password: secondApplicant.password, role: 'corporate', email: secondApplicant.email, person: secondApplicant.name, personTitle: 'ผู้ยื่นคำขอ', country: 'ประเทศไทย', nationality: 'ไทย' }],
+    ['0125544004802', { password: 'Dft@2569', role: 'corporate', country: 'ประเทศไทย', nationality: 'ไทย' }],
+    ['1103700123456', { password: 'Person@2569', role: 'individual', nationality: 'ไทย', idType: 'บัตรประจำตัวประชาชน', country: 'ประเทศไทย' }],
+    ['0994000167890', { password: 'Assoc@2569', role: 'association', country: 'ประเทศไทย', nationality: 'ไทย' }],
     ['1000000000102', { password: 'Director@2569', role: 'director', person: 'นางสาวเบญจมาภรณ์ พรมเพิ่ม', personTitle: 'ผู้อำนวยการ' }],
     ['1000000000103', { password: 'Head@2569', role: 'head' }],
     ['1000000000104', { password: 'Officer@2569', role: 'officer' }],
@@ -162,13 +185,169 @@ export class Accounts {
     return 'ok';
   }
 
-  save(username: string, password: string, role: AccountRole, email = ''): void {
+  save(
+    username: string,
+    password: string,
+    role: AccountRole,
+    email = '',
+    profile: { nationality?: string; country?: string; idType?: string } = {},
+  ): void {
     const id = username.trim();
     if (!id || !password) return;
-    const account = { password, role, email: email.trim() };
+    const previous = this.users.get(id);
+    const nationality = (profile.nationality ?? previous?.nationality ?? '').trim();
+    const country = (profile.country ?? previous?.country ?? '').trim();
+    const idType = (profile.idType ?? previous?.idType ?? '').trim();
+    const path = this.pathFromProfile({ nationality, country, idType, role });
+    const previousIdentity = previous?.identity;
+    const identity: IdentityVerify =
+      previousIdentity && (previousIdentity.status === 'verified' || previousIdentity.status === 'pending')
+        ? previousIdentity
+        : { path, status: 'none' };
+    const account: Account = {
+      password,
+      role,
+      email: email.trim(),
+      person: previous?.person,
+      personTitle: previous?.personTitle,
+      nationality: nationality || undefined,
+      country: country || undefined,
+      idType: idType || undefined,
+      identity,
+    };
     this.users.set(id, account);
     this.persist();
     sessionStorage.setItem(lastKey, JSON.stringify({ username: id, email: account.email }));
+  }
+
+  /** บัญชีปัจจุบันยืนยันตัวตนแล้วหรือยัง (พร้อมยื่น/ทำกระบวนการ) */
+  isIdentityVerified(username = this.userId): boolean {
+    return this.identityOf(username).status === 'verified';
+  }
+
+  /** สัญชาติ/ประเทศจากสมัคร — แสดงใน UI */
+  nationalityLabel(username = this.userId): string {
+    const account = this.users.get(username.trim());
+    if (!account) return 'ไทย';
+    if (account.nationality?.trim()) return account.nationality.trim();
+    if (account.country === 'ต่างประเทศ') return 'ต่างชาติ';
+    if (account.idType === 'หนังสือเดินทาง') return 'ต่างชาติ';
+    return 'ไทย';
+  }
+
+  isThaiIdentity(username = this.userId): boolean {
+    return this.resolveVerifyPath(username) === 'thaiid';
+  }
+
+  identityOf(username = this.userId): IdentityVerify {
+    const account = this.users.get(username.trim());
+    const path = this.resolveVerifyPath(username);
+    if (!account) return { path, status: 'none' };
+    const current = account.identity ?? { path, status: 'none' as IdentityVerifyStatus };
+    // path ตามข้อมูลสมัครเสมอ ถ้ายังไม่ verified/pending
+    if (current.status === 'verified' || current.status === 'pending') return current;
+    if (current.path !== path) {
+      account.identity = { path, status: 'none' };
+      this.users.set(username.trim(), account);
+      this.persist();
+      return account.identity;
+    }
+    return { ...current, path };
+  }
+
+  private resolveVerifyPath(username = this.userId): IdentityVerifyPath {
+    const account = this.users.get(username.trim());
+    if (!account) return 'thaiid';
+    return this.pathFromProfile(account);
+  }
+
+  private pathFromProfile(account: {
+    nationality?: string;
+    country?: string;
+    idType?: string;
+    role?: AccountRole;
+  }): IdentityVerifyPath {
+    const nationality = (account.nationality || '').trim().toLowerCase();
+    const country = (account.country || '').trim();
+    const idType = (account.idType || '').trim();
+    if (idType === 'หนังสือเดินทาง') return 'foreign';
+    if (country === 'ต่างประเทศ') return 'foreign';
+    if (nationality && nationality !== 'ไทย' && nationality !== 'thai' && !nationality.includes('ไทย')) return 'foreign';
+    return 'thaiid';
+  }
+
+  /** คนไทย — ยืนยันผ่าน ThaiID แล้วใช้งานได้ทันที */
+  verifyWithThaiId(username = this.userId): boolean {
+    const id = username.trim();
+    const account = this.users.get(id);
+    if (!account) return false;
+    account.identity = {
+      path: 'thaiid',
+      status: 'verified',
+      at: this.thaiStamp(),
+      note: 'ยืนยันตัวตนผ่าน ThaiID',
+    };
+    this.users.set(id, account);
+    this.persist();
+    return true;
+  }
+
+  /** คนต่างชาติ — แนบเอกสารบัตร ส่งให้เจ้าหน้าที่ตรวจ */
+  submitForeignIdentity(docs: string[], username = this.userId): boolean {
+    const id = username.trim();
+    const account = this.users.get(id);
+    const files = docs.map((name) => name.trim()).filter(Boolean);
+    if (!account || !files.length) return false;
+    account.identity = {
+      path: 'foreign',
+      status: 'pending',
+      docs: files,
+      at: this.thaiStamp(),
+      note: 'รอเจ้าหน้าที่ตรวจสอบเอกสารยืนยันตัวตน',
+    };
+    this.users.set(id, account);
+    this.persist();
+    return true;
+  }
+
+  /** จำลองผลตรวจของเจ้าหน้าที่ (ใช้ใน Profile ช่วง prototype) */
+  resolveForeignIdentity(pass: boolean, username = this.userId): boolean {
+    const id = username.trim();
+    const account = this.users.get(id);
+    if (!account?.identity || account.identity.path !== 'foreign' || account.identity.status !== 'pending') return false;
+    account.identity = {
+      ...account.identity,
+      status: pass ? 'verified' : 'rejected',
+      at: this.thaiStamp(),
+      note: pass ? 'เจ้าหน้าที่ตรวจสอบเอกสารแล้ว ยืนยันตัวตนสำเร็จ' : 'เอกสารไม่ครบหรือไม่ชัดเจน กรุณาแนบใหม่',
+    };
+    this.users.set(id, account);
+    this.persist();
+    return true;
+  }
+
+  identityStatusLabel(status: IdentityVerifyStatus = this.identityOf().status): string {
+    if (status === 'verified') return 'ยืนยันตัวตนแล้ว';
+    if (status === 'pending') return 'รอเจ้าหน้าที่ตรวจสอบ';
+    if (status === 'rejected') return 'ไม่ผ่านการตรวจสอบ';
+    return 'ยังไม่ยืนยันตัวตน';
+  }
+
+  identityStatusTone(status: IdentityVerifyStatus = this.identityOf().status): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'verified') return 'success';
+    if (status === 'pending') return 'warning';
+    if (status === 'rejected') return 'danger';
+    return 'neutral';
+  }
+
+  private thaiStamp(): string {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear() + 543;
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hour}:${minute}`;
   }
 
   private persist(): void {
@@ -293,7 +472,20 @@ export class Accounts {
 
   private readAccount(value: string | Account): Account | null {
     if (typeof value === 'string') return value ? { password: value, role: 'corporate' } : null;
-    return roles.includes(value.role) ? value : null;
+    if (!roles.includes(value.role)) return null;
+    return { ...value, identity: this.readIdentity(value.identity) };
+  }
+
+  private readIdentity(value: IdentityVerify | undefined): IdentityVerify | undefined {
+    if (!value || (value.path !== 'thaiid' && value.path !== 'foreign')) return undefined;
+    if (!['none', 'pending', 'verified', 'rejected'].includes(value.status)) return undefined;
+    return {
+      path: value.path,
+      status: value.status,
+      docs: Array.isArray(value.docs) ? value.docs.filter((name) => typeof name === 'string') : undefined,
+      at: typeof value.at === 'string' ? value.at : undefined,
+      note: typeof value.note === 'string' ? value.note : undefined,
+    };
   }
 
   private readTrust(): Record<string, number> {

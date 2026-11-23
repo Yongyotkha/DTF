@@ -1,25 +1,27 @@
-/* TopHeader 231:3162. Bar is 1440 by 65, with a 1px bottom border. */
-:host {
+/* TopHeader 231:3162. Bar is 1440 by 65, with a 1px bottom border.
+   Sticky ใน flow; [hideOnScroll] เลื่อนลงแล้วเลื่อนขึ้นซ่อน (ไม่ใช้ fixed — ไม่พัง sidebar/review-pin) */
+:host,
+:host(.top-header--sticky) {
   display: block;
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 40;
+  width: 100%;
+  background: var(--color-white);
 }
 
-:host(.top-header--fixed) {
-  position: fixed;
-  inset: 0 0 auto;
-  width: 100%;
-  transition: transform var(--motion-state);
+:host(.top-header--hide-scroll) {
+  transition: top var(--motion-state);
 }
 
 :host(.top-header--away) {
-  transform: translateY(-100%);
+  top: -65px;
   pointer-events: none;
+  z-index: 3;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :host(.top-header--fixed) {
+  :host(.top-header--hide-scroll) {
     transition: none;
   }
 }

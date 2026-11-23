@@ -1,6 +1,30 @@
 import { StatusTone } from '../../status-tag/status-tag';
 import { groupHead } from '../staff/staff-roster';
 
+/** Re-export case lifecycle catalog for staff / por1 consumers */
+export {
+  canonicalStages,
+  createEditionProgress,
+  stagesForEdition,
+  stagesOnUiTab,
+  inquiryStepToCanonical,
+  prelimStepToCanonical,
+  draftStepToCanonical,
+  finalStepToCanonical,
+  attachmentTypes,
+  partyRoles,
+  sampleEditions,
+} from './canonical-stages';
+export type {
+  CaseRecord,
+  EditionRecord,
+  EditionType,
+  StageDef,
+  StageProgress,
+  StageStatus,
+  UiReviewTab,
+} from './canonical-stages';
+
 export type CaseStatus = 'draft' | 'review' | 'revision' | 'consult' | 'approval' | 'official' | 'cancelled';
 
 const key = 'dft-por1-case';
@@ -486,10 +510,8 @@ export function caseStatusLabel(status: CaseStatus): string {
     const step = readConsultStep();
     if (step === 'receive' || step === 'forward') return 'รอเจ้าหน้าที่รับเรื่องมอบหมายให้ผู้อำนวยการ';
     if (step === 'group') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่';
-    const eo = readEofficeDirectorHandoff();
-    if (eo.state === 'sent') return 'รอผู้อำนวยการมอบหมายใน e-Office';
-    if (eo.state === 'assigned') return 'รอหัวหน้ากลุ่มมอบหมายเจ้าหน้าที่';
-    return 'รอส่งมอบหมายเข้า e-Office';
+    if (step === 'director') return 'รอผู้อำนวยการมอบหมายกลุ่ม';
+    return 'รอผู้อำนวยการมอบหมายกลุ่ม';
   }
   if (status === 'consult') return 'รอนัดพบเจ้าหน้าที่';
   if (status === 'approval') return readFilingGate()?.state === 'pending' ? 'ส่งมาขออนุมัติ' : 'รอผู้รับมอบหมายอนุมัติ';
@@ -808,11 +830,9 @@ export function consultAwaitingDirector(): boolean {
   return !!readConsult() && readConsultStep() === 'director' && !!openConsultRound(readConsultRounds());
 }
 
-/** งานถึงผู้อำนวยการแล้ว ต้องส่ง/ดึงผ่าน e-Office */
+/** ตัด e-Office ชั่วคราว — มอบหมายในระบบตาม Task Management */
 export function directorWorkNeedsEoffice(): boolean {
-  if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') return true;
-  if (consultAwaitingDirector()) return true;
-  return readConsultStep() === 'director';
+  return false;
 }
 
 export type ConsultStep = 'receive' | 'forward' | 'director' | 'group' | 'member';
@@ -1065,8 +1085,171 @@ export function writeSystemLinks(rows: SystemLink[]): void {
 export type DocFile = { name: string; title: string; sentOn: string };
 export type DocAction = 'amend' | 'complete' | 'late';
 
-/** ท่อแจ้งผลการตรวจ: เจ้าหน้าที่ → หัวหน้ากอง → e-Office/ผอ. → ออกเลข → ส่งผู้ยื่น */
-export type NoticePipe = 'draft' | 'to-head' | 'head-ok' | 'eoffice' | 'signed' | 'sent';
+/**
+ * ท่ออนุมัติมาตรฐาน (Approval Lane)
+ * เจ้าหน้าที่ → หัวหน้ากลุ่ม → ผู้อำนวยการ → e-Office → ประทับตรา → ออกเลข → แนบไฟล์กลับ → จัดเก็บ/ส่งต่อ
+ */
+export type ApprovalLaneStage =
+  | 'draft'
+  | 'to-head'
+  | 'to-director'
+  | 'eoffice'
+  | 'stamped'
+  | 'numbered'
+  | 'attach'
+  | 'done'
+  | 'returned'
+  | 'cancelled';
+
+/** เอกสารในท่ออนุมัติ */
+export type ApprovalLaneDoc = {
+  version: number;
+  title: string;
+  at: string;
+  source: 'created' | 'ai' | 'upload' | 'numbered';
+  html?: string;
+  fileName?: string;
+};
+
+export type ApprovalLaneHistoryEntry = {
+  at: string;
+  by: string;
+  action: string;
+};
+
+/** ท่ออนุมัติหนึ่งรายการ — ใช้ซ้ำได้ทุกเรื่อง (แจ้งผล / เสนออนุมัติ / ฯลฯ) */
+export type ApprovalLane = {
+  id: string;
+  kind: string;
+  title: string;
+  stage: ApprovalLaneStage;
+  stages: ApprovalLaneStage[];
+  sarabanNo: string;
+  history: ApprovalLaneHistoryEntry[];
+  docs: ApprovalLaneDoc[];
+};
+
+/** ขั้นมาตรฐานเต็มท่อ */
+export const APPROVAL_LANE_FULL: ApprovalLaneStage[] = [
+  'draft',
+  'to-head',
+  'to-director',
+  'eoffice',
+  'stamped',
+  'numbered',
+  'attach',
+  'done',
+];
+
+/** แจ้งผลการตรวจ — เต็มท่อ */
+export const NOTICE_LANE_STAGES: ApprovalLaneStage[] = [...APPROVAL_LANE_FULL];
+
+/** เสนออนุมัติวาระ — เต็มท่อ */
+export const AGENDA_APPROVAL_LANE_STAGES: ApprovalLaneStage[] = [...APPROVAL_LANE_FULL];
+
+export function approvalLaneStageLabel(stage: ApprovalLaneStage): string {
+  if (stage === 'draft') return 'ร่างเอกสาร';
+  if (stage === 'to-head') return 'รอหัวหน้ากลุ่ม';
+  if (stage === 'to-director') return 'รอผู้อำนวยการ';
+  if (stage === 'eoffice') return 'ส่ง e-Office';
+  if (stage === 'stamped') return 'ประทับตรา / ลงนาม';
+  if (stage === 'numbered') return 'ออกเลขสารบรรณ';
+  if (stage === 'attach') return 'แนบไฟล์ที่ออกเลขแล้ว';
+  if (stage === 'done') return 'จัดเก็บ / ส่งต่อแล้ว';
+  if (stage === 'returned') return 'ส่งกลับแก้ไข';
+  if (stage === 'cancelled') return 'ยกเลิกแล้ว';
+  return stage;
+}
+
+export function approvalLaneStageTone(
+  stage: ApprovalLaneStage,
+): 'info' | 'warning' | 'success' | 'danger' | 'neutral' {
+  if (stage === 'cancelled') return 'danger';
+  if (stage === 'returned') return 'warning';
+  if (stage === 'done' || stage === 'attach' || stage === 'numbered' || stage === 'stamped') return 'success';
+  if (stage === 'draft') return 'info';
+  return 'warning';
+}
+
+/** ขั้นถัดไปในท่อ (ข้าม returned/cancelled) */
+export function nextApprovalLaneStage(
+  stages: ApprovalLaneStage[],
+  current: ApprovalLaneStage,
+): ApprovalLaneStage | null {
+  const flow = stages.filter((s) => s !== 'returned' && s !== 'cancelled');
+  if (current === 'returned' || current === 'cancelled') return flow[0] || null;
+  const at = flow.findIndex((s) => s === current);
+  if (at < 0) return flow[0] || null;
+  return flow[at + 1] || null;
+}
+
+export function emptyApprovalLane(
+  kind: string,
+  title: string,
+  stages: ApprovalLaneStage[] = APPROVAL_LANE_FULL,
+  id = `lane-${Date.now()}`,
+): ApprovalLane {
+  return {
+    id,
+    kind,
+    title,
+    stage: 'draft',
+    stages: [...stages],
+    sarabanNo: '',
+    history: [],
+    docs: [],
+  };
+}
+
+/**
+ * ท่อแจ้งผลการตรวจ = Approval Lane
+ * ค่าเก่า: head-ok → to-director · signed → eoffice · sent → done
+ */
+export type NoticePipe = ApprovalLaneStage;
+
+/** หนึ่งเหตุการณ์ใน timeline แจ้งผลการตรวจ */
+export type NoticeHistoryEntry = {
+  at: string;
+  by: string;
+  action: string;
+};
+
+/** เวอร์ชันหนังสือแจ้งผลที่สร้างในระบบ (แนวเดียวกับร่างวาระ) */
+export type NoticeLetterVersion = {
+  version: number;
+  title: string;
+  at: string;
+  html: string;
+  source: 'upload' | 'created' | 'ai';
+  fileName?: string;
+};
+
+/** หนึ่งรายการแจ้งผลการตรวจ (สร้างได้หลายรายการ ไม่ต้องรอรายการก่อนหน้า) */
+export type NoticeItem = {
+  id: string;
+  title: string;
+  action: DocAction;
+  noticedOn: string;
+  dueOn: string;
+  note: string;
+  files: DocFile[];
+  letter: WorkField[];
+  /** ประวัติเวอร์ชันหนังสือแจ้งผล (สร้าง / AI / อัปโหลด) */
+  letterVersions?: NoticeLetterVersion[];
+  gaps: DocGap[];
+  sarabanNo: string;
+  pipe: NoticePipe;
+  pipeAt: string;
+  reportBy: string;
+  headBy: string;
+  officeRef: string;
+  /** สถานะลิงก์ e-Office: idle | sent | synced | error | manual */
+  eofficeLink?: 'idle' | 'sent' | 'synced' | 'error' | 'manual';
+  history: NoticeHistoryEntry[];
+  sent: boolean;
+  sentBy: string;
+};
+
 export type ReplyFile = { name: string; title: string; group: 'closed' | 'open' | 'extra' | 'extend' };
 
 /** ผู้ยื่นส่งกลับหลังได้รับแจ้งแก้ไข ตามคู่มือ e-TR */
@@ -1115,8 +1298,16 @@ export type DocNotice = {
   /** สถานะท่ออนุมัติหนังสือแจ้ง */
   pipe: NoticePipe;
   pipeAt: string;
+  /** เจ้าหน้าที่ผู้รายงานผลถึงหัวหน้ากลุ่ม */
+  reportBy: string;
   headBy: string;
   officeRef: string;
+  /** ประวัติการกระทำของรายการแจ้งผล (วันที่เวลา · ผู้กระทำ · เรื่อง) */
+  history: NoticeHistoryEntry[];
+  /** รายการแจ้งผลทั้งหมด (หลายรายการพร้อมกันได้) */
+  items: NoticeItem[];
+  /** รายการที่กำลังเปิดแก้ไข / เดินท่อ */
+  activeId: string;
 };
 
 export type InquiryPayFile = { name: string; title: string; sentOn: string };
@@ -1193,6 +1384,58 @@ function readInquiryQuestions(value: unknown): InquiryQuestion[] {
 }
 
 /** เปิดไต่สวนมาตรา 39 หลังคณะกรรมการรับคำขอฉบับสมบูรณ์ */
+export type InquiryAgendaFile = {
+  name: string;
+  title: string;
+  sentOn: string;
+  docId: string;
+  /** Real sample under assets/samples — open/download without stub HTML */
+  href?: string;
+  /** draft | sub | tdc — which agenda lane owns the file */
+  lane?: 'draft' | 'sub' | 'tdc';
+  /** เวอร์ชันเอกสารร่างวาระ (เก็บประวัติ) */
+  version?: number;
+  /** ที่มาของไฟล์ */
+  source?: 'sample' | 'upload' | 'created' | 'ai';
+};
+
+/** ประวัติเวอร์ชันเอกสารร่างวาระ (แก้ไขได้แบบ Word) */
+export type DraftAgendaVersion = {
+  version: number;
+  title: string;
+  at: string;
+  html: string;
+  source: 'upload' | 'created' | 'ai';
+  fileName?: string;
+};
+
+/** ไฟล์แนบเพิ่มในรอบเสนออนุมัติ (นอกเหนือจากวาระที่ผูก) */
+export type ApprovalSubmitAttachment = {
+  id: string;
+  name: string;
+  title: string;
+  at: string;
+};
+
+/** รอบเสนออนุมัติ — เอกสารขออนุมัติ บันทึกเสนอ ผูกวาระอย่างน้อย 1 ไฟล์ */
+export type ApprovalSubmitRound = {
+  round: number;
+  title: string;
+  at: string;
+  html: string;
+  source: 'upload' | 'created' | 'ai';
+  fileName?: string;
+  agendaVersions: number[];
+  /** ไฟล์แนบเพิ่ม (อัปโหลดเองในหน้ารอบเสนอ) */
+  attachments?: ApprovalSubmitAttachment[];
+  /** ท่ออนุมัติมาตรฐานของรอบนี้ */
+  laneStage?: ApprovalLaneStage;
+  sarabanNo?: string;
+  laneHistory?: ApprovalLaneHistoryEntry[];
+  /** สถานะลิงก์ e-Office ของรอบเสนอ */
+  eofficeLink?: 'idle' | 'sent' | 'synced' | 'error' | 'manual';
+};
+
 export type InquiryRecord = {
   agendaAt: string;
   agenda: string;
@@ -1207,9 +1450,14 @@ export type InquiryRecord = {
   openAt: string;
   caseId: string;
   closeNote: string;
+  /** ร่างวาระเปิด (คู่ขนาน/ก่อนอนุ) */
+  draftAgendaDone: boolean;
+  /** วาระอนุไต่สวน */
+  subAgendaDone: boolean;
+  /** วาระ ทตอ. */
   agendaDone: boolean;
   agendaFields: { label: string; value: string; long?: boolean }[];
-  agendaFiles: { name: string; title: string; sentOn: string; docId: string }[];
+  agendaFiles: InquiryAgendaFile[];
   returned: boolean;
   sentBy: string;
   noticeOn: string;
@@ -1247,7 +1495,7 @@ export function readDocNotice(): DocNotice | null {
           return [{ name: file.name, title: typeof file.title === 'string' && file.title ? file.title : file.name, sentOn: typeof file.sentOn === 'string' ? file.sentOn : '' }];
         })
       : [];
-    return {
+    const base: DocNotice = {
       action: value.action,
       noticedOn: typeof value.noticedOn === 'string' ? value.noticedOn : '',
       dueOn: typeof value.dueOn === 'string' ? value.dueOn : '',
@@ -1291,18 +1539,171 @@ export function readDocNotice(): DocNotice | null {
       sentBy: typeof value.sentBy === 'string' ? value.sentBy : '',
       pipe: readNoticePipe(value),
       pipeAt: typeof (value as { pipeAt?: string }).pipeAt === 'string' ? (value as { pipeAt: string }).pipeAt : '',
+      reportBy: typeof (value as { reportBy?: string }).reportBy === 'string' ? (value as { reportBy: string }).reportBy : '',
       headBy: typeof (value as { headBy?: string }).headBy === 'string' ? (value as { headBy: string }).headBy : '',
       officeRef: typeof (value as { officeRef?: string }).officeRef === 'string' ? (value as { officeRef: string }).officeRef : '',
+      history: readNoticeHistory((value as { history?: unknown }).history),
+      items: [],
+      activeId: '',
     };
+    return hydrateDocNoticeItems(base, (value as { items?: unknown }).items, (value as { activeId?: unknown }).activeId);
   } catch {
     return null;
   }
 }
 
+/** เติม items จาก session (หรือ migrate จากฟิลด์เดี่ยว) แล้วคืน DocNotice */
+export function hydrateDocNoticeItems(base: DocNotice, rawItems: unknown, rawActiveId: unknown): DocNotice {
+  const items = readNoticeItems(rawItems);
+  if (items.length) {
+    const activeId = typeof rawActiveId === 'string' && items.some((item) => item.id === rawActiveId)
+      ? rawActiveId
+      : items[items.length - 1].id;
+    return { ...base, items, activeId };
+  }
+  const hasLegacy = base.files.length > 0 || base.pipe !== 'draft' || base.sent || !!base.note || !!base.sarabanNo;
+  if (!hasLegacy) return { ...base, items: [], activeId: '' };
+  const migrated = noticeItemFromLegacy(base);
+  return { ...base, items: [migrated], activeId: migrated.id };
+}
+
+function noticeItemFromLegacy(value: DocNotice): NoticeItem {
+  const title = value.files[0]?.title || value.letter.find((field) => field.label === 'เรื่อง')?.value || 'หนังสือแจ้งผลการตรวจ';
+  return {
+    id: `notice-${value.sarabanNo || value.noticedOn || 'legacy'}-${value.pipe}`,
+    title,
+    action: value.action,
+    noticedOn: value.noticedOn,
+    dueOn: value.dueOn,
+    note: value.note,
+    files: value.files.map((file) => ({ ...file })),
+    letter: value.letter.map((field) => ({ ...field })),
+    letterVersions: [],
+    gaps: value.gaps.map((gap) => ({ ...gap })),
+    sarabanNo: value.sarabanNo,
+    pipe: value.pipe,
+    pipeAt: value.pipeAt,
+    reportBy: value.reportBy,
+    headBy: value.headBy,
+    officeRef: value.officeRef,
+    history: value.history.map((item) => ({ ...item })),
+    sent: value.sent,
+    sentBy: value.sentBy,
+  };
+}
+
+function readNoticeLetterVersions(value: unknown): NoticeLetterVersion[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((row) => {
+    if (!row || typeof row !== 'object') return [];
+    const item = row as Partial<NoticeLetterVersion>;
+    if (typeof item.version !== 'number' || typeof item.html !== 'string') return [];
+    const source = item.source === 'ai' || item.source === 'upload' || item.source === 'created' ? item.source : 'created';
+    return [{
+      version: item.version,
+      title: typeof item.title === 'string' && item.title ? item.title : `หนังสือแจ้งผล · เวอร์ชัน ${item.version}`,
+      at: typeof item.at === 'string' ? item.at : '',
+      html: item.html,
+      source,
+      fileName: typeof item.fileName === 'string' ? item.fileName : undefined,
+    }];
+  });
+}
+
+function readNoticeItems(value: unknown): NoticeItem[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((row) => {
+    if (!row || typeof row !== 'object') return [];
+    const item = row as Partial<NoticeItem>;
+    if (typeof item.id !== 'string' || !item.id) return [];
+    if (item.action !== 'amend' && item.action !== 'complete' && item.action !== 'late') return [];
+    const files = Array.isArray(item.files)
+      ? item.files.flatMap((file) => {
+          if (!file || typeof file.name !== 'string' || !file.name) return [];
+          return [{ name: file.name, title: typeof file.title === 'string' && file.title ? file.title : file.name, sentOn: typeof file.sentOn === 'string' ? file.sentOn : '' }];
+        })
+      : [];
+    return [{
+      id: item.id,
+      title: typeof item.title === 'string' && item.title ? item.title : (files[0]?.title || 'หนังสือแจ้งผลการตรวจ'),
+      action: item.action,
+      noticedOn: typeof item.noticedOn === 'string' ? item.noticedOn : '',
+      dueOn: typeof item.dueOn === 'string' ? item.dueOn : '',
+      note: typeof item.note === 'string' ? item.note : '',
+      files,
+      letter: Array.isArray(item.letter)
+        ? item.letter.flatMap((field) => {
+            if (!field || typeof field.label !== 'string' || !field.label) return [];
+            return [{ label: field.label, value: typeof field.value === 'string' ? field.value : '', long: field.long === true }];
+          })
+        : [],
+      letterVersions: readNoticeLetterVersions(item.letterVersions),
+      gaps: Array.isArray(item.gaps)
+        ? item.gaps.flatMap((gap) => {
+            if (!gap || typeof gap.title !== 'string') return [];
+            return [{ place: typeof gap.place === 'string' ? gap.place : '', title: gap.title, detail: typeof gap.detail === 'string' ? gap.detail : '' }];
+          })
+        : [],
+      sarabanNo: typeof item.sarabanNo === 'string' ? item.sarabanNo : '',
+      pipe: readNoticePipe({ pipe: item.pipe, sent: item.sent === true }),
+      pipeAt: typeof item.pipeAt === 'string' ? item.pipeAt : '',
+      reportBy: typeof item.reportBy === 'string' ? item.reportBy : '',
+      headBy: typeof item.headBy === 'string' ? item.headBy : '',
+      officeRef: typeof item.officeRef === 'string' ? item.officeRef : '',
+      eofficeLink: readEofficeLink(item.eofficeLink),
+      history: readNoticeHistory(item.history),
+      sent: item.sent === true || item.pipe === 'done',
+      sentBy: typeof item.sentBy === 'string' ? item.sentBy : '',
+    }];
+  });
+}
+
+function readEofficeLink(value: unknown): NoticeItem['eofficeLink'] {
+  if (value === 'idle' || value === 'sent' || value === 'synced' || value === 'error' || value === 'manual') {
+    return value;
+  }
+  return undefined;
+}
+
+const APPROVAL_LANE_STAGE_SET = new Set<string>([
+  'draft',
+  'to-head',
+  'to-director',
+  'eoffice',
+  'stamped',
+  'numbered',
+  'attach',
+  'done',
+  'returned',
+  'cancelled',
+]);
+
+/** แปลงสถานะท่อเก่า → Approval Lane */
+export function migrateNoticePipe(raw: string, sent = false): NoticePipe {
+  if (raw === 'head-ok') return 'to-director';
+  if (raw === 'signed') return 'eoffice';
+  if (raw === 'sent') return 'done';
+  if (APPROVAL_LANE_STAGE_SET.has(raw)) return raw as NoticePipe;
+  return sent ? 'done' : 'draft';
+}
+
 function readNoticePipe(value: DocNotice | { sent?: boolean; pipe?: string }): NoticePipe {
   const raw = typeof value.pipe === 'string' ? value.pipe : '';
-  if (raw === 'draft' || raw === 'to-head' || raw === 'head-ok' || raw === 'eoffice' || raw === 'signed' || raw === 'sent') return raw;
-  return value.sent === true ? 'sent' : 'draft';
+  return migrateNoticePipe(raw, value.sent === true);
+}
+
+function readNoticeHistory(value: unknown): NoticeHistoryEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((row) => {
+    if (!row || typeof row !== 'object') return [];
+    const item = row as Partial<NoticeHistoryEntry>;
+    if (typeof item.action !== 'string' || !item.action.trim()) return [];
+    return [{
+      at: typeof item.at === 'string' ? item.at : '',
+      by: typeof item.by === 'string' && item.by.trim() ? item.by.trim() : '—',
+      action: item.action.trim(),
+    }];
+  });
 }
 
 export type CaseNoteFile = { name: string; title: string };
@@ -1496,6 +1897,8 @@ function readInquiry(value: InquiryRecord | null | undefined): InquiryRecord | n
     caseId: typeof value.caseId === 'string' ? value.caseId : '',
     closeNote: typeof value.closeNote === 'string' ? value.closeNote : '',
     agendaDone: value.agendaDone === true || decide !== '' || value.feeSent === true || open !== '',
+    draftAgendaDone: value.draftAgendaDone === true || value.subAgendaDone === true || value.agendaDone === true || decide !== '' || value.feeSent === true || open !== '',
+    subAgendaDone: value.subAgendaDone === true || value.agendaDone === true || decide !== '' || value.feeSent === true || open !== '',
     agendaFields: Array.isArray(value.agendaFields)
       ? value.agendaFields.flatMap((field) => {
           if (!field || typeof field.label !== 'string' || !field.label) return [];
@@ -1505,11 +1908,14 @@ function readInquiry(value: InquiryRecord | null | undefined): InquiryRecord | n
     agendaFiles: Array.isArray(value.agendaFiles)
       ? value.agendaFiles.flatMap((file) => {
           if (!file || typeof file.name !== 'string' || !file.name) return [];
+          const lane = file.lane === 'draft' || file.lane === 'sub' || file.lane === 'tdc' ? file.lane : undefined;
           return [{
             name: file.name,
             title: typeof file.title === 'string' && file.title ? file.title : file.name,
             sentOn: typeof file.sentOn === 'string' ? file.sentOn : '',
             docId: typeof file.docId === 'string' ? file.docId : '',
+            href: typeof file.href === 'string' && file.href ? file.href : undefined,
+            lane,
           }];
         })
       : [],

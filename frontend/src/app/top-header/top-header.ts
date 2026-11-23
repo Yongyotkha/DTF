@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, HostListener, Input, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, Input, OnInit, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Accounts, roleHome } from '../accounts';
 import { Dropdown } from '../dropdown/dropdown';
@@ -11,15 +11,17 @@ import { WorkspaceState } from '../workspace/workspace-state';
   templateUrl: './top-header.html',
   styleUrl: './top-header.css',
   host: {
+    class: 'top-header--sticky',
     '[class.top-header--away]': 'away',
-    '[class.top-header--fixed]': 'hideOnScroll',
+    '[class.top-header--hide-scroll]': 'hideOnScroll',
   },
 })
-export class TopHeader {
+export class TopHeader implements OnInit {
   @Input() name = '';
   @Input() account = true;
   @Input() set hideOnScroll(value: boolean) {
     this._hideOnScroll = !!value;
+    if (!this._hideOnScroll) this.away = false;
     this.syncChrome();
   }
   get hideOnScroll(): boolean {
@@ -30,6 +32,7 @@ export class TopHeader {
   protected away = false;
   private _hideOnScroll = false;
   private lastY = 0;
+  private locked = false;
   private readonly destroyRef = inject(DestroyRef);
 
   constructor(
@@ -40,6 +43,11 @@ export class TopHeader {
     protected readonly workspace: WorkspaceState,
   ) {
     this.destroyRef.onDestroy(() => this.clearChrome());
+  }
+
+  ngOnInit(): void {
+    this.lastY = window.scrollY || document.documentElement.scrollTop || 0;
+    this.syncChrome();
   }
 
   protected get homePath(): string {
@@ -91,13 +99,13 @@ export class TopHeader {
 
   @HostListener('window:scroll')
   protected onWindowScroll(): void {
-    if (!this.hideOnScroll) return;
+    if (!this.hideOnScroll || this.locked) return;
     const y = window.scrollY || document.documentElement.scrollTop || 0;
     if (y <= 8) {
       this.setAway(false);
-    } else if (y > this.lastY + 8) {
+    } else if (y > this.lastY + 12) {
       this.setAway(true);
-    } else if (y < this.lastY - 8) {
+    } else if (y < this.lastY - 12) {
       this.setAway(false);
     }
     this.lastY = y;
@@ -108,21 +116,27 @@ export class TopHeader {
     this.away = next;
     if (next) this.menuOpen = false;
     this.syncChrome();
+    // กันกระตุกจาก transition ของ sticky siblings
+    this.locked = true;
+    requestAnimationFrame(() => {
+      this.lastY = window.scrollY || document.documentElement.scrollTop || 0;
+      this.locked = false;
+    });
   }
 
   private syncChrome(): void {
-    if (!this.hideOnScroll) {
-      this.clearChrome();
-      return;
-    }
-    document.body.classList.add('top-header-fixed');
-    document.body.classList.toggle('top-header-away', this.away);
-    document.body.style.setProperty('--top-header-offset', this.away ? '0px' : '65px');
+    document.body.classList.add('top-header-sticky');
+    document.body.classList.remove('top-header-fixed');
+    document.body.classList.toggle('top-header-away', this.hideOnScroll && this.away);
+    document.body.style.setProperty(
+      '--top-header-offset',
+      this.hideOnScroll && this.away ? '0px' : '65px',
+    );
   }
 
   private clearChrome(): void {
     this.away = false;
-    document.body.classList.remove('top-header-fixed', 'top-header-away');
+    document.body.classList.remove('top-header-sticky', 'top-header-fixed', 'top-header-away');
     document.body.style.removeProperty('--top-header-offset');
   }
 }

@@ -8,7 +8,7 @@ import { TopHeader } from '../../top-header/top-header';
 import { assignmentReachesOfficer, groupHead, groupMembers, staffPeople, workGroups } from './staff-roster';
 import { listGrants, powerLabel, reviewGrant } from '../requests/proxy-grant';
 import { archiveCases, findListedCase } from '../requests/request-cases';
-import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readFilingGate, readDocNotice, readReceipt, readWorkAssignment, releaseFilingToDirector, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
+import { acceptedAssignees, addThaiMonths, assignmentStepLabel, assignmentStepTone, caseStatusLabel, consultAwaitingDirector, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, readCaseStatus, readConsult, readConsultAssigned, readConsultGroup, readConsultPlan, readConsultStep, readEofficeDirectorHandoff, readFilingGate, readDocNotice, readReceipt, readWorkAssignment, releaseFilingToDirector, writeApprovedBy, writeCaseStatus, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeEofficeDirectorHandoff, writeFilingGate, writeWorkAssignment, type ConsultChannel, type ConsultPlan, type ConsultStep, type FilingGate } from '../requests/case-status';
 
 type Bucket = 'in' | 'pending' | 'out' | 'follow' | 'group';
 type WorkKind = 'request' | 'job' | 'track';
@@ -40,6 +40,20 @@ type TaskCase = {
   due: string;
   tone: StatusTone;
   caseId?: string;
+};
+
+/** คิวงานที่หัวหน้ากลุ่มเลือกเข้ากลุ่มได้ (มอบนอกระบบ/e-Office แล้วยังไม่เข้า dashboard) */
+type PendingGroupPick = {
+  ref: string;
+  code: string;
+  title: string;
+  applicant: string;
+  measure: string;
+  kind: string;
+  reason: string;
+  queuedAt: string;
+  dueAt: string;
+  tone: StatusTone;
 };
 
 const buckets: { id: Bucket; label: string; count: number; icon: string; tone: string }[] = [
@@ -97,6 +111,7 @@ export class StaffHomePage implements OnDestroy {
   protected deskFilter: DeskFilter = 'wait';
   protected query = '';
   protected assignOpen = false;
+  protected pickTasksOpen = false;
   protected readonly consultGroups = workGroups;
   protected consultGroup = workGroups[0]?.name ?? '';
 
@@ -386,23 +401,71 @@ export class StaffHomePage implements OnDestroy {
   }
 
   private headFlow(jobs: FlowJob[]): TaskCase[] {
-    if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') return [];
+    const cards: TaskCase[] = [];
+    const notice = this.noticeHeadCard();
+    if (notice) cards.push(notice);
+    if (sessionStorage.getItem('dft-por1-filing-assign') === 'wait') return cards;
     const group = this.myGroup();
     const job = jobs.find((item) => item.group === group);
-    if (job) return [this.headJobCard(job)];
+    // ยังไม่มอบหมายจากผู้อำนวยการจริง — ไม่โชว์การ์ดรับมอบหมาย ให้ไปเลือกจากไอคอนมุมขวา
+    if (!this.directorAssignedToGroup(group, job)) return cards;
+    if (job) {
+      cards.push(this.headJobCard(job));
+      return cards;
+    }
     const task = readWorkAssignment().groupTasks.find((item) => item.group === group);
-    if (task?.reply === 'pending') return [this.stepCard('รับมอบหมายจากผู้อำนวยการ', 'in', 'รอรับเรื่อง', 'warning', group)];
-    if (task?.reply === 'return') return [this.stepCard('ส่งคืนผู้อำนวยการ', 'out', 'ส่งคืนแล้ว', 'danger', group)];
+    if (task?.reply === 'return') {
+      cards.push(this.stepCard('ส่งคืนผู้อำนวยการ', 'out', 'ส่งคืนแล้ว', 'danger', group));
+      return cards;
+    }
     if (task?.reply === 'accept') {
       const hands = readWorkAssignment().hands.filter((hand) => hand.group === group);
-      if (!hands.length) return [this.stepCard('มอบหมายเจ้าหน้าที่หรือรายงานผล', 'follow', 'รับเรื่องแล้ว', 'warning', group)];
-      if (hands.some((hand) => hand.reply === 'return') && hands.every((hand) => hand.reply !== 'pending')) return [this.stepCard('เจ้าหน้าที่ส่งคืน', 'in', 'เลือกผู้รับคนใหม่', 'danger', group)];
-      return [this.stepCard('งานของกลุ่ม', 'group', 'อยู่ระหว่างเจ้าหน้าที่ดำเนินการ', 'info', group)];
+      if (!hands.length) cards.push(this.stepCard('มอบหมายเจ้าหน้าที่หรือรายงานผล', 'follow', 'รับเรื่องแล้ว', 'warning', group));
+      else if (hands.some((hand) => hand.reply === 'return') && hands.every((hand) => hand.reply !== 'pending')) {
+        cards.push(this.stepCard('เจ้าหน้าที่ส่งคืน', 'in', 'เลือกผู้รับคนใหม่', 'danger', group));
+      } else {
+        cards.push(this.stepCard('งานของกลุ่ม', 'group', 'อยู่ระหว่างเจ้าหน้าที่ดำเนินการ', 'info', group));
+      }
+      return cards;
     }
     if (readCaseStatus() === 'consult' && this.consultStep === 'group' && this.headsThisGroup && readConsultGroup() === group) {
-      return [this.stepCard('มอบหมายเจ้าหน้าที่ในกลุ่ม', 'in', 'รอเลือกเจ้าหน้าที่', 'warning', group)];
+      cards.push(this.stepCard('มอบหมายเจ้าหน้าที่ในกลุ่ม', 'in', 'รอเลือกเจ้าหน้าที่', 'warning', group));
     }
-    return [];
+    return cards;
+  }
+
+  /** มีการมอบหมายเข้ากลุ่มจริงแล้วเท่านั้น (ไม่นับงานที่ยังรอดึง e-Office / ยังไม่มอบ) */
+  private directorAssignedToGroup(group: string, job?: FlowJob): boolean {
+    if (!group) return false;
+    if (job && job.reply !== 'pending') return true;
+    if (job && (readConsultAssigned() || this.consultStep === 'group' || this.consultStep === 'member')) return true;
+    const eoffice = (() => {
+      try {
+        const value = JSON.parse(sessionStorage.getItem('dft-por1-eoffice-director') || 'null') as { state?: string; groups?: string[] } | null;
+        return value?.state === 'assigned' && Array.isArray(value.groups) && value.groups.includes(group);
+      } catch {
+        return false;
+      }
+    })();
+    if (eoffice) return true;
+    const task = readWorkAssignment().groupTasks.find((item) => item.group === group);
+    return !!task && task.reply !== 'pending';
+  }
+
+  /** เจ้าหน้าที่รายงานแจ้งผลการตรวจมาให้หัวหน้ากลุ่มเห็นชอบ (มีได้หลายรายการ) */
+  private noticeHeadCard(): TaskCase | null {
+    const notice = readDocNotice();
+    if (!notice) return null;
+    const waiting = notice.items.find((item) => item.pipe === 'to-head')
+      || (notice.pipe === 'to-head' && !notice.sent ? notice : null);
+    if (!waiting) return null;
+    const group = this.myGroup() || 'กลุ่มงานมาตรการตอบโต้การทุ่มตลาด (AD)';
+    const action = 'action' in waiting ? waiting.action : notice.action;
+    const dueOn = 'dueOn' in waiting ? waiting.dueOn : notice.dueOn;
+    const pipeAt = 'pipeAt' in waiting ? waiting.pipeAt : notice.pipeAt;
+    const noticedOn = 'noticedOn' in waiting ? waiting.noticedOn : notice.noticedOn;
+    const due = action !== 'complete' && dueOn ? `ครบกำหนด ${dueOn}` : '';
+    return this.stepCard('แจ้งผลการตรวจ', 'in', 'รอหัวหน้ากลุ่มเห็นชอบ', 'warning', group, due, pipeAt || noticedOn || '');
   }
 
   private headJobCard(job: FlowJob): TaskCase {
@@ -411,7 +474,9 @@ export class StaffHomePage implements OnDestroy {
     if (job.reply === 'pending') return this.stepCard('รับมอบหมายจากผู้อำนวยการ', 'in', 'รอรับเรื่อง', 'warning', job.group, due);
     if (job.verdict === 'rework') return this.stepCard('รายงานผลใหม่', 'in', 'ผู้อำนวยการส่งกลับให้รายงานใหม่', 'warning', job.group, due);
     if (job.delivery === 'check') return this.stepCard('ส่งกลับตรวจสอบ', 'in', 'ผู้อำนวยการส่งกลับตรวจสอบ', 'warning', job.group, due);
-    if (job.result || job.handoff === 'more' || job.delivery === 'close' || job.delivery === 'board') return this.stepCard('รายงานผลถึงผู้อำนวยการ', 'out', 'ส่งมอบรายงานแล้ว', 'success', job.group, due);
+    if (job.handoff === 'more') return this.stepCard('มอบหมายเจ้าหน้าที่คนใหม่', 'in', 'ผู้อำนวยการส่งต่อ — เลือกผู้รับใหม่', 'warning', job.group, due);
+    if (job.delivery === 'close' || job.delivery === 'board') return this.stepCard('รายงานผลถึงผู้อำนวยการ', 'out', 'ส่งมอบรายงานแล้ว', 'success', job.group, due);
+    if (job.result) return this.stepCard('รายงานผลถึงผู้อำนวยการ', 'out', 'ส่งมอบรายงานแล้ว', 'success', job.group, due);
     const pending = job.officers.some((officer) => officer.reply === 'pending');
     const accepted = job.officers.filter((officer) => officer.reply === 'accept');
     const returned = job.officers.filter((officer) => officer.reply === 'return');
@@ -908,6 +973,7 @@ export class StaffHomePage implements OnDestroy {
   protected jobLabel(row: TaskCase): string {
     if (row.code === this.filingRef && this.canApprove) return this.filingGate?.state === 'pending' ? 'ตรวจสอบคำขอ' : 'อนุมัติการยื่นแบบ';
     if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') return 'มอบหมายกลุ่ม';
+    if (row.code === this.filingRef && row.title === 'แจ้งผลการตรวจ') return 'เห็นชอบแจ้งผลการตรวจ';
     if (row.code === this.filingRef && row.title === 'ตรวจสอบเอกสาร') return 'ตรวจสอบเอกสาร';
     if (row.code === this.filingRef && (row.status === 'ยื่นแบบทางการแล้ว' || row.status === 'งานรับใหม่')) return 'กำหนดผู้รับผิดชอบ';
     return 'ดูคำขอ';
@@ -925,6 +991,10 @@ export class StaffHomePage implements OnDestroy {
     if (this.role === 'director' && this.awaitingConsult && row.title === 'ขอพบเจ้าหน้าที่') {
       this.openCode = this.taskKey(row);
       this.assignOpen = true;
+      return;
+    }
+    if (row.code === this.filingRef && row.title === 'แจ้งผลการตรวจ') {
+      this.openFiling('', 'docs');
       return;
     }
     if (row.code === this.filingRef && row.title === 'ตรวจสอบเอกสาร') {
@@ -1110,6 +1180,190 @@ export class StaffHomePage implements OnDestroy {
     void this.router.navigate(['/cases']);
   }
 
+  /** หัวหน้ากลุ่มเท่านั้น — เปิด modal ดูคิวงานหลายรายการที่รอเลือกเข้ากลุ่ม */
+  protected openPickGroupTasks(): void {
+    if (this.role !== 'head') return;
+    this.pickTasksOpen = true;
+  }
+
+  protected closePickGroupTasks(): void {
+    this.pickTasksOpen = false;
+  }
+
+  protected get pendingGroupPicks(): PendingGroupPick[] {
+    if (this.role !== 'head') return [];
+    const group = this.myGroup();
+    const jobs = this.readFlowJobs();
+    const myJob = jobs.find((item) => item.group === group);
+    const picked = this.readHeadPickedRefs();
+    const rows: PendingGroupPick[] = [];
+    const eoffice = readEofficeDirectorHandoff();
+    const activeAssigned = this.directorAssignedToGroup(group, myJob);
+    if (!activeAssigned && !picked.has(this.filingRef)) {
+      const reason =
+        eoffice.state === 'error'
+          ? 'ดึงจาก e-Office ไม่สำเร็จ'
+          : eoffice.state === 'sent'
+            ? 'มอบใน e-Office แล้ว แต่ยังไม่เข้ากลุ่มในระบบ'
+            : sessionStorage.getItem('dft-por1-filing-assign') === 'wait'
+              ? 'รอผู้อำนวยการมอบหมาย — เลือกรับเข้ากลุ่มได้เมื่อทราบผลนอกระบบ'
+              : 'ยังไม่มีการมอบหมายในระบบนี้';
+      rows.push({
+        ref: this.filingRef,
+        code: this.filingRef,
+        title: 'เหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์',
+        applicant: this.applicantName,
+        measure: 'AD (ตอบโต้การทุ่มตลาด)',
+        kind: 'แบบ ปร.1',
+        reason,
+        queuedAt: this.formatDateTime(eoffice.sentAt || eoffice.pulledAt || firstFiledOn, '14:28'),
+        dueAt: this.formatDateTime(this.amendUntil, '16:00'),
+        tone: eoffice.state === 'error' ? 'danger' : 'warning',
+      });
+    }
+    const sampleTimes = ['09:30', '11:05', '13:40', '15:20', '16:45'];
+    let sampleIndex = 0;
+    for (const item of archiveCases) {
+      if (item.draft || picked.has(item.ref) || item.ref === this.filingRef) continue;
+      if (!item.waiting && item.status !== 'ยื่นคำขอ' && item.status !== 'อยู่ระหว่างตรวจสอบ') continue;
+      if (jobs.some((job) => job.group === group && (job as { ref?: string }).ref === item.ref)) continue;
+      const time = sampleTimes[sampleIndex % sampleTimes.length];
+      sampleIndex += 1;
+      rows.push({
+        ref: item.ref,
+        code: item.code,
+        title: item.goods,
+        applicant: item.applicant || 'ผู้ยื่นตามคำขอ',
+        measure: item.measure || '—',
+        kind: item.kind || '—',
+        reason: 'มอบนอกระบบ/e-Office แล้ว — รอบันทึกรับเข้ากลุ่มในระบบนี้',
+        queuedAt: this.formatDateTime(item.created, this.shiftClock(time, 45)),
+        dueAt: this.formatDateTime(addThaiMonths(item.created, 4), '16:00'),
+        tone: 'warning',
+      });
+      if (rows.length >= 5) break;
+    }
+    return rows;
+  }
+
+  private formatDateTime(value: string, fallbackTime = '09:30'): string {
+    const raw = (value || '').trim();
+    if (!raw) return '—';
+    const match = raw.match(/^(\d{1,2}\/\d{1,2}\/\d{4})(?:\s+(\d{1,2}:\d{2}))?/);
+    if (!match) return raw;
+    const date = match[1];
+    const time = match[2] || fallbackTime;
+    return `${date} ${time} น.`;
+  }
+
+  private shiftClock(time: string, minutes: number): string {
+    const [hh, mm] = time.split(':').map(Number);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return time;
+    const total = ((hh * 60 + mm + minutes) % (24 * 60) + 24 * 60) % (24 * 60);
+    const nextH = String(Math.floor(total / 60)).padStart(2, '0');
+    const nextM = String(total % 60).padStart(2, '0');
+    return `${nextH}:${nextM}`;
+  }
+
+  protected get pendingGroupPickCount(): number {
+    return this.pendingGroupPicks.length;
+  }
+
+  protected claimPendingGroupPick(item: PendingGroupPick): void {
+    if (this.role !== 'head') return;
+    const group = this.myGroup() || workGroups[0]?.name || '';
+    if (!group) return;
+    const at = this.thaiNowStamp();
+    const day = at.split(' ')[0] || firstFiledOn;
+    if (item.ref === this.filingRef) {
+      const jobs = this.readRawConsultJobs();
+      const form = {
+        assignedOn: day,
+        dueOn: this.shiftDays(day, 5),
+        dueTime: '16:00',
+        remind: true,
+        order: `หัวหน้ากลุ่มบันทึกรับเข้ากลุ่ม ${group} จากคิวงาน Dashboard`,
+        signed: true,
+        files: [] as { name: string; title: string }[],
+      };
+      const next = jobs.some((job) => job.group === group)
+        ? jobs.map((job) => (job.group === group ? { ...job, reply: 'pending', form, officers: job.officers || [] } : job))
+        : [...jobs, { group, reply: 'pending', officers: [], form }];
+      sessionStorage.setItem('dft-por1-consult-jobs', JSON.stringify(next));
+      writeConsultStep('group');
+      writeConsultGroup(group);
+      writeConsultAssigned(true);
+      const handoff = readEofficeDirectorHandoff();
+      writeEofficeDirectorHandoff({
+        ...handoff,
+        state: 'assigned',
+        mode: 'manual',
+        pulledAt: at,
+        groups: [...new Set([...(handoff.groups || []), group])],
+        detail: `หัวหน้ากลุ่มรับเข้ากลุ่มจาก Dashboard: ${group}`,
+        error: '',
+      });
+    }
+    this.markHeadPicked(item.ref);
+    this.refreshConsult();
+    this.pickTasksOpen = false;
+    this.openFiling(item.ref === this.filingRef ? '' : item.code, 'assign');
+  }
+
+  private shiftDays(thaiDate: string, days: number): string {
+    const [d, m, y] = thaiDate.split('/').map(Number);
+    if (!d || !m || !y) return thaiDate;
+    const date = new Date(y - 543, m - 1, d + days);
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${date.getFullYear() + 543}`;
+  }
+
+  private thaiNowStamp(): string {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = now.getFullYear() + 543;
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${yy} ${hh}:${mi}`;
+  }
+
+  private readHeadPickedRefs(): Set<string> {
+    try {
+      const value = JSON.parse(sessionStorage.getItem('dft-head-picked-refs') || '[]') as string[];
+      return new Set(Array.isArray(value) ? value.filter((item) => typeof item === 'string') : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  private markHeadPicked(ref: string): void {
+    const next = this.readHeadPickedRefs();
+    next.add(ref);
+    sessionStorage.setItem('dft-head-picked-refs', JSON.stringify([...next]));
+  }
+
+  private readRawConsultJobs(): {
+    group: string;
+    reply?: string;
+    officers?: unknown[];
+    form?: Record<string, unknown>;
+  }[] {
+    try {
+      const value = JSON.parse(sessionStorage.getItem('dft-por1-consult-jobs') || '[]') as {
+        group?: string;
+        reply?: string;
+        officers?: unknown[];
+        form?: Record<string, unknown>;
+      }[];
+      if (!Array.isArray(value)) return [];
+      return value.flatMap((job) => (job?.group ? [{ group: job.group, reply: job.reply, officers: job.officers, form: job.form }] : []));
+    } catch {
+      return [];
+    }
+  }
+
   protected openFiling(code = '', tab = ''): void {
     const filing = ({
       director: '/director/filing',
@@ -1148,7 +1402,16 @@ export class StaffHomePage implements OnDestroy {
     if (code === this.filingRef) {
       if (this.role === 'staff' && this.consultIntakeOpen) return;
       if (this.role === 'head' && this.consultStep === 'group') return;
-      if (this.role === 'head') void this.router.navigateByUrl('/head/filing');
+      if (this.role === 'head') {
+        const notice = readDocNotice();
+        const waitingHead = notice?.items.some((item) => item.pipe === 'to-head')
+          || (notice?.pipe === 'to-head' && !notice.sent);
+        if (waitingHead) {
+          this.openFiling('', 'docs');
+          return;
+        }
+        void this.router.navigateByUrl('/head/filing');
+      }
       return;
     }
     const base = this.role === 'staff' ? '/staff/tasks' : `/${this.role}/tasks`;

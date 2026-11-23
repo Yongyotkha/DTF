@@ -1,6 +1,53 @@
 @import "../../design-system/tokens.css";
 @import "./styles/states.css";
 
+/* TH SarabunPSK — ฟอนต์เอกสารราชการสำหรับ text editor เท่านั้น
+   ใช้ไฟล์ TH Sarabun New (SIPA) ลงทะเบียนชื่อ TH SarabunPSK
+   ใส่ url ก่อน local เพื่อไม่ให้ฟอนต์ระบบ/สังเคราะห์ตัวหนาทำให้สระไทยเพี้ยน */
+@font-face {
+  font-family: "TH SarabunPSK";
+  src:
+    url("./assets/fonts/th-sarabunpsk/THSarabunNew.ttf") format("truetype"),
+    local("TH SarabunPSK"),
+    local("THSarabunPSK");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TH SarabunPSK";
+  src:
+    url("./assets/fonts/th-sarabunpsk/THSarabunNew-Bold.ttf") format("truetype"),
+    local("TH SarabunPSK Bold"),
+    local("THSarabunPSK Bold");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TH SarabunPSK";
+  src:
+    url("./assets/fonts/th-sarabunpsk/THSarabunNew-Italic.ttf") format("truetype"),
+    local("TH SarabunPSK Italic"),
+    local("THSarabunPSK Italic");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "TH SarabunPSK";
+  src:
+    url("./assets/fonts/th-sarabunpsk/THSarabunNew-BoldItalic.ttf") format("truetype"),
+    local("TH SarabunPSK Bold Italic"),
+    local("THSarabunPSK BoldItalic");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 html,
 body,
 app-root {
@@ -17,23 +64,9 @@ body {
   --ask-fab-clearance: 88px;
 }
 
-body.top-header-fixed {
-  padding-top: var(--top-header-offset);
-  transition: padding-top var(--motion-state);
-}
-
-body.top-header-fixed .por1 {
-  min-height: calc(100vh - var(--top-header-offset));
-}
-
+/* hideOnScroll: ลด offset ให้ sidebar / review-pin ชิดบนเมื่อ header ซ่อน */
 body.top-header-away {
   --top-header-offset: 0px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.top-header-fixed {
-    transition: none;
-  }
 }
 
 body.ask-docked main {
