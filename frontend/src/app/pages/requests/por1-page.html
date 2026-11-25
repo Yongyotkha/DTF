@@ -5996,17 +5996,6 @@
                     } @else if (inquiryPart === 'sign') {
                       <section class="notice-form" aria-label="ลงนามประกาศและราชกิจจา">
                         <ng-container [ngTemplateOutlet]="packDesk" />
-                        <div class="slip-line">
-                          <span>ขั้นตอนชุดเอกสาร</span>
-                          <div>
-                            @for (step of signStageSteps; track step.id; let i = $index) {
-                              <p>
-                                <app-status-tag variant="soft" [tone]="signStepTone(i)" [label]="step.label" />
-                                <span class="link-detail"> · {{ step.who }}</span>
-                              </p>
-                            }
-                          </div>
-                        </div>
                         @if (signStage === 'eoffice') {
                           <app-input-field class="block" kind="text" label="เลขที่ e-Office" [required]="true" [value]="signEofficeNo" [state]="signStage === 'eoffice' && reviewRole === 'officer' ? 'default' : 'readonly'" (valueChange)="setSignEofficeNo($event)" />
                         }
@@ -6017,7 +6006,6 @@
                         </footer>
 
                         <h3>2. เอกสารฉบับสมบูรณ์ (ลงนามแล้ว)</h3>
-                        <p class="link-detail">เจ้าหน้าที่แนบฉบับลงนามจริงหลังได้รับผลจาก e-Office ครบทุกฉบับ</p>
                         <div class="table-wrap consult-table pack-table">
                           <table>
                             <thead>
@@ -6032,16 +6020,29 @@
                               @for (item of signFinalFiles; track item.kind; let n = $index) {
                                 <tr>
                                   <td class="col-no">{{ n + 1 }}</td>
-                                  <td>{{ item.kind }}@if (signFinalName(item.kind)) { <small> · {{ signFinalName(item.kind) }}</small> }</td>
+                                  <td>
+                                    <div class="approval-list__doc">
+                                      <strong>{{ item.kind }}</strong>
+                                      @if (signFinalName(item.kind)) { <small>{{ signFinalName(item.kind) }}</small> }
+                                    </div>
+                                  </td>
                                   <td class="col-fit"><app-status-tag variant="soft" [tone]="signFinalName(item.kind) ? 'success' : 'warning'" [label]="signFinalName(item.kind) ? 'แนบแล้ว' : 'ยังไม่แนบ'" /></td>
                                   <td class="col-act">
                                     <div class="made-actions">
-                                      <input type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" [disabled]="!signCanUpload" (change)="attachSignFinal(item.kind, $event)" />
+                                      <input #signFile class="draft-agenda-actions__file" type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" [disabled]="!signCanUpload" (change)="attachSignFinal(item.kind, $event)" />
                                       @if (signCanUpload && !signFinalName(item.kind)) {
-                                        <button type="button" class="office-view" (click)="attachSignFinalSample(item.kind)">ใช้ไฟล์ตัวอย่างเคส</button>
+                                        <button type="button" class="office-view office-view--text" (click)="attachSignFinalSample(item.kind)">ใช้ไฟล์ตัวอย่างเคส</button>
+                                      }
+                                      @if (signCanUpload) {
+                                        <button type="button" class="office-view office-view--text" (click)="signFile.click()">{{ signFinalName(item.kind) ? 'เปลี่ยนไฟล์' : 'แนบไฟล์' }}</button>
                                       }
                                       @if (signFinalSample(item.kind)?.name === signFinalName(item.kind)) {
-                                        <button type="button" class="office-view" (click)="openSignFinalSample(item.kind)">ดู</button>
+                                        <button type="button" class="office-view" aria-label="ดูไฟล์" title="ดูไฟล์" (click)="openSignFinalSample(item.kind)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        </button>
+                                        <button type="button" class="office-view" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadSignFinalSample(item.kind)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                        </button>
                                       }
                                     </div>
                                   </td>
@@ -6051,8 +6052,127 @@
                           </table>
                         </div>
                         @if (signFinalDone) {
-                          <p>ฉบับสมบูรณ์ครบทุกฉบับแล้ว เลขที่ e-Office {{ signEofficeNo }}</p>
+                          <p>ฉบับสมบูรณ์ครบทุกฉบับแล้ว@if (signEofficeNo) { เลขที่ e-Office {{ signEofficeNo }} }</p>
                         }
+                      </section>
+                    } @else if (inquiryPart === 'letters') {
+                      <section class="notice-form" aria-label="แจ้งผู้มีส่วนได้เสียเปิดไต่สวน">
+                        <div class="made-actions">
+                          @for (round of letterRounds; track round.id) {
+                            <app-button [type]="letterView === round.id ? 'primary' : 'outline'" [label]="round.title" (click)="pickLetterView(round.id)" />
+                            <app-status-tag variant="soft" [tone]="letterRoundTone(round.id)" [label]="letterRoundLabel(round.id)" />
+                          }
+                        </div>
+                        <ng-container [ngTemplateOutlet]="packDesk" />
+                        @if (letterAction(letterView); as action) {
+                          <footer class="doc-foot">
+                            <app-button type="primary" [label]="action.label" [state]="action.enabled ? 'default' : 'disabled'" (click)="advanceLetterRound(letterView)" />
+                          </footer>
+                        }
+                        @if (letterRound === 'done') {
+                          <h3>2. เอกสารฉบับสมบูรณ์ (ลงนามแล้ว)</h3>
+                          <div class="table-wrap consult-table pack-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="col-no">ลำดับ</th>
+                                  <th>ฉบับสมบูรณ์</th>
+                                  <th class="col-fit">สถานะ</th>
+                                  <th class="col-act">แนบไฟล์</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (item of letterFinalFiles; track item.kind; let n = $index) {
+                                  <tr>
+                                    <td class="col-no">{{ n + 1 }}</td>
+                                    <td>
+                                      <div class="approval-list__doc">
+                                        <strong>{{ item.kind }}</strong>
+                                        <small>{{ letterSignerLabel(item.round) }}@if (letterFinalName(item.kind)) { · {{ letterFinalName(item.kind) }} }</small>
+                                      </div>
+                                    </td>
+                                    <td class="col-fit"><app-status-tag variant="soft" [tone]="letterFinalName(item.kind) ? 'success' : 'warning'" [label]="letterFinalName(item.kind) ? 'แนบแล้ว' : 'ยังไม่แนบ'" /></td>
+                                    <td class="col-act">
+                                      <div class="made-actions">
+                                        <input #letterFile class="draft-agenda-actions__file" type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" [disabled]="!letterCanUpload" (change)="attachLetterFinal(item.kind, $event)" />
+                                        @if (letterCanUpload && !letterFinalName(item.kind)) {
+                                          <button type="button" class="office-view office-view--text" (click)="attachLetterFinalSample(item.kind)">ใช้ไฟล์ตัวอย่างเคส</button>
+                                        }
+                                        @if (letterCanUpload) {
+                                          <button type="button" class="office-view office-view--text" (click)="letterFile.click()">{{ letterFinalName(item.kind) ? 'เปลี่ยนไฟล์' : 'แนบไฟล์' }}</button>
+                                        }
+                                        @if (letterFinalName(item.kind) === item.name) {
+                                          <button type="button" class="office-view" aria-label="ดูไฟล์" title="ดูไฟล์" (click)="openLetterFinal(item.kind)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
+                                          <button type="button" class="office-view" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadLetterFinal(item.kind)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                          </button>
+                                        }
+                                      </div>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                          <footer class="doc-foot">
+                            <app-button type="primary" label="ไปขั้นข่าวหนังสือพิมพ์" [state]="letterFinalDone ? 'default' : 'disabled'" (click)="goInquiryNews()" />
+                          </footer>
+                        }
+                      </section>
+                    } @else if (inquiryPart === 'news') {
+                      <section class="notice-form" aria-label="ข่าวหนังสือพิมพ์">
+                        <ng-container [ngTemplateOutlet]="packDesk" />
+                        <h3>2. เอกสารที่แนบกลับหลังลงประกาศ</h3>
+                        <div class="table-wrap consult-table pack-table">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th class="col-no">ลำดับ</th>
+                                <th>ฉบับที่ลงแล้ว</th>
+                                <th class="col-fit">สถานะ</th>
+                                <th class="col-act">แนบไฟล์</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (item of newsFinalFiles; track item.kind; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ n + 1 }}</td>
+                                  <td>
+                                    <div class="approval-list__doc">
+                                      <strong>{{ item.kind }}</strong>
+                                      @if (newsFinalName(item.kind)) { <small>{{ newsFinalName(item.kind) }}</small> }
+                                    </div>
+                                  </td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="newsFinalName(item.kind) ? 'success' : 'warning'" [label]="newsFinalName(item.kind) ? 'แนบแล้ว' : 'ยังไม่แนบ'" /></td>
+                                  <td class="col-act">
+                                    <div class="made-actions">
+                                      <input #newsFile class="draft-agenda-actions__file" type="file" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx" [disabled]="!newsCanUpload" (change)="attachNewsFinal(item.kind, $event)" />
+                                      @if (newsCanUpload && !newsFinalName(item.kind)) {
+                                        <button type="button" class="office-view office-view--text" (click)="attachNewsFinalSample(item.kind)">ใช้ไฟล์ตัวอย่างเคส</button>
+                                      }
+                                      @if (newsCanUpload) {
+                                        <button type="button" class="office-view office-view--text" (click)="newsFile.click()">{{ newsFinalName(item.kind) ? 'เปลี่ยนไฟล์' : 'แนบไฟล์' }}</button>
+                                      }
+                                      @if (newsFinalName(item.kind) === item.name) {
+                                        <button type="button" class="office-view" aria-label="ดูไฟล์" title="ดูไฟล์" (click)="openNewsFinal(item.kind)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                        </button>
+                                        <button type="button" class="office-view" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadNewsFinal(item.kind)">
+                                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                        </button>
+                                      }
+                                    </div>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                        <footer class="doc-foot">
+                          <app-button type="primary" label="ไปขั้นแถลงการณ์" [state]="newsFinalDone ? 'default' : 'disabled'" (click)="goInquiryHearing()" />
+                        </footer>
                       </section>
                     } @else if (inquiryDocStep) {
                       <section class="notice-form" [attr.aria-label]="inquiryStepTitle()">
@@ -6146,40 +6266,12 @@
                           </table>
                         </div>
                         }
-                        @if (inquiryPart === 'letters') {
-                          @if (inquiryInviteUrl) {
-                            <p class="link-detail">ลิงก์เชิญให้ลงทะเบียนและเข้าสู่ระบบ</p>
-                            <p class="link-detail">{{ inquiryInviteUrl }}</p>
-                            <footer class="doc-foot">
-                              <app-button type="outline" [label]="inviteCopied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์เชิญ'" (click)="copyInvite()" />
-                              <app-button type="primary" [label]="inviteSent ? 'ส่งอีเมลและไปรษณีย์แล้ว' : 'ส่งอีเมลและไปรษณีย์'" (click)="sendInvite()" />
-                            </footer>
-                          }
-                          <h3>เพิ่มผู้มีส่วนได้เสีย</h3>
-                          <div class="draft-form">
-                            <app-input-field class="block" kind="text" label="ชื่อ" [required]="true" [value]="partyName" (valueChange)="partyName = $event" />
-                            <app-input-field class="block" kind="text" label="หน่วยงาน" [required]="false" [value]="partyOrg" (valueChange)="partyOrg = $event" />
-                            <app-input-field class="block" kind="text" label="จำนวนคน" [required]="false" [value]="partyCount" (valueChange)="partyCount = $event" />
-                          </div>
-                          <footer class="doc-foot">
-                            <app-button type="primary" label="เพิ่มและเชิญ" [state]="partyName.trim() ? 'default' : 'disabled'" (click)="addInterestParty()" />
-                          </footer>
-                          @for (party of interestParties; track party.name) {
-                            <p>{{ party.name }}@if (party.org) { · {{ party.org }} } · {{ party.count }} คน <app-status-tag variant="soft" [tone]="party.joined ? 'success' : 'info'" [label]="party.joined ? 'ลงทะเบียนแล้ว' : 'เชิญแล้ว'" /></p>
-                          }
-                        }
                         <footer class="doc-foot">
                           <app-button type="outline" label="ใส่ข้อมูลเคส" (click)="fillInquiryPack()" />
                           @if (inquiryAgendaLane && !inquiryAgendaStepDone) {
                             <app-button type="primary" [label]="inquiryPart === 'draftAgenda' ? 'บันทึกวาระพิจารณาคำขอเปิดไต่สวน' : inquiryPart === 'subAgenda' ? 'บันทึกวาระอนุ' : 'บันทึกวาระ ทตอ.'" [state]="inquiryPart === 'agenda' && !agendaReady ? 'disabled' : 'default'" (click)="saveInquiryAgenda()" />
                           }
-                          @if (inquiryPart === 'news' && !inquiryNoticeSent) {
-                            <app-button type="primary" label="สร้างเอกสารและแจ้งประกาศ" [state]="inquiryOpen === 'open' ? 'default' : 'disabled'" (click)="saveInquiryNotice()" />
-                          }
                         </footer>
-                        @if (inquiryPart === 'news' && inquiryNoticeSent) {
-                          <p>สร้างเอกสารครบเมื่อ {{ inquiryNoticeOn }} แล้ว ขั้นต่อไปคือแถลงการณ์ แบบสอบถาม และตรวจสถานประกอบการ</p>
-                        }
                       </section>
                     } @else if (inquiryPart === 'decide') {
                       <section class="notice-form" aria-label="พิจารณาคำขอ">
@@ -6361,6 +6453,54 @@
                       </section>
                     } @else if (inquiryPart === 'hearing') {
                       <section class="notice-form" aria-label="แถลงการณ์">
+                        <h3>1. ผู้มีส่วนได้เสียลงทะเบียนเข้าร่วม</h3>
+                        <div class="stake-invite">
+                          @if (inviteQrSrc) {
+                            <img class="stake-qr" [src]="inviteQrSrc" width="176" height="176" alt="QR code ลิงก์เชิญผู้มีส่วนได้เสีย" />
+                          }
+                          <div>
+                            <p class="link-detail">ลิงก์เชิญ {{ inquiryInviteUrl }}</p>
+                            <p class="link-detail">ยื่นขอเข้าร่วม hearing ได้ภายใน {{ hearingRequestDue }} (30 วันนับจากวันประกาศ {{ inquiryGazetteOn }})</p>
+                            <div class="made-actions">
+                              <app-button type="outline" [label]="inviteCopied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์'" (click)="copyInvite()" />
+                              <app-button type="primary" [label]="inviteSent ? 'ส่งลิงก์แล้ว' : 'ส่งลิงก์เชิญ'" (click)="sendInvite()" />
+                            </div>
+                          </div>
+                        </div>
+                        <div class="table-wrap consult-table pack-table">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th class="col-no">ลำดับ</th>
+                                <th>ผู้มีส่วนได้เสีย</th>
+                                <th>ประเภท</th>
+                                <th>การลงทะเบียน</th>
+                                <th class="col-fit">สถานะ</th>
+                                <th>สิทธิ์เข้าร่วม hearing</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of stakeholderRows; track row.id; let n = $index) {
+                                <tr>
+                                  <td class="col-no">{{ n + 1 }}</td>
+                                  <td>
+                                    <div class="approval-list__doc">
+                                      <strong>{{ row.name }}</strong>
+                                      @if (row.fixNote) { <small>{{ row.fixNote }}</small> }
+                                    </div>
+                                  </td>
+                                  <td>{{ row.kinds }}</td>
+                                  <td>{{ row.window }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="row.tone" [label]="row.status" /></td>
+                                  <td>{{ row.eligible ? 'ยื่นขอเข้าร่วมได้' : 'รอผลตรวจก่อน' }}</td>
+                                </tr>
+                              } @empty {
+                                <tr><td colspan="6">ยังไม่มีผู้มีส่วนได้เสียลงทะเบียนผ่านลิงก์เชิญ</td></tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                        <h3>2. การจัดแถลงการณ์</h3>
                         <ng-container [ngTemplateOutlet]="packDesk" />
                         @if (!inquiryHearing) {
                           <div class="slip-line">
@@ -6380,40 +6520,151 @@
                             <app-button type="primary" [label]="inquiryHearingDraft === 'skip' ? 'สร้างบันทึกว่าไม่จัด' : 'สร้างหนังสือแจ้งผู้เข้าร่วม'" [state]="inquiryHearingDraft === 'skip' || (inquiryHearingDraft === 'hold' && inquiryHearingPlace.trim()) ? 'default' : 'disabled'" (click)="saveInquiryHearing()" />
                           </footer>
                         } @else if (inquiryHearing === 'hold') {
-                          <p>จัดแถลงการณ์วันที่ {{ inquiryHearingOn }} {{ inquiryHearingPlace }} ระบบสร้างหนังสือแจ้งผู้เข้าร่วมแล้ว</p>
-                          @if (laterPhase.notes['hearing-office'] === 'approve') {
-                            <p>e-Office อนุมัติแล้ว ผู้เข้าร่วม {{ laterPhase.notes['hearing-people'] }} คน</p>
-                            <p>{{ laterPhase.notes['hearing-memo'] }}</p>
-                          } @else if (laterPhase.notes['hearing-office'] === 'return') {
-                            <p>e-Office ตีกลับ ให้แก้ในระบบนี้ก่อนส่งใหม่</p>
-                            <footer class="doc-foot">
-                              <app-button type="primary" label="เปิดให้แก้แล้วส่งใหม่" (click)="reopenHearing()" />
-                            </footer>
-                          } @else {
-                            <label class="assign-remark">
-                              <span>บันทึกสรุปคำขอ hearing<span class="req">*</span></span>
-                              <textarea rows="3" [value]="hearingMemo" (input)="hearingMemo = $any($event.target).value"></textarea>
-                            </label>
-                            <app-input-field class="block" kind="text" label="จำนวนคนเข้าร่วม" [required]="true" [value]="hearingPeople" (valueChange)="hearingPeople = $event" />
-                            <div class="slip-line">
-                              <span>ผลจาก e-Office<span class="req">*</span></span>
-                              <div class="slip-choices">
-                                <button type="button" (click)="hearingOffice = 'approve'"><img [src]="hearingOffice === 'approve' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />อนุมัติ</button>
-                                <button type="button" (click)="hearingOffice = 'return'"><img [src]="hearingOffice === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ตีกลับ</button>
+                          <p class="link-detail">จัดแถลงการณ์ได้หลายรอบ แต่ละรอบมีวันนัด หนังสือแจ้ง ผล e-Office และรายงานของตัวเอง ผู้มีสิทธิ์เข้าร่วมจากการลงทะเบียนที่ผ่านการตรวจ {{ hearingAttendeeCount }} ราย</p>
+                          <div class="table-wrap consult-table pack-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="col-no">รอบ</th>
+                                  <th>หัวข้อ</th>
+                                  <th>วันที่</th>
+                                  <th>สถานที่หรือช่องทาง</th>
+                                  <th>ผู้เข้าร่วม</th>
+                                  <th class="col-fit">สถานะ</th>
+                                  <th class="col-act">การจัดการ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (round of hearingRounds; track round.id; let n = $index) {
+                                  <tr>
+                                    <td class="col-no">{{ n + 1 }}</td>
+                                    <td>{{ round.topic }}</td>
+                                    <td>{{ round.on }}</td>
+                                    <td>{{ round.place }}</td>
+                                    <td>{{ round.people }} ราย</td>
+                                    <td class="col-fit"><app-status-tag variant="soft" [tone]="hearingRoundStatus(round).tone" [label]="hearingRoundStatus(round).label" /></td>
+                                    <td class="col-act">
+                                      <div class="made-actions">
+                                        <button type="button" class="office-view office-view--text" (click)="openHearingRound(round.id)">{{ hearingRoundOpen === round.id ? 'ปิด' : 'จัดการ' }}</button>
+                                        <button type="button" class="office-view" (click)="openRoundDoc(round)">ดู</button>
+                                        <button type="button" class="office-view" (click)="downloadRoundDoc(round)">โหลด</button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                          @if (hearingRoundActive; as round) {
+                            <h3>รอบที่ {{ hearingRoundNo }} · {{ round.topic }} · {{ round.on }}</h3>
+                            @if (round.held) {
+                              <p>จัดแล้ว ผู้เข้าร่วม {{ round.people }} ราย</p>
+                              <p>{{ round.report }}</p>
+                            } @else if (round.office === 'approve') {
+                              <p>e-Office อนุมัติแล้ว บันทึกรายงานผลหลังจัดแถลงการณ์เสร็จ</p>
+                              <label class="assign-remark">
+                                <span>รายงานผลการแถลงการณ์<span class="req">*</span></span>
+                                <textarea rows="3" [value]="hearingReportDraft" (input)="hearingReportDraft = $any($event.target).value"></textarea>
+                              </label>
+                              <footer class="doc-foot">
+                                <app-button type="primary" label="บันทึกว่าจัดแล้ว" [state]="hearingReportDraft.trim() ? 'default' : 'disabled'" (click)="saveRoundHeld()" />
+                              </footer>
+                            } @else if (round.office === 'return') {
+                              <p>e-Office ตีกลับ ให้แก้ในระบบนี้ก่อนส่งใหม่</p>
+                              <footer class="doc-foot">
+                                <app-button type="primary" label="เปิดให้แก้แล้วส่งใหม่" (click)="reopenRound(round.id)" />
+                              </footer>
+                            } @else {
+                              <div class="slip-line">
+                                <span>ผลจาก e-Office<span class="req">*</span></span>
+                                <div class="slip-choices">
+                                  <button type="button" (click)="hearingOfficeDraft = 'approve'"><img [src]="hearingOfficeDraft === 'approve' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />อนุมัติ</button>
+                                  <button type="button" (click)="hearingOfficeDraft = 'return'"><img [src]="hearingOfficeDraft === 'return' ? 'assets/icons/por1-radio-on.svg' : 'assets/icons/por1-radio-off.svg'" width="24" height="24" alt="" />ตีกลับ</button>
+                                </div>
                               </div>
+                              <footer class="doc-foot">
+                                <app-button type="primary" label="บันทึกผล e-Office" [state]="hearingOfficeDraft ? 'default' : 'disabled'" (click)="saveRoundOffice()" />
+                              </footer>
+                            }
+                            <p class="link-detail">เอกสารของรอบนี้ {{ hearingRoundDocCount(round) }} ฉบับ แยกตามขั้นของกระบวนการ</p>
+                            <div class="table-wrap consult-table pack-table">
+                              <table>
+                                <thead>
+                                  <tr>
+                                    <th class="col-no">ลำดับ</th>
+                                    <th>เอกสาร</th>
+                                    <th>ผู้ออก/ผู้ยื่น</th>
+                                    <th class="col-act">การจัดการ</th>
+                                  </tr>
+                                </thead>
+                                @for (group of hearingRoundGroups(round); track group.label) {
+                                  <tbody>
+                                    <tr><th colspan="4" scope="colgroup">{{ group.label }}</th></tr>
+                                    @if (group.label.startsWith('1.')) {
+                                      <tr>
+                                        <td class="col-no">1</td>
+                                        <td>หนังสือแจ้งแถลงการณ์ รอบที่ {{ hearingRoundNo }} (สร้างในระบบ)</td>
+                                        <td>{{ round.on }} · {{ round.place }}</td>
+                                        <td class="col-act">
+                                          <div class="made-actions">
+                                            <button type="button" class="office-view" (click)="openRoundDoc(round)">ดู</button>
+                                            <button type="button" class="office-view" (click)="downloadRoundDoc(round)">โหลด</button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    }
+                                    @for (row of group.rows; track row.href + row.party; let n = $index) {
+                                      <tr>
+                                        <td class="col-no">{{ n + (group.label.startsWith('1.') ? 2 : 1) }}</td>
+                                        <td>
+                                          <div class="approval-list__doc">
+                                            <strong>{{ row.kind }}</strong>
+                                            <small>{{ row.name }}</small>
+                                          </div>
+                                        </td>
+                                        <td>{{ row.party }}</td>
+                                        <td class="col-act">
+                                          <div class="made-actions">
+                                            <button type="button" class="office-view" (click)="openQuestionFile(row.href)">ดู</button>
+                                            <button type="button" class="office-view" (click)="downloadQuestionFile(row.href, row.name)">โหลด</button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    } @empty {
+                                      @if (!group.label.startsWith('1.')) {
+                                        <tr><td colspan="4">ยังไม่มีเอกสารในหมวดนี้</td></tr>
+                                      }
+                                    }
+                                  </tbody>
+                                }
+                              </table>
+                            </div>
+                          }
+                          @if (hearingAdding) {
+                            <h3>เพิ่มรอบที่ {{ hearingRounds.length + 1 }}</h3>
+                            <div class="draft-form">
+                              <app-input-field class="block" kind="text" label="หัวข้อ" [required]="true" [value]="hearingDraftTopic" (valueChange)="hearingDraftTopic = $event" />
+                              <app-thai-date-field label="วันที่แถลงการณ์" [required]="true" [value]="hearingDraftOn" (valueChange)="hearingDraftOn = $event" />
+                              <app-input-field class="block" kind="text" label="สถานที่หรือช่องทาง" [required]="true" [value]="hearingDraftPlace" (valueChange)="hearingDraftPlace = $event" />
+                              <app-input-field class="block" kind="text" label="จำนวนคนเข้าร่วม" [required]="true" [value]="hearingDraftPeople" (valueChange)="hearingDraftPeople = $event" />
                             </div>
                             <footer class="doc-foot">
-                              <app-button type="primary" label="บันทึกผล e-Office" [state]="hearingMemo.trim() && hearingOffice && hearingPeople.trim() ? 'default' : 'disabled'" (click)="saveHearingOffice()" />
+                              <app-button type="outline" label="ยกเลิก" (click)="cancelHearingRound()" />
+                              <app-button type="primary" [label]="'สร้างหนังสือแจ้งรอบที่ ' + (hearingRounds.length + 1)" [state]="hearingDraftReady ? 'default' : 'disabled'" (click)="addHearingRound()" />
+                            </footer>
+                          } @else {
+                            <footer class="doc-foot">
+                              <app-button type="outline" label="เพิ่มรอบแถลงการณ์" (click)="startHearingRound()" />
                             </footer>
                           }
                         } @else {
                           <p>ไม่จัดแถลงการณ์ ระบบสร้างบันทึกแล้ว ขั้นต่อไปคือแบบสอบถาม</p>
-                        }
-                        @if (issuedDoc(inquiryHearingDocId); as file) {
-                          <div class="made-actions">
-                            <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
-                            <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
-                          </div>
+                          @if (issuedDoc(inquiryHearingDocId); as file) {
+                            <div class="made-actions">
+                              <button type="button" class="office-view" (click)="openEmbassyFile(file)">ดู</button>
+                              <button type="button" class="office-view" (click)="downloadEmbassyFile(file)">ดาวน์โหลด</button>
+                            </div>
+                          }
                         }
                       </section>
                     } @else if (inquiryPart === 'questions') {
@@ -6427,12 +6678,150 @@
                             <app-status-tag variant="soft" [tone]="inquiryQuestionTone(party)" [label]="inquiryQuestionState(party)" />
                           }
                         </div>
+                        <p class="slip-file-label">กำหนดเวลา</p>
+                        <div class="table-wrap consult-table pack-table">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>รายการ</th>
+                                <th>วันที่</th>
+                                <th>ที่มา</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              @for (row of inquiryDeadlines; track row.item) {
+                                <tr>
+                                  <td>{{ row.item }}</td>
+                                  <td>{{ row.due }}</td>
+                                  <td>{{ row.source }}</td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
                         <nav class="assign-steps" aria-label="กลุ่มผู้ตอบแบบสอบถาม">
                           @for (row of inquiryQuestions; track row.id) {
                             <button type="button" [class.on]="activeQuestion?.id === row.id" (click)="pickInquiryParty(row.id)">{{ inquiryQuestionLabel(row.id) }}</button>
                           }
                         </nav>
                         @if (activeQuestion; as row) {
+                          @if (questionFiles(row.id).length) {
+                            <p class="slip-file-label">แบบสอบถามของเคส</p>
+                            <div class="table-wrap consult-table pack-table">
+                              <table>
+                                <thead>
+                                  <tr>
+                                    <th class="col-no">ลำดับ</th>
+                                    <th>ชื่อเอกสาร</th>
+                                    <th class="col-act">การจัดการ</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (file of questionFiles(row.id); track file.name; let n = $index) {
+                                    <tr>
+                                      <td class="col-no">{{ n + 1 }}</td>
+                                      <td>
+                                        <div class="approval-list__doc">
+                                          <strong>{{ file.title }}</strong>
+                                          <small>{{ file.name }}</small>
+                                        </div>
+                                      </td>
+                                      <td class="col-act">
+                                        <div class="made-actions">
+                                          <button type="button" class="office-view" aria-label="ดูไฟล์" title="ดูไฟล์" (click)="openQuestionFile(file.href)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                          </button>
+                                          <button type="button" class="office-view" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadQuestionFile(file.href, file.name)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          }
+                          <p class="slip-file-label">ผู้รับหนังสือแจ้งรายราย (รับคืนแล้ว {{ recipientBackCount(row.id) }})</p>
+                          <div class="table-wrap consult-table pack-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="col-no">ลำดับ</th>
+                                  <th>ผู้รับ</th>
+                                  <th>ส่งวันที่</th>
+                                  <th>ส่งคืนภายใน</th>
+                                  <th>สถานะ</th>
+                                  <th class="col-act">การจัดการ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (rcp of recipientsOf(row.id); track rcp.key; let n = $index) {
+                                  <tr>
+                                    <td class="col-no">{{ n + 1 }}</td>
+                                    <td>
+                                      <div class="approval-list__doc">
+                                        <strong>{{ rcp.label }}</strong>
+                                        <small>{{ rcp.group }} · {{ rcp.name }}</small>
+                                      </div>
+                                    </td>
+                                    <td>{{ rcp.sentOn }}</td>
+                                    <td>{{ rcp.dueOn }} {{ rcp.dueTime }} น.</td>
+                                    <td><app-status-tag variant="soft" [tone]="rcp.back ? 'success' : 'neutral'" [label]="rcp.back ? 'รับคืนแล้ว' : 'รอรับคืน'" /></td>
+                                    <td class="col-act">
+                                      <div class="made-actions">
+                                        <button type="button" class="office-view" (click)="openQuestionFile(rcp.href)">ดู</button>
+                                        <button type="button" class="office-view" (click)="downloadQuestionFile(rcp.href, rcp.name)">โหลด</button>
+                                        <button type="button" class="office-view" (click)="toggleRecipientBack(rcp.key)">{{ rcp.back ? 'ยกเลิกรับคืน' : 'บันทึกรับคืน' }}</button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                } @empty {
+                                  <tr>
+                                    <td colspan="6">ยังไม่มีรายชื่อผู้รับ</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                          <p class="slip-file-label">เอกสารตามขั้นตอนของกลุ่มนี้ ({{ questionFlowCount(row.id) }} ฉบับ)</p>
+                          <div class="table-wrap consult-table pack-table">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="col-no">ลำดับ</th>
+                                  <th>เอกสาร</th>
+                                  <th>ผู้ออกหรือผู้ยื่น</th>
+                                  <th class="col-act">การจัดการ</th>
+                                </tr>
+                              </thead>
+                              @for (group of questionFlowGroups(row.id); track group.label; let g = $index) {
+                                <tbody>
+                                  <tr><th colspan="4" scope="colgroup">{{ g + 1 }}. {{ group.label }}</th></tr>
+                                  @for (file of group.rows; track file.href + file.who; let n = $index) {
+                                    <tr>
+                                      <td class="col-no">{{ n + 1 }}</td>
+                                      <td>
+                                        <div class="approval-list__doc">
+                                          <strong>{{ file.kind }}</strong>
+                                          <small>{{ file.name }}</small>
+                                        </div>
+                                      </td>
+                                      <td>{{ file.who }}</td>
+                                      <td class="col-act">
+                                        <div class="made-actions">
+                                          <button type="button" class="office-view" (click)="openQuestionFile(file.href)">ดู</button>
+                                          <button type="button" class="office-view" (click)="downloadQuestionFile(file.href, file.name)">โหลด</button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  } @empty {
+                                    <tr><td colspan="4">ไม่มีเอกสารในขั้นนี้ ฉบับปกปิดเก็บในกล่องเอกสารของกอง ไม่นำมาแสดง</td></tr>
+                                  }
+                                </tbody>
+                              }
+                            </table>
+                          </div>
                           <div class="receipt__view">
                               @if (exchangeStage(row) === 'done') {
                                 <p>กลุ่มนี้จบแล้ว ไม่ส่งกลับแก้ไข</p>

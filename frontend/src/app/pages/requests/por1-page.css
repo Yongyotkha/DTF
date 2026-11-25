@@ -8689,6 +8689,20 @@ article.official-sheet.bundle-doc.por-word-sheet.bundle-amend-sheet {
   line-height: 28px;
 }
 
+/* ลงทะเบียนผู้มีส่วนได้เสีย: QR คู่กับลิงก์เชิญ (ขนาดตาม QR, ไม่กำหนดสี) */
+.stake-invite {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.stake-qr {
+  width: 176px;
+  height: 176px;
+  flex: none;
+}
+
 .assign-head {
   display: flex;
   align-items: flex-start;
@@ -12192,3 +12206,62 @@ article.official-sheet.bundle-doc.por-word-sheet.bundle-amend-sheet {
 }
 
 .pack-desk-kind { height: 44px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface, #fff); color: inherit; font: inherit; }
+
+/* โต๊ะร่างเอกสารแท็บเปิดไต่สวน — หัวข้อไม่ถูกบีบ ปุ่มขึ้นแถวใหม่เมื่อพื้นที่ไม่พอ */
+.assign-head:has(> .draft-agenda-actions) {
+  flex-wrap: wrap;
+}
+
+.assign-head:has(> .draft-agenda-actions) > div:first-child {
+  flex: 1 1 18rem;
+  min-width: 18rem;
+}
+
+.assign-head > .draft-agenda-actions {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.assign-head > .draft-agenda-actions .pack-desk-kind {
+  flex: 1 1 16rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.assign-head > .draft-agenda-actions .draft-agenda-actions__btn {
+  flex: 1 1 10rem;
+  width: auto;
+  min-width: 10rem;
+  max-width: 14rem;
+}
+
+/* ชื่อเอกสารกับชื่อไฟล์ในตารางโต๊ะร่าง แยกคนละบรรทัด */
+.pack-table .approval-list__doc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pack-table .approval-list__doc strong {
+  font-weight: 500;
+}
+
+.pack-table .approval-list__doc small {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 21px;
+  overflow-wrap: anywhere;
+}
+
+.pack-table .office-view--text {
+  width: auto;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.pack-table .col-act .made-actions {
+  justify-content: flex-end;
+}
+

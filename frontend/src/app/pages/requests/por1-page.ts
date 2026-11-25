@@ -25,6 +25,7 @@ import { TopHeader } from '../../top-header/top-header';
 import { FilingAiContext, type FilingSnapshot, type GuideAttachment, type GuideField } from '../../ask-ai/filing-context';
 import { groupHead, groupMembers, peopleInGroup, staffGroups, staffPeople, workGroups } from '../staff/staff-roster';
 import { signDocFields } from './por1-sign-docs';
+import { letterDocFields } from './por1-letter-docs';
 import { acceptedAssignees, addThaiMonths, assignmentReplyLabel, assignmentReplyTone, assignmentStepLabel, assignmentStepTone, caseStatusLabel, caseStatusTone, consultChannelLabel, filingOfficer, filingRefId, filingUnit, firstFiledOn, ensureFilingRefSeqAtLeast, parseFilingRefSeq, readActiveFilingRef, writeActiveFilingRef, readOfficialOn, writeOfficialOn, readApprovalUntil, readApprovedBy, readApplicantNotices, readCaseStatus, readConsult, readConsultAssigned, readConsultPlan, readConsultStep, readConsultThread, consultFilingOwners, defaultConsultSlots, maxConsultSlots, minConsultSlots, nextConsultSlot, readFilingFiler, readFilingGate, releaseFilingToDirector, readEofficeDirectorHandoff, sendDirectorWorkToEoffice, pullDirectorAssignFromEoffice, directorWorkNeedsEoffice, writeEofficeDirectorHandoff, type EofficeDirectorHandoff, writeFilingFiler, writeFilingGate, defaultInquiryQuestions, readCaseNotes, readLaterPhase, readNoteReads, readDocNotice, readEtrLink, readMadeDocs, readWorkDrafts, readFlowFile, readReceipt, readReviewUntil, readRounds, readSystemLinks, readWorkAssignment, reviewWaitMs, writeApprovalUntil, writeApprovedBy, writeApplicantNotices, writeCaseStatus, writeFlowFile, writeConsult, writeConsultAssigned, writeConsultGroup, writeConsultPlan, writeConsultStep, writeConsultThread, writeCaseNotes, writeLaterPhase, writeNoteReads, writeDocNotice, writeEtrLink, writeMadeDocs, writeWorkDrafts, writeReceipt, writeReviewUntil, writeRounds, writeSystemLinks, writeWorkAssignment, upsertConsultRound, patchConsultRound, closeActiveConsultRound, readConsultRounds, openConsultRound as findOpenConsultRound, approvalLaneStageLabel, approvalLaneStageTone, approvalListStatusLabel, canCreateApprovalItem, toApprovalListRow, type ApprovalListRow, type ApprovalLaneHistoryEntry, type ApplicantNotice, type AssignFile, type AssignReply, type AssignSlip, type ApprovalLaneDoc, type ApprovalLaneStage, type CaseNote, type CaseNoteFile, type CaseStatus, type LaterPhase, type ConsultNote, type ConsultPlan, type ConsultPrivateNote, type ConsultRequest, type ConsultRound, type FilingGate, type DocAction, type DocNotice, type NoticeHistoryEntry, type NoticeItem, type NoticePipe, type DocFile as NoticeFile, type ApplicantReply, type ReplyFile, type NoticePass, type DocGap, type CommitteeRecord, type InquiryAgendaFile, type DraftAgendaVersion, type ApprovalSubmitRound, type ApprovalSubmitAttachment, type NoticeLetterVersion, type InquiryRecord, type InquiryPayFile, type InquiryQuestion, type InquiryIssued, type InquiryLoopKind, type FilingRound, type GroupTask, type OfficeLink, type PersonHand, type ReceiptRecord, type RoundFile, type RoundFinding, type RoundAnswer, type SystemLink, type MadeDoc, type WorkAssignment, type WorkDraft } from './case-status';
 import { FilingTabs } from './filing-tabs';
 import { readHearing, writeHearing } from './hearing-lane';
@@ -34,7 +35,8 @@ import { cvdChosen, readFilingIntent } from './filing-intent';
 import { downloadFormTemplate } from './form-template';
 import { requestForms } from './form-catalog';
 import { caseKey, findListedCase, type ListedCase } from './request-cases';
-import { invitePath, joinedFor } from './interest-invite';
+import { filingsFor, interestKindLabel, invitePath, joinedFor, removeInterestFilings, saveInterestFiling, type InterestFilingStatus, type InterestKind } from './interest-invite';
+import QRCode from 'qrcode';
 import { TextEditorToolbar } from '../../text-editor-toolbar/text-editor-toolbar';
 import {
   addCofilerInvite,
@@ -70,9 +72,255 @@ const SIGN_PROPOSAL_FILES: { kind: string; dir: string; name: string }[] = [
   { kind: 'หนังสือถึงเลขาธิการ ครม. ส่งประกาศกรมฯ', dir: 'open', name: '3.1. หนังสือถึงเลขาธิการครม_ส่งประกาศกรมฯ เปิด.doc' },
 ];
 const SIGN_FINAL_FILES: { kind: string; dir: string; name: string }[] = [
-  { kind: 'หนังสือขอประกาศราชกิจจาฯ (ลงนามแล้ว)', dir: 'open', name: 'หนังสือขอประกาศราชกิจจา.pdf' },
+  { kind: 'บันทึกเสนออธิบดีลงนามประกาศกรมฯ (ลงนามแล้ว)', dir: 'open', name: '3.  บันทึกเสนอ อธ ลงนามประกาศกรมฯ.docx' },
+  { kind: 'ประกาศกรมเปิดไต่สวนที่ลงนามแล้ว', dir: 'open/ประกาศ', name: 'ประกาศกรมเปิดไต่สวนรีดร้อนเวียดนาม อียิปต์.pdf' },
+  { kind: 'หนังสือถึงเลขาธิการ ครม. ขอประกาศราชกิจจาฯ (ลงนามแล้ว)', dir: 'open', name: 'หนังสือขอประกาศราชกิจจา.pdf' },
   { kind: 'ประกาศกรมฯ ลงราชกิจจาฯ', dir: 'open', name: 'ประกาศกรมเปิดไต่สวน ราชกิจจา.pdf' },
 ];
+
+/** หนังสือแจ้งผู้เกี่ยวข้องของเคส AD1046: ชุดอธิบดีลงนาม (ต่างประเทศ) แล้วชุดผู้อำนวยการลงนาม (ในประเทศ) */
+const LETTER_FILES: { round: 'dg' | 'dir'; kind: string; dir: string; name: string }[] = [
+  { round: 'dg', kind: 'บันทึกเรียน อธ. แจ้งเปิดไต่สวน', dir: 'open', name: '4. บันทึก อธ ส่ง ประกาศ QN.docx' },
+  { round: 'dg', kind: 'หนังสือถึงสถานทูตเวียดนามเปิดไต่สวน', dir: 'open', name: '4.1 Letter to Excellency for case initiation_ Vietnam.doc' },
+  { round: 'dg', kind: 'หนังสือถึงสถานทูตอียิปต์เปิดไต่สวน', dir: 'open', name: '4.2 Letter to Excellency for case initiation_ Egypt.doc' },
+  { round: 'dg', kind: 'หนังสือถึงผู้ส่งออกเวียดนามเปิดไต่สวน', dir: 'open', name: '4.3 letter ผู้ส่งออก Vietnam ส่งแบบสอบถาม.doc' },
+  { round: 'dg', kind: 'หนังสือถึงผู้ส่งออกอียิปต์เปิดไต่สวน', dir: 'open', name: '4.4 letter ผู้ส่งออก Egypt ส่งแบบสอบถาม.doc' },
+  { round: 'dg', kind: 'บันทึกแจ้ง สคต. โฮจิมินห์เปิดไต่สวน', dir: 'open', name: '4.9 บันทึกแจ้งเปิด - สคต. โฮจิมินห์.docx' },
+  { round: 'dg', kind: 'บันทึกแจ้ง สคต. ไคโรเปิดไต่สวน', dir: 'open', name: '4.10 บันทึกแจ้งเปิด - สคต. ไคโร.docx' },
+  { round: 'dg', kind: 'สิ่งที่ส่งมาด้วย: รายการพิกัดศุลกากร 135 พิกัด', dir: 'open', name: '4.5 Attachment.doc' },
+  { round: 'dir', kind: 'หนังสือแจ้งผู้นำเข้าเปิดไต่สวน', dir: 'open', name: '4.6 หนังสือส่งประกาศแจ้งเปิดไต่สวน_ผู้นำเข้า.docx' },
+  { round: 'dir', kind: 'หนังสือแจ้งอุตสาหกรรมภายในเปิดไต่สวน', dir: 'open', name: '4.7 หนังสือแจ้งเปิดไต่สวน HR อุตสาหกรรมภายใน.docx' },
+  { round: 'dir', kind: 'หนังสือแจ้งสมาคมเปิดไต่สวน', dir: 'open', name: '4.8 หนังสือแจ้งเปิดไต่สวน HR สมาคมที่เกี่ยวข้อง.docx' },
+];
+/** ฉบับสมบูรณ์ (ลงนามแล้ว) ของหนังสือแจ้ง — ไฟล์สแกนที่ลงนามจริงจากโฟลเดอร์ 5. แจ้งเปิดไต่สวน (ไม่มีสแกนให้ใช้ฉบับร่าง) */
+const LETTER_FINAL_FILES: { round: 'dg' | 'dir'; kind: string; dir: string; name: string }[] = [
+  { round: 'dg', kind: 'บันทึกเรียน อธ. แจ้งเปิดไต่สวน', dir: 'open', name: '4. บันทึก อธ ส่ง ประกาศ QN.docx' },
+  { round: 'dg', kind: 'หนังสือถึงสถานทูตเวียดนามเปิดไต่สวน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน สถานทูต', name: 'Letter to Excellency for case initiation Vietnam+Egypt.pdf' },
+  { round: 'dg', kind: 'หนังสือถึงสถานทูตอียิปต์เปิดไต่สวน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน สถานทูต', name: 'Letter to Excellency for case initiation Vietnam+Egypt.pdf' },
+  { round: 'dg', kind: 'หนังสือถึงผู้ส่งออกเวียดนามเปิดไต่สวน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน exporter', name: 'FHS Vietnam.pdf' },
+  { round: 'dg', kind: 'หนังสือถึงผู้ส่งออกอียิปต์เปิดไต่สวน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน exporter', name: 'Alexandria (EZDK).pdf' },
+  { round: 'dg', kind: 'บันทึกแจ้ง สคต. โฮจิมินห์เปิดไต่สวน', dir: 'open/สแกนเอกสาร', name: 'บันทึกแจ้งเปิด - สคต. โฮจิมินห์ ไคโร.pdf' },
+  { round: 'dg', kind: 'บันทึกแจ้ง สคต. ไคโรเปิดไต่สวน', dir: 'open/สแกนเอกสาร', name: 'บันทึกแจ้งเปิด - สคต. โฮจิมินห์ ไคโร.pdf' },
+  { round: 'dir', kind: 'หนังสือแจ้งผู้นำเข้าเปิดไต่สวน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า21.pdf' },
+  { round: 'dir', kind: 'หนังสือแจ้งอุตสาหกรรมภายในเปิดไต่สวน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_อุตสาหกรรมภายใน 9 ราย.pdf' },
+  { round: 'dir', kind: 'หนังสือแจ้งสมาคมเปิดไต่สวน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนสมาคม', name: 'แจ้งประกาศเปิดไต่สวน_สมาคม6ราย.pdf' },
+];
+/** สองรอบคนละผู้รับ: รอบแรกถึงอธิบดี รอบสองถึงผู้อำนวยการหลังรอบแรกอนุมัติ */
+const LETTER_ROUNDS: { id: 'dg' | 'dir'; title: string; to: string }[] = [
+  { id: 'dg', title: '1. ส่งอนุมัติอธิบดี', to: 'อธิบดีกรมการค้าต่างประเทศ' },
+  { id: 'dir', title: '2. ส่งอนุมัติผู้อำนวยการ', to: 'ผู้อำนวยการกองปกป้องและตอบโต้ทางการค้า' },
+];
+/** ข่าวและประกาศเผยแพร่หลังเปิดไต่สวนของเคส AD1046 — ไฟล์ 5.1 มีทั้งภาษาไทยและอังกฤษ */
+const NEWS_FILES: { kind: string; dir: string; name: string }[] = [
+  { kind: 'ใบนำส่งลงหนังสือพิมพ์', dir: 'open', name: '5. ใบนำส่ง - ลงประกาศในหนังสือพิมพ์ HR VN EG.doc' },
+  { kind: 'ข่าวหนังสือพิมพ์ภาษาไทย', dir: 'open', name: '5.1 ลงหนังสือพิมพ์ HR VN EG.doc' },
+  { kind: 'ข่าวหนังสือพิมพ์ภาษาอังกฤษ', dir: 'open', name: '5.1 ลงหนังสือพิมพ์ HR VN EG.doc' },
+  { kind: 'ประกาศเปิดไต่สวนบนเว็บไซต์ (ไทย)', dir: 'open', name: 'Thaitr AD1046 Initiation Notification.pdf' },
+  { kind: 'ประกาศเปิดไต่สวนบนเว็บไซต์ (อังกฤษ)', dir: 'open', name: 'Thaitr AD1046 Initiation Notification Eng.pdf' },
+  { kind: 'ใบแจ้งชำระค่าฉบับเปิดเผย', dir: 'open', name: 'ใบแจ้งชำระเงินค่าธรรมเนียมเบ็ดเตล็ดอื่นๆ ค่าฉบับเปิดเผย.pdf' },
+];
+/** ฉบับที่แนบกลับหลังนำส่ง: หน้าข่าวที่ลงแล้ว และหน้าเว็บที่เผยแพร่แล้ว */
+const NEWS_FINAL_FILES: { kind: string; dir: string; name: string }[] = [
+  { kind: 'หน้าหนังสือพิมพ์ภาษาไทยที่ลงแล้ว', dir: 'open', name: '5.1 ลงหนังสือพิมพ์ HR VN EG.doc' },
+  { kind: 'หน้าหนังสือพิมพ์ภาษาอังกฤษที่ลงแล้ว', dir: 'open', name: '5.1 ลงหนังสือพิมพ์ HR VN EG.doc' },
+  { kind: 'หน้าเว็บไซต์ที่เผยแพร่แล้ว (ไทย)', dir: 'open', name: 'Thaitr AD1046 Initiation Notification.pdf' },
+  { kind: 'หน้าเว็บไซต์ที่เผยแพร่แล้ว (อังกฤษ)', dir: 'open', name: 'Thaitr AD1046 Initiation Notification Eng.pdf' },
+  { kind: 'จดหมายข่าวที่ส่งแล้ว (Thaitr)', dir: 'open', name: 'Newsletter thaitr.pdf' },
+  { kind: 'หลักฐานการส่งจดหมายข่าวสำเร็จ (Thaitr)', dir: 'open', name: 'Thaitr ส่งจดหมายข่าวสำเร็จ 24-11-2563.png' },
+];
+/** แบบสอบถามที่จัดส่งจริงของเคส AD1046 แยกตามกลุ่มผู้ตอบ */
+const QUESTION_FILES: { party: 'importer' | 'domestic' | 'exporter'; title: string; name: string }[] = [
+  { party: 'exporter', title: 'แบบสอบถามผู้ส่งออก', name: 'Questionnaire Exporter HR VN EG.docx' },
+  { party: 'exporter', title: 'Annex ผู้ส่งออก', name: 'Annex HR VN EG.xlsx' },
+  { party: 'exporter', title: 'Appendix ผู้ส่งออก', name: 'Appendix HR VN EG.xlsx' },
+  { party: 'importer', title: 'แบบสอบถามผู้นำเข้า', name: 'แบบสอบถามผู้นำเข้าHR VN EG.doc' },
+  { party: 'importer', title: 'ตารางผู้นำเข้า', name: 'ตารางผู้นำเข้าHR VN EG.xls' },
+  { party: 'domestic', title: 'แบบสอบถามผู้ผลิตภายในประเทศ', name: 'แบบสอบถามผู้ผลิตภายในประเทศHR VN EG.doc' },
+  { party: 'domestic', title: 'ตารางผู้ผลิตภายในประเทศ', name: 'ตารางผู้ผลิตภายในประเทศ HR VN EG.xls' },
+  { party: 'domestic', title: 'คำถามประโยชน์สาธารณะและผลกระทบเพิ่มเติม', name: 'Qn EU ประโยชน์สาธารณะและคำถามผลกระทบเพิ่มเติม.docx' },
+];
+/** ขั้นของเอกสารในวงรอบแบบสอบถาม เรียงตาม flow: แบบที่ส่ง → ขอขยายเวลา → คำตอบ → ขอปรับปรุง → คำตอบที่ปรับปรุง → สรุปผลตรวจ */
+const QN_STAGES = [
+  'ขอขยายเวลาและหนังสือตอบ',
+  'คำตอบแบบสอบถาม (ฉบับเปิดเผย)',
+  'หนังสือขอให้ปรับปรุงและเพิ่มเติมข้อมูล',
+  'คำตอบที่ปรับปรุง',
+  'สรุปผลการตรวจคำตอบ',
+];
+type QnFlowFile = { party: 'importer' | 'domestic' | 'exporter'; stage: number; kind: string; who: string; dir: string; name: string };
+/** เอกสารจริงของเคส AD1046 ที่ไม่ใช่ความลับทางการค้า จัดตามกลุ่มผู้ตอบและขั้นของ flow */
+const QN_FLOW_FILES: QnFlowFile[] = [
+  // ผู้ส่งออก (เวียดนาม/อียิปต์)
+  { party: 'exporter', stage: 0, kind: 'หนังสือขอขยายเวลาตอบแบบสอบถาม', who: 'Al Ezz Dekheila (EZDK) ผ่านผู้รับมอบอำนาจ · 23 ธ.ค. 2563', dir: 'qn-flow/ext', name: 'Extension Request Letter re HRS Thai-AD (EZDK Steel).pdf' },
+  { party: 'exporter', stage: 0, kind: 'หนังสือขอขยายเวลาตอบแบบสอบถาม', who: 'Al Ezz Flat Steel (EFS) ผ่านผู้รับมอบอำนาจ', dir: 'qn-flow/ext', name: 'Extension Request Letter re HRS Thai-AD (EFS).pdf' },
+  { party: 'exporter', stage: 0, kind: 'หนังสือตอบให้ขยายเวลาเป็น 29 ม.ค. 2564 16.30 น.', who: 'กพ. ถึง EZDK / EFS · ธ.ค. 2563', dir: 'qn-flow/ext', name: 'หนังสือขยายเวลาตอบแบบสอบถาม EZDK EFS.pdf' },
+  { party: 'exporter', stage: 0, kind: 'หนังสือตอบให้ขยายเวลาเป็น 29 ม.ค. 2564 16.30 น. (ครั้งสุดท้าย)', who: 'กพ. ถึง Formosa Ha Tinh · 17 ธ.ค. 2563 (ตอบหนังสือ 15 ธ.ค. 2563)', dir: 'qn-flow/ext', name: 'ExtensionQN_Formosa.pdf' },
+  { party: 'exporter', stage: 2, kind: 'หนังสือขอให้ปรับปรุงและเพิ่มเติมข้อมูล ครั้งที่ 1 (กำหนด 21 เม.ย. 2564 16.30 น.)', who: 'กพ. ถึง Formosa Ha Tinh · มี.ค. 2564', dir: 'qn-flow/revise', name: 'หนังสือขอข้อมูลเพิ่มเติม Exporter เวียดนาม ครั้งที่ 1.pdf' },
+  { party: 'exporter', stage: 2, kind: 'รายการข้อมูลและเอกสารที่ให้ตรวจสอบปรับปรุง (สิ่งที่ส่งมาด้วย)', who: 'กพ. ถึง Formosa Ha Tinh', dir: 'qn-flow/revise', name: 'สิ่งที่ส่งมาด้วย (คำถามเพิ่มเติมครั้งที่ 1).pdf' },
+  { party: 'exporter', stage: 2, kind: 'หนังสือขอข้อมูลเพิ่มเติม ครั้งที่ 1', who: 'กพ. ถึง Al Ezz Dekheila (EZDK)', dir: 'qn-flow/revise', name: 'หนังสือ Sup 1 EZDK final.docx' },
+  { party: 'exporter', stage: 2, kind: 'หนังสือขอข้อมูลเพิ่มเติม ครั้งที่ 2 (Supp 2)', who: 'กพ. ถึง Al Ezz Dekheila (EZDK)', dir: 'qn-flow/revised', name: 'หนังสือ Supp 2 EZDK final.docx' },
+  { party: 'exporter', stage: 2, kind: 'จดหมายนำส่งขอข้อมูลเพิ่มเติม ครั้งที่ 2', who: 'กพ. ถึง Formosa Ha Tinh', dir: 'qn-flow/revised', name: 'จดหมายนำส่ง FHS (ครั้งที่ 2).pdf' },
+  // อุตสาหกรรมภายใน
+  { party: 'domestic', stage: 0, kind: 'หนังสือขอขยายเวลา', who: 'บมจ. สหวิริยาสตีลอินดัสตรี (SSI) · 22 ธ.ค. 2563', dir: 'qn-flow/ext', name: 'จดหมายของ บมจ.สหวิริยาอินดัสตรี.pdf' },
+  { party: 'domestic', stage: 0, kind: 'หนังสือตอบให้ขยายเวลาเป็น 29 ม.ค. 2564 16.30 น.', who: 'กพ. ถึง SSI · ธ.ค. 2563', dir: 'qn-flow/ext', name: 'หนังสือให้ขยายเวลา SSI.pdf' },
+  { party: 'domestic', stage: 0, kind: 'หนังสือขอขยายเวลา', who: 'บมจ. สหวิริยาเพลทมิล (SPM)', dir: 'qn-flow/ext', name: 'จดหมายของ บมจ. สหวิริยาเพลทมิล.pdf' },
+  { party: 'domestic', stage: 0, kind: 'หนังสือตอบให้ขยายเวลา', who: 'กพ. ถึง SPM', dir: 'qn-flow/ext', name: 'หนังสือให้ขยายเวลา SPM.pdf' },
+  { party: 'domestic', stage: 0, kind: 'หนังสือขอขยายเวลา', who: 'บมจ. จี สตีล', dir: 'qn-flow/ext', name: 'จดหมายขอขยาย GSteel.pdf' },
+  { party: 'domestic', stage: 0, kind: 'หนังสือตอบให้ขยายเวลา', who: 'กพ. ถึง บมจ. จี สตีล', dir: 'qn-flow/ext', name: 'จี สตีล.pdf' },
+  { party: 'domestic', stage: 0, kind: 'หนังสือขอขยายเวลา', who: 'บมจ. จี เจ สตีล', dir: 'qn-flow/ext', name: 'จดหมายขอขยาย GJ.pdf' },
+  { party: 'domestic', stage: 0, kind: 'หนังสือตอบให้ขยายเวลา', who: 'กพ. ถึง บมจ. จี เจ สตีล', dir: 'qn-flow/ext', name: 'จี เจ สตีล.pdf' },
+  { party: 'domestic', stage: 1, kind: 'หนังสือนำส่งคำตอบแบบสอบถาม', who: 'บมจ. จี สตีล · 29 ม.ค. 2564', dir: 'qn-flow/answer', name: 'หนังสือนำส่งคำตอบแบบสอบถาม 29 ม.ค. 64.pdf' },
+  { party: 'domestic', stage: 1, kind: 'แบบสอบถามผู้ผลิตภายในประเทศ (ฉบับเปิดเผย)', who: 'บมจ. จี สตีล', dir: 'qn-flow/answer', name: 'แบบสอบถามสำหรับผู้ผลิตภายในประเทศ AD เวียดนาม อียิปต์ (ฉบับเปิดเผย).pdf' },
+  { party: 'domestic', stage: 1, kind: 'ตารางแบบสอบถาม (ฉบับเปิดเผย)', who: 'บมจ. จี สตีล', dir: 'qn-flow/answer', name: 'ตารางแบบสอบถาม AD เวียดนาม อียิปต์ (ฉบับเปิดเผย).xls' },
+  { party: 'domestic', stage: 1, kind: 'แบบสอบถามผู้ผลิตในประเทศ (ฉบับเปิดเผย)', who: 'บมจ. จี เจ สตีล', dir: 'qn-flow/answer', name: 'แบบสอบถามสำหรับผู้ผลิตในประเทศ - GJS Public.pdf' },
+  { party: 'domestic', stage: 1, kind: 'ตารางแบบสอบถาม (ฉบับเปิดเผย)', who: 'บมจ. จี เจ สตีล', dir: 'qn-flow/answer', name: 'ตารางแบบสอบถามสำหรับผู้ผลิตในประเทศ - GJS Public.xls' },
+  { party: 'domestic', stage: 1, kind: 'แบบสอบถามผู้ผลิตภายในประเทศ (ฉบับเปิดเผย)', who: 'บมจ. สหวิริยาสตีลอินดัสตรี · รับ 27 ม.ค. 2564', dir: 'qn-flow/answer', name: 'แบบสอบถามสำหรับผู้ผลิตภายในประเทศ AD เวียดนาม อียิปต์-ฉบับเปิดเผย.docx' },
+  { party: 'domestic', stage: 1, kind: 'ตารางแบบสอบถาม (ฉบับเปิดเผย)', who: 'บมจ. สหวิริยาสตีลอินดัสตรี', dir: 'qn-flow/answer', name: 'ตารางแบบสอบถาม AD เวียดนาม อียิปต์ - ฉบับเปิดเผย_Sent 22.01.21.xlsx' },
+  { party: 'domestic', stage: 1, kind: 'แบบสอบถามผู้ผลิต (ฉบับเปิดเผย)', who: 'บมจ. สหวิริยาเพลทมิล', dir: 'qn-flow/answer', name: 'SPM-AD -VNEG-NonCon-200164.doc' },
+  { party: 'domestic', stage: 2, kind: 'หนังสือขอให้ดำเนินการตอบให้ครบถ้วน ครั้งที่ 1 (กำหนด 23 มี.ค. 2564)', who: 'กพ. ถึง SSI · ก.พ. 2564', dir: 'qn-flow/revise', name: 'ขอข้อมูล ครั้งที่ 1 SSI.pdf' },
+  { party: 'domestic', stage: 2, kind: 'รายการข้อมูลและเอกสารหลักฐานที่ให้ตรวจสอบ (สิ่งที่ส่งมาด้วย)', who: 'กพ. ถึง SSI', dir: 'qn-flow/revised', name: 'รายการข้อมูล เอกสารหลักฐานที่ให้ตรวจสอบ_SSI_sub1_20210323.docx' },
+  { party: 'domestic', stage: 2, kind: 'หนังสือขอข้อมูลเพิ่มเติม ครั้งที่ 1', who: 'กพ. ถึง SPM', dir: 'qn-flow/revise', name: 'ขอข้อมูลครั้งที่ 1 SPM.pdf' },
+  { party: 'domestic', stage: 2, kind: 'หนังสือขอข้อมูลเพิ่มเติม ครั้งที่ 1', who: 'กพ. ถึง บมจ. จี สตีล', dir: 'qn-flow/revise', name: 'หนังสือขอข้อมูลผู้ผลิต G Steel ครั้งที่ 1.pdf' },
+  { party: 'domestic', stage: 2, kind: 'หนังสือขอข้อมูลเพิ่มเติม ครั้งที่ 1', who: 'กพ. ถึง บมจ. จี เจ สตีล', dir: 'qn-flow/revise', name: 'ขอข้อมูลครั้งที่ 1 GJS.pdf' },
+  { party: 'domestic', stage: 3, kind: 'หนังสือนำส่งคำตอบที่ปรับปรุง (Sub.1) · 9 มี.ค. 2564', who: 'บมจ. จี สตีล', dir: 'qn-flow/revised', name: 'หนังสือนำส่ง Sub.1 9 มี.ค. 64.pdf' },
+  { party: 'domestic', stage: 4, kind: 'สรุปคำตอบแบบสอบถามผู้ผลิตภายในประเทศ', who: 'เจ้าหน้าที่ กพ.', dir: 'answers', name: 'สรุปคำตอบแบบสอบถาม HR.docx' },
+  // ผู้นำเข้า
+  { party: 'importer', stage: 0, kind: 'หนังสือขอขยายเวลาตอบแบบสอบถาม (ครบเดิม 30 ธ.ค. 2563)', who: 'Samsung C&T (ประเทศไทย) · 18 ธ.ค. 2563', dir: 'qn-flow/ext', name: 'Samsung ขอขยายเวลาตอบแบบสอบถาม.pdf' },
+  { party: 'importer', stage: 0, kind: 'หนังสือตอบให้ขยายเวลาเป็น 15 ม.ค. 2564 16.30 น.', who: 'กพ. ถึง Samsung C&T · ธ.ค. 2563', dir: 'qn-flow/ext', name: 'หนังสือตอบSamsungขอขยายเวลา.pdf' },
+  { party: 'importer', stage: 1, kind: 'หนังสือแจ้งขอไม่ตอบแบบสอบถาม', who: 'บมจ. ฮันวา สตีล', dir: 'answers', name: 'ฮันวาสตีล (ขอไม่ตอบQN).pdf' },
+  { party: 'importer', stage: 2, kind: 'หนังสือขอให้ดำเนินการตอบให้ครบถ้วน ครั้งที่ 1 (กำหนด 18 ก.พ. 2564)', who: 'กพ. ถึง Samsung C&T · ม.ค. 2564 (ตอบหนังสือ 15 ม.ค. 2564)', dir: 'qn-flow/revise', name: 'หนังสือขอขอมูลเพิ่มเติมครั้งที่ 1 (Samsung C&T).pdf' },
+  { party: 'importer', stage: 2, kind: 'หนังสือขอข้อมูลเพิ่มเติม ครั้งที่ 1', who: 'กพ. ถึง โอเชี่ยนไพพ์', dir: 'qn-flow/revise', name: 'หนังสือขอขอมูลเพิ่มเติมครั้งที่ 1 (โอเชี่ยนไพพ์).pdf' },
+  { party: 'importer', stage: 4, kind: 'สรุปคำตอบแบบสอบถามผู้นำเข้า', who: 'เจ้าหน้าที่ กพ.', dir: 'answers', name: 'สรุปคำตอบแบบสอบถามผู้นำเข้า.docx' },
+];
+/** ผู้รับหนังสือแจ้งเปิดไต่สวนรายราย ตามไฟล์สแกนที่ลงนามจริงของเคส AD1046 (ไม่รวมฉบับรวมหลายราย) */
+const RECIPIENTS: { party: 'importer' | 'domestic' | 'exporter'; group: string; label: string; dir: string; name: string }[] = [
+  { party: 'exporter', group: 'ผู้ส่งออกเวียดนาม', label: 'Formosa Ha Tinh Steel Corporation (FHS)', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน exporter', name: 'FHS Vietnam.pdf' },
+  { party: 'exporter', group: 'ผู้ส่งออกอียิปต์', label: 'Al Ezz Dekheila Steel Company – Alexandria (EZDK)', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน exporter', name: 'Alexandria (EZDK).pdf' },
+  { party: 'exporter', group: 'ผู้ส่งออกอียิปต์', label: 'Al Ezz Flat Steel Rebars', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน exporter', name: 'Al Ezz Flat Steel Rebars.pdf' },
+  { party: 'exporter', group: 'ผู้ส่งออกอียิปต์', label: 'Al Ezz Steel Rebars S.A.E ("ezzsteel")', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวน exporter', name: 'ezzsteel.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ทวีโชคพาณิช', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ทวีโชคพาณิช.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ทีเอ็มที สตีล', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ทีเอ็มที สตีล.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 2', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า2.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 3', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า3.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 6', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า6.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 7', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า7.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 9', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า9.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 10', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า10.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 12', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า12.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 13', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า 13.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 17', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า17.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 18', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า18.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 19', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า19.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 20', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า20.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'ผู้นำเข้า 21', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_ผู้นำเข้า21.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'มิตรสตีล', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_มิตรสตีล.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'สหไทยสตีลไพพ์', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_สหไทยสตีลไพพ์.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'เพิ่มสินสตีลเวิคส์', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_เพิ่มสินสตีลเวิคส์.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'เหล็กสยามพาณิชย์', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_เหล็กสยามพาณิชย์.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'แปซิฟิกไพพ์', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_แปซิฟิกไพพ์.pdf' },
+  { party: 'importer', group: 'ผู้นำเข้า', label: 'โอเชี่ยนไพพ์', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนผู้นำเข้า', name: 'แจ้งประกาศเปิดไต่สวน_โอเชี่ยนไพพ์.pdf' },
+  { party: 'domestic', group: 'อุตสาหกรรมภายใน', label: 'จี สตีล', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_จีสตีล.pdf' },
+  { party: 'domestic', group: 'อุตสาหกรรมภายใน', label: 'จี เจ สตีล', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_จีเจสตีล.pdf' },
+  { party: 'domestic', group: 'อุตสาหกรรมภายใน', label: 'สหวิริยาสตีลอินดัสตรี', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_สหวิริยาสตีล.pdf' },
+  { party: 'domestic', group: 'อุตสาหกรรมภายใน', label: 'สหวิริยาเพลทมิล', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_สหวิริยาเพลทมิล.pdf' },
+  { party: 'domestic', group: 'อุตสาหกรรมภายใน', label: 'แอลพีเอ็นเพลทมิล', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_แอลพีเอ็นเพลทมิล.pdf' },
+  { party: 'domestic', group: 'อุตสาหกรรมภายใน', label: 'โคเบลโคมิลคอน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_โคเบลโคมิลคอน.pdf' },
+  { party: 'domestic', group: 'อุตสาหกรรมภายใน', label: 'ไพรม์สตีล', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนอุตสาหกรรมภายใน', name: 'แจ้งประกาศเปิดไต่สวน_ไพรม์สตีล.pdf' },
+  { party: 'domestic', group: 'สมาคม', label: 'กลุ่มเหล็ก สภาอุตสาหกรรม', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนสมาคม', name: 'แจ้งประกาศเปิดไต่สวน_กลุ่มเหล็ก สภาอุตฯ.pdf' },
+  { party: 'domestic', group: 'สมาคม', label: 'สถาบันเหล็ก', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนสมาคม', name: 'แจ้งประกาศเปิดไต่สวน_สถาบันเหล็ก.pdf' },
+  { party: 'domestic', group: 'สมาคม', label: 'สมาคมต่อเรือ', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนสมาคม', name: 'แจ้งประกาศเปิดไต่สวน_สมาคมต่อเรือ.pdf' },
+  { party: 'domestic', group: 'สมาคม', label: 'สมาคมผู้ผลิตท่อโลหะ', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนสมาคม', name: 'แจ้งประกาศเปิดไต่สวน_สมาคมผู้ผลิตท่อโลหะ.pdf' },
+  { party: 'domestic', group: 'สมาคม', label: 'สมาคมอุตสาหกรรมยานยนต์', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนสมาคม', name: 'แจ้งประกาศเปิดไต่สวน_สมาคมอุตสาหกรรมยานยนต์.pdf' },
+  { party: 'domestic', group: 'สมาคม', label: 'สมาคมเหล็กแผ่นรีดร้อน', dir: 'open/สแกนเอกสาร/แจ้งเปิดไต่สวนสมาคม', name: 'แจ้งประกาศเปิดไต่สวน_สมาคมเหล็กแผ่นรีดร้อน.pdf' },
+];
+function addThaiDays(value: string, days: number): string {
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value.trim());
+  if (!match) return '';
+  const date = new Date(Number(match[3]) - 543, Number(match[2]) - 1, Number(match[1]) + days);
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear() + 543}`;
+}
+
+// แถลงการณ์จัดได้หลายรอบ แต่ละรอบมีวันนัด หนังสือแจ้ง ผล e-Office และรายงานของตัวเอง
+type HearingFile = { stage: 0 | 1 | 2 | 3; kind: string; party: string; dir: string; name: string };
+
+const HEARING_STAGES = [
+  '1. เอกสารเตรียมและแจ้งผู้เข้าร่วม',
+  '2. เอกสารตอบรับและข้อคิดเห็นจากผู้เข้าร่วม',
+  '3. เอกสารหลังจัดแถลงการณ์',
+  '4. เอกสารฉบับสมบูรณ์ (ลงนามแล้ว)',
+];
+
+// เอกสารจริงของ AD1046: แถลงการณ์ร่างผลการไต่สวนชั้นที่สุด 28 ก.ย. 2564 (Public Hearing และ Private Hearing) ไม่รวมไฟล์ฉบับปกปิด
+const HEARING_DEPT = 'กองปกป้องและตอบโต้ทางการค้า';
+const SIGNED_LETTER = 'หนังสือแจ้งร่างผลและเชิญแถลงการณ์ (ลงนามแล้ว ลงวันที่ 10 ก.ย. 2564)';
+const HEARING_FILES: Record<'public' | 'private', HearingFile[]> = {
+  public: [
+    { stage: 0, kind: 'บันทึกส่งหนังสือร่างผลและเชิญแถลงการณ์เสนออธิบดี', party: HEARING_DEPT, dir: 'prep', name: '1. บันทึกส่งหนังสือร่างผลไต่สวน Hearing.docx' },
+    { stage: 0, kind: 'หนังสือถึงผู้ส่งออก (ฉบับร่างหน้าเว็บ)', party: HEARING_DEPT, dir: 'prep', name: '1.2. หนังสือถึงผู้ส่งออก หน้าเว็ป.doc' },
+    { stage: 0, kind: 'หนังสือแจ้งสถานทูตเวียดนาม (EN)', party: HEARING_DEPT, dir: 'prep', name: '1.1 (1) EN หนังสือแจ้งสถานทูตเวียดนาม.docx' },
+    { stage: 0, kind: 'แบบตอบรับเข้าร่วมแถลงการณ์ (ไทย)', party: HEARING_DEPT, dir: 'prep', name: 'TH แบบตอบรับ Hearing.docx' },
+    { stage: 0, kind: 'แบบตอบรับเข้าร่วมแถลงการณ์ (EN)', party: HEARING_DEPT, dir: 'prep', name: 'EN แบบตอบรับ Hearing.docx' },
+    { stage: 0, kind: 'แบบตอบรับเข้าร่วมแถลงการณ์สำหรับสถานทูต (EN)', party: HEARING_DEPT, dir: 'prep', name: 'Attachment 2 EN แบบตอบรับ Hearing (สถานทูต).docx' },
+    { stage: 0, kind: 'ข้อปฏิบัติในการเข้าร่วมประชุม (EN)', party: HEARING_DEPT, dir: 'prep', name: 'ข้อปฏิบัติ EN.docx' },
+    { stage: 0, kind: 'กำหนดการประชุมรับฟังความคิดเห็น 28 ก.ย. 2564', party: HEARING_DEPT, dir: 'prep', name: 'กำหนดการประชุมรับฟังความคิดเห็น ร่างผล HR VN EG.pdf' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'บมจ. สหวิริยาสตีลอินดัสตรี', dir: 'forms', name: 'แบบตอบรับ SSI.pdf' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'บมจ. จี เจ สตีล', dir: 'forms', name: 'แบบตอบรับ จี เจ สตีล.pdf' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'บมจ. จี สตีล', dir: 'forms', name: 'แบบตอบรับ จี สตีล.pdf' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'Formosa Ha Tinh Steel Corporation', dir: 'forms', name: 'FHS - Hearing Participant Form.pdf' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'forms', name: 'EZDK - Hearing Participant form.pdf' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'สมาคมเหล็กแผ่นรีดร้อนไทย', dir: 'forms', name: 'แบบตอบรับสมาคมเหล็กแผ่นรีดร้อนไทย.pdf' },
+    { stage: 1, kind: 'Pre-hearing brief (ฉบับเปิดเผย)', party: 'Formosa Ha Tinh Steel Corporation', dir: 'briefs', name: 'Formosa - HRS Pre-hearing Brief (Non-Confidential).pdf' },
+    { stage: 1, kind: 'หนังสือนำส่ง Pre-hearing brief (23 ก.ค. 2564)', party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'briefs', name: 'EZDK - Submission letter on Pre-hearing brief (23.07.2021).pdf' },
+    { stage: 1, kind: 'Pre-hearing brief (ฉบับเปิดเผย)', party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'briefs', name: 'EZDK_Pre-Hearing Brief of AD HRS (Non-Confidential).pdf' },
+    { stage: 1, kind: 'ข้อคิดเห็นต่อร่างผล', party: 'Trade Remedies Sector กระทรวงการค้าและอุตสาหกรรมอียิปต์', dir: 'briefs', name: 'TRS Egypt Hearing.pdf' },
+    { stage: 1, kind: 'ข้อคิดเห็นต่อร่างผล', party: 'บมจ. สหวิริยาสตีลอินดัสตรี', dir: 'briefs', name: 'ความเห็นต่อร่างผล SSI.pdf' },
+    { stage: 1, kind: 'ข้อคิดเห็นต่อร่างผล', party: 'บมจ. จี เจ สตีล', dir: 'briefs', name: 'ความเห็นต่อร่างผล จี เจ สตีล.pdf' },
+    { stage: 1, kind: 'ข้อคิดเห็นต่อร่างผล', party: 'สมาคมต่อเรือและซ่อมเรือไทย', dir: 'briefs', name: 'ความเห็นสมาคมต่อเรือและซ่อมเรือไทย.pdf' },
+    { stage: 1, kind: 'ข้อคิดเห็นหลังแถลงการณ์', party: 'อุตสาหกรรมภายใน', dir: 'briefs', name: 'ความเห็นร่างผลอุตใน (หลัง Hearing).pdf' },
+    { stage: 2, kind: 'บันทึกรายงานผลการแถลงการณ์ (ร่างผลชั้นที่สุด)', party: HEARING_DEPT, dir: 'report', name: '1. บันทึกรายงานผลแถลงการณ์ ร่างผลเหล็กแผ่นรีดร้อน (1).docx' },
+    { stage: 2, kind: 'สรุปประเด็นรับฟังความคิดเห็นร่างผล', party: HEARING_DEPT, dir: 'report', name: '2. สรุปประเด็นรับฟังความคิดเห็น ร่างผลเหล็กแผ่นรีดร้อน (1).docx' },
+    { stage: 2, kind: 'สรุปความเห็น', party: 'Formosa Ha Tinh Steel Corporation', dir: 'report', name: 'สรุปประเด็น FHS รวมทั้งหมด (1).docx' },
+    { stage: 2, kind: 'สรุปความเห็น', party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'report', name: 'สรุปความเห็น EZDK.docx' },
+    { stage: 2, kind: 'สรุปความเห็น', party: 'Trade Remedies Sector กระทรวงการค้าและอุตสาหกรรมอียิปต์', dir: 'report', name: 'สรุปความเห็น TRS Egypt Revised.docx' },
+    { stage: 2, kind: 'สรุปความเห็น', party: 'สมาคมต่อเรือและซ่อมเรือไทย', dir: 'report', name: 'สรุปความเห็นสมาคมต่อเรือ 1.docx' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'บมจ. สหวิริยาสตีลอินดัสตรี', dir: 'signed', name: 'สหวิริยาสตีลอินดัสตรี.pdf' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'บมจ. จี เจ สตีล', dir: 'signed', name: 'จี เจ สตีล.pdf' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'บมจ. จี สตีล', dir: 'signed', name: 'จีสตีล.pdf' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'Formosa Ha Tinh Steel Corporation', dir: 'signed', name: 'Formosa Ha Tinh.pdf' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'signed', name: 'Al Ezz Dekheila.pdf' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'สมาคมต่อเรือและซ่อมเรือไทย', dir: 'signed', name: 'สมาคมต่อเรือและซ่อมเรือไทย.pdf' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'สมาคมเหล็กแผ่นรีดร้อนไทย', dir: 'signed', name: 'สมาคมเหล็กแผ่นรีดร้อนไทย.pdf' },
+  ],
+  private: [
+    { stage: 0, kind: 'กำหนดการประชุมรับฟังความคิดเห็น 28 ก.ย. 2564 (Private Hearing 11.30–12.05 น.)', party: HEARING_DEPT, dir: 'prep', name: 'กำหนดการประชุมรับฟังความคิดเห็น ร่างผล HR VN EG.pdf' },
+    { stage: 0, kind: 'หนังสือถึงผู้ส่งออก (ฉบับร่างหน้าเว็บ)', party: HEARING_DEPT, dir: 'prep', name: '1.2. หนังสือถึงผู้ส่งออก หน้าเว็ป.doc' },
+    { stage: 0, kind: 'แบบตอบรับเข้าร่วมแถลงการณ์ (EN)', party: HEARING_DEPT, dir: 'prep', name: 'EN แบบตอบรับ Hearing.docx' },
+    { stage: 0, kind: 'ข้อปฏิบัติในการเข้าร่วมประชุม (EN)', party: HEARING_DEPT, dir: 'prep', name: 'ข้อปฏิบัติ EN.docx' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'Formosa Ha Tinh Steel Corporation', dir: 'forms', name: 'FHS - Hearing Participant Form.pdf' },
+    { stage: 1, kind: 'แบบตอบรับเข้าร่วม (ส่งคืนแล้ว)', party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'forms', name: 'EZDK - Hearing Participant form.pdf' },
+    { stage: 1, kind: 'Post-hearing brief (ฉบับเปิดเผย)', party: 'Formosa Ha Tinh Steel Corporation', dir: 'briefs', name: 'FHS_Post Hearing Brief (Non-Confidential).pdf' },
+    { stage: 1, kind: 'หนังสือนำส่ง Post-hearing brief (1 ต.ค. 2564)', party: 'Formosa Ha Tinh Steel Corporation', dir: 'briefs', name: 'FHS - Submission letter on Post-hearing brief (1.10.2021).pdf' },
+    { stage: 2, kind: 'บันทึกรายงานผลการแถลงการณ์ (ร่างผลชั้นที่สุด)', party: HEARING_DEPT, dir: 'report', name: '1. บันทึกรายงานผลแถลงการณ์ ร่างผลเหล็กแผ่นรีดร้อน (1).docx' },
+    { stage: 2, kind: 'สรุปความเห็น', party: 'Formosa Ha Tinh Steel Corporation', dir: 'report', name: 'สรุปประเด็น FHS รวมทั้งหมด (1).docx' },
+    { stage: 2, kind: 'สรุปความเห็น', party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'report', name: 'สรุปความเห็น EZDK.docx' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'Formosa Ha Tinh Steel Corporation', dir: 'signed', name: 'Formosa Ha Tinh.pdf' },
+    { stage: 3, kind: SIGNED_LETTER, party: 'Al Ezz Dekheila Steel Company-Alexandria', dir: 'signed', name: 'Al Ezz Dekheila.pdf' },
+  ],
+};
+
+type HearingRound = {
+  id: string;
+  kind?: 'public' | 'private';
+  on: string;
+  place: string;
+  topic: string;
+  people: string;
+  office: 'wait' | 'approve' | 'return';
+  held: boolean;
+  report: string;
+  docId: string;
+};
+
 type ReviewTab = 'form' | 'assign' | 'docs' | 'inquiry' | 'prelim' | 'draftFinal' | 'finalResult' | 'measures' | 'link';
 type FlowStep = { id: string; label: string; detail: string; yes?: string; no?: string };
 type FlowField = { label: string; long?: boolean; date?: boolean };
@@ -561,16 +809,24 @@ const inquiryPack: { step: 'draftAgenda' | 'subAgenda' | 'agenda' | 'notice' | '
   { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'ประกาศกรมเปิดไต่สวน (กม. ตรวจแล้ว)' },
   { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'หนังสือขอประกาศราชกิจจาฯ (ลงนามแล้ว)' },
   { step: 'sign', group: 'ลงนามและราชกิจจานุเบกษา', kind: 'ประกาศกรมฯ ลงราชกิจจาฯ' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'บันทึกเรียน อธ. แจ้งเปิดไต่สวน' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือถึงสถานทูตเปิดไต่สวน' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือถึงผู้ส่งออกเปิดไต่สวน' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือถึง สพต./สคต. เปิดไต่สวน' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งกรมศุลกากรเปิดไต่สวน' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งผู้นำเข้าเปิดไต่สวน' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งอุตสาหกรรมภายในเปิดไต่สวน' },
-  { step: 'letters', group: 'หนังสือแจ้งผู้เกี่ยวข้อง', kind: 'หนังสือแจ้งสมาคมเปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'บันทึกเรียน อธ. แจ้งเปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'หนังสือถึงสถานทูตเวียดนามเปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'หนังสือถึงสถานทูตอียิปต์เปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'หนังสือถึงผู้ส่งออกเวียดนามเปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'หนังสือถึงผู้ส่งออกอียิปต์เปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'บันทึกแจ้ง สคต. โฮจิมินห์เปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'บันทึกแจ้ง สคต. ไคโรเปิดไต่สวน' },
+  { step: 'letters', group: 'อธ. ลงนามแจ้งต่างประเทศ', kind: 'สิ่งที่ส่งมาด้วย: รายการพิกัดศุลกากร 135 พิกัด' },
+  { step: 'letters', group: 'ผอ. ลงนามแจ้งในประเทศ', kind: 'หนังสือแจ้งผู้นำเข้าเปิดไต่สวน' },
+  { step: 'letters', group: 'ผอ. ลงนามแจ้งในประเทศ', kind: 'หนังสือแจ้งอุตสาหกรรมภายในเปิดไต่สวน' },
+  { step: 'letters', group: 'ผอ. ลงนามแจ้งในประเทศ', kind: 'หนังสือแจ้งสมาคมเปิดไต่สวน' },
+  { step: 'news', group: 'ข่าวหนังสือพิมพ์', kind: 'ใบนำส่งลงหนังสือพิมพ์' },
   { step: 'news', group: 'ข่าวหนังสือพิมพ์', kind: 'ข่าวหนังสือพิมพ์ภาษาไทย' },
   { step: 'news', group: 'ข่าวหนังสือพิมพ์', kind: 'ข่าวหนังสือพิมพ์ภาษาอังกฤษ' },
+  { step: 'news', group: 'เผยแพร่ข้อมูลที่เปิดเผยได้', kind: 'ประกาศเปิดไต่สวนบนเว็บไซต์ (ไทย)' },
+  { step: 'news', group: 'เผยแพร่ข้อมูลที่เปิดเผยได้', kind: 'ประกาศเปิดไต่สวนบนเว็บไซต์ (อังกฤษ)' },
+  { step: 'news', group: 'เผยแพร่ข้อมูลที่เปิดเผยได้', kind: 'คำขอฉบับเปิดเผย (non-confidential)' },
+  { step: 'news', group: 'เผยแพร่ข้อมูลที่เปิดเผยได้', kind: 'ใบแจ้งชำระค่าฉบับเปิดเผย' },
   { step: 'hearing', group: 'แถลงการณ์', kind: 'หนังสือขอให้จัดแถลงการณ์เปิดไต่สวน' },
   { step: 'hearing', group: 'แถลงการณ์', kind: 'บันทึกขออนุมัติจัดแถลงการณ์' },
   { step: 'hearing', group: 'แถลงการณ์', kind: 'หนังสือแจ้งผู้เข้าร่วมแถลงการณ์' },
@@ -4175,8 +4431,9 @@ export class Por1Page {
     }
     if (this.reviewTab === 'inquiry') {
       this.placeInquiry();
-      if (askedStep && (this.inquiryNav.some((step) => step.id === askedStep))) {
-        this.openInquiryStep(askedStep as InquiryStep);
+      const step = askedStep === 'sign' && this.signStage === 'final' ? 'letters' : askedStep;
+      if (step && (this.inquiryNav.some((item) => item.id === step))) {
+        this.openInquiryStep(step as InquiryStep);
       }
     }
   }
@@ -15531,7 +15788,7 @@ window.onload=function(){
   }
 
   private inquiryDraft(kind: string): { label: string; value: string; long?: boolean }[] | null {
-    const signed = signDocFields(kind);
+    const signed = signDocFields(kind) ?? letterDocFields(kind);
     if (signed) return signed;
     const measure = measurePack.some((item) => item.kind === kind);
     const final = !measure && finalResultPack.some((item) => item.kind === kind);
@@ -15569,12 +15826,34 @@ window.onload=function(){
               ? `ที่ประชุมคณะอนุกรรมการพิจารณาการไต่สวน ครั้งที่ ${CASE.subNo} เมื่อ ${meetOn} เวลา ${CASE.subAt} ณ ${CASE.subPlace} มีมติเสนอ ทตอ. รับคำขอและเปิดไต่สวนคำขอเลขที่อ้างอิง ${this.refId}`
               : `ที่ประชุมคณะกรรมการพิจารณาการทุ่มตลาดและการอุดหนุน (ทตอ.) ครั้งที่ ${CASE.tdcNo} เมื่อ ${meetOn} เวลา ${CASE.tdcAt} ณ ${CASE.tdcPlace} มีมติรับคำขอและเปิดไต่สวนคำขอเลขที่อ้างอิง ${this.refId}`;
     const body = this.inquiryCaseBody(kind);
-    if (kind.includes('ข่าวหนังสือพิมพ์')) {
+    if (kind.startsWith('คำขอฉบับเปิดเผย')) {
       return [
-        field('วันที่', noticeOn),
-        field('ภาษา', kind.includes('อังกฤษ') ? 'อังกฤษ' : 'ไทย'),
-        field('หัวข่าว', kind.includes('อังกฤษ') ? 'DFT opens anti-dumping investigation on hot-rolled steel from Vietnam and Egypt' : 'กรมการค้าต่างประเทศเปิดไต่สวนการทุ่มตลาดเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์'),
-        field('เนื้อข่าว', body, true),
+        field('เรื่อง', 'คำขอให้พิจารณาตอบโต้การทุ่มตลาด (ฉบับเปิดเผย)'),
+        field('ผู้ยื่นคำขอ', 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน) กระทำการแทนอุตสาหกรรมภายใน ร่วมกับ บริษัท จี สตีล จำกัด (มหาชน), บริษัท จี เจ สตีล จำกัด (มหาชน) และ บริษัท สหวิริยาเพลทมิล จำกัด (มหาชน)'),
+        field('สินค้า', 'เหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วน ที่มีแหล่งกำเนิดจากสาธารณรัฐสังคมนิยมเวียดนามและสาธารณรัฐอาหรับอียิปต์ (135 พิกัด)'),
+        field('หมายเหตุ', 'ฉบับเปิดเผยนี้ตัดข้อมูลที่เป็นความลับทางการค้าออกแล้ว ส่งให้ผู้มีส่วนได้เสียพร้อมหนังสือแจ้งเปิดไต่สวน', true),
+      ];
+    }
+    if (kind.includes('ข่าวหนังสือพิมพ์')) {
+      const english = kind.includes('อังกฤษ');
+      return [
+        field('วันที่', '18/11/2563'),
+        field('ภาษา', english ? 'อังกฤษ' : 'ไทย'),
+        field('หัวข่าว', english ? 'Department of Foreign Trade Notification' : 'ประกาศกรมการค้าต่างประเทศ'),
+        field('เนื้อข่าว', english
+          ? 'The Department of Foreign Trade (DFT) hereby notified the initiation of an Anti-dumping Proceeding on Flat Hot Rolled Steel in Coils and not in Coils Originating in the Socialist Republic of Vietnam and the Arab Republic of Egypt. This notification is published in the Royal Gazette on 18 November 2020.\nFor more information, please contact the Trade Interests and Remedies Division, the Department of Foreign Trade, Ministry of Commerce: Tel: 0-2547-5082 or via www.thaitr.go.th'
+          : 'กรมการค้าต่างประเทศ ได้ประกาศเปิดการไต่สวนการทุ่มตลาดสินค้าเหล็กแผ่นรีดร้อนชนิดเป็นม้วนและไม่เป็นม้วนที่มีแหล่งกำเนิดจากสาธารณรัฐสังคมนิยมเวียดนามและสาธารณรัฐอาหรับอียิปต์ โดยเริ่มกระบวนการไต่สวนตั้งแต่วันที่ประกาศในราชกิจจานุเบกษาเมื่อวันที่ 18 พฤศจิกายน 2563\nสอบถามรายละเอียดเพิ่มเติมได้ที่ กองปกป้องและตอบโต้ทางการค้า กรมการค้าต่างประเทศ กระทรวงพาณิชย์ โทร. 0-2547-5082 หรือ www.thaitr.go.th', true),
+      ];
+    }
+    if (kind.startsWith('ประกาศเปิดไต่สวนบนเว็บไซต์')) {
+      const english = kind.includes('อังกฤษ');
+      return [
+        field('ช่องทาง', 'เว็บไซต์กอง www.thaitr.go.th'),
+        field('ภาษา', english ? 'อังกฤษ' : 'ไทย'),
+        field('เรื่อง', english ? 'Initiation Notification AD1046' : 'ประกาศเปิดไต่สวน AD1046'),
+        field('เนื้อความ', english
+          ? 'Public initiation notification of the anti-dumping investigation on flat hot-rolled steel from Vietnam and Egypt, published on the division website.'
+          : 'ประกาศเปิดไต่สวนการทุ่มตลาดเหล็กแผ่นรีดร้อนจากเวียดนามและอียิปต์ ฉบับที่เผยแพร่บนเว็บไซต์กอง', true),
       ];
     }
     if (kind.startsWith('วาระการประชุม') || kind.startsWith('มติที่ประชุม') || kind.startsWith('รายงานการประชุม')) {
@@ -15711,6 +15990,131 @@ window.onload=function(){
     return inquiryPack.filter((item) => item.step === step);
   }
 
+
+  /** รอบส่งหนังสือแจ้ง: ร่างถึงอธิบดี → ส่งแล้ว → ร่างถึงผู้อำนวยการ → ส่งแล้ว → ครบสองรอบ */
+  protected get letterRound(): 'dg-draft' | 'dg-sent' | 'dir-draft' | 'dir-sent' | 'done' {
+    const value = this.laterPhase.notes['letters-round'];
+    return value === 'dg-sent' || value === 'dir-draft' || value === 'dir-sent' || value === 'done' ? value : 'dg-draft';
+  }
+
+  protected readonly letterRounds = LETTER_ROUNDS;
+
+  private letterPick: '' | 'dg' | 'dir' = '';
+
+  /** รอบที่เปิดดูอยู่ — ค่าเริ่มต้นคือรอบที่กำลังทำ */
+  protected get letterView(): 'dg' | 'dir' {
+    if (this.letterPick) return this.letterPick;
+    return this.letterRound === 'dg-draft' || this.letterRound === 'dg-sent' ? 'dg' : 'dir';
+  }
+
+  protected pickLetterView(round: 'dg' | 'dir'): void {
+    if (this.letterView === round) return;
+    this.closePackDesk();
+    this.letterPick = round;
+  }
+
+  protected letterFiles(round: 'dg' | 'dir'): { kind: string; name: string; href: string }[] {
+    return LETTER_FILES.filter((file) => file.round === round).map((file) => {
+      const held = this.packDocs.find((row) => row.step === 'letters' && row.kind === file.kind);
+      return { kind: file.kind, name: held?.name || file.name, href: held?.href || `${SAMPLE_ROOT}${file.dir}/${file.name}` };
+    });
+  }
+
+  protected letterRoundTone(round: 'dg' | 'dir'): 'success' | 'info' | 'neutral' | 'warning' {
+    const stage = this.letterRound;
+    if (round === 'dg') return stage === 'dg-draft' ? 'warning' : 'success';
+    if (stage === 'done') return 'success';
+    if (stage === 'dir-sent' || stage === 'dir-draft') return stage === 'dir-sent' ? 'info' : 'warning';
+    return 'neutral';
+  }
+
+  protected letterRoundLabel(round: 'dg' | 'dir'): string {
+    const stage = this.letterRound;
+    if (round === 'dg') return stage === 'dg-draft' ? 'ยังไม่ส่ง' : stage === 'dg-sent' ? 'รอผลจากอธิบดี' : 'อนุมัติแล้ว';
+    if (stage === 'dg-draft' || stage === 'dg-sent') return 'รอรอบอธิบดี';
+    if (stage === 'dir-draft') return 'ยังไม่ส่ง';
+    if (stage === 'dir-sent') return 'รอผู้อำนวยการลงนาม';
+    return 'ลงนามแล้ว';
+  }
+
+  protected letterAction(round: 'dg' | 'dir'): { label: string; enabled: boolean } | null {
+    const stage = this.letterRound;
+    if (round === 'dg' && stage === 'dg-draft') return { label: 'ส่งอนุมัติอธิบดี', enabled: this.reviewRole === 'officer' };
+    if (round === 'dg' && stage === 'dg-sent') return { label: 'ได้รับอนุมัติจากอธิบดี', enabled: this.reviewRole === 'officer' };
+    if (round === 'dir' && stage === 'dir-draft') return { label: 'ส่งอนุมัติผู้อำนวยการ', enabled: this.reviewRole === 'officer' };
+    if (round === 'dir' && stage === 'dir-sent') return { label: 'ผู้อำนวยการลงนาม', enabled: this.reviewRole === 'director' };
+    return null;
+  }
+
+  protected downloadLetterFile(href: string, name: string): void {
+    void this.downloadAssetFile(encodeURI(href), name);
+  }
+
+  /** ฉบับสมบูรณ์ (ลงนามแล้ว) ของหนังสือแจ้ง — แนบได้เมื่อครบสองรอบ และเป็นของเจ้าหน้าที่ */
+  protected readonly letterFinalFiles = LETTER_FINAL_FILES;
+
+  protected letterFinalName(kind: string): string {
+    return this.laterPhase.notes[`letters-final:${kind}`] || '';
+  }
+
+  protected get letterFinalDone(): boolean {
+    return LETTER_FINAL_FILES.every((file) => !!this.letterFinalName(file.kind));
+  }
+
+  protected get letterCanUpload(): boolean {
+    return this.letterRound === 'done' && this.reviewRole === 'officer';
+  }
+
+  protected letterSignerLabel(round: 'dg' | 'dir'): string {
+    return round === 'dg' ? 'อธิบดีลงนาม' : 'ผู้อำนวยการลงนาม';
+  }
+
+  protected attachLetterFinal(kind: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || !this.letterCanUpload) return;
+    this.keepNote(`letters-final:${kind}`, file.name);
+  }
+
+  /** ใช้ไฟล์ของเคส AD1046 เป็นฉบับสมบูรณ์ของหนังสือนั้น */
+  protected attachLetterFinalSample(kind: string): void {
+    const sample = LETTER_FINAL_FILES.find((file) => file.kind === kind);
+    if (!sample || !this.letterCanUpload) return;
+    this.keepNote(`letters-final:${kind}`, sample.name);
+  }
+
+  protected openLetterFinal(kind: string): void {
+    const sample = LETTER_FINAL_FILES.find((file) => file.kind === kind);
+    if (!sample || this.letterFinalName(kind) !== sample.name) return;
+    this.openPackDocFile(`${SAMPLE_ROOT}${sample.dir}/${sample.name}`);
+  }
+
+  protected downloadLetterFinal(kind: string): void {
+    const sample = LETTER_FINAL_FILES.find((file) => file.kind === kind);
+    if (!sample || this.letterFinalName(kind) !== sample.name) return;
+    this.downloadLetterFile(`${SAMPLE_ROOT}${sample.dir}/${sample.name}`, sample.name);
+  }
+
+  /** ฉบับสมบูรณ์ครบแล้ว ไปขั้นข่าวหนังสือพิมพ์ต่อ */
+  protected goInquiryNews(): void {
+    if (!this.letterFinalDone) return;
+    this.inquiryPart = 'news';
+  }
+
+  protected advanceLetterRound(round: 'dg' | 'dir'): void {
+    const action = this.letterAction(round);
+    if (!action?.enabled) return;
+    const next: Record<string, 'dg-draft' | 'dg-sent' | 'dir-draft' | 'dir-sent' | 'done'> = {
+      'dg-draft': 'dg-sent',
+      'dg-sent': 'dir-draft',
+      'dir-draft': 'dir-sent',
+      'dir-sent': 'done',
+    };
+    const to = next[this.letterRound];
+    if (to) this.keepNote('letters-round', to);
+  }
+
   /** ขั้นของชุดเอกสารลงนาม: ร่าง → หัวหน้ากลุ่ม → ผู้อำนวยการ → e-Office → ลงนามแล้ว → ฉบับสมบูรณ์ครบ */
   protected readonly signStageSteps: { id: 'draft' | 'to-head' | 'to-director' | 'eoffice' | 'signed' | 'final'; label: string; who: string }[] = [
     { id: 'draft', label: 'ร่างชุดเอกสาร', who: 'เจ้าหน้าที่' },
@@ -15722,7 +16126,7 @@ window.onload=function(){
   ];
 
   protected get signStage(): 'draft' | 'to-head' | 'to-director' | 'eoffice' | 'signed' | 'final' {
-    const value = this.laterPhase.notes['sign-stage'];
+    const value = this.laterPhase.notes['sign-stage'] === 'final' && !this.signFinalDone ? 'signed' : this.laterPhase.notes['sign-stage'];
     return this.signStageSteps.some((step) => step.id === value) ? (value as 'draft' | 'to-head' | 'to-director' | 'eoffice' | 'signed' | 'final') : 'draft';
   }
 
@@ -15774,10 +16178,17 @@ window.onload=function(){
     if (this.signFinalDone) this.keepNote('sign-stage', 'final');
   }
 
+  protected downloadSignFinalSample(kind: string): void {
+    const sample = this.signFinalSample(kind);
+    if (!sample || this.signFinalName(kind) !== sample.name) return;
+    void this.downloadAssetFile(encodeURI(`${SAMPLE_ROOT}${sample.dir}/${sample.name}`), sample.name);
+  }
+
   protected openSignFinalSample(kind: string): void {
     const sample = this.signFinalSample(kind);
     if (!sample || this.signFinalName(kind) !== sample.name) return;
-    window.open(encodeURI(`${SAMPLE_ROOT}${sample.dir}/${sample.name}`), '_blank', 'noopener');
+    const path = `${SAMPLE_ROOT}${sample.dir}/${sample.name}`;
+    window.open(encodeURI(/\.docx?$/i.test(path) ? `${path}.html` : path), '_blank', 'noopener');
   }
 
   /** ผู้ทำขั้นนี้ได้ตามบทบาท */
@@ -15866,6 +16277,7 @@ window.onload=function(){
   /** เอกสารที่เลือกจะร่าง — อยู่ในชุดของขั้นที่เปิดอยู่ */
   protected get packDeskForms(): { group: string; kind: string }[] {
     const rows = this.inquiryFormsOf(this.inquiryPart);
+    if (this.inquiryPart === 'letters') return rows.filter((row) => LETTER_FILES.some((file) => file.kind === row.kind && file.round === this.letterView));
     return this.inquiryPart === 'sign' ? rows.filter((row) => SIGN_PROPOSAL_FILES.some((file) => file.kind === row.kind)) : rows;
   }
 
@@ -15881,7 +16293,7 @@ window.onload=function(){
   protected get packDeskRows(): { id: string; title: string; name: string; at: string; source: 'ai' | 'created' | 'upload'; href: string }[] {
     const allowed = this.packDeskForms.map((row) => row.kind);
     return this.packDocs
-      .filter((row) => row.step === this.inquiryPart && (this.inquiryPart !== 'sign' || allowed.includes(row.kind)))
+      .filter((row) => row.step === this.inquiryPart && ((this.inquiryPart !== 'sign' && this.inquiryPart !== 'letters') || allowed.includes(row.kind)))
       .map((row) => ({ id: row.id, title: row.title, name: row.name, at: row.at, source: row.source, href: row.href || '' }));
   }
 
@@ -15966,9 +16378,164 @@ window.onload=function(){
         href: `${SAMPLE_ROOT}${file.dir}/${file.name}`,
       });
     });
-    if (!added.length) return;
+    if (added.length) {
+      this.packDocs = [...this.packDocs, ...added];
+      this.writePackDocs();
+    }
+    // ขั้นลงนามของเคส AD1046 เดินครบแล้ว (e-Office ลงนามกลับมา แนบฉบับสมบูรณ์ครบ) — ใส่ครั้งเดียว เพื่อเดินขั้นถัดไปได้
+    if (this.laterPhase.notes['sign-seed'] === '2') return;
+    const notes: Record<string, string> = { ...this.laterPhase.notes, 'sign-seed': '2', 'sign-stage': 'final' };
+    for (const file of SIGN_FINAL_FILES) notes[`sign-final:${file.kind}`] = file.name;
+    this.laterPhase = { ...this.laterPhase, notes };
+    writeLaterPhase(this.laterPhase);
+  }
+
+
+  /** รหัสแถวเอกสารซ้ำ (เกิดจากข้อมูลเดิมที่บันทึกไว้ก่อนเพิ่มไฟล์ใหม่) — แก้ให้ไม่ซ้ำก่อนแสดงผล */
+  private dedupePackIds(): void {
+    const seen = new Set<string>();
+    let changed = false;
+    this.packDocs = this.packDocs.map((row, index) => {
+      if (!seen.has(row.id)) {
+        seen.add(row.id);
+        return row;
+      }
+      changed = true;
+      const id = `${row.id}-dup${index}`;
+      seen.add(id);
+      return { ...row, id };
+    });
+    if (changed) this.writePackDocs();
+  }
+
+  /** ใส่หนังสือแจ้งผู้เกี่ยวข้องของเคส AD1046 ครบชุด พร้อมไฟล์จริงไว้ดูและโหลด */
+  private seedLetterPack(): void {
+    this.dedupePackIds();
+    const at = this.replyStamp();
+    const added: PackDoc[] = [];
+    let touched = false;
+    LETTER_FILES.forEach((file, index) => {
+      const href = `${SAMPLE_ROOT}${file.dir}/${file.name}`;
+      const held = this.packDocs.find((row) => row.step === 'letters' && row.kind === file.kind);
+      if (held) {
+        if (held.href !== href) {
+          held.name = file.name;
+          held.href = href;
+          touched = true;
+        }
+        return;
+      }
+      added.push({
+        id: `pack-seed-letters-${Date.now()}-${index}`,
+        step: 'letters',
+        kind: file.kind,
+        version: 1,
+        title: `${file.kind} · เวอร์ชัน 1`,
+        name: file.name,
+        source: 'ai',
+        at,
+        html: this.packDocHtml(file.kind),
+        href,
+      });
+    });
+    if (this.laterPhase.notes['letters-seed'] !== 'v2') {
+      for (const file of LETTER_FILES) {
+        const held = this.packDocs.find((row) => row.step === 'letters' && row.kind === file.kind);
+        if (held) held.html = this.packDocHtml(file.kind);
+      }
+      touched = true;
+      this.keepNote('letters-seed', 'v2');
+    }
+    // หนังสือแจ้งทั้ง 10 ฉบับลงนามครบสองรอบแล้ว และแนบฉบับสมบูรณ์ครบ — ใส่ครั้งเดียว เพื่อเดินขั้นข่าวหนังสือพิมพ์ต่อได้
+    if (this.laterPhase.notes['letters-final-seed'] !== '2') {
+      const notes: Record<string, string> = { ...this.laterPhase.notes, 'letters-final-seed': '2', 'letters-round': 'done' };
+      for (const file of LETTER_FINAL_FILES) notes[`letters-final:${file.kind}`] = file.name;
+      this.laterPhase = { ...this.laterPhase, notes };
+      writeLaterPhase(this.laterPhase);
+    }
+    if (!added.length && !touched) return;
     this.packDocs = [...this.packDocs, ...added];
     this.writePackDocs();
+  }
+
+  /** ใส่ข่าวหนังสือพิมพ์และประกาศเผยแพร่ของเคส AD1046 พร้อมไฟล์จริงไว้ดูและโหลด */
+  private seedNewsPack(): void {
+    this.dedupePackIds();
+    const at = this.replyStamp();
+    const added: PackDoc[] = [];
+    NEWS_FILES.forEach((file, index) => {
+      if (this.packDocs.some((row) => row.step === 'news' && row.kind === file.kind)) return;
+      added.push({
+        id: `pack-seed-news-${Date.now()}-${index}`,
+        step: 'news',
+        kind: file.kind,
+        version: 1,
+        title: `${file.kind} · เวอร์ชัน 1`,
+        name: file.name,
+        source: 'ai',
+        at,
+        html: this.packDocHtml(file.kind),
+        href: `${SAMPLE_ROOT}${file.dir}/${file.name}`,
+      });
+    });
+    if (added.length) {
+      this.packDocs = [...this.packDocs, ...added];
+      this.writePackDocs();
+    }
+    if (this.laterPhase.notes['news-final-seed'] === '3') return;
+    const notes: Record<string, string> = { ...this.laterPhase.notes, 'news-final-seed': '3' };
+    for (const file of NEWS_FINAL_FILES) notes[`news-final:${file.kind}`] = file.name;
+    this.laterPhase = { ...this.laterPhase, notes };
+    writeLaterPhase(this.laterPhase);
+  }
+
+  /** ฉบับที่แนบกลับหลังลงประกาศ — เป็นของเจ้าหน้าที่ */
+  protected readonly newsFinalFiles = NEWS_FINAL_FILES;
+
+  protected newsFinalName(kind: string): string {
+    return this.laterPhase.notes[`news-final:${kind}`] || '';
+  }
+
+  protected get newsFinalDone(): boolean {
+    return NEWS_FINAL_FILES.every((file) => !!this.newsFinalName(file.kind));
+  }
+
+  protected get newsCanUpload(): boolean {
+    return this.reviewRole === 'officer';
+  }
+
+  protected attachNewsFinal(kind: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || !this.newsCanUpload) return;
+    this.keepNote(`news-final:${kind}`, file.name);
+  }
+
+  protected attachNewsFinalSample(kind: string): void {
+    const sample = NEWS_FINAL_FILES.find((file) => file.kind === kind);
+    if (!sample || !this.newsCanUpload) return;
+    this.keepNote(`news-final:${kind}`, sample.name);
+  }
+
+  protected openNewsFinal(kind: string): void {
+    const sample = NEWS_FINAL_FILES.find((file) => file.kind === kind);
+    if (!sample || this.newsFinalName(kind) !== sample.name) return;
+    this.openPackDocFile(`${SAMPLE_ROOT}${sample.dir}/${sample.name}`);
+  }
+
+  protected downloadNewsFinal(kind: string): void {
+    const sample = NEWS_FINAL_FILES.find((file) => file.kind === kind);
+    if (!sample || this.newsFinalName(kind) !== sample.name) return;
+    this.downloadLetterFile(`${SAMPLE_ROOT}${sample.dir}/${sample.name}`, sample.name);
+  }
+
+  /** แนบฉบับที่ลงแล้วครบ ไปขั้นแถลงการณ์ต่อ */
+  protected goInquiryHearing(): void {
+    if (!this.newsFinalDone) return;
+    this.inquiryNoticeSent = true;
+    this.writeInquiry();
+    this.inquiryPart = 'hearing';
   }
 
   protected createPackDoc(): void {
@@ -16218,7 +16785,7 @@ window.onload=function(){
 
   protected get inquiryDocStep(): boolean {
     return this.inquiryPart === 'draftAgenda' || this.inquiryPart === 'subAgenda' || this.inquiryPart === 'agenda'
-      || this.inquiryPart === 'notice' || this.inquiryPart === 'sign' || this.inquiryPart === 'letters' || this.inquiryPart === 'news';
+      || this.inquiryPart === 'notice' || this.inquiryPart === 'sign';
   }
 
   protected get inquiryAgendaLane(): AgendaLane | null {
@@ -16242,8 +16809,10 @@ window.onload=function(){
     if (this.inquiryPart === 'agenda') return 'บันทึก · วาระ · Chairman’s Note · PPT · มติ · รายงาน ทตอ.';
     if (this.inquiryPart === 'notice') return 'ร่างประกาศกรมและส่งกองกฎหมายตรวจร่าง';
     if (this.inquiryPart === 'sign') return 'ลงนามและส่งราชกิจจานุเบกษา';
-    if (this.inquiryPart === 'letters') return 'หนังสือแจ้งผู้เกี่ยวข้อง';
-    return 'ข่าวหลังประกาศเปิดไต่สวน';
+    if (this.inquiryPart === 'letters') return 'ส่งอนุมัติอธิบดี แล้วส่งอนุมัติผู้อำนวยการ';
+    if (this.inquiryPart === 'news') return 'ข่าวหนังสือพิมพ์ไทยและอังกฤษ และประกาศบนเว็บไซต์กอง';
+    if (this.inquiryPart === 'hearing') return 'ขออนุมัติจัดแถลงการณ์และแจ้งผู้เข้าร่วม';
+    return 'แบบฟอร์มเปิดไต่สวน';
   }
 
   protected inquiryAgendaDateLabel(): string {
@@ -16305,6 +16874,8 @@ window.onload=function(){
 
   protected inquiryPackDone(step: string): boolean {
     if (step === 'sign') return this.signStage === 'final';
+    if (step === 'letters') return this.letterRound === 'done' && this.letterFinalDone;
+    if (step === 'news') return this.newsFinalDone;
     const rows = this.inquiryFormsOf(step);
     return rows.length > 0 && rows.every((item) => this.committeeFormDone(item.kind));
   }
@@ -17050,6 +17621,226 @@ window.onload=function(){
     if (changed) writeMadeDocs(this.madeDocs);
   }
 
+  // ข้อมูลตัวอย่างของขั้นแถลงการณ์ (ตั้งครั้งเดียวต่อรหัสคดี) ทำตามเส้นทางเดียวกับการกรอกจริง
+  private seedHearingDemo(): void {
+    const caseId = this.inquiryCaseId;
+    if (!caseId || this.inquiryOpen !== 'open' || !this.inquiryNoticeSent) return;
+    // ตั้งครั้งเดียว ถ้าเจ้าหน้าที่ตัดสินใจเองแล้ว (ไม่ใช่ค่าตัวอย่างรุ่นก่อน) ไม่แตะ
+    if (this.laterPhase.notes[`hearing-seed2:${caseId}`] === '1') return;
+    if (this.inquiryHearing && this.laterPhase.notes[`hearing-seed:${caseId}`] !== '1') return;
+    this.seedStakeholderDemo();
+    this.keepNote(`hearing-seed2:${caseId}`, '1');
+    this.inquiryHearingOn = '28/09/2564';
+    this.inquiryHearingPlace = 'ผ่านระบบการประชุมอิเล็กทรอนิกส์';
+    this.inquiryHearing = 'hold';
+    this.writeInquiry(true);
+    const rounds: HearingRound[] = [
+      {
+        id: 'hr-public',
+        kind: 'public',
+        on: '28/09/2564',
+        place: 'ผ่านระบบการประชุมอิเล็กทรอนิกส์ 10.00–11.15 น.',
+        topic: 'Public Hearing ร่างผลการไต่สวนชั้นที่สุด',
+        people: '25',
+        office: 'approve',
+        held: true,
+        report: 'ผู้เข้าร่วมแถลงด้วยวาจารวม 25 ราย ส่งข้อคิดเห็นเป็นลายลักษณ์อักษร 6 ราย ได้แก่ Formosa Ha Tinh, Al Ezz Dekheila, กระทรวงการค้าและอุตสาหกรรมอียิปต์, สมาคมต่อเรือและซ่อมเรือไทย, บมจ. สหวิริยาสตีลอินดัสตรี และ บมจ. จี เจ สตีล รายละเอียดตามบันทึกรายงานผลการแถลงการณ์',
+        docId: '',
+      },
+      {
+        id: 'hr-private',
+        kind: 'private',
+        on: '28/09/2564',
+        place: 'ผ่านระบบการประชุมอิเล็กทรอนิกส์ 11.30–12.05 น.',
+        topic: 'Private Hearing ผู้ผลิต/ผู้ส่งออกเวียดนามและอียิปต์',
+        people: '4',
+        office: 'approve',
+        held: true,
+        report: 'รับฟังข้อมูลที่เป็นความลับทางการค้าของ Formosa Ha Tinh และ Al Ezz Dekheila แยกจากการแถลงต่อสาธารณะ ผู้มีส่วนได้เสียส่งข้อเท็จจริงเป็นลายลักษณ์อักษรเพิ่มเติมได้ภายใน 1 ต.ค. 2564 Formosa Ha Tinh ส่ง Post-hearing brief ตามกำหนด',
+        docId: '',
+      },
+    ];
+    this.saveHearingRounds(rounds);
+    this.hearingRoundOpen = 'hr-public';
+    this.hearingMemo = 'สรุปผลการแถลงการณ์ร่างผลชั้นที่สุด 2 รอบ (Public และ Private Hearing) วันที่ 28 ก.ย. 2564';
+    this.hearingPeople = rounds[0].people;
+    this.hearingOffice = 'approve';
+    this.keepNote('hearing-memo', this.hearingMemo);
+  }
+
+  // เอกสารของแต่ละรอบแยกเป็น 4 หมวด ตามลำดับขั้นของ flow
+  protected hearingRoundGroups(round: HearingRound): { label: string; rows: { kind: string; party: string; name: string; href: string }[] }[] {
+    const files = round.kind ? HEARING_FILES[round.kind] : [];
+    return HEARING_STAGES.map((label, stage) => ({
+      label,
+      rows: files
+        .filter((file) => file.stage === stage)
+        .map((file) => ({ kind: file.kind, party: file.party, name: file.name, href: `${SAMPLE_ROOT}hearing/${file.dir}/${file.name}` })),
+    }));
+  }
+
+  protected hearingRoundDocCount(round: HearingRound): number {
+    return (round.kind ? HEARING_FILES[round.kind].length : 0) + 1;
+  }
+
+  protected hearingAdding = false;
+  protected hearingRoundOpen = 'hr-public';
+  protected hearingDraftOn = '';
+  protected hearingDraftPlace = '';
+  protected hearingDraftTopic = '';
+  protected hearingDraftPeople = '';
+  protected hearingOfficeDraft: '' | 'approve' | 'return' = '';
+  protected hearingReportDraft = '';
+
+  // รอบแรกอ่านจากข้อมูลแถลงการณ์เดิม เพื่อไม่ให้เคสที่บันทึกไว้ก่อนหน้านี้เสีย
+  protected get hearingRounds(): HearingRound[] {
+    try {
+      const value = JSON.parse(this.laterPhase.notes['hearing-rounds'] || '[]') as HearingRound[];
+      if (Array.isArray(value) && value.length) return value;
+    } catch {
+      // ใช้ค่ารอบแรกจากข้อมูลเดิมด้านล่าง
+    }
+    if (this.inquiryHearing !== 'hold') return [];
+    const office = this.laterPhase.notes['hearing-office'];
+    return [{
+      id: 'hr-1',
+      on: this.inquiryHearingOn,
+      place: this.inquiryHearingPlace,
+      topic: 'แถลงการณ์เปิดไต่สวน',
+      people: this.laterPhase.notes['hearing-people'] || String(this.hearingAttendeeCount),
+      office: office === 'approve' || office === 'return' ? office : 'wait',
+      held: false,
+      report: '',
+      docId: this.inquiryHearingDocId,
+    }];
+  }
+
+  protected get hearingRoundActive(): HearingRound | null {
+    return this.hearingRounds.find((round) => round.id === this.hearingRoundOpen) ?? null;
+  }
+
+  // หนังสือแจ้งของแต่ละรอบสร้างจากข้อมูลของรอบเอง ไม่ขึ้นกับรายการเอกสารที่ชุดตั้งต้นของเคสรีเซ็ตทุกครั้งที่โหลดหน้า
+  private hearingRoundDoc(round: HearingRound): MadeDoc {
+    const found = this.madeDocs.find((item) => item.id === round.docId);
+    if (found) return found;
+    const no = this.hearingRounds.findIndex((item) => item.id === round.id) + 1;
+    return {
+      id: round.docId || round.id,
+      kind: `หนังสือแจ้งแถลงการณ์ รอบที่ ${no}`,
+      at: round.on,
+      fields: [
+        { label: 'Case ID', value: this.inquiryCaseId },
+        { label: 'รอบที่', value: String(no) },
+        { label: 'หัวข้อ', value: round.topic },
+        { label: 'วันที่', value: round.on },
+        { label: 'สถานที่หรือช่องทาง', value: round.place },
+        { label: 'ผู้เข้าร่วม', value: `${round.people} ราย` },
+        { label: 'ลิงก์ผู้มีส่วนได้เสีย', value: this.inquiryReferral, long: true },
+      ],
+    };
+  }
+
+  protected openRoundDoc(round: HearingRound): void {
+    this.viewingMade = this.hearingRoundDoc(round);
+  }
+
+  protected downloadRoundDoc(round: HearingRound): void {
+    this.downloadMade(this.hearingRoundDoc(round));
+  }
+
+  protected get hearingRoundNo(): number {
+    return this.hearingRounds.findIndex((round) => round.id === this.hearingRoundOpen) + 1;
+  }
+
+  protected hearingRoundStatus(round: HearingRound): { tone: 'success' | 'info' | 'warning' | 'neutral'; label: string } {
+    if (round.held) return { tone: 'success', label: 'จัดแล้ว' };
+    if (round.office === 'approve') return { tone: 'info', label: 'อนุมัติแล้ว รอจัด' };
+    if (round.office === 'return') return { tone: 'warning', label: 'e-Office ตีกลับ' };
+    return { tone: 'neutral', label: 'รอผล e-Office' };
+  }
+
+  private saveHearingRounds(rows: HearingRound[]): void {
+    this.keepNote('hearing-rounds', JSON.stringify(rows));
+    const first = rows[0];
+    if (first) {
+      this.keepNote('hearing-office', first.office === 'wait' ? '' : first.office);
+      this.keepNote('hearing-people', first.people);
+    }
+  }
+
+  private patchHearingRound(id: string, patch: Partial<HearingRound>): void {
+    this.saveHearingRounds(this.hearingRounds.map((round) => (round.id === id ? { ...round, ...patch } : round)));
+  }
+
+  protected startHearingRound(): void {
+    this.hearingAdding = true;
+    this.hearingDraftOn = '';
+    this.hearingDraftPlace = '';
+    this.hearingDraftTopic = '';
+    this.hearingDraftPeople = String(this.hearingAttendeeCount);
+  }
+
+  protected cancelHearingRound(): void {
+    this.hearingAdding = false;
+  }
+
+  protected get hearingDraftReady(): boolean {
+    return thaiDateOk(this.hearingDraftOn, 'any') && !!this.hearingDraftPlace.trim() && !!this.hearingDraftTopic.trim() && !!this.hearingDraftPeople.trim();
+  }
+
+  protected addHearingRound(): void {
+    if (!this.hearingDraftReady) return;
+    const rows = this.hearingRounds;
+    const no = rows.length + 1;
+    const file = this.issueDoc(`หนังสือแจ้งแถลงการณ์ รอบที่ ${no}`, this.hearingDraftOn, [
+      { label: 'Case ID', value: this.inquiryCaseId },
+      { label: 'รอบที่', value: String(no) },
+      { label: 'หัวข้อ', value: this.hearingDraftTopic.trim() },
+      { label: 'วันที่', value: this.hearingDraftOn },
+      { label: 'สถานที่หรือช่องทาง', value: this.hearingDraftPlace.trim() },
+      { label: 'ผู้เข้าร่วม', value: `${this.hearingDraftPeople.trim()} ราย` },
+      { label: 'ลิงก์ผู้มีส่วนได้เสีย', value: this.inquiryReferral, long: true },
+    ]);
+    const round: HearingRound = {
+      id: `hr-${Date.now()}`,
+      on: this.hearingDraftOn,
+      place: this.hearingDraftPlace.trim(),
+      topic: this.hearingDraftTopic.trim(),
+      people: this.hearingDraftPeople.trim(),
+      office: 'wait',
+      held: false,
+      report: '',
+      docId: file.docId,
+    };
+    this.saveHearingRounds([...rows, round]);
+    this.hearingAdding = false;
+    this.openHearingRound(round.id);
+  }
+
+  protected openHearingRound(id: string): void {
+    this.hearingRoundOpen = this.hearingRoundOpen === id ? '' : id;
+    this.hearingOfficeDraft = '';
+    this.hearingReportDraft = '';
+  }
+
+  protected saveRoundOffice(): void {
+    const round = this.hearingRoundActive;
+    if (!round || !this.hearingOfficeDraft) return;
+    this.patchHearingRound(round.id, { office: this.hearingOfficeDraft });
+    this.hearingOfficeDraft = '';
+  }
+
+  protected reopenRound(id: string): void {
+    this.patchHearingRound(id, { office: 'wait', held: false });
+  }
+
+  protected saveRoundHeld(): void {
+    const round = this.hearingRoundActive;
+    if (!round || round.office !== 'approve' || !this.hearingReportDraft.trim()) return;
+    this.patchHearingRound(round.id, { held: true, report: this.hearingReportDraft.trim() });
+    this.hearingReportDraft = '';
+  }
+
   private placeInquiry(): void {
     this.backfillPrepDocs();
     const prep = this.openPrep;
@@ -17064,10 +17855,13 @@ window.onload=function(){
     else if (this.inquiryDecide === 'take' && !this.inquiryPayAck) this.inquiryPart = 'proof';
     else if (!this.inquiryOpen) this.inquiryPart = 'vote';
     else if (this.inquiryOpen === 'close') this.inquiryPart = 'vote';
-    else if (!this.inquiryNoticeSent) this.inquiryPart = 'sign';
+    else if (this.signStage !== 'final') this.inquiryPart = 'sign';
+    else if (!this.inquiryNoticeSent) this.inquiryPart = 'letters';
     else if (!this.inquiryHearing) this.inquiryPart = 'hearing';
     else if (!this.inquiryQuestionsDone) this.inquiryPart = 'questions';
     else this.inquiryPart = 'visit';
+    // เปิดครั้งแรกหลังใส่ข้อมูลแบบสอบถามตัวอย่าง ให้เห็นขั้นแบบสอบถามก่อน
+    if (this.qnJustSeeded && this.inquiryPart === 'visit') this.inquiryPart = 'questions';
   }
 
   protected get inquiryNav(): { id: InquiryStep; label: string; done: boolean; group: string }[] {
@@ -17092,7 +17886,7 @@ window.onload=function(){
       steps.push(
         { id: 'notice', label: 'ประกาศเปิดไต่สวน', done: this.inquiryPackDone('notice'), group: 'เปิดไต่สวน' },
         { id: 'sign', label: 'ลงนามและราชกิจจานุเบกษา', done: this.inquiryPackDone('sign'), group: 'เปิดไต่สวน' },
-        { id: 'letters', label: 'หนังสือแจ้งผู้เกี่ยวข้อง', done: this.inquiryPackDone('letters'), group: 'เปิดไต่สวน' },
+        { id: 'letters', label: 'แจ้งผู้มีส่วนได้เสียเปิดไต่สวน', done: this.inquiryPackDone('letters'), group: 'เปิดไต่สวน' },
         { id: 'news', label: 'ข่าวหนังสือพิมพ์', done: this.inquiryPackDone('news'), group: 'เปิดไต่สวน' },
       );
     }
@@ -17360,6 +18154,90 @@ window.onload=function(){
     this.copyInvite();
   }
 
+  private inviteQrUrl = '';
+  protected inviteQr = '';
+
+  // QR ของลิงก์เชิญ สร้างใหม่เมื่อรหัสคดีเปลี่ยน
+  protected get inviteQrSrc(): string {
+    const url = this.inquiryInviteUrl;
+    if (url && url !== this.inviteQrUrl) {
+      this.inviteQrUrl = url;
+      void QRCode.toDataURL(url, { width: 176, margin: 1 }).then((src) => {
+        this.inviteQr = src;
+        this.view.markForCheck();
+      });
+    }
+    return this.inviteQr;
+  }
+
+  // ยื่นขอเข้าร่วม hearing ได้ภายใน 30 วันนับจากวันประกาศ
+  protected get hearingRequestDue(): string {
+    return addThaiDays(this.inquiryGazetteOn, 30);
+  }
+
+  protected get stakeholderRows(): { id: string; name: string; kinds: string; window: string; status: string; tone: 'success' | 'info' | 'warning' | 'neutral'; eligible: boolean; fixNote: string }[] {
+    this.seedStakeholderDemo();
+    const labels: Record<InterestFilingStatus, { tone: 'success' | 'info' | 'warning' | 'neutral'; label: string }> = {
+      pending: { tone: 'neutral', label: 'รอตรวจสอบ' },
+      fix: { tone: 'warning', label: 'ต้องแก้ไข' },
+      conditional: { tone: 'info', label: 'ผ่านมีเงื่อนไข' },
+      approved: { tone: 'success', label: 'ผ่านแล้ว' },
+    };
+    return filingsFor(this.inquiryCaseId).map((row) => ({
+      id: row.id,
+      name: row.company || row.name,
+      kinds: row.kinds.map((kind) => interestKindLabel(kind)).join(' · '),
+      window: row.window === 'open' ? 'ลงทะเบียนภายในกำหนด' : 'ลงทะเบียนหลังกำหนด',
+      status: labels[row.status].label,
+      tone: labels[row.status].tone,
+      eligible: row.status === 'approved' || row.status === 'conditional',
+      fixNote: row.fixNote,
+    }));
+  }
+
+  protected get hearingAttendeeCount(): number {
+    return this.stakeholderRows.filter((row) => row.eligible).length;
+  }
+
+  // ผู้มีส่วนได้เสียของเคส AD1046 ตั้งค่าครั้งเดียวต่อรหัสคดี ใช้รายชื่อผู้ส่งแบบตอบรับเข้าร่วมแถลงการณ์จริง
+  private seedStakeholderDemo(): void {
+    const caseId = this.inquiryCaseId;
+    if (!caseId || this.laterPhase.notes[`stake-seed2:${caseId}`] === '1') return;
+    removeInterestFilings(`if-seed-${caseId}-`);
+    this.keepNote(`stake-seed2:${caseId}`, '1');
+    const demo: { name: string; kind: InterestKind; status: InterestFilingStatus; fixNote: string }[] = [
+      { name: 'บมจ. สหวิริยาสตีลอินดัสตรี', kind: 'domestic', status: 'approved', fixNote: '' },
+      { name: 'บมจ. จี เจ สตีล', kind: 'domestic', status: 'approved', fixNote: '' },
+      { name: 'บมจ. จี สตีล', kind: 'domestic', status: 'approved', fixNote: '' },
+      { name: 'Formosa Ha Tinh Steel Corporation', kind: 'exporter', status: 'approved', fixNote: '' },
+      { name: 'Al Ezz Dekheila Steel Company-Alexandria', kind: 'exporter', status: 'approved', fixNote: '' },
+      { name: 'Trade Remedies Sector กระทรวงการค้าและอุตสาหกรรมอียิปต์', kind: 'agency', status: 'approved', fixNote: '' },
+      { name: 'สมาคมต่อเรือและซ่อมเรือไทย', kind: 'agency', status: 'approved', fixNote: '' },
+      { name: 'สมาคมเหล็กแผ่นรีดร้อนไทย', kind: 'agency', status: 'approved', fixNote: '' },
+    ];
+    demo.forEach((row, index) =>
+      saveInterestFiling({
+        id: `if-seed-${caseId}-${index}`,
+        caseId,
+        window: 'open',
+        name: row.name,
+        taxId: '',
+        kinds: [row.kind],
+        acceptDocs: true,
+        signed: true,
+        receipt: `RN-DEMO-${index + 1}`,
+        acting: false,
+        company: row.name,
+        companyKinds: [],
+        companyReceipt: '',
+        status: row.status,
+        group: row.kind,
+        fixNote: row.fixNote,
+        fixDue: row.status === 'fix' ? this.hearingRequestDue : '',
+      }),
+    );
+  }
+
   protected get inquiryQuestionsDone(): boolean {
     const open = this.inquiryQuestions.filter((item) => item.sent || item.papers.length);
     return open.length > 0 && open.every((item) => item.passed);
@@ -17463,6 +18341,186 @@ window.onload=function(){
   }
 
   protected readonly inquiryLoops: InquiryLoopKind[] = ['form', 'extend-ask', 'extend-reply', 'answer', 'revise', 'revised'];
+
+  /** ไฟล์แบบสอบถามจริงของเคส AD1046 ตามกลุ่มที่เปิดอยู่ */
+  protected questionFiles(id: InquiryQuestion['id'] | ''): { title: string; name: string; href: string }[] {
+    return QUESTION_FILES.filter((file) => file.party === id).map((file) => ({
+      title: file.title,
+      name: file.name,
+      href: `${SAMPLE_ROOT}qn/${file.name}`,
+    }));
+  }
+
+  protected openQuestionFile(href: string): void {
+    this.openPackDocFile(href);
+  }
+
+  protected downloadQuestionFile(href: string, name: string): void {
+    this.downloadLetterFile(href, name);
+  }
+
+  /** เอกสารจริงของกลุ่มที่เลือก แยกตามขั้นของวงรอบแบบสอบถาม */
+  protected questionFlowGroups(id: InquiryQuestion['id'] | ''): { label: string; rows: { kind: string; who: string; name: string; href: string }[] }[] {
+    return QN_STAGES.map((label, stage) => ({
+      label,
+      rows: QN_FLOW_FILES
+        .filter((file) => file.party === id && file.stage === stage)
+        .map((file) => ({ kind: file.kind, who: file.who, name: file.name, href: `${SAMPLE_ROOT}${file.dir}/${file.name}` })),
+    }));
+  }
+
+  protected questionFlowCount(id: InquiryQuestion['id'] | ''): number {
+    return QN_FLOW_FILES.filter((file) => file.party === id).length;
+  }
+
+  // วงรอบแบบสอบถามตัวอย่างของเคส AD1046 ตามลำดับจริง: ส่งแบบ → ขอขยายเวลา → ตอบ → ขอปรับปรุง → ตอบที่ปรับปรุง → ผ่าน
+  private qnSeedPlan(): Record<InquiryQuestion['id'], { kind: InquiryLoopKind; at: string; due?: string; note: string }[]> {
+    const sent = 'ส่งพร้อมหนังสือแจ้งเปิดไต่สวนรายราย ตอบกลับภายใน 37 วันนับจากวันส่ง คือ 30 ธ.ค. 2563 เวลา 16.30 น.';
+    return {
+      importer: [
+        { kind: 'form', at: this.inquirySentOn, note: sent },
+        { kind: 'extend-ask', at: '18/12/2563', note: 'บริษัท ซัมซุง ซี แอนด์ ที (ประเทศไทย) จำกัด ขอขยายเวลาส่งคำตอบจากวันที่ 30 ธ.ค. 2563' },
+        { kind: 'extend-reply', at: 'ธ.ค. 2563', due: '15/01/2564', note: 'พิจารณาแล้วให้ขยายเวลาส่งคำตอบเป็นวันที่ 15 ม.ค. 2564 เวลา 16.30 น.' },
+        { kind: 'answer', at: '15/01/2564', note: 'รับคำตอบแบบสอบถามผู้นำเข้า พร้อมหนังสือมอบอำนาจ ฮันวา สตีลแจ้งขอไม่ตอบแบบสอบถาม' },
+        { kind: 'revise', at: 'ม.ค. 2564', note: 'ตรวจพบข้อมูลที่ไม่ถูกต้องและไม่ครบถ้วนสมบูรณ์ ขอให้ปรับปรุงและเพิ่มเติมข้อมูลภายใน 18 ก.พ. 2564 เวลา 16.30 น. ทั้งฉบับปกปิดและฉบับเปิดเผย' },
+        { kind: 'revised', at: 'ก.พ. 2564', note: 'รับคำตอบที่ปรับปรุงครั้งที่ 1 ตรวจแล้วครบถ้วน ไม่ส่งกลับแก้ไขอีก' },
+      ],
+      domestic: [
+        { kind: 'form', at: this.inquirySentOn, note: sent },
+        { kind: 'extend-ask', at: '22/12/2563', note: 'บมจ. สหวิริยาสตีลอินดัสตรี และบริษัทในกลุ่มขอขยายเวลาส่งคำตอบจากวันที่ 30 ธ.ค. 2563' },
+        { kind: 'extend-reply', at: 'ธ.ค. 2563', due: '29/01/2564', note: 'พิจารณาแล้วให้ขยายเวลาส่งคำตอบเป็นวันที่ 29 ม.ค. 2564 เวลา 16.30 น.' },
+        { kind: 'answer', at: '29/01/2564', note: 'รับคำตอบจาก SSI (27 ม.ค.) SPM จี สตีล (29 ม.ค.) และ จี เจ สตีล ทั้งฉบับปกปิดและฉบับเปิดเผย' },
+        { kind: 'revise', at: 'ก.พ. 2564', note: 'ตรวจพบข้อมูลและเอกสารหลักฐานที่ไม่ถูกต้องและไม่ครบถ้วน ขอให้ปรับปรุงและเพิ่มเติมข้อมูลครั้งที่ 1 ภายใน 23 มี.ค. 2564' },
+        { kind: 'revised', at: '23/03/2564', note: 'รับคำตอบที่ปรับปรุง SPM (8 มี.ค.) จี สตีล (9 มี.ค.) จี เจ สตีล (10 มี.ค.) SSI (23 มี.ค.) ตรวจแล้วผ่านเข้าขั้นตรวจสอบข้อมูล' },
+      ],
+      exporter: [
+        { kind: 'form', at: this.inquirySentOn, note: sent },
+        { kind: 'extend-ask', at: '15/12/2563', note: 'Formosa Ha Tinh Steel Corporation ขอขยายเวลา 30 วัน (EZDK และ EFS ขอเพิ่มเติม 23 ธ.ค. 2563)' },
+        { kind: 'extend-reply', at: '17/12/2563', due: '29/01/2564', note: 'พิจารณาแล้วให้ขยายเวลาเป็นวันที่ 29 ม.ค. 2564 เวลา 16.30 น. (ตามเวลากรุงเทพฯ) เป็นกำหนดสุดท้าย ไม่ขยายอีก' },
+        { kind: 'answer', at: '29/01/2564', note: 'รับคำตอบแบบสอบถามผู้ผลิต/ผู้ส่งออกจาก Formosa Ha Tinh และ Al Ezz Dekheila (EZDK) พร้อมหนังสือมอบอำนาจ' },
+        { kind: 'revise', at: 'มี.ค. 2564', note: 'ข้อมูลยังไม่ถูกต้องและไม่ครบถ้วน ขอให้ตรวจสอบ ปรับปรุงและเพิ่มเติมข้อมูลภายใน 21 เม.ย. 2564 เวลา 16.30 น. ถ้าไม่ให้ความร่วมมือกรมจะใช้ข้อเท็จจริงที่มีอยู่ตามมาตรา 27' },
+        { kind: 'revised', at: 'เม.ย. 2564', note: 'รับคำตอบที่ปรับปรุงครั้งที่ 1 ตรวจแล้วเข้าสู่ขั้นขอข้อมูลเพิ่มเติมครั้งที่ 2 และตรวจสอบข้อมูล' },
+      ],
+    };
+  }
+
+  private qnSeedDocs(): void {
+    const plan = this.qnSeedPlan();
+    const signer = this.signedPerson || this.directorName;
+    let changed = false;
+    for (const id of ['importer', 'domestic', 'exporter'] as const) {
+      const label = this.inquiryQuestionLabel(id);
+      const counts: Partial<Record<InquiryLoopKind, number>> = {};
+      plan[id].forEach((step, index) => {
+        const docId = `qn-seed-${id}-${index}`;
+        const round = (counts[step.kind] ?? 0) + 1;
+        counts[step.kind] = round;
+        if (this.madeDocs.some((item) => item.id === docId)) return;
+        const title = `${this.inquiryLoopLabel(step.kind)}${label} ครั้งที่ ${round}`;
+        const fields = step.kind === 'form'
+          ? [
+              { label: 'ชื่อแบบ', value: `แบบสอบถามสำหรับ${label}` },
+              { label: 'Case ID', value: this.inquiryCaseId },
+              { label: 'ครั้งที่', value: String(round) },
+              { label: 'โครงสร้างแบบ', value: this.questionnaireParts(id).join('\n'), long: true },
+              { label: 'คำนำส่ง', value: step.note, long: true },
+              { label: 'ลงชื่อ', value: signer },
+            ]
+          : [
+              { label: 'ที่', value: 'กพ. / กองปกป้องและตอบโต้ทางการค้า' },
+              { label: 'วันที่', value: step.at },
+              { label: 'เรื่อง', value: `${this.inquiryLoopLabel(step.kind)} ครั้งที่ ${round}` },
+              { label: 'เรียน', value: label },
+              { label: 'Case ID', value: this.inquiryCaseId },
+              ...(step.due ? [{ label: 'วันครบกำหนดใหม่', value: step.due }] : []),
+              { label: 'เนื้อความ', value: step.note, long: true },
+              { label: 'ลงชื่อ', value: signer },
+            ];
+        this.madeDocs = [...this.madeDocs, { id: docId, kind: title, at: step.at, fields }];
+        changed = true;
+      });
+    }
+    if (changed) writeMadeDocs(this.madeDocs);
+  }
+
+  private qnJustSeeded = false;
+
+  private seedQuestionDemo(): void {
+    const caseId = this.inquiryCaseId;
+    if (!caseId || this.inquiryOpen !== 'open' || !this.inquiryNoticeSent || !this.inquiryHearing) return;
+    const key = `qn-seed:${caseId}`;
+    if (this.laterPhase.notes[key] !== '1') {
+      if (this.inquiryQuestions.some((item) => item.papers.length)) return;
+      const plan = this.qnSeedPlan();
+      this.inquiryQuestions = this.inquiryQuestions.map((item) => {
+        const counts: Partial<Record<InquiryLoopKind, number>> = {};
+        const papers = plan[item.id].map((step, index) => {
+          const round = (counts[step.kind] ?? 0) + 1;
+          counts[step.kind] = round;
+          return { kind: step.kind, at: step.at, docId: `qn-seed-${item.id}-${index}`, round };
+        });
+        const last = (kind: InquiryLoopKind) => papers.filter((paper) => paper.kind === kind).at(-1)?.docId ?? '';
+        return { ...item, papers, sent: true, revise: false, received: true, passed: true, formDocId: last('form'), answerDocId: last('revised'), reviseDocId: last('revise') };
+      });
+      // ผู้รับที่มีหลักฐานว่าส่งคำตอบคืนแล้ว (ตามแฟ้มจริง)
+      const answered = ['Formosa Ha Tinh', 'Al Ezz Dekheila', 'จี สตีล', 'จี เจ สตีล', 'สหวิริยาสตีลอินดัสตรี', 'สหวิริยาเพลทมิล', 'โอเชี่ยนไพพ์'];
+      for (const row of RECIPIENTS) {
+        if (answered.some((name) => row.label.includes(name))) this.keepNote(`rcp-back:${row.dir}/${row.name}`, '1');
+      }
+      this.keepNote(key, '1');
+      this.qnJustSeeded = true;
+      this.writeInquiry(true);
+    }
+    this.qnSeedDocs();
+  }
+
+  /** ผู้รับหนังสือแจ้งรายราย ของกลุ่มที่เลือก พร้อมสถานะรับแบบสอบถามคืน */
+  // วันฐานของขั้นแบบสอบถาม ใช้ร่วมกันทั้งตารางกำหนดเวลาและตารางรายผู้รับ
+  protected readonly inquiryGazetteOn = '18/11/2563';
+  protected readonly inquirySentOn = '23/11/2563';
+  protected readonly inquiryReturnTime = '16:30';
+
+  protected get inquiryDeadlines(): { item: string; due: string; source: string }[] {
+    const rows = [
+      { item: 'ประกาศเปิดไต่สวน ลงราชกิจจานุเบกษา', due: this.inquiryGazetteOn, source: 'ประกาศกรมการค้าต่างประเทศ' },
+      { item: 'ส่งหนังสือแจ้งและแบบสอบถามให้ผู้เกี่ยวข้องรายราย', due: this.inquirySentOn, source: 'หนังสือแจ้งเปิดไต่สวนแต่ละฉบับ' },
+      { item: 'ผู้ที่ไม่ได้รับแบบสอบถาม ขอรับแบบสอบถามได้ภายใน 15 วัน', due: `ภายใน ${addThaiDays(this.inquiryGazetteOn, 15)}`, source: 'ประกาศ ข้อ 3' },
+      { item: 'เสนอข้อเท็จจริง ความเห็น หรือขอแถลงด้วยวาจา ภายใน 30 วัน', due: `ภายใน ${addThaiDays(this.inquiryGazetteOn, 30)}`, source: 'ประกาศ ข้อ 4' },
+      { item: 'ส่งแบบสอบถามคืนให้กรมการค้าต่างประเทศ', due: `ภายใน ${this.inquiryReturnDue} เวลา ${this.inquiryReturnTime} น.`, source: 'หนังสือแจ้งเปิดไต่สวนรายราย (ผู้ส่งออก 37 วันนับจากวันส่ง)' },
+      { item: 'ขยายเวลาส่งแบบสอบถามคืน (ผู้ที่ขอขยาย ขยายได้ครั้งละไม่เกิน 30 วัน)', due: `ภายใน ${addThaiDays(this.inquiryReturnDue, 30)} เวลา ${this.inquiryReturnTime} น.`, source: 'หนังสือตอบการขอขยายเวลาแต่ละฉบับ (ผู้นำเข้า Samsung C&T ได้ถึง 15/01/2564)' },
+    ];
+    return rows;
+  }
+
+  protected get inquiryReturnDue(): string {
+    return addThaiDays(this.inquirySentOn, 37);
+  }
+
+  protected recipientsOf(id: InquiryQuestion['id'] | ''): { label: string; group: string; name: string; href: string; key: string; back: boolean; sentOn: string; dueOn: string; dueTime: string }[] {
+    return RECIPIENTS.filter((row) => row.party === id).map((row) => {
+      const key = `rcp-back:${row.dir}/${row.name}`;
+      return {
+        label: row.label,
+        group: row.group,
+        name: row.name,
+        href: `${SAMPLE_ROOT}${row.dir}/${row.name}`,
+        key,
+        back: !!this.laterPhase.notes[key],
+        sentOn: this.inquirySentOn,
+        dueOn: this.inquiryReturnDue,
+        dueTime: this.inquiryReturnTime,
+      };
+    });
+  }
+
+  protected recipientBackCount(id: InquiryQuestion['id'] | ''): string {
+    const rows = this.recipientsOf(id);
+    return `${rows.filter((row) => row.back).length}/${rows.length}`;
+  }
+
+  protected toggleRecipientBack(key: string): void {
+    this.keepNote(key, this.laterPhase.notes[key] ? '' : '1');
+  }
 
   protected questionnaireParts(id: InquiryQuestion['id']): string[] {
     if (id === 'importer') {
@@ -20907,6 +21965,14 @@ window.onload=function(){
       this.writeInquiry(true);
       writeDocNotice(this.docPayload(true));
       this.seedSignPack();
+      this.seedLetterPack();
+      this.seedNewsPack();
+      this.seedHearingDemo();
+      this.seedQuestionDemo();
+      if (this.reviewTab === 'inquiry') {
+        this.placeInquiry();
+        if (this.qnJustSeeded) this.inquiryPart = 'questions';
+      }
       return;
     }
     // ล้างข้อมูลจำลองเก่า (ปี 2562 / ครบทุกขั้น) ก่อนใส่ข้อมูลจริง
@@ -20987,7 +22053,7 @@ window.onload=function(){
     this.measure59 = '';
     const notes = { ...this.laterPhase.notes };
     for (const key of Object.keys(notes)) {
-      if (/^(visit|qn-open|prelim|draft|final|measure|hearing|meeting-)/.test(key)) delete notes[key];
+      if (/^(visit|qn-|prelim|draft|final|measure|hearing|meeting-)/.test(key)) delete notes[key];
     }
     notes['open-prep'] = JSON.stringify({ ask: true, analyze: true, summary: true, report: true, pulled: true, revised: true, aiSummary: '', aiDraft: '', aiReview: '', sent: true, approved: true, prenotify: true, office: [`ส่ง e-Office แจ้ง pre-notify ถึงสถานเอกอัครราชทูตเวียดนามและอียิปต์ วันที่ ${CASE.tdcOn}`] });
     notes['meeting-cover'] = 'done';
@@ -21006,7 +22072,14 @@ window.onload=function(){
     this.writeInquiry(true);
     writeDocNotice(this.docPayload(true));
     this.seedSignPack();
-    if (this.reviewTab === 'inquiry') this.placeInquiry();
+    this.seedLetterPack();
+    this.seedNewsPack();
+    this.seedHearingDemo();
+    this.seedQuestionDemo();
+    if (this.reviewTab === 'inquiry') {
+      this.placeInquiry();
+      if (this.qnJustSeeded) this.inquiryPart = 'questions';
+    }
   }
 
   private presentStaffCase(item: ListedCase): void {
@@ -21139,6 +22212,12 @@ window.onload=function(){
     this.loadDocNotice();
     this.loadWorkDrafts();
     this.loadMadeDocs();
+    this.seedHearingDemo();
+    this.seedQuestionDemo();
+    if (this.reviewTab === 'inquiry') {
+      this.placeInquiry();
+      if (this.qnJustSeeded) this.inquiryPart = 'questions';
+    }
     this.seedCommitteePack();
     this.rounds = readRounds();
     if (this.reviewRole) {

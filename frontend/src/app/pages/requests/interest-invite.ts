@@ -23,6 +23,7 @@ export type InterestFiling = {
   fixDue: string;
 };
 
+// เก็บใน localStorage เพื่อให้หน้าลงทะเบียนของผู้มีส่วนได้เสียกับหน้าเจ้าหน้าที่ใช้ข้อมูลชุดเดียวกันข้ามแท็บ
 const filingKey = 'dft-interest-filings';
 
 export function interestKindLabel(kind: InterestKind): string {
@@ -34,7 +35,7 @@ export function interestKindLabel(kind: InterestKind): string {
 
 export function readInterestFilings(): InterestFiling[] {
   try {
-    const value = JSON.parse(sessionStorage.getItem(filingKey) || '[]') as InterestFiling[];
+    const value = JSON.parse(localStorage.getItem(filingKey) || '[]') as InterestFiling[];
     return Array.isArray(value) ? value.filter((item) => item?.id && item.caseId && item.name) : [];
   } catch {
     return [];
@@ -44,7 +45,21 @@ export function readInterestFilings(): InterestFiling[] {
 export function saveInterestFiling(row: InterestFiling): void {
   const rows = readInterestFilings().filter((item) => item.id !== row.id);
   rows.push(row);
-  sessionStorage.setItem(filingKey, JSON.stringify(rows));
+  localStorage.setItem(filingKey, JSON.stringify(rows));
+}
+
+export function updateInterestFiling(id: string, patch: Partial<InterestFiling>): void {
+  const rows = readInterestFilings().map((item) => (item.id === id ? { ...item, ...patch } : item));
+  localStorage.setItem(filingKey, JSON.stringify(rows));
+}
+
+export function removeInterestFilings(idPrefix: string): void {
+  const rows = readInterestFilings().filter((item) => !item.id.startsWith(idPrefix));
+  localStorage.setItem(filingKey, JSON.stringify(rows));
+}
+
+export function filingsFor(caseId: string): InterestFiling[] {
+  return readInterestFilings().filter((item) => item.caseId === caseId);
 }
 
 export function invitePath(caseId: string): string {
@@ -54,7 +69,7 @@ export function invitePath(caseId: string): string {
 export function rememberJoined(party: JoinedInterest): void {
   const rows = readJoined().filter((item) => !(item.caseId === party.caseId && item.name === party.name));
   rows.push(party);
-  sessionStorage.setItem(joinedKey, JSON.stringify(rows));
+  localStorage.setItem(joinedKey, JSON.stringify(rows));
 }
 
 export function joinedFor(caseId: string): JoinedInterest[] {
@@ -70,7 +85,7 @@ export function joinedCaseIds(username: string): Set<string> | null {
 
 function readJoined(): JoinedInterest[] {
   try {
-    const value = JSON.parse(sessionStorage.getItem(joinedKey) || '[]') as JoinedInterest[];
+    const value = JSON.parse(localStorage.getItem(joinedKey) || '[]') as JoinedInterest[];
     return Array.isArray(value) ? value.filter((item) => item?.caseId && item?.name) : [];
   } catch {
     return [];
