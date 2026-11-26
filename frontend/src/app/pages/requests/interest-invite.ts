@@ -3,9 +3,24 @@ const joinedKey = 'dft-interest-joined';
 export type JoinedInterest = { caseId: string; name: string; org: string; username?: string };
 export type InterestKind = 'importer' | 'domestic' | 'exporter' | 'agency';
 export type InterestFilingStatus = 'pending' | 'fix' | 'conditional' | 'approved';
+/** ขั้นที่ลงทะเบียน: ขั้นเปิดไต่สวน (ประกาศ/แถลงการณ์) หรือรอบร่างผลสิ้นสุด */
+export type InterestPhase = 'inquiry' | 'draft';
+/** จุดประสงค์ที่ผู้ลงทะเบียนแจ้งเข้ามาในระบบแทนกระดาษ */
+export type InterestPurpose = 'hearing' | 'opinion' | 'questionnaire' | 'news';
+export const interestPurposeLabel: Record<InterestPurpose, string> = {
+  hearing: 'ขอเข้าร่วมแถลงการณ์',
+  opinion: 'ส่งความเห็นเป็นหนังสือ',
+  questionnaire: 'ขอรับแบบสอบถาม',
+  news: 'รับข่าวสาร',
+};
+export const interestPurposes: InterestPurpose[] = ['hearing', 'opinion', 'questionnaire', 'news'];
 export type InterestFiling = {
   id: string;
   caseId: string;
+  /** ไม่ระบุ = ขั้นเปิดไต่สวน (ข้อมูลรุ่นก่อน) */
+  phase?: InterestPhase;
+  /** ไม่ระบุ = ข้อมูลรุ่นก่อนที่ยังไม่เก็บจุดประสงค์ */
+  purposes?: InterestPurpose[];
   window: 'open' | 'late';
   name: string;
   taxId: string;

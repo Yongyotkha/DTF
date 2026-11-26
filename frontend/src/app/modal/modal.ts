@@ -146,6 +146,8 @@ export class DftModal {
   @Input() heading = '';
   @Input() detail: string | null = null;
   @Input() actions = true;
+  /** ฟอร์มตัวอย่างในแบบ Modal เมื่อเป็นเท็จ ใช้เนื้อหาที่ส่งเข้ามาแทน */
+  @Input() fields = true;
   @Input() otp = '';
   @Input() otpState: InputState = 'default';
   @Input() otpHelper = '';

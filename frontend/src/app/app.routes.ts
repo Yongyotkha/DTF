@@ -23,11 +23,14 @@ import { SgPage } from './pages/requests/sg-page';
 import { FormUploadPage } from './pages/requests/form-upload-page';
 import { ApplicantDeskPage } from './pages/requests/applicant-desk-page';
 import { filingGuard } from './pages/requests/filing-guard';
+import { QnReplyPage } from './pages/requests/qn-reply-page';
 import { InterestJoinPage } from './pages/requests/interest-join-page';
 import { ProxyJoinPage } from './pages/requests/proxy-join-page';
 import { CofilerJoinPage } from './pages/requests/cofiler-join-page';
 import { RequestsPage } from './pages/requests/requests-page';
 import { StaffChatPage } from './pages/requests/staff-chat-page';
+import { BureauPage } from './pages/staff/bureau-page';
+import { BureauStepPage } from './pages/staff/bureau-step';
 import { CaseRegistryPage } from './pages/staff/case-registry-page';
 import { OtherCommitteePage } from './pages/staff/other-committee-page';
 import { StaffHomePage } from './pages/staff/staff-home-page';
@@ -57,8 +60,18 @@ export const routes: Routes = [
   { path: 'officer', component: StaffHomePage, data: { role: 'officer' } },
   { path: 'officer/filing', component: Por1Page, data: { review: 'officer' } },
   { path: 'officer/tasks/:code', component: StaffTaskPage, data: { role: 'officer' } },
-  { path: 'bureau', component: StaffHomePage, data: { role: 'bureau' } },
-  { path: 'bureau/filing', component: Por1Page, data: { review: 'bureau' } },
+  { path: 'bureau', component: BureauPage, data: { view: 'home' } },
+  { path: 'bureau/inbox', component: BureauPage, data: { view: 'inbox' } },
+  { path: 'bureau/plan', component: BureauPage, data: { view: 'plan' } },
+  { path: 'bureau/meetings', component: BureauPage, data: { view: 'meeting' } },
+  { path: 'bureau/minutes', component: BureauPage, data: { view: 'minutes' } },
+  { path: 'bureau/finance', component: BureauPage, data: { view: 'finance' } },
+  { path: 'bureau/gazette', component: BureauPage, data: { view: 'gazette' } },
+  { path: 'bureau/filing', component: BureauPage, data: { view: 'filing' } },
+  { path: 'bureau/meetings/:id/:step', component: BureauStepPage, data: { area: 'meeting' } },
+  { path: 'bureau/minutes/:id/:step', component: BureauStepPage, data: { area: 'minutes' } },
+  { path: 'bureau/gazette/:id/:step', component: BureauStepPage, data: { area: 'gazette' } },
+  { path: 'bureau/finance/visit/:id/:step', component: BureauStepPage, data: { area: 'visit' } },
   { path: 'committee', component: StaffHomePage, data: { role: 'committee' } },
   { path: 'committee/other', component: OtherCommitteePage },
   { path: 'committee/filing', component: Por1Page, data: { review: 'committee' } },
@@ -72,6 +85,7 @@ export const routes: Routes = [
   { path: 'requests/cases', component: ApplicantDeskPage, data: { desk: 'cases' } },
   { path: 'requests/exchange', component: ApplicantDeskPage, data: { desk: 'exchange' } },
   { path: 'requests/info', component: ApplicantDeskPage, data: { desk: 'info' } },
+  { path: 'requests/questionnaire', component: QnReplyPage },
   { path: 'requests/por-1', component: Por1Page, canActivate: [filingGuard] },
   { path: 'requests/por-2', component: Por2Page, canActivate: [filingGuard] },
   { path: 'requests/por-2a', component: Por2aPage, canActivate: [filingGuard] },

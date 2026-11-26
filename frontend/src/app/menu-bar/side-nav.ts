@@ -60,7 +60,7 @@ const otherCommitteeMenus: NavMenu[] = [
 ];
 
 const interestMenus: NavMenu[] = [
-  { title: 'กระบวนการไต่สวน', items: ['ลงทะเบียนผู้มีส่วนได้ส่วนเสีย', 'Case ID', 'รับ–ส่งข้อมูลอื่น ๆ'] },
+  { title: 'กระบวนการไต่สวน', items: ['ลงทะเบียนผู้มีส่วนได้ส่วนเสีย', 'Case ID', 'แบบสอบถาม', 'รับ–ส่งข้อมูลอื่น ๆ'] },
   { title: 'คำร้อง', items: ['ขอข้อมูลข่าวสาร'] },
 ];
 
@@ -82,9 +82,23 @@ const officerMenus: NavMenu[] = [
   { title: 'คำร้อง', items: ['คำร้องขอพบเจ้าหน้าที่', 'คำร้องขอข้อมูลข่าวสาร'] },
 ];
 
+// เรียงตามลำดับงานจริงของ บท.: ลงรับ → วางแผนและรับวาระ → เตรียมประชุม → หลังประชุม → เบิกจ่ายและประกาศ
+// ซ่อนชั่วคราว: 'รายการยื่นคำขอ' (ทะเบียนคำขอของผู้ประกอบการ ไม่อยู่ใน flow ของ บท.)
 const bureauMenus: NavMenu[] = [
-  { title: 'งาน', items: ['บันทึกข้อมูลลงรับ', 'รายการยื่นคำขอ'] },
+  { title: 'งาน', items: ['หน้าแรก', 'บันทึกข้อมูลลงรับ'] },
+  { title: 'วางแผนและรับวาระ', items: ['แผนวาระ', 'วาระที่ส่งเข้ามา'] },
+  { title: 'การประชุม', items: ['เตรียมประชุม', 'มติและรายงานการประชุม'] },
+  { title: 'เบิกจ่ายและประกาศ', items: ['เบี้ยประชุมและเคลียร์เบรก', 'ส่งราชกิจจานุเบกษา'] },
 ];
+
+const bureauRoutes: Record<string, string> = {
+  'แผนวาระ': '/bureau/plan',
+  'วาระที่ส่งเข้ามา': '/bureau/inbox',
+  'เตรียมประชุม': '/bureau/meetings',
+  'มติและรายงานการประชุม': '/bureau/minutes',
+  'เบี้ยประชุมและเคลียร์เบรก': '/bureau/finance',
+  'ส่งราชกิจจานุเบกษา': '/bureau/gazette',
+};
 
 const committeeMenus: NavMenu[] = [
   { title: 'งาน', items: ['ผลการพิจารณา', 'รายการยื่นคำขอ'] },
@@ -254,12 +268,18 @@ export class SideNav implements OnInit, OnDestroy {
       : role === 'bureau' ? '/bureau/filing'
       : role === 'committee' ? '/committee/filing'
       : home;
-    if (label === 'ตรวจสอบและอนุมัติ' || label === 'ตรวจและปรับแก้วาระ' || label === 'อนุมัติ hearing') {
+    if (role === 'bureau' && bureauRoutes[label]) {
+      void this.router.navigateByUrl(bureauRoutes[label]);
+    } else if (role === 'bureau' && label === 'บันทึกข้อมูลลงรับ') {
+      void this.router.navigateByUrl('/bureau/filing');
+    } else if (label === 'ตรวจสอบและอนุมัติ' || label === 'ตรวจและปรับแก้วาระ' || label === 'อนุมัติ hearing') {
       void this.router.navigate(['/committee/other'], { queryParams: { task: label } });
     } else if (label === 'หน้าหลัก' || label === 'หน้าแรก' || label === 'มอบหมายงาน' || label === 'รายงานผลหรือส่งต่อ' || label === 'รายงานผล' || label === 'ตรวจสอบการรายงานผล' || label === 'บันทึกข้อมูลลงรับ' || label === 'บันทึกรับเรื่อง' || label === 'ผลการพิจารณา' || label === 'หนังสือที่ได้รับ' || label === 'อนุมัติเอกสารฉบับเปิดเผย') {
       void this.router.navigateByUrl(home);
     } else if (label === 'อนุมัติผู้กระทำการแทน') {
       void this.router.navigate([home], { queryParams: { queue: 'proxy' } });
+    } else if (label === 'แบบสอบถาม' && role === 'interest') {
+      void this.router.navigateByUrl('/requests/questionnaire');
     } else if (label === 'ติดตามกระบวนงานยื่นคำขอ' || label === 'แบบสอบถาม') {
       void this.router.navigateByUrl(internal ? filing : '/requests');
     } else if (label === 'ยื่นคำขอ' && !internal) {

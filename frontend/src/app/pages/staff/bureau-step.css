@@ -1,0 +1,78 @@
+.step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.step-body > app-bureau-doc-desk {
+  display: block;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.step-alert {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.step-alert.bz-warn {
+  background: var(--color-warning-bg);
+  color: var(--color-primary);
+}
+
+.step-alert.bz-ok {
+  background: var(--color-success-bg);
+  color: var(--color-primary);
+}
+
+.step-left {
+  justify-content: flex-start;
+}
+
+.step-inline {
+  color: var(--color-primary);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.step-body .bz-grid.wk {
+  margin: 0;
+  align-items: end;
+}
+
+.step-body .wk__check input,
+.step-body .table-wrap input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 3px 0 0;
+  accent-color: var(--color-primary);
+}
+
+.step-body .table-wrap td small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.step-body .office-view:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+.doc-foot .bz-error,
+.doc-foot .bz-saved {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+main > .assign-card {
+  margin-top: 16px;
+}

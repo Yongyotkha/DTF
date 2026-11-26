@@ -12265,3 +12265,11 @@ article.official-sheet.bundle-doc.por-word-sheet.bundle-amend-sheet {
   justify-content: flex-end;
 }
 
+
+.qn-error {
+  margin: 4px 0 0;
+  color: var(--color-error-red);
+  font-family: var(--font-sans-thai);
+  font-size: 14px;
+  line-height: 21px;
+}

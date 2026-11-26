@@ -1,0 +1,733 @@
+<div class="staff">
+  <app-top-header class="fluid" />
+  <div class="staff__body">
+    <app-side-nav kind="staff" [open]="nav.open" [active]="nav.active" />
+    <main>
+      <header class="desk-head">
+        <div>
+          <h1>{{ nav.title }}</h1>
+          <p class="bz-lead">{{ lead }}</p>
+        </div>
+        <div class="desk-head__tools">
+          <app-button class="icon-before" type="outline" label="กลับไปหน้ารายการ" (click)="back()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+          </app-button>
+        </div>
+      </header>
+
+      @if (!found) {
+        <section class="assign-card">
+          <p class="consult-blank">ไม่พบขั้นตอนนี้ — กลับไปเลือกจากหน้ารายการ</p>
+        </section>
+      } @else {
+        <section class="assign-card assign-card--workspace" [attr.aria-label]="nav.title">
+          <div class="sheet__split">
+            <nav class="toc desk-docs" aria-label="รายการขั้นตอน">
+              <div class="desk-docs__bar">
+                <h2>รายการขั้นตอน</h2>
+              </div>
+              <div class="desk-docs__list">
+                @for (group of toc; track group.label) {
+                  <p class="toc__group">{{ group.label }}</p>
+                  @for (entry of group.entries; track entry.id) {
+                    <button
+                      type="button"
+                      class="toc__child"
+                      [class.toc__on]="entry.id === stepId"
+                      [attr.data-tone]="entry.id === stepId ? entryTone(entry) : null"
+                      [attr.aria-current]="entry.id === stepId ? 'true' : null"
+                      (click)="go(entry.id)"
+                    >
+                      <img [src]="dot(entry)" width="11" height="11" alt="" aria-hidden="true" />
+                      <span>
+                        <strong>{{ entry.no }}. {{ entry.label }}</strong>
+                        @if (entry.done) {
+                          <small>เสร็จ {{ entry.done }}</small>
+                        }
+                      </span>
+                    </button>
+                  }
+                }
+              </div>
+            </nav>
+
+            <section class="receipt__view" [attr.aria-label]="current?.label">
+              <header class="assign-head">
+                <div>
+                  <h2>ขั้นที่ {{ current?.no }} · {{ current?.label }}</h2>
+                  <p class="link-detail">{{ hint }}</p>
+                </div>
+                <app-status-tag variant="soft" [tone]="statusTone" [label]="statusLabel" />
+              </header>
+
+              @if (block && !done) {
+                <p class="bz-warn step-alert" role="status">{{ block }}</p>
+              } @else if (locked && !done) {
+                <p class="bz-warn step-alert" role="status">ดูได้อย่างเดียว — สถานะการประชุมไม่อยู่ในช่วงของขั้นนี้</p>
+              } @else if (done) {
+                <p class="bz-ok step-alert" role="status">ขั้นนี้บันทึกว่าเสร็จแล้วเมื่อ {{ done }} — เอกสารล็อกไว้ ถ้าต้องแก้ ให้กดยกเลิกว่าทำเสร็จ</p>
+              }
+
+              <div class="step-body">
+                @if (meeting; as m) {
+                  @switch (stepId) {
+                    @case ('receive') {
+                      <section class="notice-block" aria-label="วาระที่รับเข้า">
+                        <div class="notice-files-head">
+                          <div>
+                            <h3>วาระที่รับเข้าระเบียบวาระ ({{ items.length }} เรื่อง)</h3>
+                            <p class="link-detail">กลุ่มอัปโหลดวาระที่ ผอ. อนุมัติแล้ว บท. รับเข้าที่เมนูวาระที่ส่งเข้ามา</p>
+                          </div>
+                          <div class="doc-tools">
+                            <app-button type="outline" label="ไปที่วาระที่ส่งเข้ามา" (click)="goInbox()" />
+                          </div>
+                        </div>
+                        <ng-container *ngTemplateOutlet="itemTable" />
+                      </section>
+                    }
+                    @case ('agenda') {
+                      <section class="notice-block" aria-label="ลำดับวาระ">
+                        <div class="notice-files-head">
+                          <div>
+                            <h3>ลำดับวาระ ({{ items.length }} เรื่อง)</h3>
+                            <p class="link-detail">ปรับลำดับด้วยปุ่มขึ้น/ลง หรือให้ระบบเรียงตามวันครบกำหนดตามกฎหมาย แล้วกด AI ช่วยร่างระเบียบวาระ</p>
+                          </div>
+                          @if (!locked) {
+                            <div class="doc-tools">
+                              <app-button type="outline" label="จัดลำดับตามวันครบกำหนด" (click)="sortByDue()" />
+                            </div>
+                          }
+                        </div>
+                        <ng-container *ngTemplateOutlet="itemTable" />
+                      </section>
+                    }
+                    @case ('chair') {
+                      <section class="notice-block" aria-label="ข้อมูลประธาน">
+                        <h3>ข้อมูลที่ใช้ร่างบันทึก</h3>
+                        <dl class="job__detail bz-info">
+                          <div><dt>ประธาน</dt><dd>{{ m.chair }}</dd></div>
+                          <div><dt>ผู้ลงนาม</dt><dd>{{ m.signer }}</dd></div>
+                          <div><dt>ช่วงเดือนที่จัด</dt><dd>{{ m.on ? shortDate(m.on) : m.month }}</dd></div>
+                          <div><dt>วาระ</dt><dd>{{ items.length }} เรื่อง</dd></div>
+                        </dl>
+                        <p class="act-note">ทำเรื่องผ่าน e-Office และส่งเอกสารฉบับจริงให้ลงนาม เมื่อได้ฉบับลงนามกลับมา อัปเดตไฟล์สแกนที่ช่องบันทึกที่ลงนามแล้ว</p>
+                      </section>
+                    }
+                    @case ('room') {
+                      <section class="notice-block" aria-label="วัน เวลา สถานที่">
+                        <h3>วัน เวลา และห้องประชุม<span class="req">*</span></h3>
+                        <div class="bz-grid wk">
+                          <app-thai-date-field class="bz-field" label="วันประชุม" [required]="true" placeholder="วว/ดด/ปปปป" [value]="room.on" (valueChange)="setRoom('on', $event)" />
+                          <app-input-field class="block bz-field" kind="text" label="เวลา" [required]="true" [editable]="!locked" placeholder="เช่น 09.30 น." [value]="room.time" (valueChange)="setRoom('time', $event)" />
+                          <app-input-field class="block bz-field bz-field--wide" kind="text" label="ห้องประชุม / สถานที่" [required]="true" [editable]="!locked" [value]="room.place" (valueChange)="setRoom('place', $event)" />
+                          <app-input-field class="block bz-field" kind="text" label="จำนวนผู้เข้าร่วมโดยประมาณ" [optional]="true" [editable]="!locked" [digitsOnly]="true" [maxLength]="3" [placeholder]="'' + m.invitees.length" [value]="work.guests" (valueChange)="setGuests($event)" />
+                          <label class="wk__check">
+                            <input type="checkbox" [disabled]="locked" [checked]="work.snack" (change)="setSnack($any($event.target).checked)" />
+                            <span>ขอจัดเตรียมอาหารว่างและเครื่องดื่ม</span>
+                          </label>
+                        </div>
+                        @if (!locked) {
+                          <div class="doc-tools step-left">
+                            <app-button type="outline" label="ยืนยันวัน เวลา และสถานที่ลงในประชุม" (click)="confirmRoom()" />
+                          </div>
+                        }
+                      </section>
+                    }
+                    @case ('invite') {
+                      <section class="notice-block" aria-label="ผู้รับหนังสือเชิญ">
+                        <div class="notice-files-head">
+                          <div>
+                            <h3>ผู้รับหนังสือเชิญ ({{ m.invitees.length }} ราย)</h3>
+                            <p class="link-detail">รองรับทั้งอีเมลและฉบับจริง (e-Office) — เมื่อบันทึกว่าเสร็จ ระบบบันทึกว่าส่งถึงทุกรายตามช่องทางที่เลือก</p>
+                          </div>
+                          @if (!locked) {
+                            <label class="wk__inline step-inline">
+                              <span>ตั้งช่องทางทั้งหมด</span>
+                              <select class="bz-select" aria-label="ตั้งช่องทางส่งทั้งหมด" (change)="setAllChannel($any($event.target).value)">
+                                @for (channel of channels; track channel.id) {
+                                  <option [value]="channel.id">{{ channel.label }}</option>
+                                }
+                              </select>
+                            </label>
+                          }
+                        </div>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead><tr><th class="col-no">ลำดับ</th><th>ผู้รับ</th><th class="col-fit">ช่องทางส่ง</th><th class="col-fit">สถานะ</th></tr></thead>
+                            <tbody>
+                              @for (row of m.invitees; track row.id; let i = $index) {
+                                <tr>
+                                  <td class="col-no">{{ i + 1 }}</td>
+                                  <td>{{ row.role }}</td>
+                                  <td class="col-fit">
+                                    @if (row.sentAt || locked) {
+                                      {{ channelLabel(channelOf(row)) }}
+                                    } @else {
+                                      <select class="bz-select" [attr.aria-label]="'ช่องทางส่งถึง ' + row.role" (change)="setChannel(row, $any($event.target).value)">
+                                        @for (channel of channels; track channel.id) {
+                                          <option [value]="channel.id" [selected]="channelOf(row) === channel.id">{{ channel.label }}</option>
+                                        }
+                                      </select>
+                                    }
+                                  </td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="row.sentAt ? 'success' : 'neutral'" [label]="row.sentAt ? 'ส่งแล้ว ' + shortDate(row.sentAt) : 'ยังไม่ส่ง'" /></td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    }
+                    @case ('brief') {
+                      <section class="notice-block" aria-label="Chairman’s note รายวาระ">
+                        <div class="notice-files-head">
+                          <div>
+                            <h3>Chairman’s note และร่างมติรายวาระ<span class="req">*</span></h3>
+                            <p class="link-detail">ทำครบทุกวาระแล้วกด AI ช่วยร่างในเอกสารด้านล่าง ระบบรวมเป็นชุดบรีฟประธาน (Chairman’s note ร่างมติ Info)</p>
+                          </div>
+                          @if (!locked) {
+                            <div class="doc-tools notice-letter-actions">
+                              <app-button class="icon-before ask-ai" type="outline" label="AI ร่างวาระนี้" [state]="busy ? 'disabled' : 'default'" (click)="aiBriefs(false)">
+                                <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                              </app-button>
+                              <app-button class="icon-before ask-ai" type="outline" label="AI ร่างทุกวาระ" [state]="busy ? 'disabled' : 'default'" (click)="aiBriefs(true)">
+                                <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                              </app-button>
+                            </div>
+                          }
+                        </div>
+                        <div class="desk-shelf" role="tablist" aria-label="เลือกวาระ">
+                          @for (row of items; track row.id; let i = $index) {
+                            <button type="button" role="tab" [class.on]="briefRow?.id === row.id" [attr.aria-selected]="briefRow?.id === row.id" (click)="briefId = row.id">วาระ 3.{{ i + 1 }}{{ briefDone(row) ? ' ✓' : '' }}</button>
+                          }
+                        </div>
+                        @if (briefRow; as row) {
+                          <p class="link-detail">{{ row.title }} · {{ row.group }}</p>
+                          <app-input-field class="block" kind="textarea" [grow]="true" label="Chairman’s note" [required]="true" [editable]="!locked" [rows]="8" [value]="brief(row.id).note" (valueChange)="setBrief(row.id, 'note', $event)" />
+                          <app-input-field class="block" kind="textarea" [grow]="true" label="ร่างมติ" [required]="true" [editable]="!locked" [rows]="3" [value]="brief(row.id).resolution" (valueChange)="setBrief(row.id, 'resolution', $event)" />
+                        } @else {
+                          <p class="consult-blank">ยังไม่มีวาระที่รับเข้า</p>
+                        }
+                      </section>
+                      <ng-container *ngTemplateOutlet="seatTool" />
+                    }
+                    @case ('book') {
+                      <section class="notice-block" aria-label="เอกสารในเล่มวาระ">
+                        <h3>เอกสารที่ใส่ในเล่มวาระ</h3>
+                        <p class="link-detail">ระบบสร้างหน้าปก สารบัญ ระเบียบวาระ และรายการเอกสารประกอบแต่ละวาระ ติ๊กเลือกไฟล์ที่จะรวมเล่ม และรายงานเก่าที่ดึงมาอ้างอิง</p>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead><tr><th class="col-no">วาระ</th><th>เรื่อง</th><th>ไฟล์ที่รวมในเล่ม</th></tr></thead>
+                            <tbody>
+                              @for (row of items; track row.id; let i = $index) {
+                                <tr>
+                                  <td class="col-no">3.{{ i + 1 }}</td>
+                                  <td>{{ row.title }}</td>
+                                  <td>
+                                    @for (file of row.files; track file.name) {
+                                      <label class="wk__check">
+                                        <input type="checkbox" [disabled]="locked" [checked]="included(row, file)" (change)="toggleFile(row, file)" />
+                                        <span>{{ file.name }}</span>
+                                      </label>
+                                    } @empty {
+                                      <small>ยังไม่มีไฟล์</small>
+                                    }
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                        <h3>รายงานและมติเก่าที่อ้างอิง</h3>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead><tr><th class="col-no">ใส่เล่ม</th><th>เอกสาร</th><th class="col-fit">ที่มา</th><th class="col-act">ไฟล์</th></tr></thead>
+                            <tbody>
+                              @for (ref of refReports; track ref.name) {
+                                <tr>
+                                  <td class="col-no"><input type="checkbox" [disabled]="locked" [attr.aria-label]="'ใส่ในเล่ม ' + ref.name" [checked]="refOn(ref.name)" (change)="toggleRef(ref.name)" /></td>
+                                  <td>{{ ref.name }}</td>
+                                  <td class="col-fit">{{ ref.from }}</td>
+                                  <td class="col-act">
+                                    <div class="made-actions">
+                                      <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="viewRef(ref.href, ref.name)">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    }
+                    @case ('allow') {
+                      <section class="notice-block" aria-label="เบี้ยประชุม">
+                        <h3>อัตราเบี้ยประชุมและผู้มีสิทธิ์<span class="req">*</span></h3>
+                        <div class="bz-grid wk">
+                          <app-input-field class="block bz-field" kind="text" label="อัตราเบี้ยประชุมต่อคน (บาท)" [required]="true" [editable]="!locked" [digitsOnly]="true" [maxLength]="6" helper="ระบุตามระเบียบ ระบบไม่ตั้งค่าให้" [value]="work.rate" (valueChange)="setWork('rate', $event)" />
+                          <p class="bz-note wk__sum">ผู้มีสิทธิ์ {{ payable }} คน · รวม {{ money(total) }} บาท</p>
+                        </div>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead><tr><th class="col-no">เบิก</th><th>ตำแหน่ง</th></tr></thead>
+                            <tbody>
+                              @for (row of m.invitees; track row.id) {
+                                <tr>
+                                  <td class="col-no"><input type="checkbox" [disabled]="locked" [attr.aria-label]="'มีสิทธิ์เบิก ' + row.role" [checked]="paid(row)" (change)="togglePay(row)" /></td>
+                                  <td>{{ row.role }}</td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    }
+                    @case ('rsvp') {
+                      <section class="notice-block" aria-label="การตอบรับ">
+                        <div class="notice-files-head">
+                          <div>
+                            <h3>การตอบรับ — มา {{ count('come') }} · ไม่มา {{ count('no') }} · ส่งผู้แทน {{ count('proxy') }} · รอตอบรับ {{ count('wait') }}</h3>
+                            <p class="link-detail">ช่วงใกล้วันประชุม บท. กดสถานะรายคน ถ้าไม่เคยมีชื่อในระบบ เพิ่มชื่อเองได้</p>
+                          </div>
+                          @if (!locked) {
+                            <div class="doc-tools">
+                              <app-button type="outline" label="ตั้งผู้รอตอบรับเป็นมาทั้งหมด" (click)="allCome()" />
+                            </div>
+                          }
+                        </div>
+                        <ng-container *ngTemplateOutlet="rsvpTable" />
+                        @if (!locked) {
+                          <div class="bz-form">
+                            <label class="board-filter bz-wide">
+                              <span>เพิ่มผู้เข้าร่วมที่ไม่เคยมีชื่อในระบบ</span>
+                              <input class="bz-input" aria-label="ตำแหน่งหรือชื่อผู้เข้าร่วม" placeholder="ตำแหน่งหรือชื่อ" [value]="inviteRole" (input)="inviteRole = $any($event.target).value" />
+                            </label>
+                            <app-button type="outline" label="เพิ่มชื่อ" [state]="inviteRole.trim() ? 'default' : 'disabled'" (click)="addInvitee()" />
+                          </div>
+                        }
+                      </section>
+                    }
+                    @case ('seat') {
+                      <ng-container *ngTemplateOutlet="seatTool" />
+                    }
+                    @case ('transcript') {
+                      <section class="notice-block" aria-label="ถอดเทปประธานและมติ">
+                        <div class="notice-files-head">
+                          <div>
+                            <h3>ถ้อยคำประธานและมติรายวาระ<span class="req">*</span></h3>
+                            <p class="link-detail">ถอดเทปเฉพาะประธานและมติ ตั้งต้นจากร่างมติในบรีฟประธาน แล้วกด AI ช่วยร่างในเอกสารด้านล่างเพื่อทำร่างมติที่ประชุมส่งประธานเห็นชอบ</p>
+                          </div>
+                          @if (!locked) {
+                            <div class="doc-tools notice-letter-actions">
+                              <app-button class="icon-before ask-ai" type="outline" label="AI ถอดวาระนี้" [state]="busy ? 'disabled' : 'default'" (click)="aiMinutes(false)">
+                                <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                              </app-button>
+                              <app-button class="icon-before ask-ai" type="outline" label="AI ถอดทุกวาระ" [state]="busy ? 'disabled' : 'default'" (click)="aiMinutes(true)">
+                                <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+                              </app-button>
+                            </div>
+                          }
+                        </div>
+                        <div class="bz-grid wk">
+                          <app-input-field class="block bz-field" kind="text" label="เริ่มประชุม" [optional]="true" [editable]="!locked" placeholder="เช่น 09.30 น." [value]="work.startAt ?? ''" (valueChange)="setTime('startAt', $event)" />
+                          <app-input-field class="block bz-field" kind="text" label="เลิกประชุม" [optional]="true" [editable]="!locked" placeholder="เช่น 12.00 น." [value]="work.endAt ?? ''" (valueChange)="setTime('endAt', $event)" />
+                        </div>
+                        <div class="desk-shelf" role="tablist" aria-label="เลือกวาระ">
+                          @for (row of items; track row.id; let i = $index) {
+                            <button type="button" role="tab" [class.on]="minuteRow?.id === row.id" [attr.aria-selected]="minuteRow?.id === row.id" (click)="minuteId = row.id">วาระ 3.{{ i + 1 }}{{ minuteDone(row) ? ' ✓' : '' }}</button>
+                          }
+                        </div>
+                        @if (minuteRow; as row) {
+                          <p class="link-detail">{{ row.title }} · {{ row.group }}</p>
+                          <app-input-field class="block" kind="textarea" [grow]="true" label="ถ้อยคำประธาน (ถอดเทป)" [optional]="true" [editable]="!locked" [rows]="5" [value]="minute(row.id).chair" (valueChange)="setMinute(row.id, 'chair', $event)" />
+                          <app-input-field class="block" kind="textarea" [grow]="true" label="มติที่ประชุม" [required]="true" [editable]="!locked" [rows]="3" [value]="minute(row.id).resolution" (valueChange)="setMinute(row.id, 'resolution', $event)" />
+                        } @else {
+                          <p class="consult-blank">ไม่มีวาระในการประชุมนี้</p>
+                        }
+                      </section>
+                    }
+                    @case ('sign') {
+                      <section class="notice-block" aria-label="ส่งลงนาม">
+                        <h3>ส่งฉบับจริงให้กรมลงนาม</h3>
+                        <p class="act-note">พิมพ์ร่างมติที่ประธานเห็นชอบแล้ว ส่งกรมลงนามผ่าน e-Office เมื่อได้ฉบับลงนามกลับมา สแกนแล้วกดอัปเดตไฟล์ด้านล่าง ไฟล์จะเก็บไว้กับการประชุมครั้งนี้</p>
+                      </section>
+                    }
+                    @case ('circulate') {
+                      <section class="notice-block" aria-label="กำหนดส่งความเห็น">
+                        <h3>ส่งรายงานให้กรรมการรับรอง<span class="req">*</span></h3>
+                        <div class="bz-grid wk">
+                          <app-input-field class="block bz-field" kind="text" label="ให้แจ้งแก้ไขภายใน (วันทำการ)" [required]="true" [editable]="!locked" [digitsOnly]="true" [maxLength]="1" helper="3–7 วันทำการ" [value]="work.replyDays ?? ''" (valueChange)="setWork('replyDays', $event)" />
+                          <p class="bz-note wk__sum">ส่งทั้งอีเมลและฉบับจริงถึงกรรมการ {{ attendees.length }} ท่าน</p>
+                        </div>
+                      </section>
+                    }
+                    @case ('comments') {
+                      <section class="notice-block" aria-label="ความเห็นกรรมการ">
+                        <h3>ความเห็นของกรรมการต่อรายงาน ({{ comments.length }})</h3>
+                        <p class="link-detail">ส่งให้กลุ่มแก้ บันทึกเมื่อกลุ่มส่งกลับ แล้วลงวาระที่ 2 ของ{{ nextMeeting?.name || 'การประชุมครั้งถัดไป' }}</p>
+                        @if (!comments.length) {
+                          <p class="consult-blank">กรรมการไม่มีความเห็นแก้ไข รายงานผ่านการรับรองในวาระที่ 2 ของการประชุมครั้งถัดไป</p>
+                        }
+                        @for (row of comments; track row.id) {
+                          <article class="bz-comment">
+                            <header>
+                              <div>
+                                <b>{{ row.by }}</b>
+                                <small>{{ row.ref }} · กลุ่มที่แก้ {{ row.group }}</small>
+                              </div>
+                              <app-status-tag variant="soft" [tone]="commentTone(row)" [label]="commentLabel(row)" />
+                            </header>
+                            <p>{{ row.text }}</p>
+                            @if (row.status === 'fixed' || row.status === 'carried') {
+                              <div class="bz-diff">
+                                <div><small>ข้อความเดิม</small><span>{{ row.before }}</span></div>
+                                <div><small>ข้อความหลังแก้ ลงวาระที่ 2 {{ nextMeeting?.name }}</small><span>{{ row.after }}</span></div>
+                              </div>
+                            }
+                            @if (row.heavy && (row.status === 'fixed' || row.status === 'carried')) {
+                              <div class="bz-heavy">
+                                <small>กรรมการท่านนี้แก้ไขหลายจุด บท. ตัดสินใจว่าจะส่งส่วนที่แก้กลับไปให้ท่านรับทราบหรือไม่</small>
+                                <span class="bz-rsvp">
+                                  <button type="button" [disabled]="locked" [class.on]="row.notify === true" (click)="setNotify(row, true)">ส่งให้รับทราบ</button>
+                                  <button type="button" [disabled]="locked" [class.on]="row.notify === false" (click)="setNotify(row, false)">ไม่ส่ง</button>
+                                </span>
+                              </div>
+                            }
+                            @if (row.status !== 'carried' && !locked) {
+                              <footer>
+                                <app-button type="primary" size="sm" [label]="advanceLabel(row)" (click)="advanceComment(row)" />
+                              </footer>
+                            }
+                          </article>
+                        }
+                      </section>
+                    }
+                    @case ('reports') {
+                      <section class="notice-block" aria-label="รายงานเสนอกรม">
+                        <h3>รวบรวมรายงานจากกลุ่มและเสนอกรม</h3>
+                        <p class="act-note">ส่งมติก่อน แล้วค่อยส่งรายงาน — AI ช่วยร่างบันทึกเสนอกรมจากมติรายวาระ ({{ items.length }} วาระ) เมื่อกรมลงนามแล้วสแกนกลับเข้าระบบที่ช่องบันทึกที่ลงนามแล้ว</p>
+                        <ng-container *ngTemplateOutlet="itemTable" />
+                      </section>
+                    }
+                    @case ('clearbreak') {
+                      <section class="notice-block" aria-label="ผู้มาประชุมจริง">
+                        <h3>ผู้มาประชุมจริงและค่าอาหารว่าง<span class="req">*</span></h3>
+                        <p class="link-detail">ตั้งต้นจากสถานะตอบรับ (มา/ส่งผู้แทน) — เอาติ๊กออกถ้าตอบรับแต่ไม่ได้มาจริงในวันประชุม</p>
+                        <div class="bz-grid wk">
+                          <app-input-field class="block bz-field" kind="text" label="ค่าอาหารว่างต่อคน (บาท)" [required]="true" [editable]="!locked" [digitsOnly]="true" [maxLength]="4" [value]="work.snackRate ?? ''" (valueChange)="setWork('snackRate', $event)" />
+                          <p class="bz-note wk__sum">มาจริง {{ attendees.length }} คน · รวม {{ money(snackTotal) }} บาท</p>
+                        </div>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead><tr><th class="col-no">มาจริง</th><th>ตำแหน่ง</th><th class="col-fit">ตอบรับ</th></tr></thead>
+                            <tbody>
+                              @for (row of invitees; track row.id) {
+                                <tr>
+                                  <td class="col-no"><input type="checkbox" [disabled]="locked || !confirmed(row)" [attr.aria-label]="'มาจริง ' + row.role" [checked]="present(row)" (change)="togglePresent(row)" /></td>
+                                  <td>{{ row.role }}</td>
+                                  <td class="col-fit"><app-status-tag variant="soft" [tone]="rsvpTone(row.rsvp)" [label]="rsvpLabel(row.rsvp)" /></td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    }
+                    @case ('claim') {
+                      <section class="notice-block" aria-label="เบิกตามรายชื่อมาจริง">
+                        <h3>รายชื่อผู้มาจริงที่เบิกเบี้ยประชุม</h3>
+                        <p class="link-detail">อัตรา {{ rate ? money(rate) : '—' }} บาทต่อคน (จากขั้นขออนุมัติเบี้ยประชุม) · ผู้มาจริงจากขั้นเคลียร์เบรก</p>
+                        <div class="table-wrap consult-table">
+                          <table>
+                            <thead><tr><th class="col-no">ลำดับ</th><th>ตำแหน่ง</th><th class="col-fit">จำนวนเงิน (บาท)</th></tr></thead>
+                            <tbody>
+                              @for (row of claimRows; track row.id; let i = $index) {
+                                <tr>
+                                  <td class="col-no">{{ i + 1 }}</td>
+                                  <td>{{ row.role }}</td>
+                                  <td class="col-fit">{{ money(rate) }}</td>
+                                </tr>
+                              } @empty {
+                                <tr><td colspan="3" class="notice-files__empty">ยังไม่มีผู้มาจริงที่มีสิทธิ์เบิก</td></tr>
+                              }
+                              <tr>
+                                <td class="col-no"></td>
+                                <td><strong>รวม {{ claimRows.length }} คน</strong></td>
+                                <td class="col-fit"><strong>{{ money(claimTotal) }}</strong></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    }
+                  }
+                }
+
+                @if (gazette; as gz) {
+                  <section class="notice-block" aria-label="ข้อมูลประกาศ">
+                    <h3>ข้อมูลประกาศ</h3>
+                    <dl class="job__detail bz-info">
+                      <div><dt>ประเภท</dt><dd>{{ gz.kind }}</dd></div>
+                      <div><dt>เคส</dt><dd>{{ gz.caseCode || '—' }} · {{ gz.group }}</dd></div>
+                      <div><dt>เลขหนังสือ e-Office</dt><dd>{{ gz.no || 'ออกเลขเมื่อบันทึกขั้นทำหนังสือส่งราชกิจจาฯ' }}</dd></div>
+                      @if (gz.kind === gzNotice) {
+                        <div><dt>ประกาศกรมตามมา</dt><dd>{{ gz.hasDept === 'yes' ? 'มี' : gz.hasDept === 'no' ? 'ไม่มี' : 'ยังไม่ระบุ' }}</dd></div>
+                      }
+                    </dl>
+                    @if (askDept) {
+                      <div class="bz-start">
+                        <p>มีประกาศกรมตามมาไหม? ถ้ามี ระบบเปิดรายการประกาศกรมให้ติดตามต่อ และส่งราชกิจจาฯ หลังอธิบดีลงนาม</p>
+                        <span class="bz-actions">
+                          <app-button type="primary" size="sm" label="มีประกาศกรม" (click)="answerDept(true)" />
+                          <app-button type="outline" size="sm" label="ไม่มี" (click)="answerDept(false)" />
+                        </span>
+                      </div>
+                    }
+                    @if (deptRow; as dept) {
+                      <p class="act-note">ประกาศกรมที่ตามมา: {{ dept.title }} · ทำแล้ว {{ deptDone }}/{{ dept.steps.length }} ขั้น <button type="button" class="desk-sample" (click)="openDept()">เปิดงานประกาศกรม</button></p>
+                    }
+                    @if (gz.files.length && stepId === '1') {
+                      <div class="table-wrap consult-table">
+                        <table>
+                          <thead><tr><th class="col-no">ลำดับ</th><th>ไฟล์ของเคส</th><th class="col-act">การจัดการ</th></tr></thead>
+                          <tbody>
+                            @for (file of gz.files; track file.href; let i = $index) {
+                              <tr>
+                                <td class="col-no">{{ i + 1 }}</td>
+                                <td>{{ file.name }}</td>
+                                <td class="col-act">
+                                  <div class="made-actions">
+                                    <button type="button" class="office-view" aria-label="ดู" title="ดู" (click)="viewCaseFile(file.href, file.name)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                    </button>
+                                    <button type="button" class="office-view" aria-label="โหลดไฟล์" title="โหลดไฟล์" (click)="downloadCaseFile(file.href, file.name)">
+                                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10l4 4 4-4M5 19h14" /></svg>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                  </section>
+                }
+
+                @if (visit; as v) {
+                  <section class="notice-block" aria-label="ข้อมูลการ Visit">
+                    <h3>ข้อมูลการเบิก</h3>
+                    <dl class="job__detail bz-info">
+                      <div><dt>เคส</dt><dd>{{ v.caseCode || '—' }} · {{ v.group }}</dd></div>
+                      <div><dt>ส่งมา</dt><dd>{{ v.at }}{{ v.abroad ? ' · ต่างประเทศ' : '' }}</dd></div>
+                      <div><dt>รายละเอียด</dt><dd>{{ v.need }}</dd></div>
+                      <div><dt>เลขเอกสาร e-Office</dt><dd>{{ v.no || 'ออกเลขที่ขั้นที่ 2' }}</dd></div>
+                    </dl>
+                    @if (v.abroad) {
+                      <p class="act-note">ไปต่างประเทศ ให้ สล. พาไปซื้อตั๋วเครื่องบิน ทำหนังสือเดินทางและวีซ่า งบเหล่านี้รวมอยู่ในเอกสารที่ทำเรื่องเบิกคลัง</p>
+                    }
+                    @if (stepId === 'cleared') {
+                      <div class="bz-grid wk">
+                        <app-input-field class="block bz-field" kind="text" label="ใช้ไป (บาท)" [required]="true" [editable]="!locked" [value]="clear.spent" (valueChange)="setClear('spent', $event)" />
+                        <app-input-field class="block bz-field" kind="text" label="เหลือคืน (บาท)" [required]="true" [editable]="!locked" [value]="clear.left" (valueChange)="setClear('left', $event)" />
+                        <app-input-field class="block bz-field bz-field--wide" kind="text" label="เอกสารที่แนบ" [optional]="true" [editable]="!locked" [placeholder]="proofNames || 'เช่น ใบเสร็จค่าที่พัก, ใบเสร็จค่าน้ำมัน'" [value]="clear.attach" (valueChange)="setClear('attach', $event)" />
+                      </div>
+                    }
+                  </section>
+                }
+
+                @for (def of docs; track def.key) {
+                  <app-bureau-doc-desk [deskKey]="deskKey(def)" [def]="def" [detail]="deskDetail(def)" [locked]="locked" [maker]="maker(def)" (changed)="onDesk()" />
+                }
+                @if (!docs.length && meeting) {
+                  <p class="act-note">ขั้นนี้เป็นสถานะ ไม่มีเอกสารต้องจัดทำ — ทำตามรายการด้านบนแล้วกดบันทึกว่าขั้นนี้เสร็จ</p>
+                }
+
+                @if (notes.length) {
+                  <div class="wk__notes" role="status">
+                    <b>ข้อสังเกตจาก AI</b>
+                    <ul>
+                      @for (note of notes; track note) {
+                        <li>{{ note }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+
+              <footer class="doc-foot">
+                <app-button class="icon-before" type="outline" label="ขั้นก่อนหน้า" [state]="prevEntry ? 'default' : 'disabled'" (click)="goPrev()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+                </app-button>
+                @if (done) {
+                  @if (canUndo) {
+                    <app-button type="outline" label="ยกเลิกว่าทำเสร็จ" (click)="undo()" />
+                  }
+                } @else if (!locked) {
+                  <app-button class="icon-before" type="primary" [label]="finishLabel" (click)="finish()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 9 18l-5-5" /></svg>
+                  </app-button>
+                }
+                @if (nextEntry) {
+                  <app-button type="outline" label="ขั้นถัดไป" (click)="goNext()" />
+                }
+                @if (prepReady && !isPostStep) {
+                  <app-button type="primary" label="บันทึกว่าประชุมแล้ว ไปทำมติและรายงาน" (click)="markHeld()" />
+                }
+                @if (postReady) {
+                  <app-button type="primary" label="ปิดงานประชุม" (click)="closeMeeting()" />
+                }
+                @if (error) {
+                  <p class="bz-error" role="alert">{{ error }}</p>
+                } @else if (info) {
+                  <p class="bz-saved" role="status">{{ info }}</p>
+                }
+              </footer>
+            </section>
+          </div>
+        </section>
+      }
+    </main>
+  </div>
+</div>
+
+<ng-template #itemTable>
+  <div class="table-wrap consult-table">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-no">วาระ</th>
+          <th>เรื่อง</th>
+          <th class="col-fit">กลุ่ม / มาตรการ</th>
+          <th class="col-fit">ครบกำหนด</th>
+          <th class="col-fit">สถานะ</th>
+          <th class="col-act">ไฟล์ / ลำดับ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of items; track row.id; let i = $index; let last = $last) {
+          <tr>
+            <td class="col-no">3.{{ i + 1 }}</td>
+            <td>{{ row.title }}</td>
+            <td class="col-fit">{{ row.group }}<br /><small>{{ row.measure }}</small></td>
+            <td class="col-fit">{{ dueLabel(row) }}</td>
+            <td class="col-fit"><app-status-tag variant="soft" [tone]="itemTone(row)" [label]="itemLabel(row)" /></td>
+            <td class="col-act">
+              <div class="made-actions">
+                @for (file of row.files; track file.name) {
+                  @if (file.href) {
+                    <button type="button" class="office-view" [attr.aria-label]="'ดู ' + file.name" [title]="file.name" (click)="viewFile(file)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                    </button>
+                  }
+                }
+                @if (stepId === 'agenda' && !locked) {
+                  <button type="button" class="office-view" aria-label="เลื่อนขึ้น" title="เลื่อนขึ้น" [disabled]="i === 0" (click)="moveItem(row, -1)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
+                  </button>
+                  <button type="button" class="office-view" aria-label="เลื่อนลง" title="เลื่อนลง" [disabled]="last" (click)="moveItem(row, 1)">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="notice-files__empty">ยังไม่มีวาระที่รับเข้า</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</ng-template>
+
+<ng-template #rsvpTable>
+  <div class="table-wrap consult-table">
+    <table>
+      <thead><tr><th class="col-no">ลำดับ</th><th>ตำแหน่ง</th><th class="col-fit">สถานะ</th><th class="col-fit">กดสถานะ</th></tr></thead>
+      <tbody>
+        @for (row of invitees; track row.id; let i = $index) {
+          <tr>
+            <td class="col-no">{{ i + 1 }}</td>
+            <td>{{ row.role }}</td>
+            <td class="col-fit"><app-status-tag variant="soft" [tone]="rsvpTone(row.rsvp)" [label]="rsvpLabel(row.rsvp)" /></td>
+            <td class="col-fit">
+              @if (!locked) {
+                <span class="bz-rsvp">
+                  <button type="button" [class.on]="row.rsvp === 'come'" (click)="setRsvp(row, 'come')">มา</button>
+                  <button type="button" [class.on]="row.rsvp === 'no'" (click)="setRsvp(row, 'no')">ไม่มา</button>
+                  <button type="button" [class.on]="row.rsvp === 'proxy'" (click)="setRsvp(row, 'proxy')">ส่งผู้แทน</button>
+                  <button type="button" (click)="setRsvp(row, 'wait')">ล้าง</button>
+                </span>
+              } @else {
+                <small>{{ row.by || '—' }}</small>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</ng-template>
+
+<ng-template #seatTool>
+  <section class="notice-block wk" aria-label="ผังที่นั่ง">
+    <div class="notice-files-head">
+      <div>
+        <h3>{{ stepId === 'brief' ? 'ร่างผังที่นั่ง' : 'ผังที่นั่งและรายชื่อผู้เข้าร่วมจริง' }}</h3>
+        <p class="link-detail">จัดโดย: {{ seatBy }} · ที่นั่ง {{ seatRows.length }} คน{{ online.length ? ' · ผ่านสื่ออิเล็กทรอนิกส์ ' + online.length + ' คน (ไม่จัดที่นั่ง)' : '' }}{{ absent ? ' · ไม่มา ' + absent + ' คน (ตัดออก)' : '' }}</p>
+      </div>
+      @if (!locked) {
+        <div class="doc-tools notice-letter-actions">
+          <app-button type="outline" label="เรียงตามรายชื่อ" (click)="arrangeList()" />
+          <app-button class="icon-before ask-ai" type="outline" label="AI จัดผัง" [state]="busy ? 'disabled' : 'default'" (click)="arrangeAi()">
+            <img src="assets/icons/chat-avatar.svg" width="22" height="22" alt="" />
+          </app-button>
+        </div>
+      }
+    </div>
+    <div class="desk-shelf" role="tablist" aria-label="รูปแบบโต๊ะ">
+      @for (option of layouts; track option.id) {
+        <button type="button" role="tab" [disabled]="locked" [class.on]="layout === option.id" [attr.aria-selected]="layout === option.id" (click)="setLayout(option.id)">{{ option.label }}</button>
+      }
+    </div>
+    <div class="wk__seat">
+      <svg class="wk__svg" [attr.viewBox]="'0 0 ' + geo.w + ' ' + geo.h" role="img" aria-label="ผังที่นั่ง">
+        @for (shape of geo.shapes; track $index) {
+          @switch (shape.tag) {
+            @case ('ellipse') {
+              <ellipse class="wk__shape" [attr.cx]="shape.attrs['cx']" [attr.cy]="shape.attrs['cy']" [attr.rx]="shape.attrs['rx']" [attr.ry]="shape.attrs['ry']" />
+            }
+            @case ('rect') {
+              <rect class="wk__shape" [attr.x]="shape.attrs['x']" [attr.y]="shape.attrs['y']" [attr.width]="shape.attrs['width']" [attr.height]="shape.attrs['height']" [attr.rx]="shape.attrs['rx']" />
+            }
+            @default {
+              <path class="wk__shape wk__shape--line" [attr.d]="shape.attrs['d']" />
+            }
+          }
+        }
+        @for (pt of geo.pts; track $index) {
+          <circle class="wk__dot" [attr.cx]="pt.x" [attr.cy]="pt.y" r="15" />
+          <text class="wk__dotno" [attr.x]="pt.x" [attr.y]="pt.y + 5" text-anchor="middle">{{ $index + 1 }}</text>
+        }
+      </svg>
+      <ol class="wk__legend">
+        @for (row of seatRows; track row.id; let i = $index; let last = $last) {
+          <li>
+            <span class="bz-agenda__no">{{ i + 1 }}</span>
+            <span>{{ row.role }}<small>{{ rsvpLabel(row.rsvp) }}</small></span>
+            @if (!locked) {
+              <span class="bz-move">
+                <button type="button" class="bz-link" [disabled]="i === 0" [attr.aria-label]="'เลื่อนที่นั่งขึ้น ' + row.role" (click)="moveSeat(i, -1)">ขึ้น</button>
+                <button type="button" class="bz-link" [disabled]="last" [attr.aria-label]="'เลื่อนที่นั่งลง ' + row.role" (click)="moveSeat(i, 1)">ลง</button>
+              </span>
+            }
+          </li>
+        } @empty {
+          <li><small>ยังไม่มีผู้เข้าร่วมที่ต้องจัดที่นั่ง</small></li>
+        }
+      </ol>
+    </div>
+  </section>
+</ng-template>

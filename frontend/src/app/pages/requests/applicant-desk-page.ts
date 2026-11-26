@@ -9,6 +9,7 @@ import { TopHeader } from '../../top-header/top-header';
 import { Accounts } from '../../accounts';
 import { InterestFiling, InterestKind, interestKindLabel, joinedCaseIds, joinedFor, invitePath as interestInvitePath, readInterestFilings, rememberJoined, saveInterestFiling } from './interest-invite';
 import { addGrant, allowedCaseIds, invitePath, isActingAgent, listGrants, powerLabel, proxyPowerChoices, ProxyGrant, ProxyPower, setGrantUse } from './proxy-grant';
+import { qnForUser, qnState } from './qn-exchange';
 import { archiveCases, caseKey, caseNumberLabel, ListedCase } from './request-cases';
 
 type Desk = 'proxy' | 'interest' | 'cases' | 'exchange' | 'info';
@@ -77,6 +78,11 @@ export class ApplicantDeskPage implements OnDestroy {
 
   protected get interestUser(): boolean {
     return this.accounts.role === 'interest';
+  }
+
+  /** แบบสอบถามที่เจ้าหน้าที่ส่งมาในระบบและยังรอผู้ใช้ตอบ */
+  protected get qnWaiting(): number {
+    return qnForUser(this.accounts.username).filter((row) => ['waiting', 'revise'].includes(qnState(row))).length;
   }
 
   protected get staffNotice(): boolean {

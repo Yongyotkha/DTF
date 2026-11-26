@@ -28,6 +28,13 @@
         <span>{{ kindLabel(kind) }}</span>
       </label>
     }
+    <p class="lead">ท่านต้องการ (เลือกได้หลายรายการ)</p>
+    @for (item of purposeChoices; track item.id) {
+      <label class="trust">
+        <input type="checkbox" [checked]="purposes.includes(item.id)" (change)="togglePurpose(item.id)" />
+        <span>{{ item.label }}</span>
+      </label>
+    }
     <label class="trust">
       <input type="checkbox" [checked]="acceptDocs" (change)="acceptDocs = $any($event.target).checked" />
       <span>ยอมรับการรับ–ส่งเอกสารหรือติดต่อผ่านระบบเท่านั้น</span>

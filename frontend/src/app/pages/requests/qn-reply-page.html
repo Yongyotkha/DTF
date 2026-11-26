@@ -1,0 +1,113 @@
+<div class="requests">
+  <app-top-header class="fluid" />
+  <div class="requests__body">
+    <app-side-nav kind="applicant" open="กระบวนการไต่สวน" active="แบบสอบถาม" />
+    <main>
+      <header class="head">
+        <div>
+          <h1>แบบสอบถาม</h1>
+          <p class="head__note">รับแจ้ง ส่งคำตอบ และขอขยายเวลาในระบบ ไม่ต้องส่งเป็นกระดาษ</p>
+        </div>
+      </header>
+      <section class="panel">
+        @if (waitingCount) {
+          <p class="qn-alert" role="status">มีแบบสอบถามรอตอบ {{ waitingCount }} รายการ</p>
+        }
+        @for (row of rows; track row.id) {
+          <article class="item">
+            <header class="item__head">
+              <div>
+                <p class="item__code">{{ row.caseId }}</p>
+                <p class="item__goods">แบบสอบถาม{{ partyOf(row) }}</p>
+              </div>
+              <app-status-tag [tone]="toneOf(row)" [label]="labelOf(row)" />
+            </header>
+            <dl class="item__facts">
+              <div><dt>ผู้ตอบ</dt><dd>{{ row.name }}</dd></div>
+              <div><dt>ส่งวันที่</dt><dd>{{ sentOn(row) }}</dd></div>
+              <div><dt>ส่งคืนภายใน</dt><dd>{{ row.dueOn || '-' }} เวลา 16.30 น.</dd></div>
+              <div><dt>ครั้งที่</dt><dd>{{ round(row) }}</dd></div>
+            </dl>
+            @if (officerNote(row); as note) {
+              <p class="item__result">จากเจ้าหน้าที่ ({{ note.at }}): {{ note.note }}</p>
+            }
+            <p class="qn-label">แบบสอบถามที่ต้องตอบ</p>
+            <ul class="qn-files">
+              @for (name of forms(row); track name) {
+                <li>
+                  <span>{{ name }}</span>
+                  <span class="qn-files__act">
+                    <button type="button" (click)="view(name)">ดู</button>
+                    <button type="button" (click)="download(name)">ดาวน์โหลด</button>
+                  </span>
+                </li>
+              }
+            </ul>
+            @if (stateOf(row) === 'waiting' || stateOf(row) === 'revise') {
+              <div class="item__foot">
+                <app-button type="primary" label="ส่งคำตอบ" (click)="open(row, 'reply')" />
+                <app-button type="outline" label="ขอขยายเวลา" (click)="open(row, 'extend')" />
+              </div>
+              <p class="qn-hint">ขอขยายเวลาได้ก่อนวันครบกำหนด 7 วัน ครั้งละไม่เกิน 30 วัน</p>
+            } @else if (stateOf(row) === 'extend') {
+              <p class="qn-hint">ส่งคำขอขยายเวลาแล้ว รอเจ้าหน้าที่พิจารณา</p>
+            } @else if (stateOf(row) === 'replied') {
+              <p class="qn-hint">ส่งคำตอบแล้ว รอเจ้าหน้าที่ตรวจ ระบบจะแจ้งผลในหน้านี้</p>
+            } @else {
+              <p class="qn-hint">เจ้าหน้าที่ตรวจคำตอบแล้ว ไม่ต้องดำเนินการเพิ่ม</p>
+            }
+            @if (openId === row.id && mode) {
+              <div class="qn-form">
+                <app-thai-date-field [label]="mode === 'reply' ? 'วันที่ส่งคำตอบ' : 'วันที่ขอ'" [required]="true" [value]="on" (valueChange)="on = $event" />
+                @if (mode === 'extend') {
+                  <app-thai-date-field label="ขอขยายถึงวันที่" [required]="true" [value]="due" (valueChange)="due = $event" />
+                }
+                <app-input-field class="block" kind="textarea" placeholder="ระบุ" [label]="mode === 'reply' ? 'หมายเหตุ' : 'เหตุผลที่ขอขยายเวลา'" [required]="mode === 'extend'" [value]="note" (valueChange)="note = $event" />
+                @if (mode === 'reply') {
+                  <app-file-field
+                    label="ไฟล์คำตอบ"
+                    [required]="true"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    note="เลือกได้ทีละไฟล์ เพิ่มได้หลายไฟล์ เช่น ฉบับเปิดเผยและฉบับปกปิด"
+                    (valueChange)="addFile($event)"
+                  />
+                  @for (name of files; track name) {
+                    <p class="qn-hint">{{ name }} <button type="button" class="qn-link" (click)="removeFile(name)">ลบ</button></p>
+                  }
+                }
+                @if (error) {
+                  <p class="qn-error" role="alert">{{ error }}</p>
+                }
+                <div class="item__foot">
+                  <app-button type="outline" label="ยกเลิก" (click)="close()" />
+                  @if (mode === 'reply') {
+                    <app-button type="primary" label="ส่งคำตอบ" (click)="sendReply(row)" />
+                  } @else {
+                    <app-button type="primary" label="ส่งคำขอขยายเวลา" (click)="sendExtend(row)" />
+                  }
+                </div>
+              </div>
+            }
+            @if (row.events.length) {
+              <p class="qn-label">ประวัติ</p>
+              <ol class="qn-log">
+                @for (ev of row.events; track ev.id) {
+                  <li>
+                    <strong>{{ stepLabel(ev.step) }}{{ ev.due ? ' · ถึง ' + ev.due : '' }}</strong>
+                    <span>{{ ev.at }} · {{ who(ev) }}</span>
+                    <span>{{ ev.note }}</span>
+                    @if (ev.files.length && ev.by === 'stakeholder') {
+                      <span>ไฟล์: {{ ev.files.join(', ') }}</span>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        } @empty {
+          <p class="empty">ยังไม่มีแบบสอบถามที่ต้องตอบในระบบ</p>
+        }
+      </section>
+    </main>
+  </div>
+</div>

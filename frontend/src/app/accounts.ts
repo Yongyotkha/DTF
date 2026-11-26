@@ -123,6 +123,7 @@ export class Accounts {
     ['1000000000122', { password: 'Committee@2569', role: 'committee', person: 'นายประเสริฐ ธรรมรักษ์', personTitle: 'ประธานคณะกรรมการ ทตอ.' }],
     ['1000000000126', { password: 'Subcommittee@2569', role: 'committee', person: 'คณะกรรมการอื่นๆ', personTitle: 'คณะอนุกรรมการ' }],
     ['1000000000123', { password: 'Interest@2569', role: 'interest', person: 'บริษัท ไทยสตีล อิมปอร์ต จำกัด', personTitle: 'ผู้มีส่วนได้เสีย' }],
+    ['1000000000127', { password: 'Interest@2569', role: 'interest', person: 'บริษัท สหวิริยาสตีลอินดัสตรี จำกัด (มหาชน)', personTitle: 'ผู้มีส่วนได้เสีย' }],
     ['1000000000124', { password: 'External@2569', role: 'external', person: 'กรมโรงงานอุตสาหกรรม', personTitle: 'หน่วยงานที่เกี่ยวข้อง' }],
     ['1000000000125', { password: 'Agent@2569', role: 'corporate', email: 'apisith.s@weerawongcp.com', person: 'นายอภิสิทธิ์ สุธัมม์', personTitle: 'บริษัท วีระวงค์, ชินวัฒน์ และพาร์ทเนอร์ส จำกัด' }],
   ]);

@@ -12,7 +12,22 @@
 }
 
 .modal--form {
+  display: flex;
+  flex-direction: column;
   width: 702px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+}
+
+.modal--form .modal__header,
+.modal--form .modal__actions {
+  flex: 0 0 auto;
+}
+
+.modal--form .modal__fields {
+  min-height: 0;
+  padding: 2px 4px 2px 0;
+  overflow-y: auto;
 }
 
 .modal--alert {

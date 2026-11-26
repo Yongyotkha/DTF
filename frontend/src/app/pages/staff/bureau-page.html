@@ -1,0 +1,1046 @@
+<div class="staff">
+  <app-top-header class="fluid" />
+  <div class="staff__body">
+    <app-side-nav kind="staff" [open]="info.open" [active]="info.active" />
+    <main>
+      <header class="desk-head">
+        <div>
+          <h1>{{ info.title }}</h1>
+          <p class="bz-lead">{{ info.lead }}</p>
+        </div>
+        <div class="desk-head__tools">
+          <button type="button" class="icon-btn" [class.on]="searchOpen || !!query" aria-label="ค้นหา" [attr.aria-expanded]="searchOpen" (click)="toggleSearch()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></svg>
+            <span class="tip" role="tooltip">ค้นหา</span>
+          </button>
+          @if (view === 'home') {
+            <div class="board-view" role="tablist" aria-label="รูปแบบการดู">
+              <button type="button" class="icon-btn" aria-label="แบบคอลัมน์" [class.on]="boardView === 'board'" (click)="boardView = 'board'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1" /><rect x="10" y="4" width="5" height="16" rx="1" /><rect x="17" y="4" width="4" height="16" rx="1" /></svg>
+                <span class="tip" role="tooltip">แบบคอลัมน์</span>
+              </button>
+              <button type="button" class="icon-btn" aria-label="แบบรายการ" [class.on]="boardView === 'list'" (click)="boardView = 'list'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                <span class="tip" role="tooltip">แบบรายการ</span>
+              </button>
+            </div>
+          }
+          <button type="button" class="icon-btn" aria-label="คืนค่าข้อมูลตัวอย่าง" (click)="resetDemo()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.2-5.6M20 4v5h-5" /></svg>
+            <span class="tip" role="tooltip">คืนค่าข้อมูลตัวอย่าง</span>
+          </button>
+        </div>
+      </header>
+
+      @if (view !== 'home' && (searchOpen || query)) {
+        <div class="board-tools board-search">
+          <label class="desk-search">
+            <input id="bz-search" type="search" aria-label="ค้นหา" [placeholder]="searchHint" [value]="query" (input)="query = $any($event.target).value" />
+          </label>
+        </div>
+      }
+
+      @switch (view) {
+        @case ('home') {
+          <section class="summary" aria-label="สรุปสถานะงาน">
+            @for (item of summaryStats; track item.id) {
+              <button type="button" class="summary__item" [class.on]="boardLane === item.id" [attr.data-lane]="item.id" [attr.aria-pressed]="boardLane === item.id" (click)="pickLane(item.id)">
+                <span class="summary__copy">
+                  <b>{{ item.label }}</b>
+                  <small>{{ item.hint }}</small>
+                </span>
+                <strong [class.stat__zero]="item.count === 0">{{ item.count }}</strong>
+                <span class="summary__tip" role="tooltip">{{ item.tip }}</span>
+              </button>
+            }
+          </section>
+
+          <section class="bz-upcoming" aria-label="การประชุมที่กำลังเตรียม">
+            <div class="bz-upcoming__lead">
+              <strong>{{ caseCount }} เคส</strong>
+              <span>ส่งวาระเข้ามาเพื่อรวบรวมนำเข้าประชุม</span>
+            </div>
+            @for (row of upcoming; track row.meeting.id) {
+              <article class="bz-meet">
+                <header>
+                  <b>{{ row.meeting.name }}</b>
+                  <app-status-tag variant="soft" [tone]="row.days !== null && row.days <= 7 ? 'warning' : 'info'" [label]="row.days !== null ? 'อีก ' + row.days + ' วัน' : 'รอกำหนดวัน'" />
+                </header>
+                <p>{{ row.meeting.on ? shortDate(row.meeting.on) + ' · ' + row.meeting.time : 'รอกำหนดวัน' }} · {{ row.items }} วาระ</p>
+                <div class="bz-bar" role="progressbar" [attr.aria-valuenow]="row.done" aria-valuemin="0" [attr.aria-valuemax]="prepSteps.length" aria-label="ความคืบหน้าการเตรียมประชุม">
+                  <span [style.width.%]="(row.done / prepSteps.length) * 100"></span>
+                </div>
+                <footer>
+                  <small>เตรียมแล้ว {{ row.done }}/{{ prepSteps.length }} ขั้น</small>
+                  <app-button type="outline" size="sm" label="เตรียมประชุม" (click)="openMeeting(row.meeting.id, '/bureau/meetings')" />
+                </footer>
+              </article>
+            }
+          </section>
+
+          @if (searchOpen) {
+            <div class="board-tools board-search">
+              <label class="desk-search">
+                <input id="bz-search" type="search" aria-label="ค้นหางาน" placeholder="ค้นหาเรื่อง กลุ่ม ผลิตภัณฑ์ หรือสถานะ" [value]="query" (input)="query = $any($event.target).value" />
+              </label>
+              <label class="board-filter">
+                <span>ประเภทงาน</span>
+                <select aria-label="ประเภทงาน" [value]="kindFilter" (change)="kindFilter = $any($event.target).value">
+                  <option value="">ทั้งหมด</option>
+                  <option value="item">วาระจากกลุ่มงาน</option>
+                  <option value="meeting">การประชุม</option>
+                  <option value="gazette">ประกาศและราชกิจจาฯ</option>
+                  <option value="visit">เบิกจ่ายและลงรับ</option>
+                </select>
+              </label>
+            </div>
+          }
+
+          <section class="board" [class.board--list]="boardView === 'list'" aria-label="บอร์ดงาน">
+            @for (column of boardColumns; track column.id) {
+              <div class="board-col" [attr.data-lane]="column.id">
+                <header>
+                  <h2>{{ column.label }}</h2>
+                  <span>{{ column.rows.length }}</span>
+                </header>
+                @if (!column.rows.length) {
+                  <p class="desk-empty">ไม่มีงาน</p>
+                }
+                @for (card of column.rows; track card.key) {
+                  <article class="job" [class.job--open]="openKey === card.key">
+                    <button type="button" class="job__hit" (click)="toggleCard(card.key)">
+                      <span class="job__top">
+                        <b class="bz-clamp">{{ card.title }}</b>
+                        <app-status-tag variant="soft" [tone]="card.tone" [label]="card.status" />
+                      </span>
+                      @if (card.at) {
+                        <span class="job__when">{{ card.at }}</span>
+                      }
+                      <span class="job__product">{{ card.ref }}</span>
+                      <span class="job__who">{{ card.who }}</span>
+                      @if (card.due) {
+                        <span class="job__due">{{ card.due }}</span>
+                      }
+                    </button>
+                    @if (openKey === card.key) {
+                      <dl class="job__detail">
+                        @for (row of card.rows; track row[0]) {
+                          <div>
+                            <dt>{{ row[0] }}</dt>
+                            <dd>{{ row[1] }}</dd>
+                          </div>
+                        }
+                      </dl>
+                    }
+                    <footer>
+                      <button type="button" class="job__icon" aria-label="ดูรายละเอียด" (click)="toggleCard(card.key)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                        <span class="job__tip" role="tooltip">ดูรายละเอียด</span>
+                      </button>
+                      <button type="button" class="job__icon job__icon--line" [attr.aria-label]="card.goLabel" (click)="goCard(card)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+                        <span class="job__tip" role="tooltip">{{ card.goLabel }}</span>
+                      </button>
+                    </footer>
+                  </article>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        @case ('inbox') {
+          @if (toast) {
+            <p class="bz-toast" role="status">{{ toast }}</p>
+          }
+          <div class="bz-bar-row">
+            <div class="bz-chips" role="tablist" aria-label="สถานะวาระ">
+              @for (chip of inboxChips; track chip.id) {
+                <button type="button" role="tab" [class.on]="inboxChip === chip.id" [attr.aria-selected]="inboxChip === chip.id" (click)="pickChip(chip.id)">
+                  {{ chip.label }}
+                  <strong>{{ chip.count }}</strong>
+                </button>
+              }
+            </div>
+            <app-button type="primary" label="อัปโหลดวาระ" (click)="openUploadNew()" />
+          </div>
+          <section class="bz-card">
+            <div class="bz-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="col-no">ลำดับ</th>
+                    <th>เรื่อง / เคส</th>
+                    <th>กลุ่มและผู้ส่ง</th>
+                    <th>ครบกำหนดตามกฎหมาย</th>
+                    <th>ไฟล์ที่ส่งมา</th>
+                    <th>ประชุมที่เสนอ</th>
+                    <th>สถานะ</th>
+                    <th class="col-act">การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of inboxRows; track row.id; let i = $index) {
+                    <tr [class.bz-live]="row.live">
+                      <td class="col-no">{{ i + 1 }}</td>
+                      <td class="bz-subject">
+                        <strong>{{ row.title }}</strong>
+                        <small>{{ row.caseCode || row.group }} · {{ row.measure }} · {{ row.stage }}</small>
+                        <small>{{ row.product }}</small>
+                        @if (row.live) {
+                          <app-status-tag variant="outline" tone="info" label="ส่งจากหน้าเจ้าหน้าที่ (เคสในระบบ)" />
+                        }
+                        @if (row.manual) {
+                          <app-status-tag variant="outline" tone="neutral" label="บท. อัปโหลดเอง" />
+                        }
+                      </td>
+                      <td>
+                        <strong>{{ row.group }}</strong>
+                        <small>{{ row.sentBy || '—' }}</small>
+                        <small>{{ row.sentAt || 'ยังไม่ส่ง' }}</small>
+                      </td>
+                      <td>{{ dueText(row) }}</td>
+                      <td class="bz-files">
+                        @for (file of row.files; track file.name) {
+                          <span class="bz-file">
+                            <b>{{ roleLabel(file.role) }}</b>
+                            <small>{{ file.name }}</small>
+                            <span>
+                              <button type="button" class="bz-link" (click)="viewItemFile(row, file)">ดู</button>
+                              <button type="button" class="bz-link" (click)="downloadItemFile(row, file)">โหลด</button>
+                            </span>
+                          </span>
+                        } @empty {
+                          <small>ยังไม่มีไฟล์</small>
+                        }
+                        @if (!row.live) {
+                          <button type="button" class="bz-link" (click)="openUploadFiles(row)">{{ row.files.length ? 'เปลี่ยน/เพิ่มไฟล์' : 'อัปโหลดไฟล์' }}</button>
+                        }
+                      </td>
+                      <td>
+                        @if (row.status === 'queued') {
+                          <small>{{ meetingNames(row) }}</small>
+                        } @else {
+                          <select class="bz-select" [attr.aria-label]="'เลือกประชุมของ ' + row.group" [value]="chosenMeeting(row)" (change)="setMeeting(row, $any($event.target).value, $any($event.target))">
+                            @for (meeting of itemMeetingOptions(row); track meeting.id) {
+                              <option [value]="meeting.id" [selected]="chosenMeeting(row) === meeting.id">{{ meeting.name }}</option>
+                            }
+                            <option [value]="newMeeting">+ สร้างประชุมใหม่…</option>
+                          </select>
+                        }
+                      </td>
+                      <td><app-status-tag variant="soft" [tone]="itemTone(row)" [label]="itemStatus(row)" /></td>
+                      <td class="col-act">
+                        @if (row.status === 'sent') {
+                          <app-button type="primary" size="sm" label="รับเข้าวาระ" (click)="queueItem(row)" />
+                        } @else if (row.status === 'queued') {
+                          <app-button type="outline" size="sm" label="ถอดออก" (click)="unqueueItem(row)" />
+                        } @else {
+                          <small>รอกลุ่มส่งวาระ</small>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="8" class="bz-empty">ไม่มีรายการ</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <p class="bz-note">ก่อนทำร่างวาระ กลุ่มต้องตรวจสอบที่ทำการอุตสาหกรรมภายในให้เสร็จ ส่วนอุตสาหกรรมต่างประเทศแล้วแต่ดุลพินิจ กลุ่มงานส่งวาระได้เมื่อ ผอ. อนุมัติแล้ว และแนบทั้งวาระอนุและ PowerPoint จากหน้าเตรียมประชุมของเคส บท. เลือกประชุมที่จะเสนอ แล้วกด "รับเข้าวาระ" เพื่อให้เรื่องไปอยู่ในระเบียบวาระของการประชุมนั้น</p>
+          @if (uploadForm; as form) {
+            <div class="notice" (click)="onUploadModal('ปิด')">
+              <app-modal kind="form" [heading]="form.mode === 'new' ? 'อัปโหลดวาระ' : 'อัปโหลดไฟล์ของวาระ'" [fields]="false" (click)="$event.stopPropagation()" (choose)="onUploadModal($event)">
+                @if (form.mode === 'new') {
+                  <p class="bz-note bz-note--tight modal-field--full">ใช้เมื่อกลุ่มส่งวาระนอกระบบ เช่น ทางอีเมลหรือฉบับกระดาษ ให้แนบฉบับที่ ผอ. อนุมัติแล้ว</p>
+                  <app-input-field class="modal-field block modal-field--full" kind="textarea" label="เรื่องที่เสนอ" [required]="true" [editable]="true" [rows]="2" [value]="form.title" (valueChange)="setUp('title', $event)" />
+                  <label class="board-filter modal-field">
+                    <span>กลุ่มเจ้าของเรื่อง</span>
+                    <select aria-label="กลุ่มเจ้าของเรื่อง" [value]="form.group" (change)="setUp('group', $any($event.target).value)">
+                      @for (group of groups; track group) {
+                        <option [value]="group" [selected]="form.group === group">{{ group }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="board-filter modal-field">
+                    <span>มาตรการ</span>
+                    <select aria-label="มาตรการ" [value]="form.measure" (change)="setUp('measure', $any($event.target).value)">
+                      @for (measure of measures; track measure) {
+                        <option [value]="measure" [selected]="form.measure === measure">{{ measure }}</option>
+                      }
+                    </select>
+                  </label>
+                  <app-input-field class="modal-field block modal-field--wide" kind="text" label="ผลิตภัณฑ์" [optional]="true" [editable]="true" [value]="form.product" (valueChange)="setUp('product', $event)" />
+                  <app-input-field class="modal-field block" kind="text" label="ขั้นตอนของเรื่อง" [optional]="true" [editable]="true" placeholder="เช่น ร่างผลทบทวน" [value]="form.stage" (valueChange)="setUp('stage', $event)" />
+                  <app-thai-date-field label="วันครบกำหนดตามกฎหมาย" [required]="false" placeholder="วว/ดด/ปปปป" [value]="form.due" (valueChange)="setUp('due', $event)" />
+                  <label class="board-filter modal-field modal-field--full">
+                    <span>ประชุมที่เสนอ</span>
+                    <select aria-label="ประชุมที่เสนอ" [value]="form.meetingId" (change)="setUp('meetingId', $any($event.target).value, $any($event.target))">
+                      <option value="" [selected]="!form.meetingId">ยังไม่เลือก (รับเข้าวาระภายหลัง)</option>
+                      @for (meeting of meetingOptionsFor(form.measure); track meeting.id) {
+                        <option [value]="meeting.id" [selected]="form.meetingId === meeting.id">{{ meeting.name }}</option>
+                      }
+                      <option [value]="newMeeting">+ สร้างประชุมใหม่…</option>
+                    </select>
+                  </label>
+                } @else {
+                  <p class="bz-note bz-note--tight modal-field--full">{{ form.title }}</p>
+                }
+                <app-file-field class="modal-field" label="ไฟล์วาระ" [required]="form.mode === 'new'" accept=".doc,.docx,.pdf" note="ไฟล์ .doc .docx หรือ .pdf" [value]="form.agendaName" (fileChange)="setUpFile('agenda', $event)" />
+                <app-file-field class="modal-field" label="ไฟล์ PowerPoint" accept=".ppt,.pptx,.pdf" note="ไฟล์ .ppt .pptx หรือ .pdf (ไม่บังคับ)" [value]="form.pptName" (fileChange)="setUpFile('ppt', $event)" />
+                @if (uploadError) {
+                  <p class="bz-error modal-field--full" role="alert">{{ uploadError }}</p>
+                }
+              </app-modal>
+            </div>
+          }
+          <ng-container [ngTemplateOutlet]="meetingFormTpl" />
+        }
+
+        @case ('plan') {
+          @if (toast) {
+            <p class="bz-toast" role="status">{{ toast }}</p>
+          }
+          <div class="bz-tabs" role="tablist" aria-label="เลือกปีของแผน">
+            @for (y of years; track y) {
+              <button type="button" role="tab" [class.on]="year === y" [attr.aria-selected]="year === y" (click)="pickYear(y)">
+                <b>ปี {{ y }}</b>
+                <small>{{ yearMeetings(y) }} ประชุม · {{ yearItems(y) }} วาระ</small>
+              </button>
+            }
+          </div>
+          <section class="bz-card bz-card--pad">
+            <h2 class="bz-h2">ภาพรวมแผนปี {{ year }} ({{ months[0] }} – {{ months[months.length - 1] }})</h2>
+            <p class="bz-note bz-note--tight">เพิ่ม แก้ไข ย้าย หรือลบประชุมและวาระได้ในแต่ละเดือนด้านล่าง เรื่องที่อยู่ในแผนของประชุมที่กำลังเตรียมจะไปแสดงในเมนูวาระที่ส่งเข้ามาด้วย</p>
+            <div class="bz-table">
+              <table class="bz-matrix">
+                <thead>
+                  <tr>
+                    <th>เดือน</th>
+                    @for (group of matrixGroups; track group) {
+                      <th>{{ group }}</th>
+                    }
+                    <th>ประชุม</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (month of months; track month) {
+                    <tr>
+                      <td><strong>{{ month }}</strong></td>
+                      @for (group of matrixGroups; track group) {
+                        <td [class.bz-zero]="!matrixCount(month, group)">{{ matrixCount(month, group) || '·' }}</td>
+                      }
+                      <td [class.bz-zero]="!meetingsOfMonth(month).length">{{ meetingsOfMonth(month).length || '·' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (year >= 2568) {
+              <p class="bz-note">{{ planNote }}</p>
+            }
+          </section>
+
+          @for (month of months; track month) {
+            @if (!q || meetingsOfMonth(month).length) {
+            <section class="bz-card bz-card--pad">
+              <header class="bz-meet-head">
+                <h2 class="bz-h2">{{ month }}</h2>
+                <app-button type="outline" size="sm" label="เพิ่มประชุมในเดือนนี้" (click)="openAddMeeting(month)" />
+              </header>
+              @for (meeting of meetingsOfMonth(month); track meeting.id) {
+                <div class="bz-plan">
+                  <header>
+                    <b>{{ meeting.name }}</b>
+                    <span>{{ meeting.on ? shortDate(meeting.on) + ' · ' + meeting.time : 'รอกำหนดวัน' }}</span>
+                    <app-status-tag variant="soft" [tone]="stateTone(meeting)" [label]="stateLabel(meeting)" />
+                    <span class="bz-actions">
+                      @if (meetingEditable(meeting)) {
+                        <button type="button" class="bz-link" (click)="openEditMeeting(meeting)">แก้ไข</button>
+                        @if (confirmKey === 'm:' + meeting.id) {
+                          <button type="button" class="bz-link bz-danger" (click)="deleteMeeting(meeting)">ยืนยันลบ</button>
+                          <button type="button" class="bz-link" (click)="askDelete('m:' + meeting.id)">ยกเลิก</button>
+                        } @else {
+                          <button type="button" class="bz-link bz-danger" [disabled]="!!deleteBlock(meeting)" [attr.title]="deleteBlock(meeting)" (click)="askDelete('m:' + meeting.id)">ลบ</button>
+                        }
+                      } @else {
+                        <small>ประชุมแล้ว แก้ไขไม่ได้</small>
+                      }
+                    </span>
+                  </header>
+                  @if (confirmKey === 'm:' + meeting.id) {
+                    <p class="bz-warn-line">ลบประชุมนี้พร้อมวาระที่ยังอยู่ในแผน (ที่กลุ่มยังไม่ส่งมา) ออกจากแผน</p>
+                  } @else if (meetingEditable(meeting) && deleteBlock(meeting)) {
+                    <p class="bz-hint">{{ deleteBlock(meeting) }}</p>
+                  }
+                  <ol>
+                    @for (row of planItems(meeting); track row.id) {
+                      <li>
+                        <div class="bz-plan__row">
+                          <span>
+                            {{ row.title }}
+                            <small>{{ row.group }} · {{ row.measure }}{{ row.due ? ' · ครบกำหนด ' + shortDate(row.due) : '' }} · {{ itemStatus(row) }}</small>
+                          </span>
+                          @if (itemEditable(row, meeting)) {
+                            <span class="bz-actions">
+                              <button type="button" class="bz-link" [disabled]="row.live" (click)="openEditItem(row, meeting.id)">แก้ไข</button>
+                              <button type="button" class="bz-link" [disabled]="!moveTargets(row, meeting.id).length" (click)="startMove(row, meeting.id)">ย้าย</button>
+                              @if (confirmKey === 'i:' + row.id) {
+                                <button type="button" class="bz-link bz-danger" (click)="deleteItem(row)">ยืนยันลบ</button>
+                                <button type="button" class="bz-link" (click)="askDelete('i:' + row.id)">ยกเลิก</button>
+                              } @else {
+                                <button type="button" class="bz-link bz-danger" [disabled]="!!itemDeleteBlock(row)" [attr.title]="itemDeleteBlock(row)" (click)="askDelete('i:' + row.id)">ลบ</button>
+                              }
+                            </span>
+                          }
+                        </div>
+                        @if (moveId === row.id) {
+                          <div class="bz-form bz-form--panel">
+                            <label class="board-filter">
+                              <span>ย้ายไปประชุม</span>
+                              <select aria-label="ย้ายไปประชุม" [value]="moveTo" (change)="moveTo = $any($event.target).value">
+                                @for (target of moveTargets(row, meeting.id); track target.id) {
+                                  <option [value]="target.id" [selected]="moveTo === target.id">{{ target.name }} ({{ target.month }})</option>
+                                }
+                              </select>
+                            </label>
+                            <app-button type="primary" size="sm" label="ย้าย" (click)="doMove(row, meeting.id)" />
+                            <app-button type="outline" size="sm" label="ยกเลิก" (click)="moveId = ''" />
+                          </div>
+                        }
+                      </li>
+                    } @empty {
+                      <li><small>ยังไม่มีวาระในแผน</small></li>
+                    }
+                  </ol>
+                  @if (meetingEditable(meeting) && !q) {
+                    <app-button type="outline" size="sm" label="เพิ่มวาระ" (click)="openAddItem(meeting.id)" />
+                  }
+                </div>
+              } @empty {
+                <p class="bz-note bz-note--tight">ยังไม่มีประชุมในเดือนนี้</p>
+              }
+            </section>
+            }
+          }
+          @if (q && !hasPlanHit) {
+            <p class="bz-note">ไม่พบประชุมหรือวาระที่ตรงกับคำค้นในปี {{ year }}</p>
+          }
+          <ng-container [ngTemplateOutlet]="meetingFormTpl" />
+          <ng-container [ngTemplateOutlet]="itemFormTpl" />
+        }
+
+        @case ('meeting') {
+          <div class="bz-chips" role="tablist" aria-label="กลุ่มการประชุม">
+            @for (group of meetingGroups; track group.id) {
+              <button type="button" role="tab" [class.on]="meetingGroup === group.id" [attr.aria-selected]="meetingGroup === group.id" (click)="pickMeetingGroup(group.id)">
+                {{ group.label }}
+                <strong>{{ group.count }}</strong>
+              </button>
+            }
+          </div>
+          <div class="bz-tabs bz-tabs--row" role="tablist" aria-label="เลือกการประชุม">
+            @for (meeting of meetingTabsShown; track meeting.id) {
+              <button type="button" role="tab" [class.on]="meetingId === meeting.id" [attr.aria-selected]="meetingId === meeting.id" (click)="pickMeetingTab(meeting.id)">
+                <b>{{ meeting.name }}</b>
+                <small>{{ meeting.on ? shortDate(meeting.on) : meeting.month }} · {{ stateLabel(meeting) }}</small>
+              </button>
+            } @empty {
+              <p class="bz-note bz-note--tight">ไม่มีการประชุมในกลุ่มนี้</p>
+            }
+          </div>
+
+          @if (selected; as meeting) {
+            <section class="bz-card bz-card--pad">
+              <header class="bz-meet-head">
+                <div>
+                  <h2 class="bz-h2">{{ meeting.name }}</h2>
+                  <p class="bz-note bz-note--tight">{{ bodyLabel[meeting.body] }}{{ meeting.sector ? ' · กลุ่มสินค้า' + meeting.sector : '' }}</p>
+                </div>
+                <app-status-tag variant="soft" [tone]="stateTone(meeting)" [label]="stateLabel(meeting)" />
+              </header>
+              <dl class="job__detail bz-info">
+                <div><dt>วันประชุม</dt><dd>{{ meeting.on ? shortDate(meeting.on) + ' · ' + meeting.time : 'รอกำหนดวัน (' + meeting.month + ')' }}</dd></div>
+                <div><dt>สถานที่</dt><dd>{{ meeting.place }}</dd></div>
+                <div><dt>ประธาน</dt><dd>{{ meeting.chair }}</dd></div>
+                <div><dt>ผู้ลงนามหนังสือเชิญ</dt><dd>{{ meeting.signer }}</dd></div>
+              </dl>
+              @if (meeting.state === 'plan') {
+                <div class="bz-start">
+                  <p>การประชุมนี้ยังอยู่ในแผน เริ่มเตรียมเมื่อมีวาระส่งเข้ามาแล้ว</p>
+                  <app-button type="primary" label="เริ่มเตรียมประชุม" (click)="startPrep(meeting)" />
+                </div>
+              }
+            </section>
+
+            <div class="bz-split" [class.bz-split--solo]="meeting.state === 'plan'">
+              <aside class="bz-side">
+            <section class="bz-card bz-card--pad">
+                <h2 class="bz-h2">ระเบียบวาระ ({{ store.itemsOf(meeting.id).length }} เรื่อง)</h2>
+                <ol class="bz-agenda">
+                  @for (row of store.itemsOf(meeting.id); track row.id; let i = $index; let last = $last) {
+                    <li>
+                      <span class="bz-agenda__no">{{ i + 1 }}</span>
+                      <div>
+                        <strong>{{ row.title }}</strong>
+                        <small>{{ row.group }} · {{ row.measure }}{{ row.due ? ' · ครบกำหนด ' + shortDate(row.due) : '' }}</small>
+                      </div>
+                      <app-status-tag variant="soft" [tone]="itemTone(row)" [label]="itemStatus(row)" />
+                      @if (meeting.state === 'prep') {
+                        <span class="bz-move">
+                          <button type="button" class="bz-link" [disabled]="i === 0" aria-label="เลื่อนขึ้น" (click)="moveItem(meeting, row, -1)">ขึ้น</button>
+                          <button type="button" class="bz-link" [disabled]="last" aria-label="เลื่อนลง" (click)="moveItem(meeting, row, 1)">ลง</button>
+                        </span>
+                      }
+                    </li>
+                  } @empty {
+                    <li><small>ยังไม่มีวาระ</small></li>
+                  }
+                </ol>
+              </section>
+  
+              </aside>
+              @if (meeting.state !== 'plan') {
+                <div class="bz-main">
+              <section class="bz-card bz-card--pad">
+                  <h2 class="bz-h2">ขั้นตอนเตรียมประชุม ({{ store.prepDone(meeting) }}/{{ prepSteps.length }})</h2>
+                  <div class="bz-bar bz-bar--wide"><span [style.width.%]="(store.prepDone(meeting) / prepSteps.length) * 100"></span></div>
+                  <ol class="bz-steps">
+                    @for (step of prepSteps; track step.id; let i = $index) {
+                      <li [class.done]="!!stepDone(meeting, step)">
+                        <span class="bz-steps__no">{{ stepDone(meeting, step) ? '✓' : i + 1 }}</span>
+                        <div class="bz-steps__body">
+                          <b>{{ step.label }}</b>
+                          <small>{{ step.hint }} · ผู้ทำ {{ step.by }}</small>
+                          @if (stepDone(meeting, step)) {
+                            <small class="bz-ok">เสร็จเมื่อ {{ stepDone(meeting, step) }}</small>
+                          } @else if (stepBlock(meeting, step)) {
+                            <small class="bz-warn">{{ stepBlock(meeting, step) }}</small>
+                          }
+                          @for (made of stepFinals(meeting, step); track made.key) {
+                            <span class="bz-made">
+                              <b>{{ made.label }}</b> {{ made.doc.title }}
+                              <button type="button" class="bz-link" (click)="viewDesk(made.doc)">ดู</button>
+                              <button type="button" class="bz-link" (click)="downloadDesk(made.doc)">โหลด</button>
+                            </span>
+                          }
+                        </div>
+                        <div class="bz-steps__act">
+                          <app-button [type]="stepDone(meeting, step) || needBefore(meeting, step) || meeting.state !== 'prep' ? 'outline' : 'primary'" size="sm" [label]="stepDone(meeting, step) || needBefore(meeting, step) || meeting.state !== 'prep' ? 'เปิดดู' : 'ทำขั้นนี้'" (click)="openStep(meeting, step)" />
+                        </div>
+                      </li>
+                    }
+                  </ol>
+                  @if (meeting.state === 'prep') {
+                    <div class="bz-start">
+                      <p>เมื่อครบทุกขั้น กดบันทึกว่าประชุมแล้ว เพื่อไปทำมติและรายงาน</p>
+                      <app-button type="primary" label="บันทึกว่าประชุมแล้ว" [state]="prepReady ? 'default' : 'disabled'" (click)="markHeld(meeting)" />
+                    </div>
+                  }
+                </section>
+  
+                <section class="bz-card bz-card--pad">
+                  <h2 class="bz-h2">ผู้เข้าร่วมประชุม — มา {{ count(meeting, 'come') }} · ไม่มา {{ count(meeting, 'no') }} · ส่งผู้แทน {{ count(meeting, 'proxy') }} · รอตอบรับ {{ count(meeting, 'wait') }}</h2>
+                  <div class="bz-table">
+                    <table>
+                      <thead>
+                        <tr><th class="col-no">ที่</th><th>ตำแหน่ง</th><th>สถานะ</th><th>กดสถานะ</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (row of meeting.invitees; track row.id; let i = $index) {
+                          <tr>
+                            <td class="col-no">{{ i + 1 }}</td>
+                            <td>{{ row.role }}</td>
+                            <td><app-status-tag variant="soft" [tone]="row.rsvp === 'come' ? 'success' : row.rsvp === 'wait' ? 'neutral' : 'warning'" [label]="rsvpLabel(row.rsvp)" /></td>
+                            <td>
+                              @if (meeting.state === 'prep') {
+                                <span class="bz-rsvp">
+                                  <button type="button" [class.on]="row.rsvp === 'come'" (click)="setRsvp(row, 'come', meeting)">มา</button>
+                                  <button type="button" [class.on]="row.rsvp === 'no'" (click)="setRsvp(row, 'no', meeting)">ไม่มา</button>
+                                  <button type="button" [class.on]="row.rsvp === 'proxy'" (click)="setRsvp(row, 'proxy', meeting)">ส่งผู้แทน</button>
+                                  <button type="button" (click)="setRsvp(row, 'wait', meeting)">ล้าง</button>
+                                </span>
+                              } @else {
+                                <small>{{ row.by || '—' }}</small>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  @if (meeting.state === 'prep') {
+                    <div class="bz-form">
+                      <label class="board-filter bz-wide">
+                        <span>เพิ่มผู้เข้าร่วมที่ไม่เคยมีชื่อในระบบ</span>
+                        <input class="bz-input" aria-label="ตำแหน่งหรือชื่อผู้เข้าร่วม" placeholder="ตำแหน่งหรือชื่อ" [value]="inviteRole" (input)="inviteRole = $any($event.target).value" />
+                      </label>
+                      <app-button type="outline" label="เพิ่มชื่อ" [state]="inviteRole.trim() ? 'default' : 'disabled'" (click)="addInvitee(meeting)" />
+                      <app-button type="secondary" label="ตั้งผู้รอตอบรับเป็นมาทั้งหมด" (click)="allCome(meeting)" />
+                    </div>
+                  }
+                </section>
+                <ng-container [ngTemplateOutlet]="refTpl" />
+                </div>
+              }
+            </div>
+          }
+        }
+
+        @case ('minutes') {
+          <div class="bz-tabs" role="tablist" aria-label="เลือกการประชุม">
+            @for (meeting of afterTabsShown; track meeting.id) {
+              <button type="button" role="tab" [class.on]="meetingId === meeting.id" [attr.aria-selected]="meetingId === meeting.id" (click)="pickMeetingTab(meeting.id)">
+                <b>{{ meeting.name }}</b>
+                <small>{{ shortDate(meeting.on) }} · {{ stateLabel(meeting) }}</small>
+              </button>
+            }
+          </div>
+
+          @if (selected; as meeting) {
+            <section class="bz-card bz-card--pad">
+              <header class="bz-meet-head">
+                <div>
+                  <h2 class="bz-h2">งานหลังประชุม ({{ store.postDone(meeting) }}/{{ postSteps.length }})</h2>
+                  <p class="bz-note bz-note--tight">{{ meeting.name }} · {{ shortDate(meeting.on) }}</p>
+                </div>
+                <app-status-tag variant="soft" [tone]="stateTone(meeting)" [label]="stateLabel(meeting)" />
+              </header>
+              <div class="bz-bar bz-bar--wide"><span [style.width.%]="(store.postDone(meeting) / postSteps.length) * 100"></span></div>
+              <ol class="bz-steps">
+                @for (step of postSteps; track step.id; let i = $index) {
+                  <li [class.done]="!!stepDone(meeting, step)">
+                    <span class="bz-steps__no">{{ stepDone(meeting, step) ? '✓' : i + 1 }}</span>
+                    <div class="bz-steps__body">
+                      <b>{{ step.label }}</b>
+                      <small>{{ step.hint }}</small>
+                      @if (stepDone(meeting, step)) {
+                        <small class="bz-ok">เสร็จเมื่อ {{ stepDone(meeting, step) }}</small>
+                      } @else if (stepBlock(meeting, step)) {
+                        <small class="bz-warn">{{ stepBlock(meeting, step) }}</small>
+                      }
+                      @for (made of stepFinals(meeting, step); track made.key) {
+                        <span class="bz-made">
+                          <b>{{ made.label }}</b> {{ made.doc.title }}
+                          <button type="button" class="bz-link" (click)="viewDesk(made.doc)">ดู</button>
+                          <button type="button" class="bz-link" (click)="downloadDesk(made.doc)">โหลด</button>
+                        </span>
+                      }
+                    </div>
+                    <div class="bz-steps__act">
+                      <app-button [type]="stepDone(meeting, step) || needBefore(meeting, step) || meeting.state !== 'held' ? 'outline' : 'primary'" size="sm" [label]="stepDone(meeting, step) || needBefore(meeting, step) || meeting.state !== 'held' ? 'เปิดดู' : 'ทำขั้นนี้'" (click)="openStep(meeting, step)" />
+                    </div>
+                  </li>
+                }
+              </ol>
+              @if (meeting.state === 'held') {
+                <div class="bz-start">
+                  <p>เมื่อครบทุกขั้น กดปิดงานประชุม เรื่องจะไปอยู่ในช่องงานออก</p>
+                  <app-button type="primary" label="ปิดงานประชุม" [state]="store.postDone(meeting) === postSteps.length ? 'default' : 'disabled'" (click)="closeMeeting(meeting)" />
+                </div>
+              }
+            </section>
+
+            <section class="bz-card bz-card--pad">
+              <h2 class="bz-h2">ความเห็นของกรรมการต่อรายงาน ({{ commentsOf(meeting).length }})</h2>
+              @if (!commentsOf(meeting).length) {
+                <p class="bz-note bz-note--tight">กรรมการไม่มีความเห็นแก้ไข รายงานผ่านการรับรองในวาระที่ 2 ของการประชุมครั้งถัดไป</p>
+              }
+              @for (row of commentsOf(meeting); track row.id) {
+                <article class="bz-comment">
+                  <header>
+                    <div>
+                      <b>{{ row.by }}</b>
+                      <small>{{ row.ref }} · กลุ่มที่แก้ {{ row.group }}</small>
+                    </div>
+                    <app-status-tag variant="soft" [tone]="commentTone(row)" [label]="commentLabel(row)" />
+                  </header>
+                  <p>{{ row.text }}</p>
+                  @if (row.status === 'fixed' || row.status === 'carried') {
+                    <div class="bz-diff">
+                      <div><small>ข้อความเดิม</small><span>{{ row.before }}</span></div>
+                      <div><small>ข้อความหลังแก้ ลงวาระที่ 2 {{ nextMeetingOf(meeting)?.name }}</small><span>{{ row.after }}</span></div>
+                    </div>
+                  }
+                  @if (row.heavy && (row.status === 'fixed' || row.status === 'carried')) {
+                    <div class="bz-heavy">
+                      <small>กรรมการท่านนี้แก้ไขหลายจุด บท. ตัดสินใจว่าจะส่งส่วนที่แก้กลับไปให้ท่านรับทราบหรือไม่</small>
+                      <span class="bz-rsvp">
+                        <button type="button" [class.on]="row.notify === true" (click)="setNotify(row, true)">ส่งให้รับทราบ</button>
+                        <button type="button" [class.on]="row.notify === false" (click)="setNotify(row, false)">ไม่ส่ง</button>
+                      </span>
+                    </div>
+                  }
+                  @if (row.status !== 'carried' && meeting.state === 'held') {
+                    <footer>
+                      <app-button type="primary" size="sm" [label]="advanceLabel(row)" (click)="advanceComment(row)" />
+                    </footer>
+                  }
+                </article>
+              }
+            </section>
+
+            <ng-container [ngTemplateOutlet]="refTpl" />
+          }
+        }
+
+        @case ('finance') {
+          <section class="bz-card bz-card--pad">
+            <h2 class="bz-h2">เอกสารเบิกจ่ายของการประชุม</h2>
+            <div class="bz-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>การประชุม</th>
+                    <th>วันประชุม</th>
+                    <th>ผู้เข้าร่วมจริง</th>
+                    <th>เอกสารขออนุมัติเบี้ยประชุม</th>
+                    <th>รายชื่อเคลียร์เบรก</th>
+                    <th>เบิกตามรายชื่อมาจริง</th>
+                    <th class="col-act">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (meeting of moneyRows; track meeting.id) {
+                    <tr>
+                      <td><strong>{{ meeting.name }}</strong><small>{{ stateLabel(meeting) }}</small></td>
+                      <td>{{ meeting.on ? shortDate(meeting.on) : '—' }}</td>
+                      <td>{{ attended(meeting) }}</td>
+                      <td>
+                        @if (meeting.steps['allow']) {
+                          <app-status-tag variant="soft" tone="success" [label]="'ขออนุมัติแล้ว ' + meeting.steps['allow']" />
+                        } @else {
+                          <app-status-tag variant="soft" tone="warning" label="ยังไม่ขออนุมัติ" />
+                        }
+                      </td>
+                      <td>
+                        @if (meeting.steps['clearbreak']) {
+                          <app-status-tag variant="soft" tone="success" [label]="'จัดทำแล้ว ' + meeting.steps['clearbreak']" />
+                        } @else if (meeting.state === 'plan' || meeting.state === 'prep') {
+                          <app-status-tag variant="soft" tone="neutral" label="รอหลังประชุม" />
+                        } @else {
+                          <app-status-tag variant="soft" tone="warning" label="ยังไม่จัดทำ" />
+                        }
+                      </td>
+                      <td>
+                        @if (meeting.steps['claim']) {
+                          <app-status-tag variant="soft" tone="success" [label]="'เบิกแล้ว ' + meeting.steps['claim']" />
+                        } @else if (meeting.state === 'plan' || meeting.state === 'prep') {
+                          <app-status-tag variant="soft" tone="neutral" label="รอหลังประชุม" />
+                        } @else {
+                          <app-status-tag variant="soft" tone="warning" label="รอเบิก" />
+                        }
+                      </td>
+                      <td class="col-act">
+                        <span class="bz-actions">
+                          <button type="button" class="bz-link" (click)="openStepId(meeting, 'allow')">ขออนุมัติเบี้ย</button>
+                          @if (meeting.state === 'held' || meeting.state === 'closed') {
+                            <button type="button" class="bz-link" (click)="openStepId(meeting, 'clearbreak')">เคลียร์เบรก</button>
+                            <button type="button" class="bz-link" (click)="openStepId(meeting, 'claim')">เบิกตามจริง</button>
+                          }
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <p class="bz-note">เอกสารขออนุมัติเบี้ยประชุมและที่จอดรถทำในขั้นเตรียมประชุม ส่วนรายชื่อเคลียร์เบรกและการเบิกตามรายชื่อที่มาจริงทำหลังประชุม ใช้แม่แบบฉบับจริงของ คปป. 4/2569</p>
+          </section>
+
+          <section class="bz-card bz-card--pad">
+            <h2 class="bz-h2">เบิกคลังและเคลียร์ค่าใช้จ่าย (การ Visit)</h2>
+            <p class="bz-note bz-note--tight">กลุ่มอุตสาหกรรมภายในจะ Visit ทุกครั้ง ส่วนอุตสาหกรรมต่างประเทศขึ้นกับดุลพินิจ การขอ Visit แยกเป็นหลายรอบหรือขอครั้งเดียวแล้วทยอยไปได้ แต่รายงานรวมกัน ถ้าใครไม่ไปต้องใส่เหตุผล</p>
+          </section>
+          @for (row of visitRows; track row.id) {
+            <section class="bz-card bz-card--pad">
+              <header class="bz-meet-head">
+                <div>
+                  <h2 class="bz-h2">{{ row.title }}</h2>
+                  <p class="bz-note bz-note--tight">{{ row.caseCode ? row.caseCode + ' · ' : '' }}{{ row.group }} · ส่งมา {{ row.at }}{{ row.abroad ? ' · ต่างประเทศ' : '' }}</p>
+                  <p class="bz-note bz-note--tight">{{ row.need }}</p>
+                </div>
+                <app-status-tag variant="soft" [tone]="row.clearedAt ? 'success' : visitDone(row) ? 'warning' : 'info'" [label]="visitLabel(row)" />
+              </header>
+              <ol class="bz-steps">
+                @for (step of visitSteps; track step.id; let i = $index) {
+                  <li [class.done]="!!visitAt(row, i)">
+                    <span class="bz-steps__no">{{ visitAt(row, i) ? '✓' : i + 1 }}</span>
+                    <div class="bz-steps__body">
+                      <b>{{ step.label }}</b>
+                      <small>{{ step.hint }}</small>
+                      @if (visitAt(row, i)) {
+                        <small class="bz-ok">เสร็จ {{ visitAt(row, i) }}</small>
+                      }
+                      @if (i === 3 && row.clearedAt) {
+                        <small class="bz-ok">ใช้ไป {{ row.spent }} บาท · เหลือ {{ row.left }} บาท · แนบ {{ row.attach }}</small>
+                      }
+                    </div>
+                    <div class="bz-steps__act">
+                      <button type="button" class="bz-link" (click)="openVisit(row, i)">เปิด</button>
+                    </div>
+                  </li>
+                }
+              </ol>
+              @if (row.abroad) {
+                <p class="bz-note bz-note--tight">ไปต่างประเทศ ให้ สล. พาไปซื้อตั๋วเครื่องบิน ทำหนังสือเดินทางและวีซ่า งบเหล่านี้รวมอยู่ในเอกสารที่ทำเรื่องเบิกคลัง</p>
+              }
+              @if (visitDone(row) < visitSteps.length) {
+                <div class="bz-start">
+                  <p>ขั้นถัดไป: {{ visitSteps[visitDone(row)]?.label }}</p>
+                  <app-button type="primary" label="ทำขั้นนี้" (click)="openVisit(row, visitDone(row))" />
+                </div>
+              } @else {
+                <div class="bz-start">
+                  <p>เคลียร์ค่าใช้จ่ายแล้ว</p>
+                  <app-button type="outline" label="เปิดดูเอกสาร" (click)="openVisit(row, visitSteps.length - 1)" />
+                </div>
+              }
+            </section>
+          }
+        }
+
+        @case ('filing') {
+          @if (toast) {
+            <p class="bz-toast" role="status">{{ toast }}</p>
+          }
+          <section class="bz-card bz-card--pad">
+            <header class="bz-meet-head">
+              <h2 class="bz-h2">รายการที่ลงรับ ({{ store.filings.length }})</h2>
+              <span class="bz-actions">
+                <app-button type="outline" size="sm" [label]="'Sync จากระบบสารบรรณ' + (filingWaiting ? ' (' + filingWaiting + ')' : '')" [state]="filingWaiting ? 'default' : 'disabled'" (click)="syncSaraban()" />
+                <app-button type="primary" size="sm" label="สร้างบันทึกข้อมูลลงรับ" (click)="openFiling()" />
+              </span>
+            </header>
+            <p class="bz-note bz-note--tight">บท. ออกเลขรับในระบบสารบรรณ ระบบดึงเลขมาแสดงที่นี่ได้ (Sync) หรือกรอกเลขเองก็ได้ เมื่อมีเลขรับแล้วจึงส่งมอบให้กลุ่มเจ้าของเรื่อง</p>
+            <div class="bz-table">
+              <table>
+                <thead>
+                  <tr><th>เลขรับสารบรรณ</th><th>เรื่อง</th><th>กลุ่ม</th><th>ระบบสารบรรณ</th><th>ส่งมอบ</th><th class="col-act">จัดการ</th></tr>
+                </thead>
+                <tbody>
+                  @for (row of filingRows; track row.id) {
+                    <tr>
+                      <td>
+                        @if (row.no) {
+                          <strong>{{ row.no }}</strong>
+                        } @else {
+                          <strong>—</strong>
+                        }
+                        <small>รับ {{ row.at }}</small>
+                      </td>
+                      <td>{{ row.subject }}<small>จาก {{ row.from }} · เลขหนังสือ {{ row.letterNo || '—' }}</small></td>
+                      <td>{{ row.group }}</td>
+                      <td>
+                        <app-status-tag variant="soft" [tone]="sarabanTone(row)" [label]="sarabanLabel(row)" />
+                        @if (row.sarabanAt) {
+                          <small>ออกเลข {{ row.sarabanAt }}</small>
+                        }
+                      </td>
+                      <td><app-status-tag variant="soft" [tone]="row.handedAt ? 'success' : 'neutral'" [label]="row.handedAt ? 'ส่งมอบแล้ว ' + row.handedAt : 'รอส่งมอบ'" /></td>
+                      <td class="col-act">
+                        @if (row.saraban === 'wait') {
+                          <span class="bz-actions bz-actions--end">
+                            <app-button type="outline" size="sm" label="Sync เลข" (click)="syncSaraban(row.id)" />
+                            <button type="button" class="bz-link" (click)="openManual(row.id)">กรอกเลขเอง</button>
+                          </span>
+                        } @else if (!row.handedAt) {
+                          <app-button type="primary" size="sm" [label]="'ส่งมอบให้ ' + row.group" (click)="handFiling(row)" />
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="6" class="bz-empty">ยังไม่มีรายการลงรับ</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+          @if (filingOpen) {
+            <div class="notice" (click)="onFilingModal('ปิด')">
+              <app-modal kind="form" heading="สร้างบันทึกข้อมูลลงรับ" [fields]="false" (click)="$event.stopPropagation()" (choose)="onFilingModal($event)">
+                <app-thai-date-field label="วันที่รับ" [required]="true" placeholder="วว/ดด/ปปปป" [value]="filingForm.at" (valueChange)="setFiling('at', $event)" />
+                <label class="board-filter modal-field">
+                  <span>กลุ่มเจ้าของเรื่อง</span>
+                  <select aria-label="กลุ่มเจ้าของเรื่อง" [value]="filingForm.group" (change)="setFiling('group', $any($event.target).value)">
+                    @for (group of groups; track group) {
+                      <option [value]="group" [selected]="filingForm.group === group">{{ group }}</option>
+                    }
+                  </select>
+                </label>
+                <app-input-field class="modal-field block modal-field--wide" kind="text" label="หนังสือจาก (ผู้ส่ง / หน่วยงาน)" [required]="true" [editable]="true" placeholder="เช่น ผู้ประกอบการ, สำนักงานเศรษฐกิจอุตสาหกรรม" [value]="filingForm.from" (valueChange)="setFiling('from', $event)" />
+                <app-input-field class="modal-field block" kind="text" label="เลขที่หนังสือ" [optional]="true" [editable]="true" [value]="filingForm.letterNo" (valueChange)="setFiling('letterNo', $event)" />
+                <app-thai-date-field label="วันที่หนังสือ" [required]="false" placeholder="วว/ดด/ปปปป" [value]="filingForm.letterDate" (valueChange)="setFiling('letterDate', $event)" />
+                <app-input-field class="modal-field block modal-field--full" kind="textarea" label="เรื่อง" [required]="true" [editable]="true" [rows]="2" [value]="filingForm.subject" (valueChange)="setFiling('subject', $event)" />
+                <app-input-field class="modal-field block modal-field--full" kind="text" label="เลขรับจากระบบสารบรรณ (กรอกเองถ้าออกเลขแล้ว)" [optional]="true" [editable]="true" placeholder="เว้นว่างไว้เพื่อ Sync เลขจากระบบสารบรรณภายหลัง" [value]="filingForm.no" (valueChange)="setFiling('no', $event)" />
+                @if (filingError) {
+                  <p class="bz-error modal-field--full" role="alert">{{ filingError }}</p>
+                }
+              </app-modal>
+            </div>
+          }
+          @if (manualId) {
+            <div class="notice" (click)="onManualModal('ปิด')">
+              <app-modal kind="form" heading="กรอกเลขรับจากระบบสารบรรณ" [fields]="false" (click)="$event.stopPropagation()" (choose)="onManualModal($event)">
+                <app-input-field class="modal-field block modal-field--full" kind="text" label="เลขรับสารบรรณ" [required]="true" [editable]="true" placeholder="เช่น สบ.1704/2568" [value]="manualNo" (valueChange)="manualNo = $event" />
+                @if (manualError) {
+                  <p class="bz-error modal-field--full" role="alert">{{ manualError }}</p>
+                }
+              </app-modal>
+            </div>
+          }
+        }
+
+        @case ('gazette') {
+          @for (row of gazetteRows; track row.id) {
+            <section class="bz-card bz-card--pad">
+              <header class="bz-meet-head">
+                <div>
+                  <h2 class="bz-h2">{{ row.title }}</h2>
+                  <p class="bz-note bz-note--tight">{{ row.caseCode ? row.caseCode + ' · ' : '' }}{{ row.kind }} · {{ row.group }}{{ row.no ? ' · เลขหนังสือ ' + row.no : '' }}</p>
+                </div>
+                <app-status-tag variant="soft" [tone]="gazetteDone(row) === row.steps.length ? 'success' : gazetteDone(row) ? 'warning' : 'info'" [label]="gazetteDone(row) === row.steps.length ? 'ลงราชกิจจาฯ แล้ว' : gazetteDone(row) + '/' + row.steps.length + ' ขั้น'" />
+              </header>
+              <ol class="bz-steps">
+                @for (step of row.steps; track step.label; let i = $index) {
+                  <li [class.done]="!!step.at">
+                    <span class="bz-steps__no">{{ step.at ? '✓' : i + 1 }}</span>
+                    <div class="bz-steps__body">
+                      <b>{{ step.label }}</b>
+                      @if (step.at) {
+                        <small class="bz-ok">เสร็จเมื่อ {{ step.at }}</small>
+                      }
+                    </div>
+                    <div class="bz-steps__act">
+                      <button type="button" class="bz-link" (click)="openGazette(row, i)">เปิด</button>
+                    </div>
+                  </li>
+                }
+              </ol>
+              @if (row.files.length) {
+                <div class="bz-kit">
+                  <small>ไฟล์ของเคส:</small>
+                  @for (file of row.files; track file.href) {
+                    <span>
+                      {{ file.name }}
+                      <button type="button" class="bz-link" (click)="viewHref(file.href)">ดู</button>
+                      <button type="button" class="bz-link" (click)="downloadHref(file.href, file.name)">โหลด</button>
+                    </span>
+                  }
+                </div>
+              }
+              @if (gazetteDone(row) < row.steps.length) {
+                <div class="bz-start">
+                  <p>ขั้นถัดไป: {{ row.steps[gazetteDone(row)]?.label }}</p>
+                  @if (askDept(row)) {
+                    <small class="bz-warn">ตอบก่อนว่ามีประกาศกรมตามมาไหม</small>
+                  } @else if (gazetteBlock(row)) {
+                    <small class="bz-warn">{{ gazetteBlock(row) }}</small>
+                  }
+                  <app-button type="primary" label="ทำขั้นนี้" (click)="openGazette(row, gazetteDone(row))" />
+                </div>
+              } @else {
+                <div class="bz-start">
+                  <p>ลงราชกิจจานุเบกษาแล้ว{{ row.no ? ' · เลขหนังสือ ' + row.no : '' }}</p>
+                  <app-button type="outline" label="เปิดดูเอกสาร" (click)="openGazette(row, row.steps.length - 1)" />
+                </div>
+              }
+            </section>
+          }
+        }
+      }
+    </main>
+  </div>
+</div>
+
+<ng-template #meetingFormTpl>
+  @if (mForm; as form) {
+    <div class="notice" (click)="cancelMeetingForm()">
+      <app-modal kind="form" [heading]="form.id ? 'แก้ไขประชุม' : 'เพิ่มประชุมใน ' + form.month" [fields]="false" (click)="$event.stopPropagation()" (choose)="onMeetingModal($event)">
+      @if (!form.id) {
+        <label class="board-filter bz-field">
+          <span>คณะที่ประชุม</span>
+          <select aria-label="คณะที่ประชุม" [value]="form.body" (change)="setMBody($any($event.target).value)">
+            @for (body of bodies; track body.id) {
+              <option [value]="body.id" [selected]="form.body === body.id">{{ body.label }}</option>
+            }
+          </select>
+        </label>
+        @if (form.body === 'tech') {
+          <label class="board-filter bz-field">
+            <span>กลุ่มสินค้าของอนุฯ เทคนิค</span>
+            <select aria-label="กลุ่มสินค้าของอนุฯ เทคนิค" [value]="form.sector" (change)="setMSector($any($event.target).value)">
+              @for (sector of sectors; track sector.id) {
+                <option [value]="sector.label" [selected]="form.sector === sector.label">{{ sector.label }}</option>
+              }
+            </select>
+          </label>
+        }
+      }
+      <app-input-field class="bz-field block bz-field--wide" kind="text" label="ชื่อการประชุม" [required]="true" [editable]="true" [value]="form.name" (valueChange)="setM('name', $event)" />
+      <app-thai-date-field class="bz-field" label="วันประชุม" [required]="false" placeholder="วว/ดด/ปปปป" [value]="form.on" (valueChange)="setM('on', $event)" />
+      <app-input-field class="bz-field block" kind="text" label="เวลา" [optional]="true" [editable]="true" placeholder="เช่น 09.30 น." [value]="form.time" (valueChange)="setM('time', $event)" />
+      <app-input-field class="bz-field block bz-field--wide" kind="text" label="สถานที่" [optional]="true" [editable]="true" placeholder="ถ้าไม่ใส่ ใช้ห้องประชุมตามคณะ" [value]="form.place" (valueChange)="setM('place', $event)" />
+      <app-input-field class="bz-field block" kind="text" label="ประธาน" [optional]="true" [editable]="true" [value]="form.chair" (valueChange)="setM('chair', $event)" />
+      <app-input-field class="bz-field block" kind="text" label="ผู้ลงนามหนังสือเชิญ" [optional]="true" [editable]="true" [value]="form.signer" (valueChange)="setM('signer', $event)" />
+        @if (formError) {
+          <p class="bz-error bz-field--full" role="alert">{{ formError }}</p>
+        }
+      </app-modal>
+    </div>
+  }
+</ng-template>
+
+<ng-template #itemFormTpl>
+  @if (iForm; as form) {
+    <div class="notice" (click)="cancelItemForm()">
+      <app-modal kind="form" [heading]="form.id ? 'แก้ไขวาระ' : 'เพิ่มวาระเข้าแผน'" [fields]="false" (click)="$event.stopPropagation()" (choose)="onItemModal($event)">
+      <app-input-field class="bz-field block bz-field--full" kind="textarea" label="เรื่องที่เสนอ" [required]="true" [editable]="true" [rows]="3" [value]="form.title" (valueChange)="setI('title', $event)" />
+      <label class="board-filter bz-field">
+        <span>กลุ่มเจ้าของเรื่อง</span>
+        <select aria-label="กลุ่มเจ้าของเรื่อง" [value]="form.group" (change)="setI('group', $any($event.target).value)">
+          @for (group of groups; track group) {
+            <option [value]="group" [selected]="form.group === group">{{ group }}</option>
+          }
+        </select>
+      </label>
+      <label class="board-filter bz-field">
+        <span>มาตรการ</span>
+        <select aria-label="มาตรการ" [value]="form.measure" (change)="setI('measure', $any($event.target).value)">
+          @for (measure of measures; track measure) {
+            <option [value]="measure" [selected]="form.measure === measure">{{ measure }}</option>
+          }
+        </select>
+      </label>
+      <app-thai-date-field class="bz-field" label="วันครบกำหนดตามกฎหมาย" [required]="false" placeholder="วว/ดด/ปปปป" [value]="form.due" (valueChange)="setI('due', $event)" />
+      <app-input-field class="bz-field block bz-field--wide" kind="text" label="ผลิตภัณฑ์" [optional]="true" [editable]="true" [value]="form.product" (valueChange)="setI('product', $event)" />
+        @if (formError) {
+          <p class="bz-error bz-field--full" role="alert">{{ formError }}</p>
+        }
+      </app-modal>
+    </div>
+  }
+</ng-template>
+
+<ng-template #refTpl>
+            <section class="bz-card bz-card--pad">
+              <h2 class="bz-h2">รายงานและมติเก่าสำหรับอ้างอิง (ดึงมาใส่ในเล่มวาระ)</h2>
+              <div class="bz-table">
+                <table>
+                  <thead><tr><th>เอกสาร</th><th>ที่มา</th><th class="col-act">ไฟล์</th></tr></thead>
+                  <tbody>
+                    @for (row of refReports; track row.href) {
+                      <tr>
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.from }}</td>
+                        <td class="col-act">
+                          <button type="button" class="bz-link" (click)="viewHref(row.href)">ดู</button>
+                          <button type="button" class="bz-link" (click)="downloadHref(row.href, row.name)">โหลด</button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+</ng-template>

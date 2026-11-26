@@ -4,7 +4,7 @@ import { Accounts } from '../../accounts';
 import { DftButton } from '../../button/button';
 import { InputField } from '../../input-field/input-field';
 import { AuthShell } from '../auth-shell/auth-shell';
-import { InterestKind, saveInterestFiling } from './interest-invite';
+import { InterestKind, InterestPhase, InterestPurpose, interestPurposeLabel, interestPurposes, saveInterestFiling } from './interest-invite';
 import { archiveCases, findListedCase } from './request-cases';
 
 @Component({
@@ -21,6 +21,10 @@ export class InterestJoinPage {
   protected taxId = '';
   protected password = '';
   protected kinds: InterestKind[] = [];
+  /** ขั้นของเคสที่เปิดลิงก์มา: ?phase=draft คือรอบร่างผลสิ้นสุด */
+  protected phase: InterestPhase = 'inquiry';
+  protected purposes: InterestPurpose[] = [];
+  protected readonly purposeChoices = interestPurposes.map((id) => ({ id, label: interestPurposeLabel[id] }));
   protected acceptDocs = false;
   protected signed = false;
   protected acting = false;
@@ -38,6 +42,7 @@ export class InterestJoinPage {
   ) {
     const code = route.snapshot.paramMap.get('code') ?? '';
     this.caseId = /^[A-Za-z0-9-]+$/u.test(code) ? code : '';
+    this.phase = route.snapshot.queryParamMap.get('phase') === 'draft' ? 'draft' : 'inquiry';
   }
 
   protected get openCases() {
@@ -54,6 +59,10 @@ export class InterestJoinPage {
     if (kind === 'domestic') return 'อุตสาหกรรมภายใน';
     if (kind === 'exporter') return 'ผู้ส่งออก';
     return 'หน่วยงานที่เกี่ยวข้อง';
+  }
+
+  protected togglePurpose(id: InterestPurpose): void {
+    this.purposes = this.purposes.includes(id) ? this.purposes.filter((item) => item !== id) : [...this.purposes, id];
   }
 
   protected toggleKind(kind: InterestKind, company = false): void {
@@ -77,12 +86,13 @@ export class InterestJoinPage {
     if (!this.caseId) return 'เลือกเคสที่ต้องการลงทะเบียน';
     const item = findListedCase(this.caseId);
     const ref = item?.ref ? `${item.ref} ` : '';
+    if (this.phase === 'draft') return `เคส ${ref}${item?.goods ?? this.caseId} อยู่ขั้นร่างผลสิ้นสุด ลงทะเบียนเพื่อรับแจ้งแถลงการณ์ร่างผล`;
     return `เคส ${ref}${item?.goods ?? this.caseId} เปิดไต่สวนแล้ว ลงทะเบียนเพื่อเข้าสู่ระบบ`;
   }
 
   protected continuePerson(): void {
-    if (!this.name.trim() || this.taxId.trim().length !== 13 || this.password.trim().length < 8 || !this.kinds.length || !this.acceptDocs || !this.signed) {
-      this.error = 'กรอกชื่อ เลข 13 หลัก รหัสผ่าน เลือกประเภท แล้วยืนยันการรับเอกสารและลงนาม';
+    if (!this.name.trim() || this.taxId.trim().length !== 13 || this.password.trim().length < 8 || !this.kinds.length || !this.purposes.length || !this.acceptDocs || !this.signed) {
+      this.error = 'กรอกชื่อ เลข 13 หลัก รหัสผ่าน เลือกประเภท เลือกจุดประสงค์ แล้วยืนยันการรับเอกสารและลงนาม';
       return;
     }
     this.error = '';
@@ -113,6 +123,8 @@ export class InterestJoinPage {
     saveInterestFiling({
       id: `if-${Date.now()}`,
       caseId: item?.id ?? this.caseId,
+      phase: this.phase,
+      purposes: this.purposes,
       window: this.window,
       name: this.name.trim(),
       taxId: this.taxId.trim(),

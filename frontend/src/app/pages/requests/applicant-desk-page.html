@@ -20,6 +20,14 @@
         }
       </header>
       <section class="panel">
+        @if (interestUser && qnWaiting) {
+          <article class="item">
+            <p class="item__ask">มีแบบสอบถามรอตอบ {{ qnWaiting }} รายการ ตอบและขอขยายเวลาได้ในระบบ</p>
+            <div class="item__foot">
+              <app-button type="primary" label="ไปตอบแบบสอบถาม" routerLink="/requests/questionnaire" />
+            </div>
+          </article>
+        }
         @if (desk === 'interest' && interestUser) {
           <div class="item__foot">
             <a routerLink="/join/AD1020">ลงทะเบียนเข้าเคส</a>
